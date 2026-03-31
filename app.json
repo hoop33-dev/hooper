@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "gym-app",
-    "slug": "gym-app",
+    "name": "hooper",
+    "slug": "hooper",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,6 +15,9 @@
     "ios": {
       "supportsTablet": true
     },
+    "updates": {
+      "url": "https://u.expo.dev/0d004a05-6825-40ab-8640-f2567d841f31"
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -25,6 +28,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0d004a05-6825-40ab-8640-f2567d841f31"
+      }
+    },
+    "owner": "hoop33-dev"
   }
 }

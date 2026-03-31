@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "React Native Devtools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["react-native-ai-devtools"]
+    }
+  },
+  "inputs": []
+}

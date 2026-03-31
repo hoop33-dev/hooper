@@ -1,0 +1,48 @@
+name: PR Preview
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  preview:
+    name: eas-update-preview
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish preview update
+        run: |
+          eas update \
+            --branch pr-${{ github.event.number }} \
+            --message "PR #${{ github.event.number }} — ${{ github.event.pull_request.title }}" \
+            --non-interactive
+
+      - name: Comment preview link on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### 📱 Preview Ready\n\nEAS Update published for branch \`pr-${{ github.event.number }}\`.\n\n[Open in EAS Dashboard](https://expo.dev) to get the QR code, or open Expo Go and switch to this update channel.`
+            })

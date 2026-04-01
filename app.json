@@ -15,6 +15,9 @@
     "ios": {
       "supportsTablet": true
     },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "updates": {
       "url": "https://u.expo.dev/0d004a05-6825-40ab-8640-f2567d841f31"
     },

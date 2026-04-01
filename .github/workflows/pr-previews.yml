@@ -139,12 +139,12 @@ jobs:
             const marker = '<!-- eas-preview-comment -->';
             const groupId = '${{ steps.publish.outputs.group_id }}';
             const dashboardUrl = '${{ steps.publish.outputs.dashboard_url }}';
-            const qrUrl = `https://qr.expo.dev/eas-update?updateId=${groupId}&appScheme=hooper&host=u.expo.dev`;
+            const qrUrl = `https://qr.expo.dev/eas-update?slug=exp&projectId=0d004a05-6825-40ab-8640-f2567d841f31&groupId=${groupId}&host=u.expo.dev`;
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               comment_id: Number('${{ steps.preview_comment.outputs.comment_id }}'),
-              body: `${marker}\n### 🟢 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\n![QR Code](${qrUrl})\n\nScan with Expo Go · [Open in EAS Dashboard](${dashboardUrl})`,
+              body: `${marker}\n### 🟢 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\n<img src="${qrUrl}" width="150" height="150" />\n\nScan with Expo Go · [Open in EAS Dashboard](${dashboardUrl})`,
             });
 
       - name: Update preview comment (failed)

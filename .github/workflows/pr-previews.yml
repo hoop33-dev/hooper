@@ -17,22 +17,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Setup Expo
-        uses: expo/expo-github-action@v8
-        with:
-          expo-version: latest
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
       - name: Build preview metadata
         id: preview_meta
         shell: bash
@@ -109,6 +93,22 @@ jobs:
 
             core.setOutput('comment_id', String(commentId));
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
       - name: Publish preview update
         id: publish
         shell: bash
@@ -144,7 +144,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               comment_id: Number('${{ steps.preview_comment.outputs.comment_id }}'),
-              body: `${marker}\n### 🟢 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\n<img src="${qrUrl}" width="150" height="150" />\n\nScan with Expo Go · [Open in EAS Dashboard](${dashboardUrl})`,
+              body: `${marker}\n### 🟢 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\n<img src="${qrUrl}" width="250" height="250" />\n\nScan with Expo Go · [Open in EAS Dashboard](${dashboardUrl})`,
             });
 
       - name: Update preview comment (failed)

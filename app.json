@@ -3,6 +3,7 @@
     "name": "hooper",
     "slug": "hooper",
     "version": "1.0.0",
+    "platforms": ["ios", "android"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

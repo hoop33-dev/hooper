@@ -33,8 +33,9 @@ jobs:
         run: |
           eas update \
             --branch pr-${{ github.event.number }} \
-            --message "PR #${{ github.event.number }} — ${{ github.event.pull_request.title }}" \
-            --non-interactive
+            --message "PR #${{ github.event.number }} — ${{ github.event.pull_request.title }}"
+        env:
+          CI: "1"
 
       - name: Comment preview link on PR
         uses: actions/github-script@v7

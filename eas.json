@@ -3,16 +3,21 @@
     "version": ">= 16.0.0"
   },
   "build": {
-    "development": {
+    "feature": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "feature",
+      "ios": { "simulator": false },
+      "android": { "buildType": "apk" }
     },
-    "preview": {
-      "channel": "preview",
-      "distribution": "internal"
+    "develop": {
+      "distribution": "internal",
+      "channel": "develop",
+      "android": { "buildType": "apk" }
     },
     "production": {
-      "channel": "production"
+      "channel": "production",
+      "autoIncrement": true
     }
   }
 }

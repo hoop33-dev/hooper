@@ -8,6 +8,8 @@ jobs:
   preview:
     name: eas-update-preview
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
 
     steps:
       - name: Checkout

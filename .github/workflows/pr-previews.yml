@@ -3,6 +3,7 @@ name: PR Preview
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened]
 
 jobs:
   preview:
@@ -109,11 +110,24 @@ jobs:
             core.setOutput('comment_id', String(commentId));
 
       - name: Publish preview update
+        id: publish
+        shell: bash
         run: |
-          eas update \
+          OUTPUT=$(eas update \
             --branch "${{ steps.preview_meta.outputs.branch }}" \
-            --environment development \
-            --message "${{ steps.preview_meta.outputs.message }}"
+            --message "${{ steps.preview_meta.outputs.message }}" \
+            --json)
+
+          GROUP_ID=$(echo "$OUTPUT" | jq -r '.[0].group // empty')
+
+          if [ -n "$GROUP_ID" ]; then
+            DASHBOARD_URL="https://expo.dev/accounts/hoop33-dev/projects/hooper/updates/${GROUP_ID}"
+          else
+            DASHBOARD_URL="https://expo.dev/accounts/hoop33-dev/projects/hooper"
+          fi
+
+          echo "group_id=$GROUP_ID" >> "$GITHUB_OUTPUT"
+          echo "dashboard_url=$DASHBOARD_URL" >> "$GITHUB_OUTPUT"
         env:
           CI: "1"
 
@@ -123,11 +137,12 @@ jobs:
         with:
           script: |
             const marker = '<!-- eas-preview-comment -->';
+            const dashboardUrl = '${{ steps.publish.outputs.dashboard_url }}';
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               comment_id: Number('${{ steps.preview_comment.outputs.comment_id }}'),
-              body: `${marker}\n### 🟢 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\nUpdate message: \`${{ steps.preview_meta.outputs.message }}\`\n\n[Open in EAS Dashboard](https://expo.dev) to get the QR code, or open Expo Go and switch to this update channel.`,
+              body: `${marker}\n### 🟢 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\nUpdate message: \`${{ steps.preview_meta.outputs.message }}\`\n\n[Open in EAS Dashboard](${dashboardUrl}) to get the QR code for this specific update.`,
             });
 
       - name: Update preview comment (failed)

@@ -9,6 +9,7 @@ jobs:
     name: eas-update-preview
     runs-on: ubuntu-latest
     permissions:
+      issues: write
       pull-requests: write
 
     steps:
@@ -67,6 +68,46 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Upsert preview comment (building)
+        id: preview_comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- eas-preview-comment -->';
+            const body = `${marker}\n### 🟠 Preview Building\n\nPreparing EAS Update for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\nPlanned message: \`${{ steps.preview_meta.outputs.message }}\``;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+
+            const existing = comments.find(
+              (comment) => comment.body && comment.body.includes(marker)
+            );
+
+            let commentId;
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+              commentId = existing.id;
+            } else {
+              const { data: created } = await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+              commentId = created.id;
+            }
+
+            core.setOutput('comment_id', String(commentId));
+
       - name: Publish preview update
         run: |
           eas update \
@@ -75,13 +116,28 @@ jobs:
         env:
           CI: "1"
 
-      - name: Comment preview link on PR
+      - name: Update preview comment (ready)
+        if: success()
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            const marker = '<!-- eas-preview-comment -->';
+            await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `### 📱 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\nUpdate message: \`${{ steps.preview_meta.outputs.message }}\`\n\n[Open in EAS Dashboard](https://expo.dev) to get the QR code, or open Expo Go and switch to this update channel.`
-            })
+              comment_id: Number('${{ steps.preview_comment.outputs.comment_id }}'),
+              body: `${marker}\n### 🟢 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\nUpdate message: \`${{ steps.preview_meta.outputs.message }}\`\n\n[Open in EAS Dashboard](https://expo.dev) to get the QR code, or open Expo Go and switch to this update channel.`,
+            });
+
+      - name: Update preview comment (failed)
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- eas-preview-comment -->';
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: Number('${{ steps.preview_comment.outputs.comment_id }}'),
+              body: `${marker}\n### 🔴 Preview Failed\n\nFailed to publish EAS Update for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\nPlanned message: \`${{ steps.preview_meta.outputs.message }}\`\n\nCheck the workflow logs for details.`,
+            });

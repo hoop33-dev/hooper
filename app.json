@@ -27,10 +27,6 @@
       "predictiveBackGestureEnabled": false
     },
     "scheme": "hooper",
-    "web": {
-      "bundler": "metro",
-      "favicon": "./assets/favicon.png"
-    },
     "extra": {
       "eas": {
         "projectId": "0d004a05-6825-40ab-8640-f2567d841f31"

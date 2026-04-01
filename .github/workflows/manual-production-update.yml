@@ -1,0 +1,55 @@
+name: Manual Production Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Update message
+        required: false
+        default: Manual production update
+
+jobs:
+  publish:
+    name: Publish production update
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'main'
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish EAS update (production)
+        run: |
+          eas update \
+            --branch production \
+            --environment production \
+            --message "${{ inputs.message }}"
+
+  wrong-branch:
+    name: Reject non-main branch
+    runs-on: ubuntu-latest
+    if: github.ref_name != 'main'
+    steps:
+      - name: Fail when not on main
+        run: |
+          echo "This workflow can only be run on the main branch."
+          echo "Current branch: ${{ github.ref_name }}"
+          exit 1

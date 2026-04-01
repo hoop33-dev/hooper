@@ -3,15 +3,95 @@ name: PR Preview
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened]
 
 jobs:
   preview:
     name: eas-update-preview
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Build preview metadata
+        id: preview_meta
+        shell: bash
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_BODY="${{ github.event.pull_request.body }}"
+
+          TITLE_SLUG=$(printf '%s' "$PR_TITLE" \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g' \
+            | cut -c1-40)
+
+          if [ -z "$TITLE_SLUG" ]; then
+            TITLE_SLUG="update"
+          fi
+
+          BRANCH="pr-${{ github.event.number }}-$TITLE_SLUG"
+
+          BODY_SUMMARY=$(printf '%s' "$PR_BODY" \
+            | tr '\n' ' ' \
+            | sed -E 's/[[:space:]]+/ /g; s/^ +| +$//g' \
+            | cut -c1-140)
+
+          if [ -n "$BODY_SUMMARY" ]; then
+            MESSAGE="PR #${{ github.event.number }}: $PR_TITLE | $BODY_SUMMARY"
+          else
+            MESSAGE="PR #${{ github.event.number }}: $PR_TITLE"
+          fi
+
+          {
+            echo "branch=$BRANCH"
+            echo "message<<EOF"
+            echo "$MESSAGE"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upsert preview comment (building)
+        id: preview_comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- eas-preview-comment -->';
+            const body = `${marker}\n### 🟠 Preview Building\n\nPreparing EAS Update for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\nPlanned message: \`${{ steps.preview_meta.outputs.message }}\``;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+
+            const existing = comments.find(
+              (comment) => comment.body && comment.body.includes(marker)
+            );
+
+            let commentId;
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+              commentId = existing.id;
+            } else {
+              const { data: created } = await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+              commentId = created.id;
+            }
+
+            core.setOutput('comment_id', String(commentId));
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -30,19 +110,52 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Publish preview update
+        id: publish
+        shell: bash
         run: |
-          eas update \
-            --branch pr-${{ github.event.number }} \
-            --message "PR #${{ github.event.number }} — ${{ github.event.pull_request.title }}" \
-            --non-interactive
+          OUTPUT=$(eas update \
+            --branch "${{ steps.preview_meta.outputs.branch }}" \
+            --message "${{ steps.preview_meta.outputs.message }}" \
+            --json)
 
-      - name: Comment preview link on PR
+          GROUP_ID=$(echo "$OUTPUT" | jq -r '.[0].group // empty')
+
+          if [ -n "$GROUP_ID" ]; then
+            DASHBOARD_URL="https://expo.dev/accounts/hoop33-dev/projects/hooper/updates/${GROUP_ID}"
+          else
+            DASHBOARD_URL="https://expo.dev/accounts/hoop33-dev/projects/hooper"
+          fi
+
+          echo "group_id=$GROUP_ID" >> "$GITHUB_OUTPUT"
+          echo "dashboard_url=$DASHBOARD_URL" >> "$GITHUB_OUTPUT"
+        env:
+          CI: "1"
+
+      - name: Update preview comment (ready)
+        if: success()
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            const marker = '<!-- eas-preview-comment -->';
+            const groupId = '${{ steps.publish.outputs.group_id }}';
+            const dashboardUrl = '${{ steps.publish.outputs.dashboard_url }}';
+            const qrUrl = `https://qr.expo.dev/eas-update?slug=exp&projectId=0d004a05-6825-40ab-8640-f2567d841f31&groupId=${groupId}&host=u.expo.dev`;
+            await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `### 📱 Preview Ready\n\nEAS Update published for branch \`pr-${{ github.event.number }}\`.\n\n[Open in EAS Dashboard](https://expo.dev) to get the QR code, or open Expo Go and switch to this update channel.`
-            })
+              comment_id: Number('${{ steps.preview_comment.outputs.comment_id }}'),
+              body: `${marker}\n### 🟢 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\n<img src="${qrUrl}" width="250" height="250" />\n\nScan with Expo Go · [Open in EAS Dashboard](${dashboardUrl})`,
+            });
+
+      - name: Update preview comment (failed)
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- eas-preview-comment -->';
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: Number('${{ steps.preview_comment.outputs.comment_id }}'),
+              body: `${marker}\n### 🔴 Preview Failed\n\nFailed to publish EAS Update for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\nPlanned message: \`${{ steps.preview_meta.outputs.message }}\`\n\nCheck the workflow logs for details.`,
+            });

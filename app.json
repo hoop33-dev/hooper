@@ -3,10 +3,10 @@
     "name": "hooper",
     "slug": "hooper",
     "version": "1.0.0",
+    "platforms": ["ios", "android"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -14,6 +14,9 @@
     },
     "ios": {
       "supportsTablet": true
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/0d004a05-6825-40ab-8640-f2567d841f31"
@@ -23,17 +26,15 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
+    "scheme": "hooper",
     "extra": {
       "eas": {
         "projectId": "0d004a05-6825-40ab-8640-f2567d841f31"
       }
     },
-    "owner": "hoop33-dev"
+    "owner": "hoop33-dev",
+    "plugins": ["expo-router"]
   }
 }

@@ -3,19 +3,18 @@
     "version": ">= 16.0.0"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
+    "feature-expo-go": {
+      "channel": "feature-expo-go",
       "distribution": "internal"
     },
-    "preview": {
-      "channel": "preview",
+    "development": {
+      "developmentClient": true,
+      "channel": "development",
       "distribution": "internal"
     },
     "production": {
-      "channel": "production"
+      "channel": "production",
+      "autoIncrement": true
     }
-  },
-  "update": {
-    "channel": "main"
   }
 }

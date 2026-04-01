@@ -1,0 +1,55 @@
+name: Manual Development Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Update message
+        required: false
+        default: Manual development update
+
+jobs:
+  publish:
+    name: Publish development update
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'dev'
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish EAS update (development)
+        run: |
+          eas update \
+            --branch development \
+            --environment development \
+            --message "${{ inputs.message }}"
+
+  wrong-branch:
+    name: Reject non-dev branch
+    runs-on: ubuntu-latest
+    if: github.ref_name != 'dev'
+    steps:
+      - name: Fail when not on dev
+        run: |
+          echo "This workflow can only be run on the dev branch."
+          echo "Current branch: ${{ github.ref_name }}"
+          exit 1

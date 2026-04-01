@@ -31,11 +31,47 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      - name: Build preview metadata
+        id: preview_meta
+        shell: bash
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_BODY="${{ github.event.pull_request.body }}"
+
+          TITLE_SLUG=$(printf '%s' "$PR_TITLE" \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g' \
+            | cut -c1-40)
+
+          if [ -z "$TITLE_SLUG" ]; then
+            TITLE_SLUG="update"
+          fi
+
+          BRANCH="pr-${{ github.event.number }}-$TITLE_SLUG"
+
+          BODY_SUMMARY=$(printf '%s' "$PR_BODY" \
+            | tr '\n' ' ' \
+            | sed -E 's/[[:space:]]+/ /g; s/^ +| +$//g' \
+            | cut -c1-140)
+
+          if [ -n "$BODY_SUMMARY" ]; then
+            MESSAGE="PR #${{ github.event.number }}: $PR_TITLE | $BODY_SUMMARY"
+          else
+            MESSAGE="PR #${{ github.event.number }}: $PR_TITLE"
+          fi
+
+          {
+            echo "branch=$BRANCH"
+            echo "message<<EOF"
+            echo "$MESSAGE"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Publish preview update
         run: |
           eas update \
-            --branch pr-${{ github.event.number }} \
-            --message "PR #${{ github.event.number }} — ${{ github.event.pull_request.title }}"
+            --branch "${{ steps.preview_meta.outputs.branch }}" \
+            --message "${{ steps.preview_meta.outputs.message }}"
         env:
           CI: "1"
 
@@ -47,5 +83,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `### 📱 Preview Ready\n\nEAS Update published for branch \`pr-${{ github.event.number }}\`.\n\n[Open in EAS Dashboard](https://expo.dev) to get the QR code, or open Expo Go and switch to this update channel.`
+              body: `### 📱 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\nUpdate message: \`${{ steps.preview_meta.outputs.message }}\`\n\n[Open in EAS Dashboard](https://expo.dev) to get the QR code, or open Expo Go and switch to this update channel.`
             })

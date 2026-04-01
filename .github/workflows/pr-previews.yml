@@ -39,16 +39,7 @@ jobs:
           PR_TITLE="${{ github.event.pull_request.title }}"
           PR_BODY="${{ github.event.pull_request.body }}"
 
-          TITLE_SLUG=$(printf '%s' "$PR_TITLE" \
-            | tr '[:upper:]' '[:lower:]' \
-            | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g' \
-            | cut -c1-40)
-
-          if [ -z "$TITLE_SLUG" ]; then
-            TITLE_SLUG="update"
-          fi
-
-          BRANCH="pr-${{ github.event.number }}-$TITLE_SLUG"
+          BRANCH="PR-${{ github.event.number }}"
 
           BODY_SUMMARY=$(printf '%s' "$PR_BODY" \
             | tr '\n' ' ' \

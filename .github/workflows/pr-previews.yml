@@ -112,7 +112,6 @@ jobs:
         run: |
           eas update \
             --branch "${{ steps.preview_meta.outputs.branch }}" \
-            --channel feature \
             --message "${{ steps.preview_meta.outputs.message }}"
         env:
           CI: "1"

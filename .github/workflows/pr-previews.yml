@@ -122,6 +122,9 @@ jobs:
             --json)
 
           GROUP_ID=$(echo "$OUTPUT" | jq -r '.[0].group // empty')
+          UPDATE_MESSAGE=$(echo "$OUTPUT" | jq -r '.[0].message // empty')
+          RUNTIME_VERSION=$(echo "$OUTPUT" | jq -r '.[0].runtimeVersion // empty')
+          CREATED_AT=$(echo "$OUTPUT" | jq -r '.[0].createdAt // empty')
 
           if [ -n "$GROUP_ID" ]; then
             DASHBOARD_URL="https://expo.dev/accounts/hoop33-dev/projects/hooper/updates/${GROUP_ID}"
@@ -130,6 +133,9 @@ jobs:
           fi
 
           echo "group_id=$GROUP_ID" >> "$GITHUB_OUTPUT"
+          echo "update_message=$UPDATE_MESSAGE" >> "$GITHUB_OUTPUT"
+          echo "runtime_version=$RUNTIME_VERSION" >> "$GITHUB_OUTPUT"
+          echo "created_at=$CREATED_AT" >> "$GITHUB_OUTPUT"
           echo "dashboard_url=$DASHBOARD_URL" >> "$GITHUB_OUTPUT"
         env:
           CI: "1"
@@ -141,16 +147,18 @@ jobs:
           script: |
             const marker = '<!-- eas-preview-comment -->';
             const groupId = '${{ steps.publish.outputs.group_id }}';
+            const updateMessage = '${{ steps.publish.outputs.update_message }}';
+            const runtimeVersion = '${{ steps.publish.outputs.runtime_version }}';
+            const createdAt = '${{ steps.publish.outputs.created_at }}';
             const dashboardUrl = '${{ steps.publish.outputs.dashboard_url }}';
             const projectId = '0d004a05-6825-40ab-8640-f2567d841f31';
             const qrUrl = `https://qr.expo.dev/eas-update?slug=exp&projectId=${projectId}&groupId=${groupId}&host=u.expo.dev`;
-            const rawExpoGoUrl = `exp://u.expo.dev/${projectId}/group/${groupId}`;
-            const expoGoUrl = `https://expo.dev/--/to-exp/${encodeURIComponent(rawExpoGoUrl)}`;
+            const expoPreviewUrl = `https://expo.dev/preview/update?message=${encodeURIComponent(updateMessage)}&updateRuntimeVersion=${encodeURIComponent(runtimeVersion)}&createdAt=${encodeURIComponent(createdAt)}&slug=exp&projectId=${projectId}&group=${groupId}`;
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               comment_id: Number('${{ steps.preview_comment.outputs.comment_id }}'),
-              body: `${marker}\n### 🟢 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\n<img src="${qrUrl}" width="250" height="250" />\n\n[Open in Expo Go](${expoGoUrl}) · [Open in EAS Dashboard](${dashboardUrl})\n\nIf you're viewing this PR on the same phone that has Expo Go installed, tapping the Expo Go link should open the preview directly.`,
+              body: `${marker}\n### 🟢 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\n<img src="${qrUrl}" width="250" height="250" />\n\n[Open Preview](${expoPreviewUrl}) · [Open in EAS Dashboard](${dashboardUrl})\n\nIf you're on mobile with Expo Go installed, use Open Preview or scan the QR code to launch the update.`,
             });
 
       - name: Update preview comment (failed)

@@ -66,12 +66,75 @@ npx expo start
 
 ```
 hooper/
-├── app/              # Screens (file-based routing via Expo Router)
-├── lib/
-│   └── supabase.ts   # Supabase client — import from here
-├── app.json          # Expo config
-├── eas.json          # EAS build/update config
-└── .cursorrules      # AI coding assistant context
+│
+├── app/                          # Expo Router — file-based navigation
+│   ├── (auth)/                   # Public routes (no session required)
+│   │   ├── login.tsx
+│   │   ├── register.tsx
+│   │   └── _layout.tsx
+│   ├── (athlete)/                # Athlete-only routes
+│   │   ├── _layout.tsx           # Athlete tab bar
+│   │   ├── dashboard.tsx
+│   │   ├── workout/
+│   │   │   ├── today.tsx         # Today's session
+│   │   │   └── [trainingDayId].tsx
+│   │   └── progress/
+│   │       └── index.tsx
+│   └── _layout.tsx               # Root layout — handles auth redirect
+│
+├── src/
+│   │
+│   ├── components/               # Shared UI components (role-agnostic)
+│   │   ├── ui/                   # Primitives — Button, Card, Input, Badge
+│   │   │   ├── Button.tsx
+│   │   │   └── Typography.tsx
+│   │   ├── workout/              # Domain components
+│   │   │   └── WorkoutSummary.tsx
+│   │   ├── programs/
+│   │   │   └── PhaseBlock.tsx
+│   │   └── common/
+│   │       ├── LoadingScreen.tsx
+│   │       ├── EmptyState.tsx
+│   │       └── ErrorBoundary.tsx
+│   │
+│   ├── hooks/                    # Custom React hooks
+│   │   └── useAthleteProgress.ts
+│   │
+│   ├── lib/                      # Utilities and service wrappers
+│   │   ├── supabase.ts           # Supabase client (single instance)
+│   │   ├── storage.ts            # Supabase Storage helpers
+│   │   └── sentry.ts             # Sentry init + helpers
+│   │
+│   ├── services/                 # Data access layer — all Supabase queries live here
+│   │   ├── auth.service.ts
+│   │   └── setLog.service.ts
+│   │
+│   ├── stores/                   # Global state (Zustand recommended)
+│   │   ├── auth.store.ts
+│   │   └── workoutSession.store.ts   # Active workout in-progress state
+│   │
+│   ├── types/                    # TypeScript types — mirrors your data model
+│   │   ├── database.types.ts     # Auto-generated from Supabase (never edit manually)
+│   │   ├── app.types.ts          # App-specific types + enums
+│   │   └── index.ts              # Re-exports
+│   │
+│   └── constants/
+│       ├── theme.ts              # Design system tokens (colors, spacing, typography)
+│       └── config.ts             # App-wide constants
+│
+├── supabase/                     # Supabase local dev config
+│   ├── migrations/               # SQL migration files
+│   └── functions/                # Edge Functions (if needed)
+│
+├── assets/                       # Static assets
+│   ├── fonts/                    # DM Sans files
+│   └── images/
+│
+├── .cursorrules                  # Cursor context — paste design system + conventions here
+├── app.json                      # Expo config
+├── eas.json                      # EAS build profiles
+├── tsconfig.json
+└── package.json
 ```
 
 ---

@@ -144,7 +144,8 @@ jobs:
             const dashboardUrl = '${{ steps.publish.outputs.dashboard_url }}';
             const projectId = '0d004a05-6825-40ab-8640-f2567d841f31';
             const qrUrl = `https://qr.expo.dev/eas-update?slug=exp&projectId=${projectId}&groupId=${groupId}&host=u.expo.dev`;
-            const expoGoUrl = `exp://u.expo.dev/${projectId}/group/${groupId}`;
+            const rawExpoGoUrl = `exp://u.expo.dev/${projectId}/group/${groupId}`;
+            const expoGoUrl = `https://expo.dev/--/to-exp/${encodeURIComponent(rawExpoGoUrl)}`;
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,

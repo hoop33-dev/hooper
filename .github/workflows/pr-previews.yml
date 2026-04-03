@@ -2,12 +2,15 @@ name: PR Preview
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, dev]
     types: [opened, synchronize, reopened]
 
 jobs:
   preview:
     name: eas-update-preview
+    if: >-
+      !(github.head_ref == 'dev' && github.base_ref == 'main') &&
+      !(github.head_ref == 'main' && github.base_ref == 'dev')
     runs-on: ubuntu-latest
     permissions:
       issues: write

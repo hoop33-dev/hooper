@@ -6,7 +6,6 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "expo lint",
@@ -14,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "prepare": "husky"
+    "prepare": "husky",
+    "types": "supabase gen types typescript --linked > src/lib/database.types.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
-    "@supabase/supabase-js": "^2.101.0",
+    "@supabase/supabase-js": "^2.101.1",
     "expo": "~55.0.9",
     "expo-constants": "~55.0.9",
     "expo-linking": "~55.0.9",

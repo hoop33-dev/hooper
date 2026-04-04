@@ -1,5 +1,5 @@
 import { ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { StyledSafeAreaView } from "@/src/lib/nativewind-interop";
 import {
   Button,
   Card,
@@ -17,7 +17,7 @@ import {
 
 export default function ShowcaseScreen() {
   return (
-    <SafeAreaView className="bg-surface flex-1">
+    <StyledSafeAreaView className="bg-surface flex-1">
       <ScrollView className="flex-1" contentContainerClassName="p-6 gap-10">
         {/* ── Header ───────────────────────────────────────── */}
         <View>
@@ -184,7 +184,7 @@ export default function ShowcaseScreen() {
 
         <View className="h-8" />
       </ScrollView>
-    </SafeAreaView>
+    </StyledSafeAreaView>
   );
 }
 

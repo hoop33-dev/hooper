@@ -1,5 +1,5 @@
 import { Pressable, PressableProps, Text, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { StyledLinearGradient } from "@/src/lib/nativewind-interop";
 import { colors } from "@/src/constants/theme";
 
 export type ButtonVariant = "primary" | "secondary" | "inverted" | "outline";
@@ -38,7 +38,7 @@ export function Button({
         {...props}
       >
         {({ pressed }) => (
-          <LinearGradient
+          <StyledLinearGradient
             colors={[colors.primary, colors.primaryLight]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -48,7 +48,7 @@ export function Button({
             <Text className={`font-lexend-semibold text-white ${text}`}>
               {children}
             </Text>
-          </LinearGradient>
+          </StyledLinearGradient>
         )}
       </Pressable>
     );

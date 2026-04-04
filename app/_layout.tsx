@@ -1,5 +1,4 @@
 import "../global.css";
-import "@/src/lib/nativewind-interop";
 
 import { useEffect } from "react";
 import { Stack } from "expo-router";

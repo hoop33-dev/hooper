@@ -3,3 +3,27 @@
 @import "tailwindcss/utilities.css";
 
 @import "nativewind/theme";
+
+@theme {
+  /* Brand palette */
+  --color-primary: #f26522;
+  --color-primary-light: #f68d68;
+  --color-navy: #00205c;
+  --color-brand-blue: #0047ba;
+  --color-dark-gray: #231f20;
+
+  /* Surface hierarchy (dark-first) */
+  --color-surface: #161213;
+  --color-surface-low: #1e1b1c;
+  --color-surface-container: #252122;
+  --color-surface-high: #2e2b2c;
+  --color-surface-highest: #383435;
+
+  /* On-surface text */
+  --color-on-surface: #f5f5f5;
+
+  /* Typography */
+  --font-family-lexend: "Lexend_400Regular", system-ui, sans-serif;
+  --font-family-lexend-semibold: "Lexend_600SemiBold", system-ui, sans-serif;
+  --font-family-lexend-bold: "Lexend_700Bold", system-ui, sans-serif;
+}

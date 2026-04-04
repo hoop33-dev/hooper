@@ -41,6 +41,8 @@ export function Input({
   disabled,
   className = "",
   style,
+  onFocus: onFocusProp,
+  onBlur: onBlurProp,
   ...props
 }: InputProps) {
   const [focused, setFocused] = useState(false);
@@ -78,6 +80,7 @@ export function Input({
         )}
 
         <TextInput
+          {...props}
           style={[
             {
               flex: 1,
@@ -97,16 +100,18 @@ export function Input({
             style,
           ]}
           placeholderTextColor="rgba(245,245,245,0.4)"
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onFocus={(e) => { setFocused(true); onFocusProp?.(e); }}
+          onBlur={(e) => { setFocused(false); onBlurProp?.(e); }}
           editable={!disabled}
-          {...props}
         />
 
         {rightIcon && (
           <View style={{ marginLeft: 8 }}>
             {onRightIconPress ? (
-              <Pressable onPress={onRightIconPress} style={{ opacity: 1 }}>
+              <Pressable
+                onPress={onRightIconPress}
+                disabled={disabled}
+              >
                 <Icon name={rightIcon} size={16} color="on-surface-muted" />
               </Pressable>
             ) : (

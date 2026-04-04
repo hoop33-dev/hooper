@@ -24,10 +24,10 @@ interface InputProps extends Omit<TextInputProps, "placeholderTextColor"> {
   className?: string;
 }
 
-const sizeConfig: Record<InputSize, { padding: string; fontSize: number; lineHeight: number }> = {
-  sm: { padding: "px-4 py-2", fontSize: 14, lineHeight: 20 },
-  md: { padding: "px-5 py-3", fontSize: 16, lineHeight: 24 },
-  lg: { padding: "px-6 py-4", fontSize: 18, lineHeight: 27 },
+const sizeConfig: Record<InputSize, { padding: string; fontSize: number }> = {
+  sm: { padding: "px-4 py-2", fontSize: 14 },
+  md: { padding: "px-5 py-3", fontSize: 16 },
+  lg: { padding: "px-6 py-4", fontSize: 18 },
 };
 
 export function Input({
@@ -43,7 +43,7 @@ export function Input({
   ...props
 }: InputProps) {
   const [focused, setFocused] = useState(false);
-  const { padding, fontSize, lineHeight } = sizeConfig[size];
+  const { padding, fontSize } = sizeConfig[size];
 
   const fieldStyle = error
     ? { borderWidth: 1, borderColor: "rgba(242,101,34,0.4)" }
@@ -82,7 +82,6 @@ export function Input({
               flex: 1,
               fontFamily: fonts.regular,
               fontSize,
-              lineHeight,
               color: colors.onSurface,
             },
             style,

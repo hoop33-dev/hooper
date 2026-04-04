@@ -83,6 +83,7 @@ export function Input({
               fontFamily: fonts.regular,
               fontSize,
               color: colors.onSurface,
+              textAlignVertical: "center",
             },
             style,
           ]}

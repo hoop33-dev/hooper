@@ -1,21 +1,30 @@
-import { ScrollView, View } from "react-native";
+import { useState } from "react";
+import { ScrollView, View, Text as RNText } from "react-native";
 import { StyledSafeAreaView } from "@/src/lib/nativewind-interop";
 import {
   Button,
   Card,
+  Checkbox,
   Header1,
   Header2,
   Header3,
   Header4,
   Icon,
+  InlineButton,
+  Input,
   Label,
   Pill,
+  Radio,
   Text,
   TextLG,
   TextSM,
 } from "@/src/components/ui";
 
 export default function ShowcaseScreen() {
+  const [checked1, setChecked1] = useState(false);
+  const [checked2, setChecked2] = useState(true);
+  const [radioValue, setRadioValue] = useState<"a" | "b" | "c">("b");
+
   return (
     <StyledSafeAreaView className="bg-surface flex-1">
       <ScrollView className="flex-1" contentContainerClassName="p-6 gap-10">
@@ -67,6 +76,134 @@ export default function ShowcaseScreen() {
           <Button variant="primary" disabled onPress={() => {}}>
             Disabled
           </Button>
+
+          {/* Icon variants */}
+          <View className="flex-row gap-3 flex-wrap">
+            <Button variant="primary" iconLeft="basketball" onPress={() => {}}>
+              Start Drill
+            </Button>
+            <Button
+              variant="secondary"
+              iconRight="chevron-forward"
+              onPress={() => {}}
+            >
+              View Program
+            </Button>
+          </View>
+
+          {/* Icon-only */}
+          <View className="flex-row gap-3">
+            <Button variant="primary" size="sm" iconLeft="add" onPress={() => {}} />
+            <Button variant="secondary" size="md" iconLeft="search" onPress={() => {}} />
+            <Button variant="outline" size="md" iconLeft="heart-outline" onPress={() => {}} />
+            <Button variant="inverted" size="lg" iconLeft="share-outline" onPress={() => {}} />
+          </View>
+        </Section>
+
+        {/* ── Inputs ───────────────────────────────────────── */}
+        <Section title="Inputs">
+          <Input
+            leftIcon="search"
+            placeholder="Search players, drills, programs…"
+          />
+          <Input
+            label="Email"
+            placeholder="you@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <Input
+            label="Password"
+            placeholder="Enter password"
+            secureTextEntry
+            error="Must be at least 8 characters"
+          />
+          <Input
+            label="Username"
+            placeholder="@handle"
+            rightIcon="close-circle"
+            onRightIconPress={() => {}}
+          />
+          <Input
+            label="Disabled"
+            placeholder="Cannot edit"
+            disabled
+          />
+        </Section>
+
+        {/* ── Selectors ────────────────────────────────────── */}
+        <Section title="Selectors">
+          <View className="gap-4">
+            <Checkbox
+              checked={checked1}
+              onChange={setChecked1}
+              label="Allow notifications"
+            />
+            <Checkbox
+              checked={checked2}
+              onChange={setChecked2}
+              label="Remember me"
+            />
+            <Checkbox
+              checked={false}
+              onChange={() => {}}
+              label="Disabled option"
+              disabled
+            />
+          </View>
+
+          <View className="bg-surface-highest h-px mt-2" />
+
+          <View className="gap-4">
+            <Radio
+              selected={radioValue === "a"}
+              onSelect={() => setRadioValue("a")}
+              label="Player — Youth athlete"
+            />
+            <Radio
+              selected={radioValue === "b"}
+              onSelect={() => setRadioValue("b")}
+              label="Coach / Trainer"
+            />
+            <Radio
+              selected={radioValue === "c"}
+              onSelect={() => setRadioValue("c")}
+              label="Organisation"
+            />
+            <Radio
+              selected={false}
+              onSelect={() => {}}
+              label="Disabled option"
+              disabled
+            />
+          </View>
+        </Section>
+
+        {/* ── Inline Buttons ───────────────────────────────── */}
+        <Section title="Inline Buttons">
+          <RNText
+            style={{ fontFamily: "Lexend_400Regular", fontSize: 16, lineHeight: 24, color: "#F5F5F5" }}
+          >
+            {"Want to join? "}
+            <InlineButton onPress={() => {}}>Sign up now!</InlineButton>
+          </RNText>
+          <RNText
+            style={{ fontFamily: "Lexend_400Regular", fontSize: 16, lineHeight: 24, color: "#F5F5F5" }}
+          >
+            {"Already have an account? "}
+            <InlineButton variant="secondary" onPress={() => {}}>
+              Sign in
+            </InlineButton>
+          </RNText>
+          <RNText
+            style={{ fontFamily: "Lexend_400Regular", fontSize: 14, lineHeight: 21, color: "rgba(245,245,245,0.5)" }}
+          >
+            {"By continuing you agree to our "}
+            <InlineButton onPress={() => {}}>Terms of Service</InlineButton>
+            {" and "}
+            <InlineButton onPress={() => {}}>Privacy Policy</InlineButton>
+            {"."}
+          </RNText>
         </Section>
 
         {/* ── Pills ────────────────────────────────────────── */}

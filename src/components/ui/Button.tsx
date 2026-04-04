@@ -13,15 +13,9 @@ interface ButtonProps extends Omit<PressableProps, "children"> {
 }
 
 const sizeClasses: Record<ButtonSize, { container: string; text: string }> = {
-  sm: { container: "px-4 py-2", text: "text-sm" },
-  md: { container: "px-6 py-3", text: "text-base" },
-  lg: { container: "px-8 py-4", text: "text-lg" },
-};
-
-const sizeFontSizes: Record<ButtonSize, number> = {
-  sm: 14,
-  md: 16,
-  lg: 18,
+  sm: { container: "px-4 py-2", text: "text-sm leading-5" },
+  md: { container: "px-6 py-3", text: "text-base leading-6" },
+  lg: { container: "px-8 py-4", text: "text-lg leading-7" },
 };
 
 export function Button({
@@ -32,8 +26,7 @@ export function Button({
   className = "",
   ...props
 }: ButtonProps) {
-  const { container, text: textSize } = sizeClasses[size];
-  const fontSize = sizeFontSizes[size];
+  const { container, text } = sizeClasses[size];
   const opacity = disabled ? 0.4 : 1;
 
   if (variant === "primary") {
@@ -52,13 +45,7 @@ export function Button({
             style={{ opacity: pressed ? 0.8 : 1 }}
             className={`items-center justify-center rounded-full ${container}`}
           >
-            <Text
-              style={{
-                fontFamily: "Lexend_600SemiBold",
-                fontSize,
-                color: "#FFFFFF",
-              }}
-            >
+            <Text className={`font-lexend-semibold text-white ${text}`}>
               {children}
             </Text>
           </LinearGradient>
@@ -77,13 +64,7 @@ export function Button({
       >
         {({ pressed }) => (
           <View style={{ opacity: pressed ? 0.8 : 1 }}>
-            <Text
-              style={{
-                fontFamily: "Lexend_600SemiBold",
-                fontSize,
-                color: "#FFFFFF",
-              }}
-            >
+            <Text className={`font-lexend-semibold text-white ${text}`}>
               {children}
             </Text>
           </View>
@@ -102,13 +83,7 @@ export function Button({
       >
         {({ pressed }) => (
           <View style={{ opacity: pressed ? 0.8 : 1 }}>
-            <Text
-              style={{
-                fontFamily: "Lexend_600SemiBold",
-                fontSize,
-                color: colors.darkGray,
-              }}
-            >
+            <Text className={`font-lexend-semibold text-dark-gray ${text}`}>
               {children}
             </Text>
           </View>
@@ -121,19 +96,13 @@ export function Button({
   return (
     <Pressable
       disabled={disabled}
-      className={`items-center justify-center rounded-full border active:opacity-80 ${container} ${className}`}
-      style={{ opacity, borderColor: "rgba(245,245,245,0.15)" }}
+      className={`items-center justify-center rounded-full border border-white/15 active:opacity-80 ${container} ${className}`}
+      style={{ opacity }}
       {...props}
     >
       {({ pressed }) => (
         <View style={{ opacity: pressed ? 0.8 : 1 }}>
-          <Text
-            style={{
-              fontFamily: "Lexend_600SemiBold",
-              fontSize,
-              color: colors.onSurface,
-            }}
-          >
+          <Text className={`font-lexend-semibold text-on-surface ${text}`}>
             {children}
           </Text>
         </View>

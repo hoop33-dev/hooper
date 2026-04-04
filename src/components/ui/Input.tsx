@@ -21,6 +21,7 @@ interface InputProps extends Omit<TextInputProps, "placeholderTextColor"> {
   rightIcon?: IoniconsName;
   onRightIconPress?: () => void;
   size?: InputSize;
+  disabled?: boolean;
   className?: string;
 }
 
@@ -83,8 +84,12 @@ export function Input({
               fontFamily: fonts.regular,
               fontSize,
               color: colors.onSurface,
-              // Strip iOS built-in internal padding so the flex container
-              // controls vertical centering; textAlignVertical handles Android
+              // alignSelf: "center" prevents the TextInput from stretching to
+              // fill the full container height on iOS (which would put the
+              // placeholder at the bottom of the stretched bounds).
+              // paddingTop/Bottom: 0 removes iOS's built-in internal padding.
+              // textAlignVertical handles the equivalent alignment on Android.
+              alignSelf: "center",
               paddingTop: 0,
               paddingBottom: 0,
               textAlignVertical: "center",

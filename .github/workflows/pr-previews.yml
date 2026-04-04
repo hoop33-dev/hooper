@@ -154,12 +154,40 @@ jobs:
             const projectId = '0d004a05-6825-40ab-8640-f2567d841f31';
             const qrUrl = `https://qr.expo.dev/eas-update?slug=exp&projectId=${projectId}&groupId=${groupId}&host=u.expo.dev`;
             const expoPreviewUrl = `https://expo.dev/preview/update?message=${encodeURIComponent(updateMessage)}&updateRuntimeVersion=${encodeURIComponent(runtimeVersion)}&createdAt=${encodeURIComponent(createdAt)}&slug=exp&projectId=${projectId}&group=${groupId}`;
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: Number('${{ steps.preview_comment.outputs.comment_id }}'),
-              body: `${marker}\n### 🟢 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\n<img src="${qrUrl}" width="250" height="250" />\n\n[Open Preview](${expoPreviewUrl}) · [Open in EAS Dashboard](${dashboardUrl})\n\nIf you're on mobile with Expo Go installed, use Open Preview or scan the QR code to launch the update.`,
-            });
+            const body = `${marker}\n### 🟢 Preview Ready\n\nEAS Update published for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\n<img src="${qrUrl}" width="250" height="250" />\n\n[Open Preview](${expoPreviewUrl}) · [Open in EAS Dashboard](${dashboardUrl})\n\nIf you're on mobile with Expo Go installed, use Open Preview or scan the QR code to launch the update.`;
+
+            const commentId = Number('${{ steps.preview_comment.outputs.comment_id }}');
+            if (commentId) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: commentId,
+                body,
+              });
+            } else {
+              const { data: comments } = await github.rest.issues.listComments({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+              });
+              const existing = comments.find(c => c.body && c.body.includes(marker));
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body,
+                });
+              }
+            }
 
       - name: Update preview comment (failed)
         if: failure()
@@ -167,9 +195,37 @@ jobs:
         with:
           script: |
             const marker = '<!-- eas-preview-comment -->';
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: Number('${{ steps.preview_comment.outputs.comment_id }}'),
-              body: `${marker}\n### 🔴 Preview Failed\n\nFailed to publish EAS Update for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\nPlanned message: \`${{ steps.preview_meta.outputs.message }}\`\n\nCheck the workflow logs for details.`,
-            });
+            const body = `${marker}\n### 🔴 Preview Failed\n\nFailed to publish EAS Update for branch \`${{ steps.preview_meta.outputs.branch }}\`.\n\nPlanned message: \`${{ steps.preview_meta.outputs.message }}\`\n\nCheck the workflow logs for details.`;
+
+            const commentId = Number('${{ steps.preview_comment.outputs.comment_id }}');
+            if (commentId) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: commentId,
+                body,
+              });
+            } else {
+              const { data: comments } = await github.rest.issues.listComments({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+              });
+              const existing = comments.find(c => c.body && c.body.includes(marker));
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body,
+                });
+              }
+            }

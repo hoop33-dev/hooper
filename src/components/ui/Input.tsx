@@ -45,11 +45,11 @@ export function Input({
   const [focused, setFocused] = useState(false);
   const { padding, fontSize } = sizeConfig[size];
 
-  const fieldStyle = error
-    ? { borderWidth: 1, borderColor: "rgba(242,101,34,0.4)" }
+  const borderColor = error
+    ? "rgba(242,101,34,0.4)"
     : focused
-      ? { borderWidth: 1, borderColor: "rgba(242,101,34,0.2)" }
-      : undefined;
+      ? "rgba(242,101,34,0.2)"
+      : "transparent";
 
   return (
     <View style={{ opacity: disabled ? 0.4 : 1, gap: 6 }}>
@@ -68,7 +68,7 @@ export function Input({
 
       <View
         className={`rounded-full bg-surface-high flex-row items-center ${padding} ${className}`}
-        style={fieldStyle}
+        style={{ borderWidth: 1, borderColor }}
       >
         {leftIcon && (
           <View style={{ marginRight: 8 }}>
@@ -83,6 +83,10 @@ export function Input({
               fontFamily: fonts.regular,
               fontSize,
               color: colors.onSurface,
+              // Strip iOS built-in internal padding so the flex container
+              // controls vertical centering; textAlignVertical handles Android
+              paddingTop: 0,
+              paddingBottom: 0,
               textAlignVertical: "center",
             },
             style,

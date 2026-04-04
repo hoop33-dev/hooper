@@ -1,11 +1,12 @@
-import { cssInterop } from "nativewind";
+import { styled } from "nativewind";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-cssInterop(SafeAreaView, {
+// NativeWind v5: styled() replaces cssInterop/remapProps
+styled(SafeAreaView, {
   className: "style",
 });
 
-cssInterop(LinearGradient, {
+styled(LinearGradient, {
   className: "style",
 });

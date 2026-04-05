@@ -2,10 +2,10 @@ export { Button } from "./Button";
 export type { ButtonVariant, ButtonSize } from "./Button";
 
 export {
-  Header1,
-  Header2,
-  Header3,
-  Header4,
+  Heading1,
+  Heading2,
+  Heading3,
+  Heading4,
   TextLG,
   Text,
   TextSM,

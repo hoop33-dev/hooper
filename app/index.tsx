@@ -5,10 +5,10 @@ import {
   Button,
   Card,
   Checkbox,
-  Header1,
-  Header2,
-  Header3,
-  Header4,
+  Heading1,
+  Heading2,
+  Heading3,
+  Heading4,
   Icon,
   InlineButton,
   Input,
@@ -36,7 +36,7 @@ export default function ShowcaseScreen() {
           <Label className="text-primary mb-2 tracking-widest uppercase">
             Courtside Kinetic
           </Label>
-          <Header2>Design System</Header2>
+          <Heading2>Design System</Heading2>
           <TextSM className="text-on-surface-muted mt-1">
             Component showcase — Hooper v1
           </TextSM>
@@ -44,10 +44,10 @@ export default function ShowcaseScreen() {
 
         {/* ── Typography ───────────────────────────────────── */}
         <Section title="Typography">
-          <Header1>Header 1 — 48px</Header1>
-          <Header2>Header 2 — 36px</Header2>
-          <Header3>Header 3 — 24px</Header3>
-          <Header4>Header 4 — 20px</Header4>
+          <Heading1>Heading 1 — 48px</Heading1>
+          <Heading2>Heading 2 — 36px</Heading2>
+          <Heading3>Heading 3 — 24px</Heading3>
+          <Heading4>Heading 4 — 20px</Heading4>
           <TextLG>TextLG — 18px body copy</TextLG>
           <Text>Text — 16px default body</Text>
           <TextSM>TextSM — 14px supporting text</TextSM>
@@ -258,7 +258,7 @@ export default function ShowcaseScreen() {
         {/* ── Cards ────────────────────────────────────────── */}
         <Section title="Cards">
           <Card>
-            <Header4>Training Program</Header4>
+            <Heading4>Training Program</Heading4>
             <TextSM className="text-on-surface-muted mt-1">
               Standard card — surface-container background, no border.
             </TextSM>
@@ -269,7 +269,7 @@ export default function ShowcaseScreen() {
           </Card>
 
           <Card elevated className="mt-3">
-            <Header4>Elevated Card</Header4>
+            <Heading4>Elevated Card</Heading4>
             <TextSM className="text-on-surface-muted mt-1">
               Elevated — surface-high background with ambient shadow.
             </TextSM>
@@ -279,7 +279,7 @@ export default function ShowcaseScreen() {
             <Pill variant="tertiary" className="mb-2">
               Coach View
             </Pill>
-            <Header4>Coach-facing Card</Header4>
+            <Heading4>Coach-facing Card</Heading4>
             <TextSM className="text-on-surface-muted mt-1">
               Navy background via className override.
             </TextSM>
@@ -369,7 +369,7 @@ function Section({
   return (
     <View>
       <View className="mb-4 flex-row items-center gap-3">
-        <Header3>{title}</Header3>
+        <Heading3>{title}</Heading3>
         <View className="bg-surface-highest h-px flex-1" />
       </View>
       <View className="gap-3">{children}</View>

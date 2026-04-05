@@ -5,9 +5,9 @@ interface TypographyProps extends TextProps {
 }
 
 /**
- * Header1 — 48px Bold. "Billboard" moments: player XP totals, major section headers.
+ * Heading1 — 48px Bold. "Billboard" moments: player XP totals, major section headers.
  */
-export function Header1({ className = "", style, ...props }: TypographyProps) {
+export function Heading1({ className = "", style, ...props }: TypographyProps) {
   return (
     <RNText
       className={`text-on-surface ${className}`}
@@ -21,9 +21,9 @@ export function Header1({ className = "", style, ...props }: TypographyProps) {
 }
 
 /**
- * Header2 — 36px Bold. Program titles, page headers.
+ * Heading2 — 36px Bold. Program titles, page headers.
  */
-export function Header2({ className = "", style, ...props }: TypographyProps) {
+export function Heading2({ className = "", style, ...props }: TypographyProps) {
   return (
     <RNText
       className={`text-on-surface ${className}`}
@@ -37,9 +37,9 @@ export function Header2({ className = "", style, ...props }: TypographyProps) {
 }
 
 /**
- * Header3 — 24px SemiBold. Sub-sections, card titles.
+ * Heading3 — 24px SemiBold. Sub-sections, card titles.
  */
-export function Header3({ className = "", style, ...props }: TypographyProps) {
+export function Heading3({ className = "", style, ...props }: TypographyProps) {
   return (
     <RNText
       className={`text-on-surface ${className}`}
@@ -53,9 +53,9 @@ export function Header3({ className = "", style, ...props }: TypographyProps) {
 }
 
 /**
- * Header4 — 20px SemiBold. Sub-sections, card subtitles.
+ * Heading4 — 20px SemiBold. Sub-sections, card subtitles.
  */
-export function Header4({ className = "", style, ...props }: TypographyProps) {
+export function Heading4({ className = "", style, ...props }: TypographyProps) {
   return (
     <RNText
       className={`text-on-surface ${className}`}

@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Checkbox,
+  DateInput,
   Heading1,
   Heading2,
   Heading3,
@@ -15,6 +16,7 @@ import {
   Label,
   Pill,
   Radio,
+  SelectInput,
   Text,
   TextLG,
   TextSM,
@@ -24,6 +26,10 @@ export default function ShowcaseScreen() {
   const [checked1, setChecked1] = useState(false);
   const [checked2, setChecked2] = useState(true);
   const [radioValue, setRadioValue] = useState<"a" | "b" | "c">("b");
+  const [birthDate, setBirthDate] = useState<Date | undefined>();
+  const [sessionTime, setSessionTime] = useState<Date | undefined>();
+  const [sport, setSport] = useState<string | undefined>();
+  const [position, setPosition] = useState<string | undefined>();
 
   return (
     <StyledSafeAreaView className="bg-surface flex-1">
@@ -148,6 +154,54 @@ export default function ShowcaseScreen() {
             onRightIconPress={() => {}}
           />
           <Input label="Disabled" placeholder="Cannot edit" disabled />
+
+          <DateInput
+            label="Date of Birth"
+            type="date"
+            value={birthDate}
+            onChange={setBirthDate}
+            placeholder="Select your birthday"
+          />
+          <DateInput
+            label="Session Time"
+            type="time"
+            value={sessionTime}
+            onChange={setSessionTime}
+          />
+          <DateInput label="Disabled Date" type="date" disabled />
+
+          <SelectInput
+            label="Sport"
+            placeholder="Choose sport…"
+            options={[
+              { label: "Basketball", value: "basketball" },
+              { label: "Football", value: "football" },
+              { label: "Tennis", value: "tennis" },
+              { label: "Swimming", value: "swimming" },
+            ]}
+            value={sport}
+            onChange={setSport}
+          />
+          <SelectInput
+            label="Position"
+            placeholder="Choose position…"
+            options={[
+              { label: "Point Guard", value: "pg" },
+              { label: "Shooting Guard", value: "sg" },
+              { label: "Small Forward", value: "sf" },
+              { label: "Power Forward", value: "pf" },
+              { label: "Center", value: "c" },
+            ]}
+            value={position}
+            onChange={setPosition}
+            error="Position is required"
+          />
+          <SelectInput
+            label="Disabled Select"
+            placeholder="Cannot open"
+            options={[]}
+            disabled
+          />
         </Section>
 
         {/* ── Selectors ────────────────────────────────────── */}

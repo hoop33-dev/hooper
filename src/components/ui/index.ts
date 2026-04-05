@@ -22,6 +22,12 @@ export { Icon } from "./Icon";
 export { Input } from "./Input";
 export type { InputSize } from "./Input";
 
+export { DateInput } from "./Input";
+export type { DateInputType } from "./Input";
+
+export { SelectInput } from "./Input";
+export type { SelectOption } from "./Input";
+
 export { Checkbox, Radio } from "./Selectors";
 
 export { InlineButton } from "./InlineButton";

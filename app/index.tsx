@@ -59,7 +59,7 @@ export default function ShowcaseScreen() {
         {/* ── Buttons ──────────────────────────────────────── */}
         <Section title="Buttons">
           <Button variant="primary" onPress={() => {}}>
-            Primary — Start Drill
+            <Text className="font-bold">Primary - Join now</Text>
           </Button>
           <Button variant="secondary" onPress={() => {}}>
             Secondary — View Program

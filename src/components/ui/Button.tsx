@@ -1,7 +1,5 @@
 import { Pressable, PressableProps, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { StyledLinearGradient } from "@/src/lib/nativewind-interop";
-import { colors } from "@/src/constants/theme";
 import { Icon } from "./Icon";
 
 export type ButtonVariant = "primary" | "secondary" | "inverted" | "outline";
@@ -58,7 +56,6 @@ export function Button({
   ...props
 }: ButtonProps) {
   const { container, text, iconSize, iconOnlyContainer } = sizeClasses[size];
-  const opacity = disabled ? 0.4 : 1;
   const iconOnly = !children && (!!iconLeft || !!iconRight);
   const containerClass = iconOnly ? iconOnlyContainer : container;
 
@@ -78,12 +75,7 @@ export function Button({
   function renderInner(pressed: boolean) {
     return (
       <View
-        style={{
-          opacity: pressed ? 0.8 : 1,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 8,
-        }}
+        className={`flex-row items-center gap-2 ${pressed ? "opacity-70" : "opacity-100"}`}
       >
         {iconLeft && <Icon name={iconLeft} size={iconSize} color={iconColor} />}
         {children ? (
@@ -102,21 +94,10 @@ export function Button({
     return (
       <Pressable
         disabled={disabled}
-        style={{ opacity }}
-        className={`overflow-hidden rounded-full active:opacity-80 ${className}`}
+        className={`bg-primary items-center justify-center rounded-full active:opacity-75 ${disabled ? "opacity-40" : ""} ${containerClass} ${className}`}
         {...props}
       >
-        {({ pressed }) => (
-          <StyledLinearGradient
-            colors={[colors.primary, colors.primaryLight]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ opacity: pressed ? 0.8 : 1 }}
-            className={`items-center justify-center rounded-full ${containerClass}`}
-          >
-            {renderInner(pressed)}
-          </StyledLinearGradient>
-        )}
+        {({ pressed }) => renderInner(pressed)}
       </Pressable>
     );
   }
@@ -125,8 +106,7 @@ export function Button({
     return (
       <Pressable
         disabled={disabled}
-        style={{ opacity }}
-        className={`bg-brand-blue items-center justify-center rounded-full active:opacity-80 ${containerClass} ${className}`}
+        className={`bg-brand-blue items-center justify-center rounded-full active:bg-[#00338A] active:opacity-90 ${disabled ? "opacity-40" : ""} ${containerClass} ${className}`}
         {...props}
       >
         {({ pressed }) => renderInner(pressed)}
@@ -138,8 +118,7 @@ export function Button({
     return (
       <Pressable
         disabled={disabled}
-        style={{ opacity }}
-        className={`bg-on-surface items-center justify-center rounded-full active:opacity-80 ${containerClass} ${className}`}
+        className={`bg-on-surface items-center justify-center rounded-full active:bg-[#D0D0D0] active:opacity-90 ${disabled ? "opacity-40" : ""} ${containerClass} ${className}`}
         {...props}
       >
         {({ pressed }) => renderInner(pressed)}
@@ -151,8 +130,7 @@ export function Button({
   return (
     <Pressable
       disabled={disabled}
-      className={`border-outline items-center justify-center rounded-full border active:opacity-80 ${containerClass} ${className}`}
-      style={{ opacity }}
+      className={`border-outline items-center justify-center rounded-full border active:opacity-80 ${disabled ? "opacity-40" : ""} ${containerClass} ${className}`}
       {...props}
     >
       {({ pressed }) => renderInner(pressed)}

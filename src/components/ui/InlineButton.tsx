@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Text, TextProps } from "react-native";
-import { colors, fonts } from "@/src/constants/theme";
+import { fonts } from "@/src/constants/theme";
 
 interface InlineButtonProps extends Omit<TextProps, "onPress"> {
   onPress: () => void;
@@ -22,18 +23,37 @@ export function InlineButton({
   variant = "primary",
   disabled = false,
   style,
+  className,
+  onPressIn,
+  onPressOut,
   ...props
 }: InlineButtonProps) {
-  const color = variant === "secondary" ? colors.brandBlue : colors.primary;
+  const [pressed, setPressed] = useState(false);
+  const colorClass =
+    variant === "secondary" ? "text-brand-blue" : "text-primary";
+  const pressedStateClass = disabled
+    ? "opacity-40"
+    : pressed
+      ? "opacity-65 underline"
+      : "opacity-100";
 
   return (
     <Text
       onPress={disabled ? undefined : onPress}
+      onPressIn={(event) => {
+        if (!disabled) {
+          setPressed(true);
+        }
+        onPressIn?.(event);
+      }}
+      onPressOut={(event) => {
+        setPressed(false);
+        onPressOut?.(event);
+      }}
+      className={`font-lexend-semibold ${colorClass} ${pressedStateClass} ${className ?? ""}`}
       style={[
         {
           fontFamily: fonts.semibold,
-          color,
-          opacity: disabled ? 0.4 : 1,
         },
         style,
       ]}

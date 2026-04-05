@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, View, Text as RNText } from "react-native";
+import { Image, ScrollView, View, Text as RNText } from "react-native";
 import { StyledSafeAreaView } from "@/src/lib/nativewind-interop";
 import {
   Button,
@@ -37,6 +37,14 @@ export default function ShowcaseScreen() {
         className="flex-1"
         contentContainerStyle={{ padding: 24, gap: 40 }}
       >
+        <View className="items-center">
+          <Image
+            source={require("../assets/logo-light.png")}
+            style={{ width: 180, height: 54 }}
+            resizeMode="contain"
+          />
+        </View>
+
         {/* ── Header ───────────────────────────────────────── */}
         <View>
           <Label className="text-primary mb-2 tracking-widest uppercase">

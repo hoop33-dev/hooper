@@ -23,7 +23,14 @@ export const colors = {
 
   // Text
   onSurface: "#F5F5F5",
-  onSurfaceMuted: "rgba(245,245,245,0.5)",
+  onSurfaceMuted: "#7d7b7b",
+  onSurfaceFaint: "#4a4748",
+
+  // Subtle tinted surfaces (pre-computed rgba)
+  primarySubtle: "rgba(242, 101, 34, 0.15)",
+  brandBlueSubtle: "rgba(0, 71, 186, 0.15)",
+  primaryLightSubtle: "rgba(246, 141, 104, 0.15)",
+  outline: "rgba(245, 245, 245, 0.15)",
 } as const;
 
 export const gradients = {

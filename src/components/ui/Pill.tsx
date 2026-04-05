@@ -17,17 +17,17 @@ const variantClasses: Record<PillVariant, { container: string; text: string }> =
   {
     /** Orange tint — XP rewards, completion moments */
     primary: {
-      container: "bg-primary/20",
+      container: "bg-primary-subtle",
       text: "text-primary",
     },
     /** Blue tint — status, info, active tabs */
     secondary: {
-      container: "bg-brand-blue/20",
+      container: "bg-brand-blue-subtle",
       text: "text-brand-blue",
     },
     /** Ghost border — low-priority or custom-colored labels */
     outline: {
-      container: "border border-white/15",
+      container: "border border-outline",
       text: "text-on-surface",
     },
     /** Light background — emphasis on dark surfaces */

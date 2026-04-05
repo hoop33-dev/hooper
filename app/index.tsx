@@ -27,14 +27,17 @@ export default function ShowcaseScreen() {
 
   return (
     <StyledSafeAreaView className="bg-surface flex-1">
-      <ScrollView className="flex-1" contentContainerClassName="p-6 gap-10">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 24, gap: 40 }}
+      >
         {/* ── Header ───────────────────────────────────────── */}
         <View>
           <Label className="text-primary mb-2 tracking-widest uppercase">
             Courtside Kinetic
           </Label>
           <Header2>Design System</Header2>
-          <TextSM className="text-on-surface/50 mt-1">
+          <TextSM className="text-on-surface-muted mt-1">
             Component showcase — Hooper v1
           </TextSM>
         </View>
@@ -78,7 +81,7 @@ export default function ShowcaseScreen() {
           </Button>
 
           {/* Icon variants */}
-          <View className="flex-row gap-3 flex-wrap">
+          <View className="flex-row flex-wrap gap-3">
             <Button variant="primary" iconLeft="basketball" onPress={() => {}}>
               Start Drill
             </Button>
@@ -93,10 +96,30 @@ export default function ShowcaseScreen() {
 
           {/* Icon-only */}
           <View className="flex-row gap-3">
-            <Button variant="primary" size="sm" iconLeft="add" onPress={() => {}} />
-            <Button variant="secondary" size="md" iconLeft="search" onPress={() => {}} />
-            <Button variant="outline" size="md" iconLeft="heart-outline" onPress={() => {}} />
-            <Button variant="inverted" size="lg" iconLeft="share-outline" onPress={() => {}} />
+            <Button
+              variant="primary"
+              size="sm"
+              iconLeft="add"
+              onPress={() => {}}
+            />
+            <Button
+              variant="secondary"
+              size="md"
+              iconLeft="search"
+              onPress={() => {}}
+            />
+            <Button
+              variant="outline"
+              size="md"
+              iconLeft="heart-outline"
+              onPress={() => {}}
+            />
+            <Button
+              variant="inverted"
+              size="lg"
+              iconLeft="share-outline"
+              onPress={() => {}}
+            />
           </View>
         </Section>
 
@@ -124,11 +147,7 @@ export default function ShowcaseScreen() {
             rightIcon="close-circle"
             onRightIconPress={() => {}}
           />
-          <Input
-            label="Disabled"
-            placeholder="Cannot edit"
-            disabled
-          />
+          <Input label="Disabled" placeholder="Cannot edit" disabled />
         </Section>
 
         {/* ── Selectors ────────────────────────────────────── */}
@@ -152,7 +171,7 @@ export default function ShowcaseScreen() {
             />
           </View>
 
-          <View className="bg-surface-highest h-px mt-2" />
+          <View className="bg-surface-highest mt-2 h-px" />
 
           <View className="gap-4">
             <Radio
@@ -182,13 +201,23 @@ export default function ShowcaseScreen() {
         {/* ── Inline Buttons ───────────────────────────────── */}
         <Section title="Inline Buttons">
           <RNText
-            style={{ fontFamily: "Lexend_400Regular", fontSize: 16, lineHeight: 24, color: "#F5F5F5" }}
+            style={{
+              fontFamily: "Lexend_400Regular",
+              fontSize: 16,
+              lineHeight: 24,
+              color: "#F5F5F5",
+            }}
           >
             {"Want to join? "}
             <InlineButton onPress={() => {}}>Sign up now!</InlineButton>
           </RNText>
           <RNText
-            style={{ fontFamily: "Lexend_400Regular", fontSize: 16, lineHeight: 24, color: "#F5F5F5" }}
+            style={{
+              fontFamily: "Lexend_400Regular",
+              fontSize: 16,
+              lineHeight: 24,
+              color: "#F5F5F5",
+            }}
           >
             {"Already have an account? "}
             <InlineButton variant="secondary" onPress={() => {}}>
@@ -196,7 +225,12 @@ export default function ShowcaseScreen() {
             </InlineButton>
           </RNText>
           <RNText
-            style={{ fontFamily: "Lexend_400Regular", fontSize: 14, lineHeight: 21, color: "rgba(245,245,245,0.5)" }}
+            style={{
+              fontFamily: "Lexend_400Regular",
+              fontSize: 14,
+              lineHeight: 21,
+              color: "rgba(245,245,245,0.5)",
+            }}
           >
             {"By continuing you agree to our "}
             <InlineButton onPress={() => {}}>Terms of Service</InlineButton>
@@ -215,7 +249,7 @@ export default function ShowcaseScreen() {
             <Pill variant="inverted">Completed</Pill>
             <Pill variant="tertiary">Coach</Pill>
             <Pill variant="tertiary">Organisation</Pill>
-            <Pill variant="primary" className="bg-primary-light/20">
+            <Pill variant="primary" className="bg-primary-light-subtle">
               Custom
             </Pill>
           </View>
@@ -225,7 +259,7 @@ export default function ShowcaseScreen() {
         <Section title="Cards">
           <Card>
             <Header4>Training Program</Header4>
-            <TextSM className="text-on-surface/50 mt-1">
+            <TextSM className="text-on-surface-muted mt-1">
               Standard card — surface-container background, no border.
             </TextSM>
             <View className="mt-3 flex-row gap-2">
@@ -236,7 +270,7 @@ export default function ShowcaseScreen() {
 
           <Card elevated className="mt-3">
             <Header4>Elevated Card</Header4>
-            <TextSM className="text-on-surface/50 mt-1">
+            <TextSM className="text-on-surface-muted mt-1">
               Elevated — surface-high background with ambient shadow.
             </TextSM>
           </Card>
@@ -246,7 +280,7 @@ export default function ShowcaseScreen() {
               Coach View
             </Pill>
             <Header4>Coach-facing Card</Header4>
-            <TextSM className="text-on-surface/50 mt-1">
+            <TextSM className="text-on-surface-muted mt-1">
               Navy background via className override.
             </TextSM>
           </Card>
@@ -257,35 +291,35 @@ export default function ShowcaseScreen() {
           <View className="flex-row flex-wrap gap-6">
             <View className="items-center gap-1">
               <Icon name="basketball" size="lg" color="primary" />
-              <Label className="text-on-surface/50">basketball</Label>
+              <Label className="text-on-surface-muted">basketball</Label>
             </View>
             <View className="items-center gap-1">
               <Icon name="trophy" size="lg" color="primary" />
-              <Label className="text-on-surface/50">trophy</Label>
+              <Label className="text-on-surface-muted">trophy</Label>
             </View>
             <View className="items-center gap-1">
               <Icon name="person-circle" size="lg" color="on-surface" />
-              <Label className="text-on-surface/50">person-circle</Label>
+              <Label className="text-on-surface-muted">person-circle</Label>
             </View>
             <View className="items-center gap-1">
               <Icon name="barbell" size="lg" color="brand-blue" />
-              <Label className="text-on-surface/50">barbell</Label>
+              <Label className="text-on-surface-muted">barbell</Label>
             </View>
             <View className="items-center gap-1">
               <Icon name="star" size="lg" color="primary-light" />
-              <Label className="text-on-surface/50">star</Label>
+              <Label className="text-on-surface-muted">star</Label>
             </View>
             <View className="items-center gap-1">
               <Icon name="lock-closed" size="lg" color="on-surface-muted" />
-              <Label className="text-on-surface/50">lock-closed</Label>
+              <Label className="text-on-surface-muted">lock-closed</Label>
             </View>
             <View className="items-center gap-1">
               <Icon name="checkmark-circle" size="lg" color="primary" />
-              <Label className="text-on-surface/50">checkmark-circle</Label>
+              <Label className="text-on-surface-muted">checkmark-circle</Label>
             </View>
             <View className="items-center gap-1">
               <Icon name="chevron-forward" size="md" color="on-surface" />
-              <Label className="text-on-surface/50">chevron-forward</Label>
+              <Label className="text-on-surface-muted">chevron-forward</Label>
             </View>
           </View>
         </Section>
@@ -313,7 +347,7 @@ export default function ShowcaseScreen() {
                 className={`${bg} flex-row items-center justify-between rounded-xl px-4 py-3`}
               >
                 <Label>{label}</Label>
-                <Label className="text-on-surface/40">{hex}</Label>
+                <Label className="text-on-surface-muted">{hex}</Label>
               </View>
             ))}
           </View>

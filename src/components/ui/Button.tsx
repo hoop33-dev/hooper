@@ -151,7 +151,7 @@ export function Button({
   return (
     <Pressable
       disabled={disabled}
-      className={`items-center justify-center rounded-full border border-white/15 active:opacity-80 ${containerClass} ${className}`}
+      className={`border-outline items-center justify-center rounded-full border active:opacity-80 ${containerClass} ${className}`}
       style={{ opacity }}
       {...props}
     >

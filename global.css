@@ -21,6 +21,14 @@
 
   /* On-surface text */
   --color-on-surface: #f5f5f5;
+  --color-on-surface-muted: #7d7b7b;
+  --color-on-surface-faint: #4a4748;
+
+  /* Subtle tinted surfaces (pre-computed rgba — avoids color-mix() in RN) */
+  --color-primary-subtle: rgba(242, 101, 34, 0.15);
+  --color-brand-blue-subtle: rgba(0, 71, 186, 0.15);
+  --color-primary-light-subtle: rgba(246, 141, 104, 0.15);
+  --color-outline: rgba(245, 245, 245, 0.15);
 
   /* Typography */
   --font-family-lexend: "Lexend_400Regular", system-ui, sans-serif;

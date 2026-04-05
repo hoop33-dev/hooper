@@ -26,7 +26,7 @@ export function Checkbox({
       className={`flex-row items-center gap-3 ${className}`}
     >
       <View
-        className="w-5 h-5 rounded-md items-center justify-center"
+        className="h-5 w-5 items-center justify-center rounded-md"
         style={{
           backgroundColor: checked ? colors.primary : colors.surfaceHighest,
         }}
@@ -40,7 +40,7 @@ export function Checkbox({
             fontFamily: fonts.regular,
             fontSize: 16,
             lineHeight: 24,
-            color: colors.onSurface,
+            color: disabled ? colors.onSurfaceMuted : colors.onSurface,
           }}
         >
           {label}
@@ -74,12 +74,12 @@ export function Radio({
       className={`flex-row items-center gap-3 ${className}`}
     >
       <View
-        className="w-5 h-5 rounded-full items-center justify-center"
+        className="h-5 w-5 items-center justify-center rounded-full"
         style={{ backgroundColor: colors.surfaceHighest }}
       >
         {selected && (
           <View
-            className="w-2.5 h-2.5 rounded-full"
+            className="h-2.5 w-2.5 rounded-full"
             style={{ backgroundColor: colors.primary }}
           />
         )}
@@ -91,7 +91,7 @@ export function Radio({
             fontFamily: fonts.regular,
             fontSize: 16,
             lineHeight: 24,
-            color: colors.onSurface,
+            color: disabled ? colors.onSurfaceMuted : colors.onSurface,
           }}
         >
           {label}

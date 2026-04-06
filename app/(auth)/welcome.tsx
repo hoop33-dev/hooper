@@ -1,4 +1,5 @@
-import { Image, ImageBackground, ScrollView, Text as RNText, View } from "react-native";
+import { Image, ImageBackground, ScrollView, StyleSheet, Text as RNText, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { StyledSafeAreaView } from "@/src/lib/nativewind-interop";
@@ -16,6 +17,16 @@ const HERO_IMAGE_URI =
 
 const appVersion = Constants.expoConfig?.version ?? "1.0.0";
 
+const styles = StyleSheet.create({
+  bottomGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "65%",
+  },
+});
+
 export default function WelcomeScreen() {
   const router = useRouter();
 
@@ -26,7 +37,14 @@ export default function WelcomeScreen() {
       style={{ flex: 1 }}
     >
       {/* Dark overlay — covers full screen */}
-      <View className="absolute inset-0 bg-[rgba(22,18,19,0.60)]" />
+      <View className="absolute inset-0 bg-[rgba(22,18,19,0.45)]" />
+
+      {/* Bottom vignette gradient */}
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.85)", "#000"]}
+        locations={[0, 0.35, 0.7, 1]}
+        style={styles.bottomGradient}
+      />
 
       <StyledSafeAreaView className="flex-1 bg-transparent">
         <ScrollView
@@ -38,7 +56,7 @@ export default function WelcomeScreen() {
           <View className="items-center pt-12">
             <Image
               source={require("../../assets/logo-light.png")}
-              style={{ width: 160, height: 48 }}
+              style={{ width: 220, height: 66 }}
               resizeMode="contain"
             />
           </View>

@@ -4,6 +4,7 @@ import { render, screen, fireEvent } from "@testing-library/react-native";
 import WelcomeScreen from "../app/(auth)/welcome";
 
 const mockPush = jest.fn();
+const mockOpenURL = jest.fn();
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
@@ -18,9 +19,14 @@ jest.mock("expo-constants", () => ({
   default: { expoConfig: { version: "1.0.0" } },
 }));
 
+jest.mock("expo-linking", () => ({
+  openURL: (url: string) => mockOpenURL(url),
+}));
+
 describe("WelcomeScreen", () => {
   beforeEach(() => {
     mockPush.mockClear();
+    mockOpenURL.mockClear();
   });
 
   describe("headline", () => {
@@ -69,30 +75,17 @@ describe("WelcomeScreen", () => {
   });
 
   describe("footer", () => {
-    test("renders Terms of Service link", () => {
-      render(<WelcomeScreen />);
-      expect(screen.getByText("Terms of Service")).toBeTruthy();
-    });
-
-    test("Terms of Service link is pressable", () => {
-      render(<WelcomeScreen />);
-      // Navigation target to be wired up when terms screen/URL is available
-      expect(() =>
-        fireEvent.press(screen.getByText("Terms of Service")),
-      ).not.toThrow();
-    });
-
     test("renders Privacy Policy link", () => {
       render(<WelcomeScreen />);
       expect(screen.getByText("Privacy Policy")).toBeTruthy();
     });
 
-    test("Privacy Policy link is pressable", () => {
+    test("Privacy Policy link opens the correct URL", () => {
       render(<WelcomeScreen />);
-      // Navigation target to be wired up when privacy screen/URL is available
-      expect(() =>
-        fireEvent.press(screen.getByText("Privacy Policy")),
-      ).not.toThrow();
+      fireEvent.press(screen.getByText("Privacy Policy"));
+      expect(mockOpenURL).toHaveBeenCalledWith(
+        "https://www.hoop33.co.nz/privacypolicy",
+      );
     });
 
     test("renders app version", () => {

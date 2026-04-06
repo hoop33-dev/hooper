@@ -25,6 +25,10 @@ function getLexendFontFamilyForClassName(
     return "Lexend_600SemiBold";
   }
 
+  if (["extrabold", "black"].includes(lastMatch)) {
+    return "Lexend_900Black";
+  }
+
   return "Lexend_700Bold";
 }
 
@@ -33,9 +37,27 @@ function buildTypographyClassName(defaultClasses: string, className = "") {
 }
 
 /**
- * Heading1 — 48px Bold. "Billboard" moments: player XP totals, major section headers.
+ * Heading1 — 72px Black. Display/billboard moments: welcome screens, hero headlines.
  */
 export function Heading1({ className = "", style, ...props }: TypographyProps) {
+  const resolvedClassName = buildTypographyClassName(
+    "text-[72px] leading-[76px] font-black",
+    className,
+  );
+
+  return (
+    <RNText
+      className={resolvedClassName}
+      style={[{ fontFamily: "Lexend_900Black" }, style]}
+      {...props}
+    />
+  );
+}
+
+/**
+ * Heading2 — 48px Bold. Major page headers, XP totals.
+ */
+export function Heading2({ className = "", style, ...props }: TypographyProps) {
   const resolvedClassName = buildTypographyClassName(
     "text-[48px] leading-[53px] font-bold",
     className,
@@ -55,9 +77,9 @@ export function Heading1({ className = "", style, ...props }: TypographyProps) {
 }
 
 /**
- * Heading2 — 36px Bold. Program titles, page headers.
+ * Heading3 — 36px Bold. Program titles, page headers.
  */
-export function Heading2({ className = "", style, ...props }: TypographyProps) {
+export function Heading3({ className = "", style, ...props }: TypographyProps) {
   const resolvedClassName = buildTypographyClassName(
     "text-[36px] leading-[40px] font-bold",
     className,
@@ -77,9 +99,9 @@ export function Heading2({ className = "", style, ...props }: TypographyProps) {
 }
 
 /**
- * Heading3 — 24px SemiBold. Sub-sections, card titles.
+ * Heading4 — 24px SemiBold. Sub-sections, card titles.
  */
-export function Heading3({ className = "", style, ...props }: TypographyProps) {
+export function Heading4({ className = "", style, ...props }: TypographyProps) {
   const resolvedClassName = buildTypographyClassName(
     "text-[24px] leading-[29px] font-semibold",
     className,
@@ -99,9 +121,9 @@ export function Heading3({ className = "", style, ...props }: TypographyProps) {
 }
 
 /**
- * Heading4 — 20px SemiBold. Sub-sections, card subtitles.
+ * Heading5 — 20px SemiBold. Sub-sections, card subtitles.
  */
-export function Heading4({ className = "", style, ...props }: TypographyProps) {
+export function Heading5({ className = "", style, ...props }: TypographyProps) {
   const resolvedClassName = buildTypographyClassName(
     "text-[20px] leading-[26px] font-semibold",
     className,

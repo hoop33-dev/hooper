@@ -10,6 +10,7 @@ import {
   Heading2,
   Heading3,
   Heading4,
+  Heading5,
   Icon,
   InlineButton,
   Input,
@@ -58,10 +59,11 @@ export default function ShowcaseScreen() {
 
         {/* ── Typography ───────────────────────────────────── */}
         <Section title="Typography">
-          <Heading1>Heading 1 — 48px</Heading1>
-          <Heading2>Heading 2 — 36px</Heading2>
-          <Heading3>Heading 3 — 24px</Heading3>
-          <Heading4>Heading 4 — 20px</Heading4>
+          <Heading1>Heading 1 — 72px</Heading1>
+          <Heading2>Heading 2 — 48px</Heading2>
+          <Heading3>Heading 3 — 36px</Heading3>
+          <Heading4>Heading 4 — 24px</Heading4>
+          <Heading5>Heading 5 — 20px</Heading5>
           <TextLG>TextLG — 18px body copy</TextLG>
           <Text>Text — 16px default body</Text>
           <TextSM>TextSM — 14px supporting text</TextSM>
@@ -320,7 +322,7 @@ export default function ShowcaseScreen() {
         {/* ── Cards ────────────────────────────────────────── */}
         <Section title="Cards">
           <Card>
-            <Heading4>Training Program</Heading4>
+            <Heading5>Training Program</Heading5>
             <TextSM className="text-on-surface-muted mt-1">
               Standard card — surface-container background, no border.
             </TextSM>
@@ -331,7 +333,7 @@ export default function ShowcaseScreen() {
           </Card>
 
           <Card elevated className="mt-3">
-            <Heading4>Elevated Card</Heading4>
+            <Heading5>Elevated Card</Heading5>
             <TextSM className="text-on-surface-muted mt-1">
               Elevated — surface-high background with ambient shadow.
             </TextSM>
@@ -341,7 +343,7 @@ export default function ShowcaseScreen() {
             <Pill variant="tertiary" className="mb-2">
               Coach View
             </Pill>
-            <Heading4>Coach-facing Card</Heading4>
+            <Heading5>Coach-facing Card</Heading5>
             <TextSM className="text-on-surface-muted mt-1">
               Navy background via className override.
             </TextSM>

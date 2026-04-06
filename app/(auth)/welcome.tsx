@@ -7,7 +7,7 @@ import {
   Button,
   Card,
   Heading1,
-  Heading2,
+  Heading3,
   InlineButton,
   Label,
 } from "@/src/components/ui";
@@ -56,29 +56,29 @@ export default function WelcomeScreen() {
           <View className="items-center pt-12">
             <Image
               source={require("../../assets/logo-light.png")}
-              style={{ width: 220, height: 66 }}
+              style={{ width: 280, height: 84 }}
               resizeMode="contain"
             />
           </View>
 
           {/* Headline */}
           <View className="flex-1 items-center justify-center px-6 pb-12 pt-8">
-            <Heading1 className="italic text-center">ELEVATE</Heading1>
-            <Heading1 className="italic text-center text-primary">YOUR</Heading1>
-            <Heading1 className="italic text-center text-primary">GAME</Heading1>
+            <Heading1 className="text-center">ELEVATE</Heading1>
+            <Heading1 className="text-center text-primary">YOUR</Heading1>
+            <Heading1 className="text-center text-primary">GAME</Heading1>
           </View>
 
           {/* Stats */}
           <View className="flex-row gap-4 px-6 pt-6">
             <Card className="flex-1 items-center py-6">
-              <Heading2 className="text-primary">500K+</Heading2>
+              <Heading3 className="text-primary">500K+</Heading3>
               <Label className="mt-1 text-center uppercase tracking-widest text-on-surface-muted">
                 Workouts{"\n"}Completed
               </Label>
             </Card>
 
             <Card className="flex-1 items-center py-6">
-              <Heading2 className="text-brand-blue">33K+</Heading2>
+              <Heading3 className="text-brand-blue">33K+</Heading3>
               <Label className="mt-1 text-center uppercase tracking-widest text-on-surface-muted">
                 Elite{"\n"}Ballers
               </Label>

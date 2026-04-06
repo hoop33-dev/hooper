@@ -63,4 +63,5 @@ export const fonts = {
   regular: "Lexend_400Regular",
   semibold: "Lexend_600SemiBold",
   bold: "Lexend_700Bold",
+  black: "Lexend_900Black",
 } as const;

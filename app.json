@@ -35,6 +35,6 @@
       }
     },
     "owner": "hoop33-dev",
-    "plugins": ["expo-router"]
+    "plugins": ["expo-router", "expo-font"]
   }
 }

@@ -20,22 +20,20 @@ export default function WelcomeScreen() {
   const router = useRouter();
 
   return (
-    <StyledSafeAreaView className="bg-surface flex-1">
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ flexGrow: 1 }}
-        bounces={false}
-      >
-        {/* Hero — background photo with dark overlay */}
-        <ImageBackground
-          source={{ uri: HERO_IMAGE_URI }}
-          resizeMode="cover"
-          className="w-full"
-          style={{ minHeight: 420 }}
-        >
-          {/* Dark overlay */}
-          <View className="absolute inset-0 bg-[rgba(22,18,19,0.60)]" />
+    <ImageBackground
+      source={{ uri: HERO_IMAGE_URI }}
+      resizeMode="cover"
+      style={{ flex: 1 }}
+    >
+      {/* Dark overlay — covers full screen */}
+      <View className="absolute inset-0 bg-[rgba(22,18,19,0.60)]" />
 
+      <StyledSafeAreaView className="flex-1 bg-transparent">
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ flexGrow: 1 }}
+          bounces={false}
+        >
           {/* Logo */}
           <View className="items-center pt-12">
             <Image
@@ -51,65 +49,65 @@ export default function WelcomeScreen() {
             <Heading1 className="italic text-center text-primary">YOUR</Heading1>
             <Heading1 className="italic text-center text-primary">GAME</Heading1>
           </View>
-        </ImageBackground>
 
-        {/* Stats */}
-        <View className="flex-row gap-4 px-6 pt-6">
-          <Card className="flex-1 items-center py-6">
-            <Heading2 className="text-primary">500K+</Heading2>
-            <Label className="mt-1 text-center uppercase tracking-widest text-on-surface-muted">
-              Workouts{"\n"}Completed
+          {/* Stats */}
+          <View className="flex-row gap-4 px-6 pt-6">
+            <Card className="flex-1 items-center py-6">
+              <Heading2 className="text-primary">500K+</Heading2>
+              <Label className="mt-1 text-center uppercase tracking-widest text-on-surface-muted">
+                Workouts{"\n"}Completed
+              </Label>
+            </Card>
+
+            <Card className="flex-1 items-center py-6">
+              <Heading2 className="text-brand-blue">33K+</Heading2>
+              <Label className="mt-1 text-center uppercase tracking-widest text-on-surface-muted">
+                Elite{"\n"}Ballers
+              </Label>
+            </Card>
+          </View>
+
+          {/* CTAs */}
+          <View className="gap-3 px-6 pt-6">
+            <Button
+              variant="primary"
+              size="lg"
+              iconRight="flash-outline"
+              className="w-full"
+              onPress={() => router.push("/(auth)/register")}
+            >
+              Join the Elite
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onPress={() => router.push("/(auth)/login")}
+            >
+              Sign In
+            </Button>
+          </View>
+
+          {/* Footer */}
+          <View className="items-center gap-2 px-6 pb-8 pt-6">
+            <RNText
+              style={{
+                fontFamily: "Lexend_400Regular",
+                fontSize: 12,
+                color: "rgba(245,245,245,0.5)",
+                textAlign: "center",
+              }}
+            >
+              <InlineButton onPress={() => {}}>Terms of Service</InlineButton>
+              {"  •  "}
+              <InlineButton onPress={() => {}}>Privacy Policy</InlineButton>
+            </RNText>
+            <Label className="uppercase tracking-widest text-on-surface-faint text-center">
+              Hoop 33 Training Systems • Ver {appVersion}
             </Label>
-          </Card>
-
-          <Card className="flex-1 items-center py-6">
-            <Heading2 className="text-brand-blue">33K+</Heading2>
-            <Label className="mt-1 text-center uppercase tracking-widest text-on-surface-muted">
-              Elite{"\n"}Ballers
-            </Label>
-          </Card>
-        </View>
-
-        {/* CTAs */}
-        <View className="gap-3 px-6 pt-6">
-          <Button
-            variant="primary"
-            size="lg"
-            iconRight="flash-outline"
-            className="w-full"
-            onPress={() => router.push("/(auth)/register")}
-          >
-            Join the Elite
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full"
-            onPress={() => router.push("/(auth)/login")}
-          >
-            Sign In
-          </Button>
-        </View>
-
-        {/* Footer */}
-        <View className="items-center gap-2 px-6 pb-8 pt-6">
-          <RNText
-            style={{
-              fontFamily: "Lexend_400Regular",
-              fontSize: 12,
-              color: "rgba(245,245,245,0.5)",
-              textAlign: "center",
-            }}
-          >
-            <InlineButton onPress={() => {}}>Terms of Service</InlineButton>
-            {"  •  "}
-            <InlineButton onPress={() => {}}>Privacy Policy</InlineButton>
-          </RNText>
-          <Label className="uppercase tracking-widest text-on-surface-faint text-center">
-            Hoop 33 Training Systems • Ver {appVersion}
-          </Label>
-        </View>
-      </ScrollView>
-    </StyledSafeAreaView>
+          </View>
+        </ScrollView>
+      </StyledSafeAreaView>
+    </ImageBackground>
   );
 }

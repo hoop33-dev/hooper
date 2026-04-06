@@ -8,6 +8,7 @@ import {
   Lexend_400Regular,
   Lexend_600SemiBold,
   Lexend_700Bold,
+  Lexend_900Black,
 } from "@expo-google-fonts/lexend";
 
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -19,6 +20,7 @@ export default function RootLayout() {
     Lexend_400Regular,
     Lexend_600SemiBold,
     Lexend_700Bold,
+    Lexend_900Black,
   });
 
   useEffect(() => {

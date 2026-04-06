@@ -1,4 +1,11 @@
-import { Image, ImageBackground, ScrollView, StyleSheet, Text as RNText, View } from "react-native";
+import {
+  Image,
+  ImageBackground,
+  ScrollView,
+  StyleSheet,
+  Text as RNText,
+  View,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
@@ -13,7 +20,7 @@ import {
 } from "@/src/components/ui";
 
 const HERO_IMAGE_URI =
-  "https://d11n7da8rpqbjy.cloudfront.net/u346976/112833684965Jay.jpg";
+  "https://d11n7da8rpqbjy.cloudfront.net/u346976/357_1743466712nAhDSC07234.jpg";
 
 const appVersion = Constants.expoConfig?.version ?? "1.0.0";
 
@@ -96,7 +103,7 @@ export default function WelcomeScreen() {
           bounces={false}
         >
           {/* Logo */}
-          <View className="items-center pt-12">
+          <View className="mb-auto items-center pt-5">
             <Image
               source={require("../../assets/logo-light.png")}
               style={{ width: 280, height: 84 }}
@@ -106,23 +113,27 @@ export default function WelcomeScreen() {
 
           {/* Headline */}
           <View className="flex-1 items-center justify-start px-6 pt-4">
-            <Heading1 className="italic text-center">ELEVATE</Heading1>
-            <Heading1 className="italic text-center text-primary">YOUR</Heading1>
-            <Heading1 className="italic text-center text-primary">GAME</Heading1>
+            <Heading1 className="-mb-6 text-center italic">ELEVATE</Heading1>
+            <Heading1 className="text-primary -mb-6 text-center italic">
+              YOUR
+            </Heading1>
+            <Heading1 className="text-primary text-center italic">
+              GAME
+            </Heading1>
           </View>
 
           {/* Stats */}
           <View className="flex-row gap-4 px-6 pt-6">
             <Card className="flex-1 items-center py-6">
               <Heading3 className="text-primary">500K+</Heading3>
-              <Label className="mt-1 text-center uppercase tracking-widest text-on-surface-muted">
+              <Label className="text-on-surface-muted mt-1 text-center tracking-widest uppercase">
                 Workouts{"\n"}Completed
               </Label>
             </Card>
 
             <Card className="flex-1 items-center py-6">
               <Heading3 className="text-brand-blue">33K+</Heading3>
-              <Label className="mt-1 text-center uppercase tracking-widest text-on-surface-muted">
+              <Label className="text-on-surface-muted mt-1 text-center tracking-widest uppercase">
                 Elite{"\n"}Ballers
               </Label>
             </Card>
@@ -150,7 +161,7 @@ export default function WelcomeScreen() {
           </View>
 
           {/* Footer */}
-          <View className="items-center gap-2 px-6 pb-8 pt-6">
+          <View className="items-center gap-2 px-6 pt-6 pb-8">
             <RNText
               style={{
                 fontFamily: "Lexend_400Regular",
@@ -163,7 +174,7 @@ export default function WelcomeScreen() {
               {"  •  "}
               <InlineButton onPress={() => {}}>Privacy Policy</InlineButton>
             </RNText>
-            <Label className="uppercase tracking-widest text-on-surface-faint text-center">
+            <Label className="text-on-surface-faint text-center tracking-widest uppercase">
               Hoop 33 Training Systems • Ver {appVersion}
             </Label>
           </View>

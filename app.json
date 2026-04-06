@@ -2,7 +2,7 @@
   "expo": {
     "name": "hooper",
     "slug": "hooper",
-    "version": "1.0.0",
+    "version": "0.0.1",
     "platforms": ["ios", "android"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",

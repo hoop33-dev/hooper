@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Linking from "expo-linking";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { StyledSafeAreaView } from "@/src/lib/nativewind-interop";
@@ -17,10 +18,12 @@ import {
   Heading3,
   InlineButton,
   Label,
+  TextLG,
 } from "@/src/components/ui";
 
 const HERO_IMAGE_URI =
   "https://d11n7da8rpqbjy.cloudfront.net/u346976/357_1743466712nAhDSC07234.jpg";
+const PRIVACY_POLICY_URL = "https://www.hoop33.co.nz/privacypolicy";
 
 const appVersion = Constants.expoConfig?.version ?? "1.0.0";
 
@@ -113,9 +116,24 @@ export default function WelcomeScreen() {
 
           {/* Headline */}
           <View className="flex-1 items-center justify-start px-6 pt-4">
-            <Heading1 className="-mb-6 text-center" style={{ transform: [{ skewX: "-10deg" }] }}>ELEVATE</Heading1>
-            <Heading1 className="-mb-6 text-center text-primary" style={{ transform: [{ skewX: "-10deg" }] }}>YOUR</Heading1>
-            <Heading1 className="text-center text-primary" style={{ transform: [{ skewX: "-10deg" }] }}>GAME</Heading1>
+            <Heading1
+              className="-mb-6 text-center italic"
+              style={{ transform: [{ skewX: "-10deg" }] }}
+            >
+              ELEVATE
+            </Heading1>
+            <Heading1
+              className="text-primary -mb-6 text-center italic"
+              style={{ transform: [{ skewX: "-10deg" }] }}
+            >
+              YOUR
+            </Heading1>
+            <Heading1
+              className="text-primary text-center italic"
+              style={{ transform: [{ skewX: "-10deg" }] }}
+            >
+              GAME
+            </Heading1>
           </View>
 
           {/* Stats */}
@@ -144,7 +162,7 @@ export default function WelcomeScreen() {
               className="w-full"
               onPress={() => router.push("/(auth)/register")}
             >
-              Join the Elite
+              <TextLG className="font-bold">Join the Elite</TextLG>
             </Button>
             <Button
               variant="outline"
@@ -166,9 +184,19 @@ export default function WelcomeScreen() {
                 textAlign: "center",
               }}
             >
-              <InlineButton onPress={() => {}}>Terms of Service</InlineButton>
-              {"  •  "}
-              <InlineButton onPress={() => {}}>Privacy Policy</InlineButton>
+              {/* <InlineButton
+                onPress={() => {}}
+              >
+                Terms of Service
+              </InlineButton>
+              {"  •  "} */}
+              <InlineButton
+                onPress={() => {
+                  void Linking.openURL(PRIVACY_POLICY_URL);
+                }}
+              >
+                Privacy Policy
+              </InlineButton>
             </RNText>
             <Label className="text-on-surface-faint text-center tracking-widest uppercase">
               Hoop 33 Training Systems • Ver {appVersion}

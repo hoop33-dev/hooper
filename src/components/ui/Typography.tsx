@@ -41,7 +41,7 @@ function buildTypographyClassName(defaultClasses: string, className = "") {
  */
 export function Heading1({ className = "", style, ...props }: TypographyProps) {
   const resolvedClassName = buildTypographyClassName(
-    "text-[72px] leading-[76px] font-black",
+    "text-[72px] leading-[60px] font-black",
     className,
   );
 

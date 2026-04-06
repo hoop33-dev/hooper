@@ -18,7 +18,28 @@ const HERO_IMAGE_URI =
 const appVersion = Constants.expoConfig?.version ?? "1.0.0";
 
 const styles = StyleSheet.create({
-  bottomGradient: {
+  vignetteTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "35%",
+  },
+  vignetteLeft: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: "45%",
+  },
+  vignetteRight: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    right: 0,
+    width: "45%",
+  },
+  vignetteBottom: {
     position: "absolute",
     bottom: 0,
     left: 0,
@@ -36,14 +57,36 @@ export default function WelcomeScreen() {
       resizeMode="cover"
       style={{ flex: 1 }}
     >
-      {/* Dark overlay — covers full screen */}
-      <View className="absolute inset-0 bg-[rgba(22,18,19,0.45)]" />
+      {/* Subtle base tint */}
+      <View className="absolute inset-0 bg-[rgba(0,0,0,0.15)]" />
 
-      {/* Bottom vignette gradient */}
+      {/* Vignette — top */}
       <LinearGradient
-        colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.85)", "#000"]}
+        colors={["rgba(0,0,0,0.55)", "transparent"]}
+        style={styles.vignetteTop}
+      />
+
+      {/* Vignette — left */}
+      <LinearGradient
+        colors={["rgba(0,0,0,0.6)", "transparent"]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={styles.vignetteLeft}
+      />
+
+      {/* Vignette — right */}
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.6)"]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={styles.vignetteRight}
+      />
+
+      {/* Vignette — bottom */}
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.88)", "#000"]}
         locations={[0, 0.35, 0.7, 1]}
-        style={styles.bottomGradient}
+        style={styles.vignetteBottom}
       />
 
       <StyledSafeAreaView className="flex-1 bg-transparent">
@@ -62,10 +105,10 @@ export default function WelcomeScreen() {
           </View>
 
           {/* Headline */}
-          <View className="flex-1 items-center justify-center px-6 pb-12 pt-8">
-            <Heading1 className="text-center">ELEVATE</Heading1>
-            <Heading1 className="text-center text-primary">YOUR</Heading1>
-            <Heading1 className="text-center text-primary">GAME</Heading1>
+          <View className="flex-1 items-center justify-start px-6 pt-4">
+            <Heading1 className="italic text-center">ELEVATE</Heading1>
+            <Heading1 className="italic text-center text-primary">YOUR</Heading1>
+            <Heading1 className="italic text-center text-primary">GAME</Heading1>
           </View>
 
           {/* Stats */}

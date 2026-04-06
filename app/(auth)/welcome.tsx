@@ -113,13 +113,9 @@ export default function WelcomeScreen() {
 
           {/* Headline */}
           <View className="flex-1 items-center justify-start px-6 pt-4">
-            <Heading1 className="-mb-6 text-center italic">ELEVATE</Heading1>
-            <Heading1 className="text-primary -mb-6 text-center italic">
-              YOUR
-            </Heading1>
-            <Heading1 className="text-primary text-center italic">
-              GAME
-            </Heading1>
+            <Heading1 className="-mb-6 text-center" style={{ transform: [{ skewX: "-10deg" }] }}>ELEVATE</Heading1>
+            <Heading1 className="-mb-6 text-center text-primary" style={{ transform: [{ skewX: "-10deg" }] }}>YOUR</Heading1>
+            <Heading1 className="text-center text-primary" style={{ transform: [{ skewX: "-10deg" }] }}>GAME</Heading1>
           </View>
 
           {/* Stats */}

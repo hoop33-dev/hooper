@@ -39,7 +39,56 @@ export type Database = {
   };
   public: {
     Tables: {
-      [_ in never]: never;
+      profiles: {
+        Row: {
+          id: string;
+          first_name: string;
+          last_name: string;
+          date_of_birth: string;
+          phone: string | null;
+          region: string;
+          parent_name: string | null;
+          parent_email: string | null;
+          parent_phone: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          first_name: string;
+          last_name: string;
+          date_of_birth: string;
+          phone?: string | null;
+          region: string;
+          parent_name?: string | null;
+          parent_email?: string | null;
+          parent_phone?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          first_name?: string;
+          last_name?: string;
+          date_of_birth?: string;
+          phone?: string | null;
+          region?: string;
+          parent_name?: string | null;
+          parent_email?: string | null;
+          parent_phone?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey";
+            columns: ["id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

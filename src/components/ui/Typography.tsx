@@ -48,7 +48,7 @@ export function Heading1({ className = "", style, ...props }: TypographyProps) {
   return (
     <RNText
       className={resolvedClassName}
-      style={[{ fontFamily: "Lexend_900Black" }, style]}
+      style={[{ fontFamily: "Lexend_900Black", fontWeight: "900" }, style]}
       {...props}
     />
   );

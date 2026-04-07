@@ -35,6 +35,17 @@
       }
     },
     "owner": "hoop33-dev",
-    "plugins": ["expo-router", "expo-font"]
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "hoop33"
+        }
+      ]
+    ]
   }
 }

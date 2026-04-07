@@ -20,6 +20,7 @@ import {
   Label,
   TextLG,
 } from "@/src/components/ui";
+import * as Sentry from "@sentry/react-native";
 
 const HERO_IMAGE_URI =
   "https://d11n7da8rpqbjy.cloudfront.net/u346976/357_1743466712nAhDSC07234.jpg";

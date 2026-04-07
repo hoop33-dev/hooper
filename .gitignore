@@ -43,3 +43,5 @@ yarn-error.*
 # Python
 __pycache__/
 *.pyc
+
+.env.local

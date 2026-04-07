@@ -75,8 +75,11 @@ export function useSignUp() {
 
     if (!firstName.trim()) e.firstName = "First name is required";
     if (!lastName.trim()) e.lastName = "Last name is required";
-    if (!dateOfBirth) e.dateOfBirth = "Date of birth is required";
-
+    if (!dateOfBirth) {
+      e.dateOfBirth = "Date of birth is required";
+    } else if (dateOfBirth > new Date()) {
+      e.dateOfBirth = "Date of birth cannot be in the future";
+    }
     if (isMinor) {
       if (!parentName.trim()) e.parentName = "Parent name is required";
       if (!parentEmail.trim()) {

@@ -36,7 +36,7 @@ function fillAdultForm(result: ReturnType<typeof useSignUp>) {
     result.setLastName("Murray");
     result.setDateOfBirth(adultDOB());
     result.setEmail("jamal@example.com");
-    result.setPhone("+6421000000");
+    result.setPhone("21000000");
     result.setRegion("auckland");
     result.setPassword("Password1");
     result.setConfirmPassword("Password1");
@@ -51,7 +51,7 @@ function fillMinorForm(result: ReturnType<typeof useSignUp>) {
     result.setDateOfBirth(minorDOB());
     result.setParentName("Parent Name");
     result.setParentEmail("parent@example.com");
-    result.setParentPhone("+6421000000");
+    result.setParentPhone("21000000");
     result.setRegion("auckland");
     result.setPassword("Password1");
     result.setConfirmPassword("Password1");

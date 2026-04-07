@@ -16,6 +16,7 @@ import {
   Heading2,
   InlineButton,
   Input,
+  PhoneInput,
   SelectInput,
   Text,
   TextSM,
@@ -162,13 +163,11 @@ export default function RegisterScreen() {
                 autoCapitalize="none"
                 autoComplete="email"
               />
-              <Input
+              <PhoneInput
                 label="PARENT PHONE"
-                placeholder="+64 21 000 0000"
                 value={parentPhone}
                 onChangeText={setParentPhone}
                 error={errors.parentPhone}
-                keyboardType="phone-pad"
                 autoComplete="tel"
               />
             </>
@@ -186,13 +185,11 @@ export default function RegisterScreen() {
                 autoCapitalize="none"
                 autoComplete="email"
               />
-              <Input
+              <PhoneInput
                 label="PHONE NUMBER"
-                placeholder="+1 (555) 000-0000"
                 value={phone}
                 onChangeText={setPhone}
                 error={errors.phone}
-                keyboardType="phone-pad"
                 autoComplete="tel"
               />
             </>

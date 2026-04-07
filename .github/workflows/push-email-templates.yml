@@ -1,0 +1,100 @@
+name: Push Email Templates
+
+on:
+  pull_request:
+    branches: [main, dev]
+    types: [opened, synchronize, reopened]
+    paths:
+      - "supabase/templates/**"
+  push:
+    branches: [main, dev]
+    paths:
+      - "supabase/templates/**"
+
+concurrency:
+  group: push-email-templates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  push-feature:
+    name: Push templates to feature Supabase
+    if: >-
+      github.event_name == 'pull_request' &&
+      !(github.head_ref == 'dev' && github.base_ref == 'main') &&
+      !(github.head_ref == 'main' && github.base_ref == 'dev')
+    runs-on: ubuntu-latest
+    environment: feature
+    env:
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Push confirmation email template
+        run: |
+          payload=$(jq -n \
+            --arg subject "Your Hoop 33 verification code" \
+            --rawfile content supabase/templates/confirm.html \
+            '{
+              mailer_subjects_confirmation: $subject,
+              mailer_templates_confirmation_content: $content
+            }')
+
+          response=$(curl -s -w "\n%{http_code}" -X PATCH \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data-binary "$payload")
+
+          body=$(echo "$response" | head -n -1)
+          status=$(echo "$response" | tail -n 1)
+
+          echo "HTTP $status"
+          echo "$body"
+
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "Failed to push email template (HTTP $status)"
+            exit 1
+          fi
+
+  push-production:
+    name: Push templates to production Supabase
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Push confirmation email template
+        run: |
+          payload=$(jq -n \
+            --arg subject "Your Hoop 33 verification code" \
+            --rawfile content supabase/templates/confirm.html \
+            '{
+              mailer_subjects_confirmation: $subject,
+              mailer_templates_confirmation_content: $content
+            }')
+
+          response=$(curl -s -w "\n%{http_code}" -X PATCH \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data-binary "$payload")
+
+          body=$(echo "$response" | head -n -1)
+          status=$(echo "$response" | tail -n 1)
+
+          echo "HTTP $status"
+          echo "$body"
+
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "Failed to push email template (HTTP $status)"
+            exit 1
+          fi

@@ -29,6 +29,8 @@ export type { DateInputType } from "./Input";
 export { SelectInput } from "./Input";
 export type { SelectOption } from "./Input";
 
+export { PhoneInput } from "./Input";
+
 export { Checkbox, Radio } from "./Selectors";
 
 export { InlineButton } from "./InlineButton";

@@ -417,6 +417,103 @@ export function DateInput({
   );
 }
 
+// ─── Phone Input (+64) ────────────────────────────────────────────────────
+
+interface PhoneInputProps extends Omit<
+  TextInputProps,
+  "placeholderTextColor" | "value"
+> {
+  label?: string;
+  error?: string;
+  size?: InputSize;
+  disabled?: boolean;
+  className?: string;
+  value?: string;
+  onChangeText?: (value: string) => void;
+}
+
+export function PhoneInput({
+  label,
+  error,
+  size = "md",
+  disabled,
+  className = "",
+  style,
+  value,
+  onChangeText,
+  onFocus: onFocusProp,
+  onBlur: onBlurProp,
+  placeholder = "21 000 0000",
+  ...props
+}: PhoneInputProps) {
+  const [focused, setFocused] = useState(false);
+  const { fontSize } = sizeConfig[size];
+
+  return (
+    <InputShell
+      label={label}
+      error={error}
+      size={size}
+      disabled={disabled}
+      focused={focused}
+      className={className}
+    >
+      {/* Country prefix */}
+      <Text
+        style={{
+          fontFamily: fonts.regular,
+          fontSize,
+          color: colors.onSurfaceMuted,
+          marginRight: 8,
+        }}
+      >
+        +64
+      </Text>
+
+      {/* Separator */}
+      <View
+        style={{
+          width: 1,
+          alignSelf: "stretch",
+          backgroundColor: colors.surfaceHighest,
+          marginRight: 12,
+        }}
+      />
+
+      <TextInput
+        {...props}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        keyboardType="phone-pad"
+        style={[
+          {
+            flex: 1,
+            fontFamily: fonts.regular,
+            fontSize,
+            color: colors.onSurface,
+            alignSelf: "center",
+            paddingTop: 0,
+            paddingBottom: 0,
+            textAlignVertical: "center",
+          },
+          style,
+        ]}
+        placeholderTextColor="rgba(245,245,245,0.4)"
+        onFocus={(e) => {
+          setFocused(true);
+          onFocusProp?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          onBlurProp?.(e);
+        }}
+        editable={!disabled}
+      />
+    </InputShell>
+  );
+}
+
 // ─── Select / Dropdown Input ───────────────────────────────────────────────
 
 interface SelectInputProps {

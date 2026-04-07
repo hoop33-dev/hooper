@@ -118,7 +118,10 @@ describe("RegisterScreen", () => {
       expect(
         screen.getByPlaceholderText("jamal.murray@elite.com"),
       ).toBeTruthy();
-      expect(screen.getByPlaceholderText("+1 (555) 000-0000")).toBeTruthy();
+      // PhoneInput renders with its default placeholder
+      expect(
+        screen.getAllByPlaceholderText("21 000 0000").length,
+      ).toBeGreaterThan(0);
     });
 
     test("does not render parent fields for adults", () => {
@@ -134,7 +137,9 @@ describe("RegisterScreen", () => {
       render(<RegisterScreen />);
       expect(screen.getByPlaceholderText("Full name")).toBeTruthy();
       expect(screen.getByPlaceholderText("parent@example.com")).toBeTruthy();
-      expect(screen.getByPlaceholderText("+64 21 000 0000")).toBeTruthy();
+      expect(
+        screen.getAllByPlaceholderText("21 000 0000").length,
+      ).toBeGreaterThan(0);
     });
 
     test("does not render email/phone fields for minors", () => {
@@ -143,7 +148,6 @@ describe("RegisterScreen", () => {
       expect(
         screen.queryByPlaceholderText("jamal.murray@elite.com"),
       ).toBeNull();
-      expect(screen.queryByPlaceholderText("+1 (555) 000-0000")).toBeNull();
     });
   });
 

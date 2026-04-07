@@ -31,9 +31,11 @@ function isValidEmail(value: string): boolean {
   return EMAIL_REGEX.test(value.trim());
 }
 
+// Validates the local NZ number (user types without +64 prefix).
+// NZ numbers: mobile 02x = 7–9 local digits; landline = 7–9 digits.
 function isValidPhone(value: string): boolean {
   const digits = value.replace(/\D/g, "");
-  return digits.length >= 7 && digits.length <= 12;
+  return digits.length >= 7 && digits.length <= 10;
 }
 
 export function useSignUp() {

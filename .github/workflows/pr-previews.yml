@@ -12,6 +12,7 @@ jobs:
       !(github.head_ref == 'dev' && github.base_ref == 'main') &&
       !(github.head_ref == 'main' && github.base_ref == 'dev')
     runs-on: ubuntu-latest
+    environment: feature
     permissions:
       issues: write
       pull-requests: write
@@ -128,7 +129,7 @@ jobs:
           if [ -z "$EXPO_PUBLIC_SUPABASE_URL" ] || [ -z "$EXPO_PUBLIC_SUPABASE_ANON_KEY" ]; then
             echo "Missing Supabase env vars for preview updates."
             echo "Expected EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY"
-            echo "or legacy PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY in GitHub preview environment secrets."
+            echo "or legacy PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY in GitHub feature environment secrets."
             exit 1
           fi
 

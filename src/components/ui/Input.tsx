@@ -209,6 +209,8 @@ interface DateInputProps {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  minimumDate?: Date;
+  maximumDate?: Date;
 }
 
 function formatDate(date: Date, type: DateInputType): string {
@@ -244,6 +246,8 @@ export function DateInput({
   disabled,
   placeholder,
   className = "",
+  minimumDate,
+  maximumDate,
 }: DateInputProps) {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pendingDate, setPendingDate] = useState<Date>(value ?? new Date());
@@ -333,6 +337,8 @@ export function DateInput({
             type === "datetime" ? androidPartialDate : (value ?? new Date())
           }
           mode={androidMode}
+          minimumDate={minimumDate}
+          maximumDate={maximumDate}
           onChange={handleAndroidChange}
         />
       )}
@@ -362,6 +368,8 @@ export function DateInput({
               value={pendingDate}
               mode={type === "datetime" ? "datetime" : type}
               display="spinner"
+              minimumDate={minimumDate}
+              maximumDate={maximumDate}
               onChange={(_e, d) => d && setPendingDate(d)}
               style={{ alignSelf: "center" }}
               textColor={colors.onSurface}

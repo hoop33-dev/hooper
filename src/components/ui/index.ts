@@ -19,6 +19,7 @@ export { Pill } from "./Pill";
 export type { PillVariant } from "./Pill";
 
 export { Icon } from "./Icon";
+export type { IconName } from "./Icon";
 
 export { Input } from "./Input";
 export type { InputSize } from "./Input";

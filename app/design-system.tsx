@@ -103,7 +103,7 @@ export default function ShowcaseScreen() {
             </Button>
             <Button
               variant="secondary"
-              iconRight="chevron-forward"
+              iconRight="chevron-right"
               onPress={() => {}}
             >
               View Program
@@ -115,7 +115,7 @@ export default function ShowcaseScreen() {
             <Button
               variant="primary"
               size="sm"
-              iconLeft="add"
+              iconLeft="plus"
               onPress={() => {}}
             />
             <Button
@@ -127,13 +127,13 @@ export default function ShowcaseScreen() {
             <Button
               variant="outline"
               size="md"
-              iconLeft="heart-outline"
+              iconLeft="heart"
               onPress={() => {}}
             />
             <Button
               variant="inverted"
               size="lg"
-              iconLeft="share-outline"
+              iconLeft="share"
               onPress={() => {}}
             />
           </View>
@@ -160,7 +160,7 @@ export default function ShowcaseScreen() {
           <Input
             label="Username"
             placeholder="@handle"
-            rightIcon="close-circle"
+            rightIcon="x-circle"
             onRightIconPress={() => {}}
           />
           <Input label="Disabled" placeholder="Cannot edit" disabled />
@@ -362,11 +362,11 @@ export default function ShowcaseScreen() {
               <Label className="text-on-surface-muted">trophy</Label>
             </View>
             <View className="items-center gap-1">
-              <Icon name="person-circle" size="lg" color="on-surface" />
+              <Icon name="user-circle" size="lg" color="on-surface" />
               <Label className="text-on-surface-muted">person-circle</Label>
             </View>
             <View className="items-center gap-1">
-              <Icon name="barbell" size="lg" color="brand-blue" />
+              <Icon name="dumbbell" size="lg" color="brand-blue" />
               <Label className="text-on-surface-muted">barbell</Label>
             </View>
             <View className="items-center gap-1">
@@ -374,15 +374,15 @@ export default function ShowcaseScreen() {
               <Label className="text-on-surface-muted">star</Label>
             </View>
             <View className="items-center gap-1">
-              <Icon name="lock-closed" size="lg" color="on-surface-muted" />
+              <Icon name="lock" size="lg" color="on-surface-muted" />
               <Label className="text-on-surface-muted">lock-closed</Label>
             </View>
             <View className="items-center gap-1">
-              <Icon name="checkmark-circle" size="lg" color="primary" />
+              <Icon name="check-circle" size="lg" color="primary" />
               <Label className="text-on-surface-muted">checkmark-circle</Label>
             </View>
             <View className="items-center gap-1">
-              <Icon name="chevron-forward" size="md" color="on-surface" />
+              <Icon name="chevron-right" size="md" color="on-surface" />
               <Label className="text-on-surface-muted">chevron-forward</Label>
             </View>
           </View>

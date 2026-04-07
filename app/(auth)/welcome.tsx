@@ -158,7 +158,7 @@ export default function WelcomeScreen() {
             <Button
               variant="primary"
               size="lg"
-              iconRight="flash-outline"
+              iconRight="zap"
               className="w-full"
               onPress={() => router.push("/(auth)/register")}
             >

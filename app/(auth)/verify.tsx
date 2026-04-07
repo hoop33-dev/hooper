@@ -1,10 +1,10 @@
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { StyledSafeAreaView } from "@/src/lib/nativewind-interop";
 import {
   Button,
   Heading3,
+  Icon,
   InlineButton,
   Input,
   Text,
@@ -43,7 +43,7 @@ export default function VerifyScreen() {
             hitSlop={8}
             accessibilityLabel="Go back"
           >
-            <Ionicons name="arrow-back" size={24} color={colors.onSurface} />
+            <Icon name="arrow-left" size={24} color={colors.onSurface} />
           </Pressable>
           <Image
             source={require("../../assets/logo-light.png")}
@@ -101,7 +101,8 @@ export default function VerifyScreen() {
             variant="primary"
             size="lg"
             className="mt-2 w-full"
-            disabled={loading || code.length !== 8}
+            loading={loading}
+            disabled={code.length !== 8}
             onPress={() => void handleVerify()}
           >
             VERIFY

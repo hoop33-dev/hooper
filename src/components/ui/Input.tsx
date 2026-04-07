@@ -14,7 +14,7 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import { colors, fonts } from "@/src/constants/theme";
 import { Icon } from "./Icon";
-import { Ionicons } from "@expo/vector-icons";
+import type { IconName } from "./Icon";
 
 export type InputSize = "sm" | "md" | "lg";
 export type DateInputType = "date" | "time" | "datetime";
@@ -23,8 +23,6 @@ export interface SelectOption {
   label: string;
   value: string;
 }
-
-type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
 const sizeConfig: Record<InputSize, { padding: string; fontSize: number }> = {
   sm: { padding: "px-4 py-2", fontSize: 14 },
@@ -115,8 +113,8 @@ function InputShell({
 interface InputProps extends Omit<TextInputProps, "placeholderTextColor"> {
   label?: string;
   error?: string;
-  leftIcon?: IoniconsName;
-  rightIcon?: IoniconsName;
+  leftIcon?: IconName;
+  rightIcon?: IconName;
   onRightIconPress?: () => void;
   size?: InputSize;
   disabled?: boolean;
@@ -217,7 +215,10 @@ function formatDate(date: Date, type: DateInputType): string {
   if (type === "time") {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
-  const datePart = date.toLocaleDateString();
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear()).slice(-2);
+  const datePart = `${day}/${month}/${year}`;
   if (type === "date") return datePart;
   const timePart = date.toLocaleTimeString([], {
     hour: "2-digit",
@@ -229,11 +230,11 @@ function formatDate(date: Date, type: DateInputType): string {
 function defaultPlaceholder(type: DateInputType): string {
   if (type === "time") return "Select time";
   if (type === "datetime") return "Select date & time";
-  return "Select date";
+  return "dd/mm/yy";
 }
 
-function iconForType(type: DateInputType): IoniconsName {
-  return type === "time" ? "time-outline" : "calendar-outline";
+function iconForType(type: DateInputType): IconName {
+  return type === "time" ? "clock" : "calendar";
 }
 
 export function DateInput({
@@ -649,7 +650,7 @@ export function SelectInput({
                     {item.label}
                   </Text>
                   {isSelected && (
-                    <Icon name="checkmark" size={16} color="primary" />
+                    <Icon name="check" size={16} color="primary" />
                   )}
                 </Pressable>
               );

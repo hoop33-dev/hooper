@@ -7,13 +7,13 @@ import {
 } from "react-native";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { StyledSafeAreaView } from "@/src/lib/nativewind-interop";
 import {
   Button,
   Checkbox,
   DateInput,
   Heading2,
+  Icon,
   InlineButton,
   Input,
   PhoneInput,
@@ -83,7 +83,7 @@ export default function RegisterScreen() {
             hitSlop={8}
             accessibilityLabel="Go back"
           >
-            <Ionicons name="arrow-back" size={24} color={colors.onSurface} />
+            <Icon name="arrow-left" size={24} color={colors.onSurface} />
           </Pressable>
           <Image
             source={require("../../assets/logo-light.png")}
@@ -138,7 +138,7 @@ export default function RegisterScreen() {
             type="date"
             value={dateOfBirth}
             onChange={setDateOfBirth}
-            placeholder="mm/dd/yyyy"
+            placeholder="dd/mm/yy"
             error={errors.dateOfBirth}
             maximumDate={new Date()}
           />
@@ -211,7 +211,7 @@ export default function RegisterScreen() {
             onChangeText={setPassword}
             error={errors.password}
             secureTextEntry={!showPassword}
-            rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
+            rightIcon={showPassword ? "eye-off" : "eye"}
             onRightIconPress={() => setShowPassword(!showPassword)}
             autoComplete="new-password"
           />
@@ -223,7 +223,7 @@ export default function RegisterScreen() {
             onChangeText={setConfirmPassword}
             error={errors.confirmPassword}
             secureTextEntry={!showConfirmPassword}
-            rightIcon={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+            rightIcon={showConfirmPassword ? "eye-off" : "eye"}
             onRightIconPress={() =>
               setShowConfirmPassword(!showConfirmPassword)
             }
@@ -268,9 +268,9 @@ export default function RegisterScreen() {
           <Button
             variant="primary"
             size="lg"
-            iconRight="chevron-forward"
+            iconRight="chevron-right"
             className="mt-2 w-full"
-            disabled={loading}
+            loading={loading}
             onPress={() => void handleSubmit()}
           >
             CREATE ACCOUNT

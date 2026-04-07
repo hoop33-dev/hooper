@@ -31,7 +31,7 @@ export function Checkbox({
           backgroundColor: checked ? colors.primary : colors.surfaceHighest,
         }}
       >
-        {checked && <Icon name="checkmark" size={12} color="on-surface" />}
+        {checked && <Icon name="check" size={12} color="on-surface" />}
       </View>
 
       {label && (

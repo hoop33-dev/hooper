@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: feature
     env:
-      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
     steps:
@@ -34,6 +34,9 @@ jobs:
 
       - name: Push confirmation email template
         run: |
+          PROJECT_REF=$(echo "$PUBLIC_SUPABASE_URL" \
+            | sed 's|https://\([^.]*\)\.supabase\.co.*|\1|')
+
           payload=$(jq -n \
             --arg subject "Your Hoop 33 verification code" \
             --rawfile content supabase/templates/confirm.html \
@@ -43,7 +46,7 @@ jobs:
             }')
 
           response=$(curl -s -w "\n%{http_code}" -X PATCH \
-            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth" \
+            "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth" \
             -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
             -H "Content-Type: application/json" \
             --data-binary "$payload")
@@ -65,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
     steps:
@@ -74,6 +77,9 @@ jobs:
 
       - name: Push confirmation email template
         run: |
+          PROJECT_REF=$(echo "$PUBLIC_SUPABASE_URL" \
+            | sed 's|https://\([^.]*\)\.supabase\.co.*|\1|')
+
           payload=$(jq -n \
             --arg subject "Your Hoop 33 verification code" \
             --rawfile content supabase/templates/confirm.html \
@@ -83,7 +89,7 @@ jobs:
             }')
 
           response=$(curl -s -w "\n%{http_code}" -X PATCH \
-            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth" \
+            "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth" \
             -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
             -H "Content-Type: application/json" \
             --data-binary "$payload")

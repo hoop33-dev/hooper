@@ -2,12 +2,13 @@ import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { StyledSafeAreaView } from "@/src/lib/nativewind-interop";
 import { Button, Text } from "@/src/components/ui";
-import { supabase } from "@/src/lib/supabase";
+import { getSupabaseClient } from "@/src/lib/supabase";
 
 export default function AppHome() {
   const router = useRouter();
 
   async function handleLogOut() {
+    const supabase = getSupabaseClient();
     await supabase.auth.signOut();
     router.replace("/(auth)/welcome");
   }

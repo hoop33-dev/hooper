@@ -144,30 +144,39 @@ export function useSignUp() {
 
     const authEmail = isMinor ? parentEmail.trim() : email.trim();
 
-    const { error } = await signUpWithEmail({ email: authEmail, password });
+    try {
+      const { error } = await signUpWithEmail({ email: authEmail, password });
 
-    if (error) {
-      setAuthError(error.message);
+      if (error) {
+        setAuthError(error.message);
+        setLoading(false);
+        return;
+      }
+
+      const profileData = JSON.stringify({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        dateOfBirth: dateOfBirth!.toISOString(),
+        phone: isMinor ? null : phone.trim(),
+        region,
+        parentName: isMinor ? parentName.trim() : null,
+        parentEmail: isMinor ? parentEmail.trim() : null,
+        parentPhone: isMinor ? parentPhone.trim() : null,
+      });
+
       setLoading(false);
-      return;
+      router.push({
+        pathname: "/(auth)/verify",
+        params: { email: authEmail, profileData },
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Sign up failed. Please try again.";
+      setAuthError(message);
+      setLoading(false);
     }
-
-    const profileData = JSON.stringify({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      dateOfBirth: dateOfBirth!.toISOString(),
-      phone: isMinor ? null : phone.trim(),
-      region,
-      parentName: isMinor ? parentName.trim() : null,
-      parentEmail: isMinor ? parentEmail.trim() : null,
-      parentPhone: isMinor ? parentPhone.trim() : null,
-    });
-
-    setLoading(false);
-    router.push({
-      pathname: "/(auth)/verify",
-      params: { email: authEmail, profileData },
-    });
   }
 
   return {

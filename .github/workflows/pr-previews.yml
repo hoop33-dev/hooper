@@ -120,7 +120,18 @@ jobs:
       - name: Publish preview update
         id: publish
         shell: bash
+        env:
+          CI: "1"
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || secrets.PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || secrets.PUBLIC_SUPABASE_ANON_KEY }}
         run: |
+          if [ -z "$EXPO_PUBLIC_SUPABASE_URL" ] || [ -z "$EXPO_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "Missing Supabase env vars for preview updates."
+            echo "Expected EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY"
+            echo "or legacy PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY in GitHub preview environment secrets."
+            exit 1
+          fi
+
           OUTPUT=$(eas update \
             --branch "${{ steps.preview_meta.outputs.branch }}" \
             --message "${{ steps.preview_meta.outputs.message }}" \
@@ -142,10 +153,6 @@ jobs:
           echo "runtime_version=$RUNTIME_VERSION" >> "$GITHUB_OUTPUT"
           echo "created_at=$CREATED_AT" >> "$GITHUB_OUTPUT"
           echo "dashboard_url=$DASHBOARD_URL" >> "$GITHUB_OUTPUT"
-        env:
-          CI: "1"
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Update preview comment (ready)
         if: success()

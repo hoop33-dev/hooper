@@ -49,36 +49,57 @@ export function useVerify() {
     setLoading(true);
     setAuthError(null);
 
-    const { data, error } = await verifyOtp(email, code);
+    try {
+      const { data, error } = await verifyOtp(email, code);
 
-    if (error || !data.user) {
-      setAuthError(error?.message ?? "Verification failed. Please try again.");
+      if (error || !data.user) {
+        setAuthError(
+          error?.message ?? "Verification failed. Please try again.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      if (profileData) {
+        const profile: ProfileData = JSON.parse(profileData) as ProfileData;
+        await createProfile({
+          id: data.user.id,
+          first_name: profile.firstName,
+          last_name: profile.lastName,
+          date_of_birth: profile.dateOfBirth.split("T")[0],
+          phone: profile.phone,
+          region: profile.region,
+          parent_name: profile.parentName,
+          parent_email: profile.parentEmail,
+          parent_phone: profile.parentPhone,
+        });
+      }
+
+      router.replace("/(app)");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Verification failed. Please try again.";
+      setAuthError(message);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    if (profileData) {
-      const profile: ProfileData = JSON.parse(profileData) as ProfileData;
-      await createProfile({
-        id: data.user.id,
-        first_name: profile.firstName,
-        last_name: profile.lastName,
-        date_of_birth: profile.dateOfBirth.split("T")[0],
-        phone: profile.phone,
-        region: profile.region,
-        parent_name: profile.parentName,
-        parent_email: profile.parentEmail,
-        parent_phone: profile.parentPhone,
-      });
-    }
-
-    router.replace("/(app)");
   }
 
   async function handleResend() {
     if (!email || cooldown > 0) return;
-    await resendOtp(email);
-    setCooldown(30);
+
+    try {
+      await resendOtp(email);
+      setCooldown(30);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to resend code right now.";
+      setAuthError(message);
+    }
   }
 
   return {

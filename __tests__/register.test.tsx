@@ -115,12 +115,10 @@ describe("RegisterScreen", () => {
   describe("adult fields (isMinor = false)", () => {
     test("renders email and phone fields for adults", () => {
       render(<RegisterScreen />);
-      expect(
-        screen.getByPlaceholderText("jamal.murray@elite.com"),
-      ).toBeTruthy();
+      expect(screen.getByPlaceholderText("john.doe@example.com")).toBeTruthy();
       // PhoneInput renders with its default placeholder
       expect(
-        screen.getAllByPlaceholderText("21 000 0000").length,
+        screen.getAllByPlaceholderText("021 234 5678").length,
       ).toBeGreaterThan(0);
     });
 
@@ -138,16 +136,14 @@ describe("RegisterScreen", () => {
       expect(screen.getByPlaceholderText("Full name")).toBeTruthy();
       expect(screen.getByPlaceholderText("parent@example.com")).toBeTruthy();
       expect(
-        screen.getAllByPlaceholderText("21 000 0000").length,
+        screen.getAllByPlaceholderText("021 234 5678").length,
       ).toBeGreaterThan(0);
     });
 
     test("does not render email/phone fields for minors", () => {
       mockHookState.isMinor = true;
       render(<RegisterScreen />);
-      expect(
-        screen.queryByPlaceholderText("jamal.murray@elite.com"),
-      ).toBeNull();
+      expect(screen.queryByPlaceholderText("john.doe@example.com")).toBeNull();
     });
   });
 

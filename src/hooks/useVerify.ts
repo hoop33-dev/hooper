@@ -44,7 +44,7 @@ export function useVerify() {
   }, [cooldown]);
 
   async function handleVerify() {
-    if (code.length !== 6 || !email) return;
+    if (code.length !== 8 || !email) return;
 
     setLoading(true);
     setAuthError(null);

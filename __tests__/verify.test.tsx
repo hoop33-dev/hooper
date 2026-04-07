@@ -80,27 +80,27 @@ describe("VerifyScreen", () => {
       expect(mockVerifyOtp).not.toHaveBeenCalled();
     });
 
-    test("VERIFY button is disabled when code has fewer than 6 digits", () => {
+    test("VERIFY button is disabled when code has fewer than 8 digits", () => {
       render(<VerifyScreen />);
-      fireEvent.changeText(screen.getByPlaceholderText("000000"), "12345");
+      fireEvent.changeText(screen.getByPlaceholderText("00000000"), "1234567");
       fireEvent.press(screen.getByText("VERIFY"));
       expect(mockVerifyOtp).not.toHaveBeenCalled();
     });
   });
 
   describe("success flow", () => {
-    test("calls verifyOtp with email and 6-digit code", async () => {
+    test("calls verifyOtp with email and 8-digit code", async () => {
       render(<VerifyScreen />);
-      fireEvent.changeText(screen.getByPlaceholderText("000000"), "123456");
+      fireEvent.changeText(screen.getByPlaceholderText("00000000"), "12345678");
       await act(async () => {
         fireEvent.press(screen.getByText("VERIFY"));
       });
-      expect(mockVerifyOtp).toHaveBeenCalledWith(mockTestEmail, "123456");
+      expect(mockVerifyOtp).toHaveBeenCalledWith(mockTestEmail, "12345678");
     });
 
     test("calls createProfile after successful verification", async () => {
       render(<VerifyScreen />);
-      fireEvent.changeText(screen.getByPlaceholderText("000000"), "123456");
+      fireEvent.changeText(screen.getByPlaceholderText("00000000"), "12345678");
       await act(async () => {
         fireEvent.press(screen.getByText("VERIFY"));
       });
@@ -116,7 +116,7 @@ describe("VerifyScreen", () => {
 
     test("navigates to app home after successful verification", async () => {
       render(<VerifyScreen />);
-      fireEvent.changeText(screen.getByPlaceholderText("000000"), "123456");
+      fireEvent.changeText(screen.getByPlaceholderText("00000000"), "12345678");
       await act(async () => {
         fireEvent.press(screen.getByText("VERIFY"));
       });
@@ -131,7 +131,7 @@ describe("VerifyScreen", () => {
         error: { message: "Invalid OTP code" },
       });
       render(<VerifyScreen />);
-      fireEvent.changeText(screen.getByPlaceholderText("000000"), "000000");
+      fireEvent.changeText(screen.getByPlaceholderText("00000000"), "00000000");
       await act(async () => {
         fireEvent.press(screen.getByText("VERIFY"));
       });
@@ -144,7 +144,7 @@ describe("VerifyScreen", () => {
         error: { message: "Expired token" },
       });
       render(<VerifyScreen />);
-      fireEvent.changeText(screen.getByPlaceholderText("000000"), "000000");
+      fireEvent.changeText(screen.getByPlaceholderText("00000000"), "00000000");
       await act(async () => {
         fireEvent.press(screen.getByText("VERIFY"));
       });

@@ -115,7 +115,7 @@ export default function RegisterScreen() {
         <View className="gap-4 px-6">
           <Input
             label="FIRST NAME"
-            placeholder="Jamal"
+            placeholder="John"
             value={firstName}
             onChangeText={setFirstName}
             error={errors.firstName}
@@ -125,7 +125,7 @@ export default function RegisterScreen() {
 
           <Input
             label="LAST NAME"
-            placeholder="Murray"
+            placeholder="Doe"
             value={lastName}
             onChangeText={setLastName}
             error={errors.lastName}
@@ -177,7 +177,7 @@ export default function RegisterScreen() {
             <>
               <Input
                 label="EMAIL ADDRESS"
-                placeholder="jamal.murray@elite.com"
+                placeholder="john.doe@example.com"
                 value={email}
                 onChangeText={setEmail}
                 error={errors.email}

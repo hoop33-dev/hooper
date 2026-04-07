@@ -451,7 +451,7 @@ export function PhoneInput({
   onChangeText,
   onFocus: onFocusProp,
   onBlur: onBlurProp,
-  placeholder = "21 000 0000",
+  placeholder = "021 234 5678",
   ...props
 }: PhoneInputProps) {
   const [focused, setFocused] = useState(false);

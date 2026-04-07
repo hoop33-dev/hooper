@@ -81,9 +81,9 @@ describe("useVerify", () => {
   });
 
   describe("handleVerify", () => {
-    test("does nothing when code length < 6", async () => {
+    test("does nothing when code length < 8", async () => {
       const { result } = renderHook(() => useVerify());
-      act(() => result.current.setCode("12345"));
+      act(() => result.current.setCode("1234567"));
       await act(async () => {
         await result.current.handleVerify();
       });
@@ -92,16 +92,16 @@ describe("useVerify", () => {
 
     test("calls verifyOtp with email and code", async () => {
       const { result } = renderHook(() => useVerify());
-      act(() => result.current.setCode("123456"));
+      act(() => result.current.setCode("12345678"));
       await act(async () => {
         await result.current.handleVerify();
       });
-      expect(mockVerifyOtp).toHaveBeenCalledWith(mockTestEmail, "123456");
+      expect(mockVerifyOtp).toHaveBeenCalledWith(mockTestEmail, "12345678");
     });
 
     test("calls createProfile with correct fields after successful verify", async () => {
       const { result } = renderHook(() => useVerify());
-      act(() => result.current.setCode("123456"));
+      act(() => result.current.setCode("12345678"));
       await act(async () => {
         await result.current.handleVerify();
       });
@@ -118,7 +118,7 @@ describe("useVerify", () => {
 
     test("navigates to /(app) after successful verify", async () => {
       const { result } = renderHook(() => useVerify());
-      act(() => result.current.setCode("123456"));
+      act(() => result.current.setCode("12345678"));
       await act(async () => {
         await result.current.handleVerify();
       });
@@ -131,7 +131,7 @@ describe("useVerify", () => {
         error: { message: "Token has expired" },
       });
       const { result } = renderHook(() => useVerify());
-      act(() => result.current.setCode("123456"));
+      act(() => result.current.setCode("12345678"));
       await act(async () => {
         await result.current.handleVerify();
       });
@@ -145,7 +145,7 @@ describe("useVerify", () => {
         error: { message: "Invalid token" },
       });
       const { result } = renderHook(() => useVerify());
-      act(() => result.current.setCode("123456"));
+      act(() => result.current.setCode("12345678"));
       await act(async () => {
         await result.current.handleVerify();
       });

@@ -79,13 +79,13 @@ export default function VerifyScreen() {
           <View className="pt-4">
             <Input
               label="VERIFICATION CODE"
-              placeholder="000000"
+              placeholder="00000000"
               value={code}
               onChangeText={(text) =>
-                setCode(text.replace(/\D/g, "").slice(0, 6))
+                setCode(text.replace(/\D/g, "").slice(0, 8))
               }
               keyboardType="number-pad"
-              maxLength={6}
+              maxLength={8}
               style={{ textAlign: "center", fontSize: 28, letterSpacing: 8 }}
               autoFocus
             />
@@ -101,7 +101,7 @@ export default function VerifyScreen() {
             variant="primary"
             size="lg"
             className="mt-2 w-full"
-            disabled={loading || code.length !== 6}
+            disabled={loading || code.length !== 8}
             onPress={() => void handleVerify()}
           >
             VERIFY

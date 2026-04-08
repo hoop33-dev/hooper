@@ -145,10 +145,24 @@ export function useSignUp() {
     const authEmail = isMinor ? parentEmail.trim() : email.trim();
 
     try {
-      const { error } = await signUpWithEmail({ email: authEmail, password });
+      const { data, error } = await signUpWithEmail({
+        email: authEmail,
+        password,
+      });
 
       if (error) {
         setAuthError(error.message);
+        setLoading(false);
+        return;
+      }
+
+      // When email confirmations are enabled, Supabase silently returns
+      // { user: null, error: null } for already-registered emails rather than
+      // exposing whether the address exists. Detect and surface it.
+      if (!data.user) {
+        setAuthError(
+          "An account with this email address already exists. Please sign in instead.",
+        );
         setLoading(false);
         return;
       }

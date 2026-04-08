@@ -318,5 +318,21 @@ describe("useSignUp", () => {
       expect(result.current.authError).toBe("Email already registered");
       expect(mockPush).not.toHaveBeenCalled();
     });
+
+    test("sets authError when email already exists (silent Supabase no-op)", async () => {
+      // Supabase returns { user: null, error: null } for duplicate emails
+      // when email confirmations are enabled — we must detect this ourselves.
+      mockSignUpWithEmail.mockResolvedValueOnce({
+        data: { user: null, session: null },
+        error: null,
+      });
+      const { result } = renderHook(() => useSignUp());
+      fillAdultForm(result.current);
+      await act(async () => {
+        await result.current.handleSubmit();
+      });
+      expect(result.current.authError).toMatch(/already exists/i);
+      expect(mockPush).not.toHaveBeenCalled();
+    });
   });
 });

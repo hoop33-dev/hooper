@@ -2,11 +2,31 @@
 -- Supabase Auth (auth.users) handles email and password; this table supplements it.
 CREATE TABLE public.profiles (
   id            UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  full_name     TEXT        NOT NULL,
+  first_name    TEXT        NOT NULL,
+  last_name     TEXT        NOT NULL,
   date_of_birth DATE        NOT NULL,
+  phone         TEXT,
+  region        TEXT        NOT NULL,
   is_locked     BOOLEAN     NOT NULL DEFAULT false,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Keep updated_at current on every row update
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER profiles_updated_at
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
 
 -- Set is_locked = true at signup when user is under 16
 CREATE OR REPLACE FUNCTION public.handle_profile_lock()

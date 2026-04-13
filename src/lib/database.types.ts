@@ -113,24 +113,36 @@ export type Database = {
       profiles: {
         Row: {
           id: string;
-          full_name: string;
+          first_name: string;
+          last_name: string;
           date_of_birth: string;
+          phone: string | null;
+          region: string;
           is_locked: boolean;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id: string;
-          full_name: string;
+          first_name: string;
+          last_name: string;
           date_of_birth: string;
+          phone?: string | null;
+          region: string;
           is_locked?: boolean;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
-          full_name?: string;
+          first_name?: string;
+          last_name?: string;
           date_of_birth?: string;
+          phone?: string | null;
+          region?: string;
           is_locked?: boolean;
           created_at?: string;
+          updated_at?: string;
         };
         Relationships: [
           {

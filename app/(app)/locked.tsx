@@ -1,10 +1,28 @@
 import { Image, ScrollView, View } from "react-native";
+import { useRouter } from "expo-router";
 import { StyledSafeAreaView } from "@/src/lib/nativewind-interop";
-import { Button, Heading3, Input, Text, TextSM } from "@/src/components/ui";
+import {
+  Button,
+  Heading3,
+  Icon,
+  Input,
+  Label,
+  Text,
+  TextSM,
+} from "@/src/components/ui";
+import { colors } from "@/src/constants/theme";
 import { useLocked } from "@/src/hooks/useLocked";
+import { getSupabaseClient } from "@/src/lib/supabase";
 
 export default function LockedScreen() {
+  const router = useRouter();
   const { code, setCode, loading, authError, handleSubmit } = useLocked();
+
+  async function handleSignOut() {
+    const supabase = getSupabaseClient();
+    await supabase.auth.signOut();
+    router.replace("/(auth)/welcome");
+  }
 
   return (
     <StyledSafeAreaView className="bg-surface flex-1">
@@ -23,17 +41,36 @@ export default function LockedScreen() {
           />
         </View>
 
+        {/* Lock icon */}
+        <View className="items-center pt-8 pb-6">
+          <View
+            style={{
+              width: 96,
+              height: 96,
+              borderRadius: 48,
+              backgroundColor: colors.surfaceContainer,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon name="lock" size={40} color="primary" />
+          </View>
+          <Label className="text-on-surface-muted mt-4 tracking-widest">
+            SAFETY FIRST
+          </Label>
+        </View>
+
         {/* Headline */}
-        <View className="px-6 pt-4 pb-6">
+        <View className="px-6 pb-6">
           <Heading3
-            className="text-primary italic"
+            className="italic"
             style={{ transform: [{ skewX: "-10deg" }] }}
           >
-            ACCOUNT LOCKED
+            ALMOST ON COURT.
           </Heading3>
           <Text className="text-on-surface-muted mt-4">
-            Your account needs a parent or guardian to link their account before
-            you can access the app.
+            For players under 16, a parent or guardian needs to link your
+            account to unlock the full Hoop 33 experience.
           </Text>
           <Text className="text-on-surface-muted mt-3">
             Ask them to open Hoop 33 and tap{" "}
@@ -70,6 +107,15 @@ export default function LockedScreen() {
             onPress={() => void handleSubmit()}
           >
             LINK ACCOUNT
+          </Button>
+
+          <Button
+            variant="outline"
+            iconLeft="log-out"
+            className="w-full"
+            onPress={() => void handleSignOut()}
+          >
+            Sign Out
           </Button>
         </View>
       </ScrollView>

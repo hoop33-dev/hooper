@@ -36,9 +36,6 @@ export default function RegisterScreen() {
     dateOfBirth,
     email,
     phone,
-    parentName,
-    parentEmail,
-    parentPhone,
     region,
     password,
     confirmPassword,
@@ -50,16 +47,12 @@ export default function RegisterScreen() {
     setDateOfBirth,
     setEmail,
     setPhone,
-    setParentName,
-    setParentEmail,
-    setParentPhone,
     setRegion,
     setPassword,
     setConfirmPassword,
     setShowPassword,
     setShowConfirmPassword,
     setAgreedToTerms,
-    isMinor,
     errors,
     authError,
     loading,
@@ -143,57 +136,24 @@ export default function RegisterScreen() {
             maximumDate={new Date()}
           />
 
-          {isMinor && (
-            <>
-              <Input
-                label="PARENT NAME"
-                placeholder="Full name"
-                value={parentName}
-                onChangeText={setParentName}
-                error={errors.parentName}
-                autoCapitalize="words"
-              />
-              <Input
-                label="PARENT EMAIL"
-                placeholder="parent@example.com"
-                value={parentEmail}
-                onChangeText={setParentEmail}
-                error={errors.parentEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-              <PhoneInput
-                label="PARENT PHONE"
-                value={parentPhone}
-                onChangeText={setParentPhone}
-                error={errors.parentPhone}
-                autoComplete="tel"
-              />
-            </>
-          )}
+          <Input
+            label="EMAIL ADDRESS"
+            placeholder="john.doe@example.com"
+            value={email}
+            onChangeText={setEmail}
+            error={errors.email}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+          />
 
-          {!isMinor && (
-            <>
-              <Input
-                label="EMAIL ADDRESS"
-                placeholder="john.doe@example.com"
-                value={email}
-                onChangeText={setEmail}
-                error={errors.email}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-              <PhoneInput
-                label="PHONE NUMBER"
-                value={phone}
-                onChangeText={setPhone}
-                error={errors.phone}
-                autoComplete="tel"
-              />
-            </>
-          )}
+          <PhoneInput
+            label="PHONE NUMBER"
+            value={phone}
+            onChangeText={setPhone}
+            error={errors.phone}
+            autoComplete="tel"
+          />
 
           <SelectInput
             label="REGION"

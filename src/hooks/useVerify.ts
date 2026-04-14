@@ -12,9 +12,14 @@ interface ProfileData {
   dateOfBirth: string;
   phone: string | null;
   region: string;
-  parentName: string | null;
-  parentEmail: string | null;
-  parentPhone: string | null;
+}
+
+function getAge(dob: Date): number {
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  return age;
 }
 
 export function useVerify() {
@@ -69,13 +74,14 @@ export function useVerify() {
           date_of_birth: profile.dateOfBirth.split("T")[0],
           phone: profile.phone,
           region: profile.region,
-          parent_name: profile.parentName,
-          parent_email: profile.parentEmail,
-          parent_phone: profile.parentPhone,
         });
-      }
 
-      router.replace("/(app)");
+        const dob = new Date(profile.dateOfBirth);
+        const isLocked = getAge(dob) < 16;
+        router.replace(isLocked ? "/(app)/locked" : "/(app)");
+      } else {
+        router.replace("/(app)");
+      }
     } catch (error) {
       const message =
         error instanceof Error

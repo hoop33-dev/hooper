@@ -10,19 +10,29 @@ const mockResendOtp = jest.fn();
 const mockCreateProfile = jest.fn();
 
 const mockTestEmail = "jamal@example.com";
-const mockTestProfileData = JSON.stringify({
+
+// Mutable so individual tests can swap to a minor DOB
+let mockTestProfileData = JSON.stringify({
   firstName: "Jamal",
   lastName: "Murray",
-  dateOfBirth: "2000-01-01T00:00:00.000Z",
-  phone: "+6421000000",
+  dateOfBirth: "2000-01-01T00:00:00.000Z", // ~26 years old → adult → /(app)
+  phone: "21000000",
   region: "auckland",
-  parentName: null,
-  parentEmail: null,
-  parentPhone: null,
+});
+
+const mockMinorProfileData = JSON.stringify({
+  firstName: "Junior",
+  lastName: "Player",
+  dateOfBirth: new Date(
+    Date.now() - 14 * 365.25 * 24 * 60 * 60 * 1000,
+  ).toISOString(), // 14 years old → locked → /(app)/locked
+  phone: null,
+  region: "auckland",
 });
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ replace: mockReplace }),
+  // Arrow function reads the mutable let at call time
   useLocalSearchParams: () => ({
     email: mockTestEmail,
     profileData: mockTestProfileData,
@@ -41,6 +51,14 @@ describe("useVerify", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    // Reset to adult profile for each test
+    mockTestProfileData = JSON.stringify({
+      firstName: "Jamal",
+      lastName: "Murray",
+      dateOfBirth: "2000-01-01T00:00:00.000Z",
+      phone: "21000000",
+      region: "auckland",
+    });
     mockVerifyOtp.mockResolvedValue({
       data: { user: { id: "uid-1" }, session: null },
       error: null,
@@ -116,13 +134,23 @@ describe("useVerify", () => {
       );
     });
 
-    test("navigates to /(app) after successful verify", async () => {
+    test("navigates to /(app) for adult DOB after successful verify", async () => {
       const { result } = renderHook(() => useVerify());
       act(() => result.current.setCode("12345678"));
       await act(async () => {
         await result.current.handleVerify();
       });
       expect(mockReplace).toHaveBeenCalledWith("/(app)");
+    });
+
+    test("navigates to /(app)/locked for minor DOB after successful verify", async () => {
+      mockTestProfileData = mockMinorProfileData;
+      const { result } = renderHook(() => useVerify());
+      act(() => result.current.setCode("12345678"));
+      await act(async () => {
+        await result.current.handleVerify();
+      });
+      expect(mockReplace).toHaveBeenCalledWith("/(app)/locked");
     });
 
     test("sets authError when verifyOtp fails", async () => {

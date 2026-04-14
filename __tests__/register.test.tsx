@@ -26,9 +26,6 @@ const mockHookState = {
   dateOfBirth: undefined as Date | undefined,
   email: "",
   phone: "",
-  parentName: "",
-  parentEmail: "",
-  parentPhone: "",
   region: "",
   password: "",
   confirmPassword: "",
@@ -40,16 +37,12 @@ const mockHookState = {
   setDateOfBirth: jest.fn(),
   setEmail: jest.fn(),
   setPhone: jest.fn(),
-  setParentName: jest.fn(),
-  setParentEmail: jest.fn(),
-  setParentPhone: jest.fn(),
   setRegion: jest.fn(),
   setPassword: jest.fn(),
   setConfirmPassword: jest.fn(),
   setShowPassword: jest.fn(),
   setShowConfirmPassword: jest.fn(),
   setAgreedToTerms: jest.fn(),
-  isMinor: false,
   errors: {} as Record<string, string>,
   authError: null as string | null,
   loading: false,
@@ -71,16 +64,12 @@ describe("RegisterScreen", () => {
       dateOfBirth: undefined,
       email: "",
       phone: "",
-      parentName: "",
-      parentEmail: "",
-      parentPhone: "",
       region: "",
       password: "",
       confirmPassword: "",
       showPassword: false,
       showConfirmPassword: false,
       agreedToTerms: false,
-      isMinor: false,
       errors: {},
       authError: null,
       loading: false,
@@ -112,38 +101,19 @@ describe("RegisterScreen", () => {
     });
   });
 
-  describe("adult fields (isMinor = false)", () => {
-    test("renders email and phone fields for adults", () => {
+  describe("form fields", () => {
+    test("renders email and phone fields", () => {
       render(<RegisterScreen />);
       expect(screen.getByPlaceholderText("john.doe@example.com")).toBeTruthy();
-      // PhoneInput renders with its default placeholder
       expect(
         screen.getAllByPlaceholderText("021 234 5678").length,
       ).toBeGreaterThan(0);
     });
 
-    test("does not render parent fields for adults", () => {
+    test("renders name and password fields", () => {
       render(<RegisterScreen />);
-      expect(screen.queryByPlaceholderText("Full name")).toBeNull();
-      expect(screen.queryByPlaceholderText("parent@example.com")).toBeNull();
-    });
-  });
-
-  describe("minor fields (isMinor = true)", () => {
-    test("renders parent fields for minors", () => {
-      mockHookState.isMinor = true;
-      render(<RegisterScreen />);
-      expect(screen.getByPlaceholderText("Full name")).toBeTruthy();
-      expect(screen.getByPlaceholderText("parent@example.com")).toBeTruthy();
-      expect(
-        screen.getAllByPlaceholderText("021 234 5678").length,
-      ).toBeGreaterThan(0);
-    });
-
-    test("does not render email/phone fields for minors", () => {
-      mockHookState.isMinor = true;
-      render(<RegisterScreen />);
-      expect(screen.queryByPlaceholderText("john.doe@example.com")).toBeNull();
+      expect(screen.getByPlaceholderText("John")).toBeTruthy();
+      expect(screen.getByPlaceholderText("Doe")).toBeTruthy();
     });
   });
 

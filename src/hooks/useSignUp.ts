@@ -8,21 +8,10 @@ export interface SignUpFormErrors {
   dateOfBirth?: string;
   email?: string;
   phone?: string;
-  parentName?: string;
-  parentEmail?: string;
-  parentPhone?: string;
   region?: string;
   password?: string;
   confirmPassword?: string;
   agreedToTerms?: string;
-}
-
-function getAge(dob: Date): number {
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-  return age;
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,14 +35,9 @@ export function useSignUp() {
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined);
 
-  // Adult fields
+  // Contact fields
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-
-  // Minor (parent) fields
-  const [parentName, setParentName] = useState("");
-  const [parentEmail, setParentEmail] = useState("");
-  const [parentPhone, setParentPhone] = useState("");
 
   // Shared fields
   const [region, setRegion] = useState("");
@@ -68,8 +52,6 @@ export function useSignUp() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const isMinor = dateOfBirth ? getAge(dateOfBirth) < 16 : false;
-
   function validate(): SignUpFormErrors {
     const e: SignUpFormErrors = {};
 
@@ -80,29 +62,16 @@ export function useSignUp() {
     } else if (dateOfBirth > new Date()) {
       e.dateOfBirth = "Date of birth cannot be in the future";
     }
-    if (isMinor) {
-      if (!parentName.trim()) e.parentName = "Parent name is required";
-      if (!parentEmail.trim()) {
-        e.parentEmail = "Parent email is required";
-      } else if (!isValidEmail(parentEmail)) {
-        e.parentEmail = "Enter a valid email address";
-      }
-      if (!parentPhone.trim()) {
-        e.parentPhone = "Parent phone number is required";
-      } else if (!isValidPhone(parentPhone)) {
-        e.parentPhone = "Enter a valid phone number";
-      }
-    } else {
-      if (!email.trim()) {
-        e.email = "Email address is required";
-      } else if (!isValidEmail(email)) {
-        e.email = "Enter a valid email address";
-      }
-      if (!phone.trim()) {
-        e.phone = "Phone number is required";
-      } else if (!isValidPhone(phone)) {
-        e.phone = "Enter a valid phone number";
-      }
+
+    if (!email.trim()) {
+      e.email = "Email address is required";
+    } else if (!isValidEmail(email)) {
+      e.email = "Enter a valid email address";
+    }
+    if (!phone.trim()) {
+      e.phone = "Phone number is required";
+    } else if (!isValidPhone(phone)) {
+      e.phone = "Enter a valid phone number";
     }
 
     if (!region) e.region = "Please select a region";
@@ -142,11 +111,9 @@ export function useSignUp() {
     setAuthError(null);
     setLoading(true);
 
-    const authEmail = isMinor ? parentEmail.trim() : email.trim();
-
     try {
       const { data, error } = await signUpWithEmail({
-        email: authEmail,
+        email: email.trim(),
         password,
       });
 
@@ -171,17 +138,14 @@ export function useSignUp() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         dateOfBirth: dateOfBirth!.toISOString(),
-        phone: isMinor ? null : phone.trim(),
+        phone: phone.trim() || null,
         region,
-        parentName: isMinor ? parentName.trim() : null,
-        parentEmail: isMinor ? parentEmail.trim() : null,
-        parentPhone: isMinor ? parentPhone.trim() : null,
       });
 
       setLoading(false);
       router.push({
         pathname: "/(auth)/verify",
-        params: { email: authEmail, profileData },
+        params: { email: email.trim(), profileData },
       });
     } catch (error) {
       const message =
@@ -200,9 +164,6 @@ export function useSignUp() {
     dateOfBirth,
     email,
     phone,
-    parentName,
-    parentEmail,
-    parentPhone,
     region,
     password,
     confirmPassword,
@@ -215,17 +176,12 @@ export function useSignUp() {
     setDateOfBirth,
     setEmail,
     setPhone,
-    setParentName,
-    setParentEmail,
-    setParentPhone,
     setRegion,
     setPassword,
     setConfirmPassword,
     setShowPassword,
     setShowConfirmPassword,
     setAgreedToTerms,
-    // Derived
-    isMinor,
     // UI state
     errors,
     authError,

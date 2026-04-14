@@ -39,6 +39,77 @@ export type Database = {
   };
   public: {
     Tables: {
+      link_codes: {
+        Row: {
+          id: string;
+          profile_id: string;
+          code: string;
+          expires_at: string;
+          used: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          code: string;
+          expires_at: string;
+          used?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string;
+          code?: string;
+          expires_at?: string;
+          used?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "link_codes_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      profile_links: {
+        Row: {
+          id: string;
+          guardian_profile_id: string;
+          player_profile_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          guardian_profile_id: string;
+          player_profile_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          guardian_profile_id?: string;
+          player_profile_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profile_links_guardian_profile_id_fkey";
+            columns: ["guardian_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "profile_links_player_profile_id_fkey";
+            columns: ["player_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           id: string;
@@ -47,9 +118,7 @@ export type Database = {
           date_of_birth: string;
           phone: string | null;
           region: string;
-          parent_name: string | null;
-          parent_email: string | null;
-          parent_phone: string | null;
+          is_locked: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -60,9 +129,7 @@ export type Database = {
           date_of_birth: string;
           phone?: string | null;
           region: string;
-          parent_name?: string | null;
-          parent_email?: string | null;
-          parent_phone?: string | null;
+          is_locked?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -73,9 +140,7 @@ export type Database = {
           date_of_birth?: string;
           phone?: string | null;
           region?: string;
-          parent_name?: string | null;
-          parent_email?: string | null;
-          parent_phone?: string | null;
+          is_locked?: boolean;
           created_at?: string;
           updated_at?: string;
         };

@@ -1,9 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Pressable,
-  TextInput,
-  View,
-} from "react-native";
+import { TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { StyledSafeAreaView } from "@/src/lib/nativewind-interop";

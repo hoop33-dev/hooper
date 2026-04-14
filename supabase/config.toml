@@ -233,7 +233,7 @@ otp_expiry = 3600
 
 [auth.email.template.confirmation]
 subject = "Your Hoop 33 verification code"
-content_path = "./templates/confirm.html"
+content_path = "./supabase/templates/confirm.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

@@ -10,5 +10,5 @@
     ".expo/types/**/*.d.ts",
     "nativewind-env.d.ts"
   ],
-  "exclude": ["__tests__/**"]
+  "exclude": ["__tests__/**", ".expo/**", "node_modules/**", "supabase/**"]
 }

@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       .eq("used", false)
       .gt("expires_at", new Date().toISOString())
       .select("id, profile_id")
-      .single();
+      .maybeSingle();
 
     if (claimError || !linkCode) {
       console.error("claim failed:", claimError?.message);

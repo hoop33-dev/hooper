@@ -9,20 +9,12 @@ function generateCode(): string {
   return Array.from(arr, (b) => CHARSET[b % CHARSET.length]).join("");
 }
 
-// The Supabase gateway verifies the JWT before invoking this function
-// (verify_jwt = true by default), so we can safely decode the payload
-// locally without a second network round-trip to the auth service.
-function getUserIdFromJwt(authHeader: string): string | null {
-  try {
-    const token = authHeader.replace("Bearer ", "");
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.sub ?? null;
-  } catch {
-    return null;
-  }
-}
-
 Deno.serve(async (req) => {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -31,24 +23,22 @@ Deno.serve(async (req) => {
     });
   }
 
-  const userId = getUserIdFromJwt(authHeader);
-  if (!userId) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+  if (authError || !user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
-
   const code = generateCode();
   const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
 
   const { error } = await supabase.from("link_codes").insert({
-    profile_id: userId,
+    profile_id: user.id,
     code,
     expires_at: expiresAt,
   });

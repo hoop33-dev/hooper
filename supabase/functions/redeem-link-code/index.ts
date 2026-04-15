@@ -1,5 +1,18 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+// The Supabase gateway verifies the JWT before invoking this function
+// (verify_jwt = true by default), so we can safely decode the payload
+// locally without a second network round-trip to the auth service.
+function getUserIdFromJwt(authHeader: string): string | null {
+  try {
+    const token = authHeader.replace("Bearer ", "");
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
@@ -9,26 +22,15 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Verify the user using the anon key + their JWT (recommended Edge Function pattern)
-  const supabaseUser = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authHeader } } },
-  );
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabaseUser.auth.getUser();
-  if (authError || !user) {
+  const userId = getUserIdFromJwt(authHeader);
+  if (!userId) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  // Use service role for DB writes (bypasses RLS)
-  const supabaseAdmin = createClient(
+  const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
@@ -43,7 +45,7 @@ Deno.serve(async (req) => {
 
   // Atomically claim the code: UPDATE ... WHERE used = false AND expires_at > now()
   // RETURNING ensures only one concurrent request can succeed for the same code.
-  const { data: linkCode, error: claimError } = await supabaseAdmin
+  const { data: linkCode, error: claimError } = await supabase
     .from("link_codes")
     .update({ used: true })
     .eq("code", code)
@@ -60,9 +62,9 @@ Deno.serve(async (req) => {
   }
 
   // Prevent self-linking: the redeemer must be a different profile than the code owner
-  if (linkCode.profile_id === user.id) {
+  if (linkCode.profile_id === userId) {
     // Roll back the claim so the code remains usable by someone else
-    await supabaseAdmin
+    await supabase
       .from("link_codes")
       .update({ used: false })
       .eq("id", linkCode.id);
@@ -73,15 +75,13 @@ Deno.serve(async (req) => {
   }
 
   // Create the guardian link
-  const { error: linkError } = await supabaseAdmin
-    .from("profile_links")
-    .insert({
-      guardian_profile_id: linkCode.profile_id,
-      player_profile_id: user.id,
-    });
+  const { error: linkError } = await supabase.from("profile_links").insert({
+    guardian_profile_id: linkCode.profile_id,
+    player_profile_id: userId,
+  });
   if (linkError) {
     // Roll back the claim so the code remains usable
-    await supabaseAdmin
+    await supabase
       .from("link_codes")
       .update({ used: false })
       .eq("id", linkCode.id);
@@ -92,10 +92,10 @@ Deno.serve(async (req) => {
   }
 
   // Unlock the child profile
-  const { error: unlockError } = await supabaseAdmin
+  const { error: unlockError } = await supabase
     .from("profiles")
     .update({ is_locked: false })
-    .eq("id", user.id);
+    .eq("id", userId);
 
   if (unlockError) {
     return new Response(JSON.stringify({ error: unlockError.message }), {

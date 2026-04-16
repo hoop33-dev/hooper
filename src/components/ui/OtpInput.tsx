@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import { colors, fonts } from "@/src/constants/theme";
 
 interface OtpInputProps {
@@ -50,26 +50,9 @@ export function OtpInput({
         </Text>
       )}
 
-      <Pressable
-        onPress={() => inputRef.current?.focus()}
-        style={{ flexDirection: "row", gap: 8 }}
-      >
-        {/* Hidden TextInput — captures keyboard input */}
-        <TextInput
-          ref={inputRef}
-          value={value}
-          onChangeText={handleChangeText}
-          keyboardType={numeric ? "number-pad" : "default"}
-          autoCapitalize={numeric ? "none" : "characters"}
-          autoCorrect={false}
-          maxLength={length}
-          autoFocus={autoFocus}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          caretHidden
-          style={{ position: "absolute", opacity: 0, width: 1, height: 1 }}
-        />
-
+      {/* Cell row — TextInput is an invisible overlay covering the full row so
+          any tap directly focuses it natively (no Pressable + focus() needed) */}
+      <View style={{ flexDirection: "row", gap: 8 }}>
         {/* Cell boxes */}
         {Array.from({ length }, (_, i) => {
           const char = value[i] ?? "";
@@ -113,7 +96,26 @@ export function OtpInput({
             </View>
           );
         })}
-      </Pressable>
+
+        {/* Transparent TextInput covers the entire cell row — tapping anywhere
+            on the row focuses it natively without any programmatic focus() call */}
+        <TextInput
+          ref={inputRef}
+          value={value}
+          onChangeText={handleChangeText}
+          keyboardType={numeric ? "number-pad" : "default"}
+          autoCapitalize={numeric ? "none" : "characters"}
+          autoCorrect={false}
+          maxLength={length}
+          autoFocus={autoFocus}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          caretHidden
+          style={StyleSheet.absoluteFillObject}
+          // opacity must be 0 so the TextInput is invisible but still tappable
+          opacity={0}
+        />
+      </View>
 
       {error && (
         <Text

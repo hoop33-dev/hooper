@@ -81,7 +81,7 @@ export default function VerifyScreen() {
           </View>
 
           <Text className="text-on-surface-muted">
-            {"We've sent an 8-digit code to "}
+            {"We've sent a 6-digit code to "}
             <Text className="text-on-surface font-semibold">{email ?? ""}</Text>
             {". Enter it below to verify your account."}
           </Text>
@@ -89,7 +89,7 @@ export default function VerifyScreen() {
           {/* OTP input */}
           <View className="pt-4">
             <OtpInput
-              length={8}
+              length={6}
               value={code}
               onChange={setCode}
               numeric
@@ -106,7 +106,7 @@ export default function VerifyScreen() {
             iconRight="check"
             className="mt-2 w-full"
             loading={loading}
-            disabled={code.length !== 8}
+            disabled={code.length !== 6}
             onPress={() => void handleVerify()}
           >
             Verify

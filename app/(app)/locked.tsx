@@ -30,11 +30,11 @@ export default function LockedScreen() {
   }
 
   return (
-    <StyledSafeAreaView className="bg-surface flex-1">
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: colors.surface }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <StyledSafeAreaView edges={["top", "left", "right"]} className="flex-1">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
@@ -121,7 +121,7 @@ export default function LockedScreen() {
           </Button>
         </View>
       </ScrollView>
-      </KeyboardAvoidingView>
-    </StyledSafeAreaView>
+      </StyledSafeAreaView>
+    </KeyboardAvoidingView>
   );
 }

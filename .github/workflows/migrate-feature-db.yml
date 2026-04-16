@@ -4,6 +4,13 @@ on:
     paths:
       - "supabase/migrations/**"
       - "supabase/seed.sql"
+  push:
+    branches-ignore:
+      - main
+      - dev
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/seed.sql"
   workflow_dispatch:
 
 concurrency:

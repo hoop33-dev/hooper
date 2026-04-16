@@ -5,10 +5,9 @@ import {
   Button,
   Heading3,
   Icon,
-  Input,
   Label,
+  OtpInput,
   Text,
-  TextSM,
 } from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
 import { useLocked } from "@/src/hooks/useLocked";
@@ -81,21 +80,14 @@ export default function LockedScreen() {
 
         {/* Form */}
         <View className="gap-4 px-6">
-          <Input
-            label="LINK CODE"
-            placeholder="XXXXXX"
+          <OtpInput
+            length={6}
             value={code}
-            onChangeText={(text) => setCode(text.toUpperCase())}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            maxLength={6}
-            style={{ textAlign: "center", fontSize: 24, letterSpacing: 6 }}
+            onChange={setCode}
+            numeric={false}
+            label="LINK CODE"
+            error={authError ?? undefined}
           />
-
-          {/* Auth error */}
-          {authError && (
-            <TextSM className="text-primary text-center">{authError}</TextSM>
-          )}
 
           <Button
             variant="primary"
@@ -106,12 +98,12 @@ export default function LockedScreen() {
             loading={loading}
             onPress={() => void handleSubmit()}
           >
-            LINK ACCOUNT
+            Link Account
           </Button>
 
           <Button
             variant="outline"
-            iconLeft="log-out"
+            iconRight="log-out"
             className="w-full"
             onPress={() => void handleSignOut()}
           >

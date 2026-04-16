@@ -109,24 +109,24 @@ export function Button({
       <View
         className={`flex-row items-center gap-2 ${pressed ? "opacity-70" : "opacity-100"}`}
       >
-        {/* Left slot: spinner when loading, icon otherwise */}
+        {/* Left icon — hidden while loading */}
+        {!loading && iconLeft && (
+          <Icon name={iconLeft} size={iconSize} color={iconColor} />
+        )}
+
+        {children ? (
+          <Text className={`font-lexend-bold ${textColorClass} ${text}`}>
+            {children}
+          </Text>
+        ) : null}
+
+        {/* Right slot: spinner when loading, icon otherwise */}
         {loading ? (
           <Animated.View style={{ transform: [{ rotate }] }}>
             <Icon name="loader" size={iconSize} color={iconColor} />
           </Animated.View>
         ) : (
-          iconLeft && <Icon name={iconLeft} size={iconSize} color={iconColor} />
-        )}
-
-        {children ? (
-          <Text className={`font-lexend-semibold ${textColorClass} ${text}`}>
-            {children}
-          </Text>
-        ) : null}
-
-        {/* Right icon — hidden while loading */}
-        {!loading && iconRight && (
-          <Icon name={iconRight} size={iconSize} color={iconColor} />
+          iconRight && <Icon name={iconRight} size={iconSize} color={iconColor} />
         )}
       </View>
     );

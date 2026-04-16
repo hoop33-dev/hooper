@@ -35,3 +35,5 @@ export { PhoneInput } from "./Input";
 export { Checkbox, Radio } from "./Selectors";
 
 export { InlineButton } from "./InlineButton";
+
+export { OtpInput } from "./OtpInput";

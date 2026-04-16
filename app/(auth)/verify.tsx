@@ -6,7 +6,7 @@ import {
   Heading3,
   Icon,
   InlineButton,
-  Input,
+  OtpInput,
   Text,
   TextSM,
 } from "@/src/components/ui";
@@ -70,42 +70,35 @@ export default function VerifyScreen() {
           </View>
 
           <Text className="text-on-surface-muted">
-            {"We've sent a 6-digit code to "}
+            {"We've sent an 8-digit code to "}
             <Text className="text-on-surface font-semibold">{email ?? ""}</Text>
             {". Enter it below to verify your account."}
           </Text>
 
           {/* OTP input */}
           <View className="pt-4">
-            <Input
-              label="VERIFICATION CODE"
-              placeholder="00000000"
+            <OtpInput
+              length={8}
               value={code}
-              onChangeText={(text) =>
-                setCode(text.replace(/\D/g, "").slice(0, 8))
-              }
-              keyboardType="number-pad"
-              maxLength={8}
-              style={{ textAlign: "center", fontSize: 28, letterSpacing: 8 }}
+              onChange={setCode}
+              numeric
+              label="VERIFICATION CODE"
+              error={authError ?? undefined}
               autoFocus
             />
           </View>
-
-          {/* Auth error */}
-          {authError && (
-            <TextSM className="text-primary text-center">{authError}</TextSM>
-          )}
 
           {/* CTA */}
           <Button
             variant="primary"
             size="lg"
+            iconRight="check"
             className="mt-2 w-full"
             loading={loading}
             disabled={code.length !== 8}
             onPress={() => void handleVerify()}
           >
-            VERIFY
+            Verify
           </Button>
 
           {/* Resend */}

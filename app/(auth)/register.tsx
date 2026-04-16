@@ -233,7 +233,7 @@ export default function RegisterScreen() {
             loading={loading}
             onPress={() => void handleSubmit()}
           >
-            CREATE ACCOUNT
+            Create Account
           </Button>
         </View>
 

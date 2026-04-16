@@ -45,7 +45,8 @@
           "project": "react-native",
           "organization": "hoop33"
         }
-      ]
+      ],
+      "@sentry/react-native"
     ]
   }
 }

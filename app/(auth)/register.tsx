@@ -1,5 +1,7 @@
 import {
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   Text as RNText,
@@ -61,6 +63,10 @@ export default function RegisterScreen() {
 
   return (
     <StyledSafeAreaView className="bg-surface flex-1">
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
@@ -247,6 +253,7 @@ export default function RegisterScreen() {
           </InlineButton>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </StyledSafeAreaView>
   );
 }

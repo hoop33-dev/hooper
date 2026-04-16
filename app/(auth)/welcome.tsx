@@ -107,7 +107,7 @@ export default function WelcomeScreen() {
           bounces={false}
         >
           {/* Logo */}
-          <View className="mb-auto items-center pt-5">
+          <View className="items-center pt-5">
             <Image
               source={require("../../assets/logo-light.png")}
               style={{ width: 280, height: 84 }}
@@ -116,7 +116,7 @@ export default function WelcomeScreen() {
           </View>
 
           {/* Headline */}
-          <View className="flex-1 items-center justify-start px-6 pt-4">
+          <View className="items-center px-6 pt-4">
             <Heading1
               className="-mb-6 text-center italic"
               style={{ transform: [{ skewX: "-10deg" }] }}
@@ -137,8 +137,8 @@ export default function WelcomeScreen() {
             </Heading1>
           </View>
 
-          {/* Stats */}
-          <View className="flex-row gap-4 px-6 pt-6">
+          {/* Stats — mt-auto keeps stats+CTAs+footer anchored to the bottom */}
+          <View className="mt-auto flex-row gap-4 px-6 pt-6">
             <Card className="flex-1 items-center py-6">
               <Heading3 className="text-primary">500K+</Heading3>
               <Label className="text-on-surface-muted mt-1 text-center tracking-widest uppercase">

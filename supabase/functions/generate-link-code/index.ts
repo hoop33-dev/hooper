@@ -9,6 +9,14 @@ function generateCode(): string {
   return Array.from(arr, (b) => CHARSET[b % CHARSET.length]).join("");
 }
 
+function getAge(dob: Date): number {
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  return age;
+}
+
 Deno.serve(async (req) => {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -32,6 +40,29 @@ Deno.serve(async (req) => {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // Prevent under-16s from generating link codes
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("date_of_birth")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !profile) {
+    return new Response(JSON.stringify({ error: "Profile not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (getAge(new Date(profile.date_of_birth)) < 16) {
+    return new Response(
+      JSON.stringify({
+        error: "You must be 16 or older to generate link codes",
+      }),
+      { status: 403, headers: { "Content-Type": "application/json" } },
+    );
   }
 
   const code = generateCode();

@@ -1,4 +1,10 @@
-import { Image, ScrollView, View } from "react-native";
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { StyledSafeAreaView } from "@/src/lib/nativewind-interop";
 import {
@@ -25,6 +31,10 @@ export default function LockedScreen() {
 
   return (
     <StyledSafeAreaView className="bg-surface flex-1">
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
@@ -111,6 +121,7 @@ export default function LockedScreen() {
           </Button>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </StyledSafeAreaView>
   );
 }

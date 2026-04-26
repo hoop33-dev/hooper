@@ -43,3 +43,6 @@ yarn-error.*
 # Python
 __pycache__/
 *.pyc
+
+# supabase
+supabase/.temp/

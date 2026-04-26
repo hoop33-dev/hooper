@@ -96,7 +96,14 @@ export function Carousel<T>({
     return () => clearInterval(id);
   }, [autoAdvanceMs, paused, advance, items.length]);
 
-  // Swipe handling
+  // Keep a ref to advance so the PanResponder (created once) always calls the
+  // latest version and never closes over a stale index.
+  const advanceRef = useRef(advance);
+  useEffect(() => {
+    advanceRef.current = advance;
+  }, [advance]);
+
+  // Swipe handling — created once; reads advanceRef for current callback.
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_e, g) =>
@@ -104,8 +111,8 @@ export function Carousel<T>({
       onPanResponderGrant: () => setPaused(true),
       onPanResponderRelease: (_e, g) => {
         setPaused(false);
-        if (g.dx <= -40) advance(1);
-        else if (g.dx >= 40) advance(-1);
+        if (g.dx <= -40) advanceRef.current(1);
+        else if (g.dx >= 40) advanceRef.current(-1);
       },
       onPanResponderTerminate: () => setPaused(false),
     }),

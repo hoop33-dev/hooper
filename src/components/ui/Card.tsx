@@ -1,28 +1,33 @@
-import { View, ViewProps } from "react-native";
-import { shadows } from "@/src/constants/theme";
+import { View, type ViewProps } from "react-native";
 
-interface CardProps extends ViewProps {
-  /** Elevated cards use surface-high background + ambient shadow */
-  elevated?: boolean;
+export type CardVariant = "default" | "accent" | "navy";
+
+type CardProps = ViewProps & {
+  variant?: CardVariant;
   className?: string;
-}
+};
+
+const variantClasses: Record<CardVariant, string> = {
+  default: "bg-surface-2 border border-border-subtle",
+  accent: "bg-surface-2 border border-border-subtle",
+  navy: "bg-brand-navy",
+};
 
 export function Card({
-  elevated = false,
+  variant = "default",
   className = "",
-  style,
   children,
-  ...props
+  ...rest
 }: CardProps) {
-  const elevationStyle = elevated ? shadows.ambient : undefined;
-
   return (
     <View
-      className={`rounded-3xl p-4 ${elevated ? "bg-surface-high" : "bg-surface-container"} ${className}`}
-      style={[elevationStyle, style]}
-      {...props}
+      className={`overflow-hidden rounded-xl ${variantClasses[variant]} ${className}`}
+      {...rest}
     >
-      {children}
+      {variant === "accent" && (
+        <View className="bg-brand-orange h-[3px] w-full" />
+      )}
+      <View className="p-4">{children}</View>
     </View>
   );
 }

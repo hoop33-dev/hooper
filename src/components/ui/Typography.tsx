@@ -1,232 +1,165 @@
-import { Text as RNText, TextProps } from "react-native";
+import { Text, type TextProps } from "react-native";
 
-interface TypographyProps extends TextProps {
+type TypographyProps = TextProps & {
   className?: string;
-}
+};
 
-function getLexendFontFamilyForClassName(
-  className: string,
-  defaultFamily: string,
-) {
-  const matches = className.match(
-    /\bfont-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)\b/g,
-  );
-  if (!matches || matches.length === 0) {
-    return defaultFamily;
-  }
+const base = "text-text-primary";
 
-  const lastMatch = matches[matches.length - 1].replace("font-", "");
-
-  if (["thin", "extralight", "light", "normal"].includes(lastMatch)) {
-    return "Lexend_400Regular";
-  }
-
-  if (["medium", "semibold"].includes(lastMatch)) {
-    return "Lexend_600SemiBold";
-  }
-
-  if (["extrabold", "black"].includes(lastMatch)) {
-    return "Lexend_900Black";
-  }
-
-  return "Lexend_700Bold";
-}
-
-function buildTypographyClassName(defaultClasses: string, className = "") {
-  return `text-on-surface ${defaultClasses} ${className}`.trim();
-}
-
-/**
- * Heading1 — 72px Black. Display/billboard moments: welcome screens, hero headlines.
- */
-export function Heading1({ className = "", style, ...props }: TypographyProps) {
-  const resolvedClassName = buildTypographyClassName(
-    "text-[72px] leading-[60px]",
-    className,
-  );
-
+/** Display / Hero — 64px, black weight, tight tracking */
+export function H1({ className = "", style, ...rest }: TypographyProps) {
   return (
-    <RNText
-      className={resolvedClassName}
-      style={[{ fontFamily: "Lexend_900Black", fontWeight: "900" }, style]}
-      {...props}
+    <Text
+      className={`${base} ${className}`}
+      style={[
+        {
+          fontFamily: "Inter",
+          fontWeight: "900",
+          fontSize: 64,
+          lineHeight: 64 * 1.15,
+          letterSpacing: -64 * 0.04,
+        },
+        style,
+      ]}
+      {...rest}
     />
   );
 }
 
-/**
- * Heading2 — 48px Bold. Major page headers, XP totals.
- */
-export function Heading2({ className = "", style, ...props }: TypographyProps) {
-  const resolvedClassName = buildTypographyClassName(
-    "text-[48px] leading-[53px] font-bold",
-    className,
-  );
-  const resolvedFontFamily = getLexendFontFamilyForClassName(
-    resolvedClassName,
-    "Lexend_700Bold",
-  );
-
+/** Section heading — 36px, bold */
+export function H2({ className = "", style, ...rest }: TypographyProps) {
   return (
-    <RNText
-      className={resolvedClassName}
-      style={[{ fontFamily: resolvedFontFamily }, style]}
-      {...props}
+    <Text
+      className={`${base} ${className}`}
+      style={[
+        {
+          fontFamily: "Inter",
+          fontWeight: "700",
+          fontSize: 36,
+          lineHeight: 36 * 1.15,
+          letterSpacing: -36 * 0.02,
+        },
+        style,
+      ]}
+      {...rest}
     />
   );
 }
 
-/**
- * Heading3 — 36px Bold. Program titles, page headers.
- */
-export function Heading3({ className = "", style, ...props }: TypographyProps) {
-  const resolvedClassName = buildTypographyClassName(
-    "text-[36px] leading-[40px] font-bold",
-    className,
-  );
-  const resolvedFontFamily = getLexendFontFamilyForClassName(
-    resolvedClassName,
-    "Lexend_700Bold",
-  );
-
+/** Card title — 28px, bold */
+export function H3({ className = "", style, ...rest }: TypographyProps) {
   return (
-    <RNText
-      className={resolvedClassName}
-      style={[{ fontFamily: resolvedFontFamily }, style]}
-      {...props}
+    <Text
+      className={`${base} ${className}`}
+      style={[
+        {
+          fontFamily: "Inter",
+          fontWeight: "700",
+          fontSize: 28,
+          lineHeight: 28 * 1.3,
+          letterSpacing: -28 * 0.02,
+        },
+        style,
+      ]}
+      {...rest}
     />
   );
 }
 
-/**
- * Heading4 — 24px SemiBold. Sub-sections, card titles.
- */
-export function Heading4({ className = "", style, ...props }: TypographyProps) {
-  const resolvedClassName = buildTypographyClassName(
-    "text-[24px] leading-[29px] font-semibold",
-    className,
-  );
-  const resolvedFontFamily = getLexendFontFamilyForClassName(
-    resolvedClassName,
-    "Lexend_600SemiBold",
-  );
-
+/** Sub-heading — 22px, semibold */
+export function H4({ className = "", style, ...rest }: TypographyProps) {
   return (
-    <RNText
-      className={resolvedClassName}
-      style={[{ fontFamily: resolvedFontFamily }, style]}
-      {...props}
+    <Text
+      className={`${base} ${className}`}
+      style={[
+        {
+          fontFamily: "Inter",
+          fontWeight: "600",
+          fontSize: 22,
+          lineHeight: 22 * 1.3,
+        },
+        style,
+      ]}
+      {...rest}
     />
   );
 }
 
-/**
- * Heading5 — 20px SemiBold. Sub-sections, card subtitles.
- */
-export function Heading5({ className = "", style, ...props }: TypographyProps) {
-  const resolvedClassName = buildTypographyClassName(
-    "text-[20px] leading-[26px] font-semibold",
-    className,
-  );
-  const resolvedFontFamily = getLexendFontFamilyForClassName(
-    resolvedClassName,
-    "Lexend_600SemiBold",
-  );
-
+/** Body — 16px regular, secondary text color */
+export function Body({ className = "", style, ...rest }: TypographyProps) {
   return (
-    <RNText
-      className={resolvedClassName}
-      style={[{ fontFamily: resolvedFontFamily }, style]}
-      {...props}
+    <Text
+      className={`text-text-secondary ${className}`}
+      style={[
+        {
+          fontFamily: "Inter",
+          fontWeight: "400",
+          fontSize: 16,
+          lineHeight: 16 * 1.5,
+        },
+        style,
+      ]}
+      {...rest}
     />
   );
 }
 
-/**
- * TextLG — 18px Regular. Primary body copy, drill descriptions.
- */
-export function TextLG({ className = "", style, ...props }: TypographyProps) {
-  const resolvedClassName = buildTypographyClassName(
-    "text-lg leading-[27px] font-normal",
-    className,
-  );
-  const resolvedFontFamily = getLexendFontFamilyForClassName(
-    resolvedClassName,
-    "Lexend_400Regular",
-  );
-
+/** Body small — 13px regular */
+export function BodySm({ className = "", style, ...rest }: TypographyProps) {
   return (
-    <RNText
-      className={resolvedClassName}
-      style={[{ fontFamily: resolvedFontFamily }, style]}
-      {...props}
+    <Text
+      className={`text-text-secondary ${className}`}
+      style={[
+        {
+          fontFamily: "Inter",
+          fontWeight: "400",
+          fontSize: 13,
+          lineHeight: 13 * 1.5,
+        },
+        style,
+      ]}
+      {...rest}
     />
   );
 }
 
-/**
- * Text — 16px Regular. Default body text.
- */
-export function Text({ className = "", style, ...props }: TypographyProps) {
-  const resolvedClassName = buildTypographyClassName(
-    "text-base leading-6 font-normal",
-    className,
-  );
-  const resolvedFontFamily = getLexendFontFamilyForClassName(
-    resolvedClassName,
-    "Lexend_400Regular",
-  );
-
+/** Label / caps — 11px medium, uppercase, wide tracking */
+export function Label({ className = "", style, ...rest }: TypographyProps) {
   return (
-    <RNText
-      className={resolvedClassName}
-      style={[{ fontFamily: resolvedFontFamily }, style]}
-      {...props}
+    <Text
+      className={`text-text-tertiary ${className}`}
+      style={[
+        {
+          fontFamily: "Inter",
+          fontWeight: "500",
+          fontSize: 11,
+          lineHeight: 11,
+          letterSpacing: 11 * 0.15,
+          textTransform: "uppercase",
+        },
+        style,
+      ]}
+      {...rest}
     />
   );
 }
 
-/**
- * TextSM — 14px Regular. Supporting descriptions, metadata. Min size for youth users.
- */
-export function TextSM({ className = "", style, ...props }: TypographyProps) {
-  const resolvedClassName = buildTypographyClassName(
-    "text-sm leading-[21px] font-normal",
-    className,
-  );
-  const resolvedFontFamily = getLexendFontFamilyForClassName(
-    resolvedClassName,
-    "Lexend_400Regular",
-  );
-
+/** Stat — 48px black, brand orange */
+export function Stat({ className = "", style, ...rest }: TypographyProps) {
   return (
-    <RNText
-      className={resolvedClassName}
-      style={[{ fontFamily: resolvedFontFamily }, style]}
-      {...props}
-    />
-  );
-}
-
-/**
- * Label — 12px SemiBold. Timestamps, tags, XP chip labels, status badges.
- * Use uppercase with letter-spacing for metadata contexts.
- */
-export function Label({ className = "", style, ...props }: TypographyProps) {
-  const resolvedClassName = buildTypographyClassName(
-    "text-xs leading-[14px] font-semibold",
-    className,
-  );
-  const resolvedFontFamily = getLexendFontFamilyForClassName(
-    resolvedClassName,
-    "Lexend_600SemiBold",
-  );
-
-  return (
-    <RNText
-      className={resolvedClassName}
-      style={[{ fontFamily: resolvedFontFamily }, style]}
-      {...props}
+    <Text
+      className={`text-brand-orange ${className}`}
+      style={[
+        {
+          fontFamily: "Inter",
+          fontWeight: "900",
+          fontSize: 48,
+          lineHeight: 48,
+          letterSpacing: -48 * 0.04,
+        },
+        style,
+      ]}
+      {...rest}
     />
   );
 }

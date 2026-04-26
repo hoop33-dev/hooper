@@ -1,427 +1,29 @@
-import { useState } from "react";
-import { Image, ScrollView, View, Text as RNText } from "react-native";
-import { StyledSafeAreaView } from "@/src/lib/nativewind-interop";
+import { ScrollView, View } from "react-native";
+import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { styled } from "nativewind";
+
 import {
+  Badge,
+  Body,
+  BodySm,
   Button,
   Card,
-  Checkbox,
-  DateInput,
-  Heading1,
-  Heading2,
-  Heading3,
-  Heading4,
-  Heading5,
-  Icon,
-  InlineButton,
+  Carousel,
+  H1,
+  H2,
+  H3,
+  H4,
   Input,
   Label,
-  Pill,
-  Radio,
-  SelectInput,
-  Text,
-  TextLG,
-  TextSM,
+  Logo,
+  NumberBadge,
+  Stat,
+  Tag,
+  TextButton,
 } from "@/src/components/ui";
 
-export default function ShowcaseScreen() {
-  const [checked1, setChecked1] = useState(false);
-  const [checked2, setChecked2] = useState(true);
-  const [radioValue, setRadioValue] = useState<"a" | "b" | "c">("b");
-  const [birthDate, setBirthDate] = useState<Date | undefined>();
-  const [sessionTime, setSessionTime] = useState<Date | undefined>();
-  const [sport, setSport] = useState<string | undefined>();
-  const [position, setPosition] = useState<string | undefined>();
-
-  return (
-    <StyledSafeAreaView className="bg-surface flex-1">
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: 24, gap: 40 }}
-      >
-        <View className="items-center">
-          <Image
-            source={require("../assets/logo-light.png")}
-            style={{ width: 180, height: 54 }}
-            resizeMode="contain"
-          />
-        </View>
-
-        {/* ── Header ───────────────────────────────────────── */}
-        <View>
-          <Label className="text-primary mb-2 tracking-widest uppercase">
-            Courtside Kinetic
-          </Label>
-          <Heading2>Design System</Heading2>
-          <TextSM className="text-on-surface-muted mt-1">
-            Component showcase — Hooper v1
-          </TextSM>
-        </View>
-
-        {/* ── Typography ───────────────────────────────────── */}
-        <Section title="Typography">
-          <Heading1>Heading 1 — 72px</Heading1>
-          <Heading2>Heading 2 — 48px</Heading2>
-          <Heading3>Heading 3 — 36px</Heading3>
-          <Heading4>Heading 4 — 24px</Heading4>
-          <Heading5>Heading 5 — 20px</Heading5>
-          <TextLG>TextLG — 18px body copy</TextLG>
-          <Text>Text — 16px default body</Text>
-          <TextSM>TextSM — 14px supporting text</TextSM>
-          <Label className="tracking-widest uppercase">
-            Label — 12px metadata
-          </Label>
-        </Section>
-
-        {/* ── Buttons ──────────────────────────────────────── */}
-        <Section title="Buttons">
-          <Button variant="primary" onPress={() => {}}>
-            <Text className="font-bold">Primary - Start drill</Text>
-          </Button>
-          <Button variant="secondary" onPress={() => {}}>
-            Secondary — View Program
-          </Button>
-          <Button variant="inverted" onPress={() => {}}>
-            Inverted — Cancel
-          </Button>
-          <Button variant="outline" onPress={() => {}}>
-            Outline — Learn More
-          </Button>
-          <Button variant="primary" size="sm" onPress={() => {}}>
-            Small Primary
-          </Button>
-          <Button variant="primary" size="lg" onPress={() => {}}>
-            Large Primary
-          </Button>
-          <Button variant="primary" disabled onPress={() => {}}>
-            Disabled
-          </Button>
-
-          {/* Icon variants */}
-          <View className="flex-row flex-wrap gap-3">
-            <Button variant="primary" iconLeft="basketball" onPress={() => {}}>
-              Start Drill
-            </Button>
-            <Button
-              variant="secondary"
-              iconRight="chevron-forward"
-              onPress={() => {}}
-            >
-              View Program
-            </Button>
-          </View>
-
-          {/* Icon-only */}
-          <View className="flex-row gap-3">
-            <Button
-              variant="primary"
-              size="sm"
-              iconLeft="add"
-              onPress={() => {}}
-            />
-            <Button
-              variant="secondary"
-              size="md"
-              iconLeft="search"
-              onPress={() => {}}
-            />
-            <Button
-              variant="outline"
-              size="md"
-              iconLeft="heart-outline"
-              onPress={() => {}}
-            />
-            <Button
-              variant="inverted"
-              size="lg"
-              iconLeft="share-outline"
-              onPress={() => {}}
-            />
-          </View>
-        </Section>
-
-        {/* ── Inputs ───────────────────────────────────────── */}
-        <Section title="Inputs">
-          <Input
-            leftIcon="search"
-            placeholder="Search players, drills, programs…"
-          />
-          <Input
-            label="Email"
-            placeholder="you@example.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <Input
-            label="Password"
-            placeholder="Enter password"
-            secureTextEntry
-            error="Must be at least 8 characters"
-          />
-          <Input
-            label="Username"
-            placeholder="@handle"
-            rightIcon="close-circle"
-            onRightIconPress={() => {}}
-          />
-          <Input label="Disabled" placeholder="Cannot edit" disabled />
-
-          <DateInput
-            label="Date of Birth"
-            type="date"
-            value={birthDate}
-            onChange={setBirthDate}
-            placeholder="Select your birthday"
-          />
-          <DateInput
-            label="Session Time"
-            type="time"
-            value={sessionTime}
-            onChange={setSessionTime}
-          />
-          <DateInput label="Disabled Date" type="date" disabled />
-
-          <SelectInput
-            label="Sport"
-            placeholder="Choose sport…"
-            options={[
-              { label: "Basketball", value: "basketball" },
-              { label: "Football", value: "football" },
-              { label: "Tennis", value: "tennis" },
-              { label: "Swimming", value: "swimming" },
-            ]}
-            value={sport}
-            onChange={setSport}
-          />
-          <SelectInput
-            label="Position"
-            placeholder="Choose position…"
-            options={[
-              { label: "Point Guard", value: "pg" },
-              { label: "Shooting Guard", value: "sg" },
-              { label: "Small Forward", value: "sf" },
-              { label: "Power Forward", value: "pf" },
-              { label: "Center", value: "c" },
-            ]}
-            value={position}
-            onChange={setPosition}
-            error="Position is required"
-          />
-          <SelectInput
-            label="Disabled Select"
-            placeholder="Cannot open"
-            options={[]}
-            disabled
-          />
-        </Section>
-
-        {/* ── Selectors ────────────────────────────────────── */}
-        <Section title="Selectors">
-          <View className="gap-4">
-            <Checkbox
-              checked={checked1}
-              onChange={setChecked1}
-              label="Allow notifications"
-            />
-            <Checkbox
-              checked={checked2}
-              onChange={setChecked2}
-              label="Remember me"
-            />
-            <Checkbox
-              checked={false}
-              onChange={() => {}}
-              label="Disabled option"
-              disabled
-            />
-          </View>
-
-          <View className="bg-surface-highest mt-2 h-px" />
-
-          <View className="gap-4">
-            <Radio
-              selected={radioValue === "a"}
-              onSelect={() => setRadioValue("a")}
-              label="Player — Youth athlete"
-            />
-            <Radio
-              selected={radioValue === "b"}
-              onSelect={() => setRadioValue("b")}
-              label="Coach / Trainer"
-            />
-            <Radio
-              selected={radioValue === "c"}
-              onSelect={() => setRadioValue("c")}
-              label="Organisation"
-            />
-            <Radio
-              selected={false}
-              onSelect={() => {}}
-              label="Disabled option"
-              disabled
-            />
-          </View>
-        </Section>
-
-        {/* ── Inline Buttons ───────────────────────────────── */}
-        <Section title="Inline Buttons">
-          <RNText
-            style={{
-              fontFamily: "Lexend_400Regular",
-              fontSize: 16,
-              lineHeight: 24,
-              color: "#F5F5F5",
-            }}
-          >
-            {"Want to join? "}
-            <InlineButton onPress={() => {}}>Sign up now!</InlineButton>
-          </RNText>
-          <RNText
-            style={{
-              fontFamily: "Lexend_400Regular",
-              fontSize: 16,
-              lineHeight: 24,
-              color: "#F5F5F5",
-            }}
-          >
-            {"Already have an account? "}
-            <InlineButton variant="secondary" onPress={() => {}}>
-              Sign in
-            </InlineButton>
-          </RNText>
-          <RNText
-            style={{
-              fontFamily: "Lexend_400Regular",
-              fontSize: 14,
-              lineHeight: 21,
-              color: "rgba(245,245,245,0.5)",
-            }}
-          >
-            {"By continuing you agree to our "}
-            <InlineButton onPress={() => {}}>Terms of Service</InlineButton>
-            {" and "}
-            <InlineButton onPress={() => {}}>Privacy Policy</InlineButton>
-            {"."}
-          </RNText>
-        </Section>
-
-        {/* ── Pills ────────────────────────────────────────── */}
-        <Section title="Pills">
-          <View className="flex-row flex-wrap gap-2">
-            <Pill variant="primary">+150 XP</Pill>
-            <Pill variant="secondary">In Progress</Pill>
-            <Pill variant="outline">Available</Pill>
-            <Pill variant="inverted">Completed</Pill>
-            <Pill variant="tertiary">Coach</Pill>
-            <Pill variant="tertiary">Organisation</Pill>
-            <Pill variant="primary" className="bg-primary-light-subtle">
-              Custom
-            </Pill>
-          </View>
-        </Section>
-
-        {/* ── Cards ────────────────────────────────────────── */}
-        <Section title="Cards">
-          <Card>
-            <Heading5>Training Program</Heading5>
-            <TextSM className="text-on-surface-muted mt-1">
-              Standard card — surface-container background, no border.
-            </TextSM>
-            <View className="mt-3 flex-row gap-2">
-              <Pill variant="primary">+500 XP</Pill>
-              <Pill variant="secondary">6 Drills</Pill>
-            </View>
-          </Card>
-
-          <Card elevated className="mt-3">
-            <Heading5>Elevated Card</Heading5>
-            <TextSM className="text-on-surface-muted mt-1">
-              Elevated — surface-high background with ambient shadow.
-            </TextSM>
-          </Card>
-
-          <Card className="bg-navy mt-3">
-            <Pill variant="tertiary" className="mb-2">
-              Coach View
-            </Pill>
-            <Heading5>Coach-facing Card</Heading5>
-            <TextSM className="text-on-surface-muted mt-1">
-              Navy background via className override.
-            </TextSM>
-          </Card>
-        </Section>
-
-        {/* ── Icons ────────────────────────────────────────── */}
-        <Section title="Icons (Ionicons)">
-          <View className="flex-row flex-wrap gap-6">
-            <View className="items-center gap-1">
-              <Icon name="basketball" size="lg" color="primary" />
-              <Label className="text-on-surface-muted">basketball</Label>
-            </View>
-            <View className="items-center gap-1">
-              <Icon name="trophy" size="lg" color="primary" />
-              <Label className="text-on-surface-muted">trophy</Label>
-            </View>
-            <View className="items-center gap-1">
-              <Icon name="person-circle" size="lg" color="on-surface" />
-              <Label className="text-on-surface-muted">person-circle</Label>
-            </View>
-            <View className="items-center gap-1">
-              <Icon name="barbell" size="lg" color="brand-blue" />
-              <Label className="text-on-surface-muted">barbell</Label>
-            </View>
-            <View className="items-center gap-1">
-              <Icon name="star" size="lg" color="primary-light" />
-              <Label className="text-on-surface-muted">star</Label>
-            </View>
-            <View className="items-center gap-1">
-              <Icon name="lock-closed" size="lg" color="on-surface-muted" />
-              <Label className="text-on-surface-muted">lock-closed</Label>
-            </View>
-            <View className="items-center gap-1">
-              <Icon name="checkmark-circle" size="lg" color="primary" />
-              <Label className="text-on-surface-muted">checkmark-circle</Label>
-            </View>
-            <View className="items-center gap-1">
-              <Icon name="chevron-forward" size="md" color="on-surface" />
-              <Label className="text-on-surface-muted">chevron-forward</Label>
-            </View>
-          </View>
-        </Section>
-
-        {/* ── Surface Palette ──────────────────────────────── */}
-        <Section title="Surface Hierarchy">
-          <View className="gap-2">
-            {[
-              { label: "surface", bg: "bg-surface", hex: "#161213" },
-              { label: "surface-low", bg: "bg-surface-low", hex: "#1e1b1c" },
-              {
-                label: "surface-container",
-                bg: "bg-surface-container",
-                hex: "#252122",
-              },
-              { label: "surface-high", bg: "bg-surface-high", hex: "#2e2b2c" },
-              {
-                label: "surface-highest",
-                bg: "bg-surface-highest",
-                hex: "#383435",
-              },
-            ].map(({ label, bg, hex }) => (
-              <View
-                key={label}
-                className={`${bg} flex-row items-center justify-between rounded-xl px-4 py-3`}
-              >
-                <Label>{label}</Label>
-                <Label className="text-on-surface-muted">{hex}</Label>
-              </View>
-            ))}
-          </View>
-        </Section>
-
-        <View className="h-8" />
-      </ScrollView>
-    </StyledSafeAreaView>
-  );
-}
+const StyledSafeAreaView = styled(SafeAreaView);
 
 function Section({
   title,
@@ -431,12 +33,304 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <View>
-      <View className="mb-4 flex-row items-center gap-3">
-        <Heading3>{title}</Heading3>
-        <View className="bg-surface-highest h-px flex-1" />
-      </View>
-      <View className="gap-3">{children}</View>
+    <View className="gap-3">
+      <Label>{title}</Label>
+      {children}
     </View>
+  );
+}
+
+export default function DesignSystem() {
+  const router = useRouter();
+
+  return (
+    <StyledSafeAreaView className="bg-surface flex-1" edges={["top"]}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 28 }}
+      >
+        {/* Header */}
+        <View className="flex-row items-center justify-between">
+          <View>
+            <H3>Design system</H3>
+            <BodySm className="mt-0.5">Hooper component library</BodySm>
+          </View>
+          <TextButton onPress={() => router.back()} tone="brand">
+            Back
+          </TextButton>
+        </View>
+
+        {/* Logo */}
+        <Section title="Logo">
+          <Card>
+            <View className="items-center py-2">
+              <Logo height={56} />
+            </View>
+          </Card>
+        </Section>
+
+        {/* Typography */}
+        <Section title="Typography">
+          <Card>
+            <View className="gap-3">
+              <H1>Display H1</H1>
+              <H2>Section H2</H2>
+              <H3>Card H3</H3>
+              <H4>Sub-heading H4</H4>
+              <Body>
+                Body text — Hooper connects athletes and coaches on one platform
+                built for serious training.
+              </Body>
+              <BodySm>Body sm — secondary supporting text.</BodySm>
+              <Label>Label / caps</Label>
+              <Stat>33</Stat>
+            </View>
+          </Card>
+        </Section>
+
+        {/* Colors */}
+        <Section title="Brand colors">
+          <View className="flex-row flex-wrap gap-2">
+            {[
+              { c: "bg-brand-orange", name: "brand-orange" },
+              { c: "bg-brand-light-orange", name: "brand-light-orange" },
+              { c: "bg-brand-navy", name: "brand-navy" },
+              { c: "bg-brand-blue", name: "brand-blue" },
+              { c: "bg-brand-black", name: "brand-black" },
+              { c: "bg-brand-white", name: "brand-white" },
+            ].map((s) => (
+              <View key={s.name} className="items-center" style={{ width: 88 }}>
+                <View
+                  className={`border-border-subtle mb-1.5 h-12 w-full rounded-md border ${s.c}`}
+                />
+                <BodySm style={{ fontSize: 10 }}>{s.name}</BodySm>
+              </View>
+            ))}
+          </View>
+        </Section>
+
+        <Section title="Surfaces">
+          <View className="flex-row gap-2">
+            {[
+              { c: "bg-surface", name: "surface" },
+              { c: "bg-surface-2", name: "surface-2" },
+              { c: "bg-surface-3", name: "surface-3" },
+            ].map((s) => (
+              <View key={s.name} className="flex-1 items-center">
+                <View
+                  className={`border-border-subtle mb-1.5 h-12 w-full rounded-md border ${s.c}`}
+                />
+                <BodySm style={{ fontSize: 10 }}>{s.name}</BodySm>
+              </View>
+            ))}
+          </View>
+        </Section>
+
+        {/* Buttons */}
+        <Section title="Buttons">
+          <View className="gap-3">
+            <Button variant="primary">Start session</Button>
+            <Button variant="secondary">View program</Button>
+            <Button variant="navy">Coach view</Button>
+            <Button variant="ghost">Log set</Button>
+            <View className="flex-row gap-2">
+              <Button variant="primary" size="sm">
+                Add
+              </Button>
+              <Button variant="primary" disabled>
+                Unavailable
+              </Button>
+              <Button variant="icon" />
+            </View>
+            <Button variant="primary" className="shadow-orange-glow">
+              With orange glow
+            </Button>
+          </View>
+        </Section>
+
+        {/* Text Buttons */}
+        <Section title="Text buttons">
+          <Card>
+            <View className="gap-3">
+              <View className="flex-row items-center gap-3">
+                <BodySm>Don&apos;t have an account?</BodySm>
+                <TextButton onPress={() => {}}>Sign up</TextButton>
+              </View>
+              <View className="flex-row items-center gap-3">
+                <BodySm>Read our</BodySm>
+                <TextButton tone="muted" underline onPress={() => {}}>
+                  Privacy Policy
+                </TextButton>
+              </View>
+              <View className="flex-row items-center gap-3">
+                <BodySm>Need help?</BodySm>
+                <TextButton tone="interactive" onPress={() => {}}>
+                  Contact support
+                </TextButton>
+              </View>
+            </View>
+          </Card>
+        </Section>
+
+        {/* Badges & Tags */}
+        <Section title="Badges & tags">
+          <Card>
+            <View className="flex-row flex-wrap items-center gap-2">
+              <Badge variant="orange" dot>
+                Active
+              </Badge>
+              <Badge variant="green" dot>
+                Complete
+              </Badge>
+              <Badge variant="red" dot>
+                Missed
+              </Badge>
+              <Badge variant="navy">Coach</Badge>
+              <Badge variant="white">Athlete</Badge>
+              <Badge variant="outline">Week 2</Badge>
+              <Tag>Strength</Tag>
+              <Tag>Upper Body</Tag>
+              <Tag>Conditioning</Tag>
+              <NumberBadge count={3} />
+            </View>
+          </Card>
+        </Section>
+
+        {/* Cards */}
+        <Section title="Cards">
+          <Card variant="accent">
+            <View className="flex-row items-start justify-between">
+              <View>
+                <H4>Strength Block A</H4>
+                <BodySm className="mt-1">
+                  Assigned by Coach Marcus · Week 2 of 6
+                </BodySm>
+              </View>
+              <Badge variant="orange" dot>
+                Active
+              </Badge>
+            </View>
+            <View className="mt-4 flex-row gap-4">
+              {[
+                { v: "4", l: "Days/Week" },
+                { v: "12", l: "Exercises" },
+                { v: "67%", l: "Complete" },
+              ].map((s) => (
+                <View key={s.l}>
+                  <Stat style={{ fontSize: 22 }}>{s.v}</Stat>
+                  <Label className="mt-1" style={{ fontSize: 9 }}>
+                    {s.l}
+                  </Label>
+                </View>
+              ))}
+            </View>
+          </Card>
+
+          <Card variant="navy">
+            <Label className="text-white/50">Coach</Label>
+            <H4 className="mt-1">Marcus J.</H4>
+            <BodySm className="mt-1.5 text-white/65">
+              6 athletes · 3 active programs
+            </BodySm>
+          </Card>
+
+          <Card>
+            <H4>Default card</H4>
+            <BodySm className="mt-1">
+              Surface 2 background with subtle border.
+            </BodySm>
+          </Card>
+        </Section>
+
+        {/* Inputs */}
+        <Section title="Form inputs">
+          <Card>
+            <View className="gap-4">
+              <Input label="Email" placeholder="coach@hooper.app" />
+              <Input
+                label="Sets"
+                defaultValue="3"
+                hint="Active focus state"
+                keyboardType="numeric"
+              />
+              <Input
+                label="Reps"
+                defaultValue="abc"
+                error="Reps must be a number"
+              />
+              <View className="flex-row gap-3">
+                <Input
+                  label="Weight (kg)"
+                  placeholder="80"
+                  className="flex-1"
+                  keyboardType="numeric"
+                />
+                <Input
+                  label="Rest (sec)"
+                  placeholder="90"
+                  className="flex-1"
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+          </Card>
+        </Section>
+
+        {/* Carousel */}
+        <Section title="Carousel">
+          <Card>
+            <Carousel
+              items={[
+                {
+                  id: "a",
+                  title: "Slide one",
+                  body: "Auto-advances every 4 seconds.",
+                },
+                {
+                  id: "b",
+                  title: "Slide two",
+                  body: "Swipe horizontally or tap a dot.",
+                },
+                {
+                  id: "c",
+                  title: "Slide three",
+                  body: "Pauses while you interact.",
+                },
+              ]}
+              renderItem={(s) => (
+                <View className="items-center py-4">
+                  <H4 className="mb-1.5">{s.title}</H4>
+                  <Body className="text-center" style={{ maxWidth: 240 }}>
+                    {s.body}
+                  </Body>
+                </View>
+              )}
+            />
+          </Card>
+        </Section>
+
+        {/* Shadows */}
+        <Section title="Shadows">
+          <View className="flex-row flex-wrap gap-3">
+            {[
+              { c: "shadow-sm", name: "sm" },
+              { c: "shadow-md", name: "md" },
+              { c: "shadow-lg", name: "lg" },
+              {
+                c: "shadow-orange-glow border border-[rgba(241,88,37,0.3)]",
+                name: "orange glow",
+              },
+            ].map((s) => (
+              <View key={s.name} className="items-center">
+                <View className={`bg-surface-2 h-14 w-20 rounded-xl ${s.c}`} />
+                <BodySm className="mt-1.5" style={{ fontSize: 10 }}>
+                  {s.name}
+                </BodySm>
+              </View>
+            ))}
+          </View>
+        </Section>
+      </ScrollView>
+    </StyledSafeAreaView>
   );
 }

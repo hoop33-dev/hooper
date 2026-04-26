@@ -56,7 +56,7 @@ export default function SplashScreen() {
     <ImageBackground
       source={{ uri: HERO_IMAGE_URI }}
       resizeMode="cover"
-      className="bg-surface flex-1"
+      style={{ flex: 1, backgroundColor: "#1A1718" }}
     >
       <LinearGradient
         colors={[

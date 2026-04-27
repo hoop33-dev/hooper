@@ -11,6 +11,7 @@ type InputProps = Omit<TextInputProps, "style"> & {
   label?: string;
   hint?: string;
   error?: string;
+  hasError?: boolean;
   className?: string;
   inputClassName?: string;
 };
@@ -20,6 +21,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
     label,
     hint,
     error,
+    hasError = false,
     className = "",
     inputClassName = "",
     onFocus,
@@ -30,11 +32,12 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
 ) {
   const [focused, setFocused] = useState(false);
 
-  const borderClass = error
-    ? "border-danger"
-    : focused
-      ? "border-brand-orange"
-      : "border-border-subtle";
+  const borderClass =
+    error || hasError
+      ? "border-danger"
+      : focused
+        ? "border-brand-orange"
+        : "border-border-subtle";
 
   return (
     <View className={`gap-1.5 ${className}`}>
@@ -55,6 +58,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
       <TextInput
         ref={ref}
         placeholderTextColor="rgba(255,255,255,0.25)"
+        underlineColorAndroid="transparent"
         className={`bg-surface-2 rounded-lg border px-5 py-3 ${borderClass} ${inputClassName}`}
         style={{
           fontFamily: "Inter",

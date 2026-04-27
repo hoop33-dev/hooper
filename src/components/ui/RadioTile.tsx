@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, View, Text } from "react-native";
-import Svg, { Path, Defs, RadialGradient, Stop, Rect } from "react-native-svg";
+import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Path } from "react-native-svg";
 
 export type RadioTileProps = {
   id: string;
@@ -15,8 +16,15 @@ export type RadioTileProps = {
   onPress: () => void;
 };
 
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 export function RadioTile({
-  id,
+  id: _id,
   label,
   title,
   body,
@@ -48,37 +56,24 @@ export function RadioTile({
         shadowOpacity: selected ? 0.4 : 0.3,
         shadowRadius: selected ? 20 : 8,
         elevation: selected ? 8 : 3,
-        overflow: "hidden",
       }}
     >
-      {/* Radial gradient overlay when selected */}
+      {/* Gradient overlay — LinearGradient clips itself with borderRadius */}
       {selected && (
-        <Svg
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-          width="100%"
-          height="100%"
+        <LinearGradient
+          colors={[hexToRgba(accent, 0.2), hexToRgba(accent, 0)]}
+          start={{ x: 0.2, y: 0.2 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            borderRadius: 14.5,
+          }}
           pointerEvents="none"
-        >
-          <Defs>
-            <RadialGradient
-              id={`rg-${id}`}
-              cx="20%"
-              cy="20%"
-              r="70%"
-              gradientUnits="objectBoundingBox"
-            >
-              <Stop offset="0" stopColor={accent} stopOpacity={0.18} />
-              <Stop offset="1" stopColor={accent} stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Rect
-            x={0}
-            y={0}
-            width="100%"
-            height="100%"
-            fill={`url(#rg-${id})`}
-          />
-        </Svg>
+        />
       )}
 
       {/* Top row: icon container + radio indicator */}

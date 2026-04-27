@@ -40,13 +40,11 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
           </Text>
         ) : null}
 
-        <View
-          style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}
-        >
-          {/* Country code badge */}
+        <View style={{ flexDirection: "row", alignItems: "stretch", gap: 8 }}>
+          {/* Country code badge — stretches to match the Input height */}
           <View
             style={{
-              height: 48,
+              alignSelf: "stretch",
               paddingHorizontal: 16,
               backgroundColor: "#2D2829",
               borderWidth: 1.5,
@@ -68,7 +66,7 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
             </Text>
           </View>
 
-          {/* Number input */}
+          {/* Number input — explicit h-12 so badge can match */}
           <Input
             ref={ref}
             value={value}
@@ -77,19 +75,16 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
             keyboardType="phone-pad"
             autoComplete="tel"
             textContentType="telephoneNumber"
-            error={error ? " " : undefined}
+            hasError={!!error}
+            inputClassName="h-12"
             className="flex-1"
           />
         </View>
 
         {error ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Text
-              style={{ fontFamily: "Inter", fontSize: 11, color: "#E53E3E" }}
-            >
-              {error}
-            </Text>
-          </View>
+          <Text style={{ fontFamily: "Inter", fontSize: 11, color: "#E53E3E" }}>
+            {error}
+          </Text>
         ) : null}
       </View>
     );

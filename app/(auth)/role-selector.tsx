@@ -277,6 +277,7 @@ export default function RoleSelectorScreen() {
         {ROLES.map((role) => (
           <RadioTile
             key={role.id}
+            id={role.id}
             label={role.label}
             title={role.title}
             body={role.body}

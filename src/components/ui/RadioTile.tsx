@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, View, Text } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Path, Defs, RadialGradient, Stop, Rect } from "react-native-svg";
 
 export type RadioTileProps = {
+  id: string;
   label: string;
   title: string;
   body: string;
@@ -15,6 +16,7 @@ export type RadioTileProps = {
 };
 
 export function RadioTile({
+  id,
   label,
   title,
   body,
@@ -49,6 +51,36 @@ export function RadioTile({
         overflow: "hidden",
       }}
     >
+      {/* Radial gradient overlay when selected */}
+      {selected && (
+        <Svg
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+          width="100%"
+          height="100%"
+          pointerEvents="none"
+        >
+          <Defs>
+            <RadialGradient
+              id={`rg-${id}`}
+              cx="20%"
+              cy="20%"
+              r="70%"
+              gradientUnits="objectBoundingBox"
+            >
+              <Stop offset="0" stopColor={accent} stopOpacity={0.18} />
+              <Stop offset="1" stopColor={accent} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Rect
+            x={0}
+            y={0}
+            width="100%"
+            height="100%"
+            fill={`url(#rg-${id})`}
+          />
+        </Svg>
+      )}
+
       {/* Top row: icon container + radio indicator */}
       <View
         style={{

@@ -384,7 +384,7 @@ export default function SignupDetailsScreen() {
                 value={form.firstName}
                 onChangeText={(v) => setField("firstName", v)}
                 placeholder="Jordan"
-                error={errors.firstName}
+                hasError={!!errors.firstName}
                 autoCapitalize="words"
                 autoComplete="given-name"
                 textContentType="givenName"
@@ -397,7 +397,7 @@ export default function SignupDetailsScreen() {
                 value={form.lastName}
                 onChangeText={(v) => setField("lastName", v)}
                 placeholder="Taylor"
-                error={errors.lastName}
+                hasError={!!errors.lastName}
                 autoCapitalize="words"
                 autoComplete="family-name"
                 textContentType="familyName"
@@ -421,7 +421,7 @@ export default function SignupDetailsScreen() {
               value={form.username}
               onChangeText={(v) => setField("username", v)}
               placeholder="jordan33"
-              error={errors.username}
+              hasError={!!errors.username}
               autoCapitalize="none"
               autoComplete="username"
               textContentType="username"
@@ -435,7 +435,7 @@ export default function SignupDetailsScreen() {
               value={form.email}
               onChangeText={(v) => setField("email", v)}
               placeholder="you@email.com"
-              error={errors.email}
+              hasError={!!errors.email}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -481,7 +481,7 @@ export default function SignupDetailsScreen() {
                 onChangeText={(v) => setField("password", v)}
                 placeholder="8+ characters"
                 secureTextEntry={!showPassword}
-                error={errors.password}
+                hasError={!!errors.password}
                 autoComplete="new-password"
                 textContentType="newPassword"
                 inputClassName="pr-12"
@@ -526,7 +526,7 @@ export default function SignupDetailsScreen() {
                 onChangeText={(v) => setField("confirmPassword", v)}
                 placeholder="Repeat your password"
                 secureTextEntry={!showConfirmPassword}
-                error={errors.confirmPassword}
+                hasError={!!errors.confirmPassword}
                 autoComplete="new-password"
                 textContentType="newPassword"
                 inputClassName="pr-12"

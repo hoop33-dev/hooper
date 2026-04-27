@@ -43,7 +43,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
     <View className={`gap-1.5 ${className}`}>
       {label ? (
         <Text
-          className="text-text-tertiary"
+          className={error || hasError ? "text-danger" : "text-text-tertiary"}
           style={{
             fontFamily: "Inter",
             fontWeight: "500",

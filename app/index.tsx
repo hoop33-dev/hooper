@@ -72,7 +72,7 @@ export default function SplashScreen() {
 
       <StyledSafeAreaView className="flex-1" edges={["top", "bottom"]}>
         <View className="items-center pt-2 pb-2">
-          <Logo height={64} />
+          <Logo height={85} />
         </View>
 
         <View className="flex-1 items-center justify-center px-6">

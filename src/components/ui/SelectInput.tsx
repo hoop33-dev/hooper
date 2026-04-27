@@ -72,7 +72,7 @@ export function SelectInput({
             borderWidth: 1.5,
             borderColor,
             borderRadius: 10,
-            paddingHorizontal: 14,
+            paddingHorizontal: 20,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",

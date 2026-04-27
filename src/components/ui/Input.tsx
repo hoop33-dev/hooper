@@ -55,7 +55,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
       <TextInput
         ref={ref}
         placeholderTextColor="rgba(255,255,255,0.25)"
-        className={`bg-surface-2 rounded-lg border px-4 py-3 ${borderClass} ${inputClassName}`}
+        className={`bg-surface-2 rounded-lg border px-5 py-3 ${borderClass} ${inputClassName}`}
         style={{
           fontFamily: "Inter",
           fontSize: 15,

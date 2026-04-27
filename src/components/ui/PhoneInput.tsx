@@ -47,7 +47,7 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
           <View
             style={{
               height: 48,
-              paddingHorizontal: 12,
+              paddingHorizontal: 16,
               backgroundColor: "#2D2829",
               borderWidth: 1.5,
               borderColor: error ? "#E53E3E" : "rgba(255,255,255,0.08)",

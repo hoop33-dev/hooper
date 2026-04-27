@@ -59,11 +59,13 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
         ref={ref}
         placeholderTextColor="rgba(255,255,255,0.25)"
         underlineColorAndroid="transparent"
-        className={`bg-surface-2 rounded-lg border px-5 py-3 ${borderClass} ${inputClassName}`}
+        className={`bg-surface-2 rounded-lg border ${borderClass} ${inputClassName}`}
         style={{
           fontFamily: "Inter",
           fontSize: 15,
           color: "rgba(255,255,255,0.85)",
+          paddingHorizontal: 20,
+          paddingVertical: 12,
         }}
         onFocus={(e) => {
           setFocused(true);

@@ -26,10 +26,11 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ backgroundColor: "#1A1718" }}>
       <Stack
         screenOptions={{
           headerShown: false,
+          animation: "fade",
           contentStyle: { backgroundColor: "#1A1718" },
         }}
       />

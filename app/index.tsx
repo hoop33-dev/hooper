@@ -12,6 +12,7 @@ import {
   ProgressIllustration,
 } from "@/src/components/splash/illustrations";
 
+const StyledImageBackground = styled(ImageBackground);
 const StyledSafeAreaView = styled(SafeAreaView);
 
 const HERO_IMAGE_URI =
@@ -53,10 +54,10 @@ export default function SplashScreen() {
   const router = useRouter();
 
   return (
-    <ImageBackground
+    <StyledImageBackground
       source={{ uri: HERO_IMAGE_URI }}
       resizeMode="cover"
-      style={{ flex: 1, backgroundColor: "#1A1718" }}
+      className="bg-surface flex-1"
     >
       <LinearGradient
         colors={[
@@ -126,6 +127,6 @@ export default function SplashScreen() {
           </Button>
         </View>
       </StyledSafeAreaView>
-    </ImageBackground>
+    </StyledImageBackground>
   );
 }

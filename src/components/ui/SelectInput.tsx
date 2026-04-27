@@ -6,8 +6,8 @@ import {
   Modal,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 export type SelectOption = {

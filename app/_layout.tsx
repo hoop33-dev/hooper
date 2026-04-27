@@ -3,13 +3,8 @@ import "../global.css";
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import {
-  useFonts,
-  Lexend_400Regular,
-  Lexend_600SemiBold,
-  Lexend_700Bold,
-  Lexend_900Black,
-} from "@expo-google-fonts/lexend";
+import { useFonts } from "expo-font";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // Ignore if the splash screen has already been hidden.
@@ -17,10 +12,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Lexend_400Regular,
-    Lexend_600SemiBold,
-    Lexend_700Bold,
-    Lexend_900Black,
+    Inter: require("../assets/fonts/Inter.ttf"),
   });
 
   useEffect(() => {
@@ -33,5 +25,15 @@ export default function RootLayout() {
     return null;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <SafeAreaProvider style={{ backgroundColor: "#1A1718" }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "fade",
+          contentStyle: { backgroundColor: "#1A1718" },
+        }}
+      />
+    </SafeAreaProvider>
+  );
 }

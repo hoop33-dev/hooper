@@ -112,7 +112,7 @@ export default function SplashScreen() {
             variant="primary"
             size="lg"
             className="shadow-orange-glow w-full"
-            onPress={() => router.push("/design-system")}
+            onPress={() => router.push("/(auth)/role-selector")}
           >
             Create account
           </Button>

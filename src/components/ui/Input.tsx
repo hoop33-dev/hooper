@@ -12,10 +12,20 @@ type InputProps = Omit<TextInputProps, "style"> & {
   hint?: string;
   error?: string;
   className?: string;
+  inputClassName?: string;
 };
 
 export const Input = forwardRef<RNTextInput, InputProps>(function Input(
-  { label, hint, error, className = "", onFocus, onBlur, ...rest },
+  {
+    label,
+    hint,
+    error,
+    className = "",
+    inputClassName = "",
+    onFocus,
+    onBlur,
+    ...rest
+  },
   ref,
 ) {
   const [focused, setFocused] = useState(false);
@@ -45,7 +55,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
       <TextInput
         ref={ref}
         placeholderTextColor="rgba(255,255,255,0.25)"
-        className={`bg-surface-2 rounded-lg border px-4 py-3 ${borderClass}`}
+        className={`bg-surface-2 rounded-lg border px-4 py-3 ${borderClass} ${inputClassName}`}
         style={{
           fontFamily: "Inter",
           fontSize: 15,

@@ -76,7 +76,6 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
             autoComplete="tel"
             textContentType="telephoneNumber"
             hasError={!!error}
-            inputClassName="h-12"
             className="flex-1"
           />
         </View>

@@ -66,6 +66,8 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
           color: "rgba(255,255,255,0.85)",
           paddingHorizontal: 20,
           paddingVertical: 12,
+          height: 48,
+          textAlignVertical: "center",
         }}
         onFocus={(e) => {
           setFocused(true);

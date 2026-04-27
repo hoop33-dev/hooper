@@ -37,17 +37,16 @@ export function RadioTile({
 }: RadioTileProps) {
   const [pressed, setPressed] = useState(false);
 
-  // Always render gradient as the content wrapper (not an absolute overlay) so
-  // it covers the full tile on Android regardless of parent padding.
   const gradientColors: [string, string] = selected
     ? [hexToRgba(accent, 0.2), hexToRgba(accent, 0)]
     : ["rgba(0,0,0,0)", "rgba(0,0,0,0)"];
 
+  // On Android, elevation triggers clipToOutline which clips children to the
+  // content box rather than the full border box. Fix: outer View owns elevation
+  // and shadow (no gradient inside it), inner Pressable owns overflow:"hidden"
+  // which correctly clips the gradient without the elevation conflict.
   return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
+    <View
       style={{
         backgroundColor: selected ? accentDim : "#2D2829",
         borderWidth: 1.5,
@@ -62,105 +61,115 @@ export function RadioTile({
         elevation: selected ? 8 : 3,
       }}
     >
-      <LinearGradient
-        colors={gradientColors}
-        start={{ x: 0.2, y: 0.2 }}
-        end={{ x: 1, y: 1 }}
-        style={{ padding: 20, paddingBottom: 18 }}
+      {/* overflow:"hidden" clips the gradient to the tile's rounded corners */}
+      <Pressable
+        onPress={onPress}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        style={{ borderRadius: 14.5, overflow: "hidden" }}
       >
-        {/* Top row: icon container + radio indicator */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginBottom: 14,
-          }}
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0.2, y: 0.2 }}
+          end={{ x: 1, y: 1 }}
+          style={{ padding: 20, paddingBottom: 18 }}
         >
+          {/* Top row: icon container + radio indicator */}
           <View
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: 14,
-              backgroundColor: selected ? accentDim : "rgba(255,255,255,0.04)",
-              borderWidth: 1,
-              borderColor: selected ? accentBorder : "rgba(255,255,255,0.08)",
-              alignItems: "center",
-              justifyContent: "center",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginBottom: 14,
             }}
           >
-            {icon}
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 14,
+                backgroundColor: selected
+                  ? accentDim
+                  : "rgba(255,255,255,0.04)",
+                borderWidth: 1,
+                borderColor: selected ? accentBorder : "rgba(255,255,255,0.08)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {icon}
+            </View>
+
+            <View
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 11,
+                borderWidth: 2,
+                borderColor: selected ? accent : "rgba(255,255,255,0.16)",
+                backgroundColor: selected ? accent : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: 2,
+              }}
+            >
+              {selected && (
+                <Svg width={11} height={8} viewBox="0 0 11 8" fill="none">
+                  <Path
+                    d="M1 4L4 7L10 1"
+                    stroke="white"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              )}
+            </View>
           </View>
 
-          <View
+          {/* Role label — uppercase caps */}
+          <Text
             style={{
-              width: 22,
-              height: 22,
-              borderRadius: 11,
-              borderWidth: 2,
-              borderColor: selected ? accent : "rgba(255,255,255,0.16)",
-              backgroundColor: selected ? accent : "transparent",
-              alignItems: "center",
-              justifyContent: "center",
-              marginTop: 2,
+              fontFamily: "Inter",
+              fontWeight: "500",
+              fontSize: 10,
+              letterSpacing: 10 * 0.14,
+              textTransform: "uppercase",
+              color: selected ? accent : "rgba(255,255,255,0.35)",
+              marginBottom: 5,
             }}
           >
-            {selected && (
-              <Svg width={11} height={8} viewBox="0 0 11 8" fill="none">
-                <Path
-                  d="M1 4L4 7L10 1"
-                  stroke="white"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            )}
-          </View>
-        </View>
+            {label}
+          </Text>
 
-        {/* Role label — uppercase caps */}
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "500",
-            fontSize: 10,
-            letterSpacing: 10 * 0.14,
-            textTransform: "uppercase",
-            color: selected ? accent : "rgba(255,255,255,0.35)",
-            marginBottom: 5,
-          }}
-        >
-          {label}
-        </Text>
+          {/* Title */}
+          <Text
+            style={{
+              fontFamily: "Inter",
+              fontWeight: "800",
+              fontSize: 22,
+              letterSpacing: 22 * -0.03,
+              color: "#FFFFFF",
+              marginBottom: 8,
+              lineHeight: 22 * 1.1,
+            }}
+          >
+            {title}
+          </Text>
 
-        {/* Title */}
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "800",
-            fontSize: 22,
-            letterSpacing: 22 * -0.03,
-            color: "#FFFFFF",
-            marginBottom: 8,
-            lineHeight: 22 * 1.1,
-          }}
-        >
-          {title}
-        </Text>
-
-        {/* Body */}
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "400",
-            fontSize: 13,
-            lineHeight: 13 * 1.55,
-            color: "rgba(255,255,255,0.65)",
-          }}
-        >
-          {body}
-        </Text>
-      </LinearGradient>
-    </Pressable>
+          {/* Body */}
+          <Text
+            style={{
+              fontFamily: "Inter",
+              fontWeight: "400",
+              fontSize: 13,
+              lineHeight: 13 * 1.55,
+              color: "rgba(255,255,255,0.65)",
+            }}
+          >
+            {body}
+          </Text>
+        </LinearGradient>
+      </Pressable>
+    </View>
   );
 }

@@ -37,6 +37,12 @@ export function RadioTile({
 }: RadioTileProps) {
   const [pressed, setPressed] = useState(false);
 
+  // Always render gradient as the content wrapper (not an absolute overlay) so
+  // it covers the full tile on Android regardless of parent padding.
+  const gradientColors: [string, string] = selected
+    ? [hexToRgba(accent, 0.2), hexToRgba(accent, 0)]
+    : ["rgba(0,0,0,0)", "rgba(0,0,0,0)"];
+
   return (
     <Pressable
       onPress={onPress}
@@ -56,26 +62,12 @@ export function RadioTile({
         elevation: selected ? 8 : 3,
       }}
     >
-      {/* Gradient — absolute inside paddingless Pressable so it covers the full tile on Android */}
-      {selected && (
-        <LinearGradient
-          colors={[hexToRgba(accent, 0.2), hexToRgba(accent, 0)]}
-          start={{ x: 0.2, y: 0.2 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            borderRadius: 14.5,
-          }}
-          pointerEvents="none"
-        />
-      )}
-
-      {/* Inner view carries the padding so the gradient fills the full tile */}
-      <View style={{ padding: 20, paddingBottom: 18 }}>
+      <LinearGradient
+        colors={gradientColors}
+        start={{ x: 0.2, y: 0.2 }}
+        end={{ x: 1, y: 1 }}
+        style={{ padding: 20, paddingBottom: 18 }}
+      >
         {/* Top row: icon container + radio indicator */}
         <View
           style={{
@@ -168,7 +160,7 @@ export function RadioTile({
         >
           {body}
         </Text>
-      </View>
+      </LinearGradient>
     </Pressable>
   );
 }

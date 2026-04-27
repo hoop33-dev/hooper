@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -71,6 +71,11 @@ export function DateInput({
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(value ?? new Date(2000, 0, 1));
 
+  // Keep tempDate in sync when the external value changes (e.g. form reset)
+  useEffect(() => {
+    if (value) setTempDate(value);
+  }, [value]);
+
   const borderColor = error
     ? "#E53E3E"
     : showPicker
@@ -81,6 +86,7 @@ export function DateInput({
     if (Platform.OS === "android") {
       setShowPicker(false);
       if (event.type === "set" && selectedDate) {
+        setTempDate(selectedDate);
         onChange(selectedDate);
       }
     } else {

@@ -2,10 +2,13 @@ import { useState } from "react";
 import { View, ScrollView, Pressable, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { styled } from "nativewind";
 import Svg, { Path } from "react-native-svg";
 
 import { RadioTile } from "@/src/components/ui";
 import { ROLES, type RoleId } from "@/src/constants/roles";
+
+const StyledSafeAreaView = styled(SafeAreaView);
 
 export default function RoleSelectorScreen() {
   const router = useRouter();
@@ -22,7 +25,7 @@ export default function RoleSelectorScreen() {
   }
 
   return (
-    <SafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
+    <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
       {/* Header */}
       <View className="px-6 pt-2 pb-5">
         <Pressable
@@ -131,6 +134,6 @@ export default function RoleSelectorScreen() {
           </Text>
         </Pressable>
       </View>
-    </SafeAreaView>
+    </StyledSafeAreaView>
   );
 }

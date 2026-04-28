@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { styled } from "nativewind";
 import Svg, { Path } from "react-native-svg";
 
 import {
@@ -24,6 +25,8 @@ import { AgeGateModal } from "@/src/components/auth/AgeGateModal";
 import { DisclosureLabel } from "@/src/components/auth/DisclosureLabel";
 import { ROLES, type RoleId } from "@/src/constants/roles";
 import { NZ_REGIONS } from "@/src/constants/regions";
+
+const StyledSafeAreaView = styled(SafeAreaView);
 
 /* ── Form state ──────────────────────────────────────────────── */
 
@@ -122,7 +125,7 @@ export default function SignupDetailsScreen() {
   const accent = roleConfig.accent;
 
   return (
-    <SafeAreaView className="bg-surface flex-1" edges={["top"]}>
+    <StyledSafeAreaView className="bg-surface flex-1" edges={["top"]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
@@ -317,7 +320,7 @@ export default function SignupDetailsScreen() {
         </ScrollView>
 
         {/* Submit CTA */}
-        <SafeAreaView edges={["bottom"]} className="bg-surface">
+        <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
           <View className="px-6 py-3">
             <Pressable
               onPress={handleSubmit}
@@ -344,7 +347,7 @@ export default function SignupDetailsScreen() {
               </Text>
             </Pressable>
           </View>
-        </SafeAreaView>
+        </StyledSafeAreaView>
       </KeyboardAvoidingView>
 
       <AgeGateModal
@@ -352,6 +355,6 @@ export default function SignupDetailsScreen() {
         roleId={roleId}
         onDismiss={dismissAgeGate}
       />
-    </SafeAreaView>
+    </StyledSafeAreaView>
   );
 }

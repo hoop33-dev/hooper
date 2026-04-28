@@ -8,11 +8,14 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { styled } from "nativewind";
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import Svg, { Path, Rect } from "react-native-svg";
 import { ErrorMessage } from "./ErrorMessage";
+
+const StyledSafeAreaView = styled(SafeAreaView);
 
 type DateInputProps = {
   label?: string;
@@ -167,7 +170,7 @@ export function DateInput({
           onRequestClose={handleCancel}
         >
           <Pressable className="flex-1 bg-black/60" onPress={handleCancel} />
-          <SafeAreaView className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t">
+          <StyledSafeAreaView className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t">
             <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
               <TouchableOpacity onPress={handleCancel} activeOpacity={0.7}>
                 <Text
@@ -201,7 +204,7 @@ export function DateInput({
               accentColor={accentColor}
               style={{ height: 200 }}
             />
-          </SafeAreaView>
+          </StyledSafeAreaView>
         </Modal>
       )}
     </>

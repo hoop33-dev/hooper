@@ -1,7 +1,10 @@
 import { Modal, View, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { styled } from "nativewind";
 import Svg, { Path, Circle } from "react-native-svg";
 import type { RoleId } from "@/src/constants/roles";
+
+const StyledSafeAreaView = styled(SafeAreaView);
 
 type AgeGateModalProps = {
   visible: boolean;
@@ -24,7 +27,7 @@ export function AgeGateModal({
       onRequestClose={onDismiss}
     >
       <View className="flex-1 justify-end bg-black/[72]">
-        <SafeAreaView
+        <StyledSafeAreaView
           className="bg-surface-2 border-danger/30 rounded-t-[20px] border-t p-6 pb-8"
           edges={["bottom"]}
         >
@@ -78,7 +81,7 @@ export function AgeGateModal({
               {isPlayer ? "Got it" : "Update date of birth"}
             </Text>
           </TouchableOpacity>
-        </SafeAreaView>
+        </StyledSafeAreaView>
       </View>
     </Modal>
   );

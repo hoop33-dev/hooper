@@ -8,8 +8,11 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { styled } from "nativewind";
 import Svg, { Path } from "react-native-svg";
 import { ErrorMessage } from "./ErrorMessage";
+
+const StyledSafeAreaView = styled(SafeAreaView);
 
 export type SelectOption = {
   label: string;
@@ -99,7 +102,7 @@ export function SelectInput({
           onPress={() => setOpen(false)}
         />
 
-        <SafeAreaView
+        <StyledSafeAreaView
           className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t"
           style={{ maxHeight: "70%" }}
         >
@@ -154,7 +157,7 @@ export function SelectInput({
               );
             }}
           />
-        </SafeAreaView>
+        </StyledSafeAreaView>
       </Modal>
     </>
   );

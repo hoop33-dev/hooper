@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Pressable, View, Text } from "react-native";
+import { Pressable, View, Text, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 
@@ -41,10 +41,9 @@ export function RadioTile({
     ? [hexToRgba(accent, 0.2), hexToRgba(accent, 0)]
     : ["rgba(0,0,0,0)", "rgba(0,0,0,0)"];
 
-  // On Android, elevation triggers clipToOutline which clips children to the
-  // content box rather than the full border box. Fix: outer View owns elevation
-  // and shadow (no gradient inside it), inner Pressable owns overflow:"hidden"
-  // which correctly clips the gradient without the elevation conflict.
+  // Android: elevation creates a hardware layer that clips gradient children
+  // regardless of the view hierarchy arrangement. Disable elevation on Android
+  // (shadow props have no effect there anyway — elevation is the only mechanism).
   return (
     <View
       style={{
@@ -58,7 +57,7 @@ export function RadioTile({
         shadowOffset: { width: 0, height: selected ? 4 : 2 },
         shadowOpacity: selected ? 0.4 : 0.3,
         shadowRadius: selected ? 20 : 8,
-        elevation: selected ? 8 : 3,
+        elevation: Platform.OS === "android" ? 0 : selected ? 8 : 3,
       }}
     >
       {/* overflow:"hidden" clips the gradient to the tile's rounded corners */}

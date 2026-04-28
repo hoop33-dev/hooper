@@ -43,6 +43,11 @@ export function Carousel<T>({
 
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  // Heights keyed by slide index — measured via the hidden layer below.
+  const [slideHeights, setSlideHeights] = useState<number[]>(() =>
+    new Array(items.length).fill(0),
+  );
+  const minHeight = Math.max(0, ...slideHeights) || undefined;
   const opacity = useRef(new Animated.Value(1)).current;
   const translate = useRef(new Animated.Value(0)).current;
 
@@ -122,7 +127,32 @@ export function Carousel<T>({
 
   return (
     <View className={className}>
-      <View {...panResponder.panHandlers} style={{ width }}>
+      {/* Hidden measurement layer — renders all slides simultaneously so
+          minHeight is the true max from the very first paint, keeping the
+          dots row at a stable vertical position as slides change. */}
+      <View
+        pointerEvents="none"
+        style={{ position: "absolute", width, opacity: 0 }}
+      >
+        {items.map((item, i) => (
+          <View
+            key={i}
+            onLayout={(e) => {
+              const h = e.nativeEvent.layout.height;
+              setSlideHeights((prev) => {
+                if (prev[i] === h) return prev;
+                const next = [...prev];
+                next[i] = h;
+                return next;
+              });
+            }}
+          >
+            {renderItem(item, i)}
+          </View>
+        ))}
+      </View>
+
+      <View {...panResponder.panHandlers} style={{ width, minHeight }}>
         <Animated.View
           style={{
             opacity,

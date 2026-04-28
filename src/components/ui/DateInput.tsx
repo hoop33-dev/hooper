@@ -22,6 +22,8 @@ type DateInputProps = {
   minDate?: Date;
   error?: string;
   placeholder?: string;
+  /** Accent color used for iOS picker highlight and Android dialog button text. */
+  accentColor?: string;
 };
 
 function formatDate(date: Date): string {
@@ -68,6 +70,7 @@ export function DateInput({
   minDate,
   error,
   placeholder = "Select date",
+  accentColor,
 }: DateInputProps) {
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(value ?? new Date(2000, 0, 1));
@@ -150,6 +153,8 @@ export function DateInput({
           onChange={handleChange}
           maximumDate={maxDate}
           minimumDate={minDate}
+          positiveButton={accentColor ? { textColor: accentColor } : undefined}
+          negativeButton={accentColor ? { textColor: accentColor } : undefined}
         />
       )}
 
@@ -193,6 +198,7 @@ export function DateInput({
               maximumDate={maxDate}
               minimumDate={minDate}
               themeVariant="dark"
+              accentColor={accentColor}
               style={{ height: 200 }}
             />
           </SafeAreaView>

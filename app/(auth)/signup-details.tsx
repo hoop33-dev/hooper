@@ -235,6 +235,7 @@ export default function SignupDetailsScreen() {
             maxDate={new Date()}
             error={errors.dob}
             placeholder="DD/MM/YYYY"
+            accentColor={accent}
           />
 
           <View>

@@ -89,7 +89,7 @@ export default function SignupDetailsScreen() {
     const e: FormErrors = {};
     if (!form.firstName.trim()) e.firstName = "Required";
     if (!form.lastName.trim()) e.lastName = "Required";
-    if (!form.dob) e.dob = "Required";
+    if (roleId === "player" && !form.dob) e.dob = "Required";
     if (!form.username.trim()) e.username = "Required";
     if (!form.email.trim()) e.email = "Required";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Enter a valid email";
@@ -228,15 +228,17 @@ export default function SignupDetailsScreen() {
             </View>
           </View>
 
-          <DateInput
-            label="Date of birth"
-            value={form.dob}
-            onChange={(d) => setField("dob", d)}
-            maxDate={new Date()}
-            error={errors.dob}
-            placeholder="DD/MM/YYYY"
-            accentColor={accent}
-          />
+          {roleId === "player" && (
+            <DateInput
+              label="Date of birth"
+              value={form.dob}
+              onChange={(d) => setField("dob", d)}
+              maxDate={new Date()}
+              error={errors.dob}
+              placeholder="DD/MM/YYYY"
+              accentColor={accent}
+            />
+          )}
 
           <View>
             <Input

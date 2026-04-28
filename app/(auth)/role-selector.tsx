@@ -93,7 +93,7 @@ export default function RoleSelectorScreen() {
             label={role.label}
             title={role.title}
             body={role.body}
-            icon={<role.Icon />}
+            icon={role.icon}
             accent={role.accent}
             accentDim={role.accentDim}
             accentBorder={role.accentBorder}

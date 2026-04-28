@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import type { ReactNode } from "react";
 import {
   PlayerIcon,
   ParentIcon,
@@ -13,7 +13,7 @@ export type RoleConfig = {
   title: string;
   body: string;
   cta: string;
-  Icon: ComponentType;
+  icon: ReactNode;
   accent: string;
   accentDim: string;
   accentBorder: string;
@@ -26,7 +26,7 @@ export const ROLES: RoleConfig[] = [
     title: "Player",
     body: "Get your program, log every session, and track your progress.",
     cta: "Sign up as a player",
-    Icon: PlayerIcon,
+    icon: <PlayerIcon />,
     accent: "#F15825",
     accentDim: "rgba(241,88,37,0.12)",
     accentBorder: "rgba(241,88,37,0.3)",
@@ -37,7 +37,7 @@ export const ROLES: RoleConfig[] = [
     title: "Parent",
     body: "Stay across your athlete's training and see their progress.",
     cta: "Sign up as a parent",
-    Icon: ParentIcon,
+    icon: <ParentIcon />,
     accent: "#F68D68",
     accentDim: "rgba(246,141,104,0.10)",
     accentBorder: "rgba(246,141,104,0.25)",
@@ -48,7 +48,7 @@ export const ROLES: RoleConfig[] = [
     title: "Coach",
     body: "Build programs, assign workouts, and follow your team's load.",
     cta: "Sign up as a coach",
-    Icon: CoachIcon,
+    icon: <CoachIcon />,
     accent: "#4A7FD4",
     accentDim: "rgba(74,127,212,0.12)",
     accentBorder: "rgba(74,127,212,0.3)",

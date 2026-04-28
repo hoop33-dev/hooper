@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
+import { ErrorMessage } from "./ErrorMessage";
 
 export type SelectOption = {
   label: string;
@@ -33,60 +34,41 @@ export function SelectInput({
   onChange,
 }: SelectInputProps) {
   const [open, setOpen] = useState(false);
-  const [focused, setFocused] = useState(false);
 
   const selected = options.find((o) => o.value === value);
 
-  const borderColor = error
-    ? "#E53E3E"
-    : focused
-      ? "rgba(255,255,255,0.25)"
-      : "rgba(255,255,255,0.08)";
+  const borderClass = error
+    ? "border-danger"
+    : open
+      ? "border-white/25"
+      : "border-border-subtle";
 
   return (
     <>
-      <View style={{ gap: 6 }}>
-        {label ? (
+      <View className="gap-1.5">
+        {label && (
           <Text
+            className={
+              error ? "text-danger uppercase" : "text-text-tertiary uppercase"
+            }
             style={{
               fontFamily: "Inter",
               fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.12,
-              textTransform: "uppercase",
-              color: error ? "#E53E3E" : "rgba(255,255,255,0.35)",
             }}
           >
             {label}
           </Text>
-        ) : null}
+        )}
 
         <Pressable
-          onPress={() => {
-            setOpen(true);
-            setFocused(true);
-          }}
-          style={{
-            height: 48,
-            backgroundColor: "#2D2829",
-            borderWidth: 1.5,
-            borderColor,
-            borderRadius: 10,
-            paddingHorizontal: 20,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
+          onPress={() => setOpen(true)}
+          className={`bg-surface-2 h-12 flex-row items-center justify-between rounded-[10px] border-[1.5px] px-5 ${borderClass}`}
         >
           <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 15,
-              color: selected
-                ? "rgba(255,255,255,0.85)"
-                : "rgba(255,255,255,0.25)",
-              flex: 1,
-            }}
+            className={`flex-1 text-[15px] ${selected ? "text-text-primary" : "text-text-disabled"}`}
+            style={{ fontFamily: "Inter" }}
             numberOfLines={1}
           >
             {selected ? selected.label : placeholder}
@@ -103,95 +85,40 @@ export function SelectInput({
           </Svg>
         </Pressable>
 
-        {error ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-              <Path
-                d="M6 1C3.24 1 1 3.24 1 6s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 2.5v3"
-                stroke="#E53E3E"
-                strokeWidth={1.2}
-                strokeLinecap="round"
-              />
-              <Path d="M6 9a.5.5 0 100-1 .5.5 0 000 1z" fill="#E53E3E" />
-            </Svg>
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 11,
-                color: "#E53E3E",
-              }}
-            >
-              {error}
-            </Text>
-          </View>
-        ) : null}
+        {error && <ErrorMessage message={error} />}
       </View>
 
       <Modal
         visible={open}
         transparent
         animationType="slide"
-        onRequestClose={() => {
-          setOpen(false);
-          setFocused(false);
-        }}
+        onRequestClose={() => setOpen(false)}
       >
-        {/* Backdrop */}
         <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)" }}
-          onPress={() => {
-            setOpen(false);
-            setFocused(false);
-          }}
+          className="flex-1 bg-black/60"
+          onPress={() => setOpen(false)}
         />
 
-        {/* Bottom sheet */}
         <SafeAreaView
-          style={{
-            backgroundColor: "#2D2829",
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            maxHeight: "70%",
-            borderTopWidth: 1,
-            borderColor: "rgba(255,255,255,0.08)",
-          }}
+          className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t"
+          style={{ maxHeight: "70%" }}
         >
-          {/* Handle + header */}
-          <View
-            style={{
-              alignItems: "center",
-              paddingTop: 12,
-              paddingBottom: 8,
-            }}
-          >
-            <View
-              style={{
-                width: 36,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: "rgba(255,255,255,0.16)",
-                marginBottom: 16,
-              }}
-            />
-            {label ? (
+          <View className="items-center pt-3 pb-2">
+            <View className="bg-border-strong mb-4 h-1 w-9 rounded-full" />
+            {label && (
               <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: "600",
-                  fontSize: 15,
-                  color: "#FFFFFF",
-                  marginBottom: 8,
-                }}
+                className="text-text-primary mb-2 text-[15px] font-semibold"
+                style={{ fontFamily: "Inter" }}
               >
                 {label}
               </Text>
-            ) : null}
+            )}
           </View>
 
           <FlatList
             data={options}
             keyExtractor={(item) => item.value}
-            style={{ paddingHorizontal: 16 }}
+            className="px-4"
             contentContainerStyle={{ paddingBottom: 24 }}
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => {
@@ -201,26 +128,13 @@ export function SelectInput({
                   onPress={() => {
                     onChange(item.value);
                     setOpen(false);
-                    setFocused(false);
                   }}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    paddingVertical: 14,
-                    paddingHorizontal: 4,
-                    borderBottomWidth: 1,
-                    borderBottomColor: "rgba(255,255,255,0.06)",
-                  }}
+                  className="flex-row items-center justify-between border-b border-white/[0.06] px-1 py-[14px]"
                   activeOpacity={0.7}
                 >
                   <Text
-                    style={{
-                      fontFamily: "Inter",
-                      fontSize: 15,
-                      color: isSelected ? "#F15825" : "rgba(255,255,255,0.85)",
-                      fontWeight: isSelected ? "600" : "400",
-                    }}
+                    className={`text-[15px] ${isSelected ? "text-brand-orange font-semibold" : "text-text-primary"}`}
+                    style={{ fontFamily: "Inter" }}
                   >
                     {item.label}
                   </Text>

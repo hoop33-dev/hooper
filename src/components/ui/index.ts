@@ -28,3 +28,7 @@ export { DateInput } from "./DateInput";
 export { PhoneInput } from "./PhoneInput";
 
 export { Checkbox } from "./Checkbox";
+
+export { ErrorMessage } from "./ErrorMessage";
+
+export { PasswordInput } from "./PasswordInput";

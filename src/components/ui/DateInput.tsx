@@ -12,6 +12,7 @@ import DateTimePicker, {
   type DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import Svg, { Path, Rect } from "react-native-svg";
+import { ErrorMessage } from "./ErrorMessage";
 
 type DateInputProps = {
   label?: string;
@@ -76,11 +77,11 @@ export function DateInput({
     if (value) setTempDate(value);
   }, [value]);
 
-  const borderColor = error
-    ? "#E53E3E"
+  const borderClass = error
+    ? "border-danger"
     : showPicker
-      ? "rgba(255,255,255,0.25)"
-      : "rgba(255,255,255,0.08)";
+      ? "border-white/25"
+      : "border-border-subtle";
 
   const handleChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === "android") {
@@ -90,9 +91,7 @@ export function DateInput({
         onChange(selectedDate);
       }
     } else {
-      if (selectedDate) {
-        setTempDate(selectedDate);
-      }
+      if (selectedDate) setTempDate(selectedDate);
     }
   };
 
@@ -108,44 +107,30 @@ export function DateInput({
 
   return (
     <>
-      <View style={{ gap: 6 }}>
-        {label ? (
+      <View className="gap-1.5">
+        {label && (
           <Text
+            className={
+              error ? "text-danger uppercase" : "text-text-tertiary uppercase"
+            }
             style={{
               fontFamily: "Inter",
               fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.12,
-              textTransform: "uppercase",
-              color: error ? "#E53E3E" : "rgba(255,255,255,0.35)",
             }}
           >
             {label}
           </Text>
-        ) : null}
+        )}
 
         <Pressable
           onPress={() => setShowPicker(true)}
-          style={{
-            height: 48,
-            backgroundColor: "#2D2829",
-            borderWidth: 1.5,
-            borderColor,
-            borderRadius: 10,
-            paddingHorizontal: 20,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
+          className={`bg-surface-2 h-12 flex-row items-center justify-between rounded-[10px] border-[1.5px] px-5 ${borderClass}`}
         >
           <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 15,
-              color: value
-                ? "rgba(255,255,255,0.85)"
-                : "rgba(255,255,255,0.25)",
-            }}
+            className={`text-[15px] ${value ? "text-text-primary" : "text-text-disabled"}`}
+            style={{ fontFamily: "Inter" }}
           >
             {value ? formatDate(value) : placeholder}
           </Text>
@@ -153,24 +138,7 @@ export function DateInput({
           <CalendarIcon />
         </Pressable>
 
-        {error ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-              <Path
-                d="M6 1C3.24 1 1 3.24 1 6s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 2.5v3"
-                stroke="#E53E3E"
-                strokeWidth={1.2}
-                strokeLinecap="round"
-              />
-              <Path d="M6 9a.5.5 0 100-1 .5.5 0 000 1z" fill="#E53E3E" />
-            </Svg>
-            <Text
-              style={{ fontFamily: "Inter", fontSize: 11, color: "#E53E3E" }}
-            >
-              {error}
-            </Text>
-          </View>
-        ) : null}
+        {error && <ErrorMessage message={error} />}
       </View>
 
       {/* Android: render picker directly (shows as native dialog) */}
@@ -193,59 +161,24 @@ export function DateInput({
           animationType="slide"
           onRequestClose={handleCancel}
         >
-          <Pressable
-            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)" }}
-            onPress={handleCancel}
-          />
-          <SafeAreaView
-            style={{
-              backgroundColor: "#2D2829",
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              borderTopWidth: 1,
-              borderColor: "rgba(255,255,255,0.08)",
-            }}
-          >
-            {/* Header */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingHorizontal: 20,
-                paddingTop: 16,
-                paddingBottom: 8,
-              }}
-            >
+          <Pressable className="flex-1 bg-black/60" onPress={handleCancel} />
+          <SafeAreaView className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t">
+            <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
               <TouchableOpacity onPress={handleCancel} activeOpacity={0.7}>
                 <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 15,
-                    color: "rgba(255,255,255,0.5)",
-                  }}
+                  className="text-[15px] text-white/50"
+                  style={{ fontFamily: "Inter" }}
                 >
                   Cancel
                 </Text>
               </TouchableOpacity>
 
-              <View
-                style={{
-                  width: 36,
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: "rgba(255,255,255,0.16)",
-                }}
-              />
+              <View className="bg-border-strong h-1 w-9 rounded-full" />
 
               <TouchableOpacity onPress={handleDone} activeOpacity={0.7}>
                 <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontWeight: "600",
-                    fontSize: 15,
-                    color: "#F15825",
-                  }}
+                  className="text-brand-orange text-[15px] font-semibold"
+                  style={{ fontFamily: "Inter" }}
                 >
                   Done
                 </Text>

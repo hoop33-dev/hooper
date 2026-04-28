@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { View, Text, type TextInput as RNTextInput } from "react-native";
 import { Input } from "./Input";
+import { ErrorMessage } from "./ErrorMessage";
 
 type PhoneInputProps = {
   label?: string;
@@ -24,49 +25,37 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
     ref,
   ) {
     return (
-      <View style={{ gap: 6 }}>
-        {label ? (
+      <View className="gap-1.5">
+        {label && (
           <Text
+            className={
+              error ? "text-danger uppercase" : "text-text-tertiary uppercase"
+            }
             style={{
               fontFamily: "Inter",
               fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.12,
-              textTransform: "uppercase",
-              color: error ? "#E53E3E" : "rgba(255,255,255,0.35)",
             }}
           >
             {label}
           </Text>
-        ) : null}
+        )}
 
-        <View style={{ flexDirection: "row", alignItems: "stretch", gap: 8 }}>
+        <View className="flex-row items-stretch gap-2">
           {/* Country code badge — stretches to match the Input height */}
           <View
-            style={{
-              alignSelf: "stretch",
-              paddingHorizontal: 16,
-              backgroundColor: "#2D2829",
-              borderWidth: 1.5,
-              borderColor: error ? "#E53E3E" : "rgba(255,255,255,0.08)",
-              borderRadius: 10,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            className={`bg-surface-2 items-center justify-center self-stretch rounded-[10px] border-[1.5px] px-4 ${error ? "border-danger" : "border-border-subtle"}`}
           >
             <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 15,
-                color: "rgba(255,255,255,0.65)",
-                fontWeight: "500",
-              }}
+              className="text-text-secondary text-[15px] font-medium"
+              style={{ fontFamily: "Inter" }}
             >
               {countryCode}
             </Text>
           </View>
 
-          {/* Number input — explicit h-12 so badge can match */}
+          {/* Number input */}
           <Input
             ref={ref}
             value={value}
@@ -80,11 +69,7 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
           />
         </View>
 
-        {error ? (
-          <Text style={{ fontFamily: "Inter", fontSize: 11, color: "#E53E3E" }}>
-            {error}
-          </Text>
-        ) : null}
+        {error && <ErrorMessage message={error} />}
       </View>
     );
   },

@@ -132,7 +132,8 @@ export function DateInput({
 
         <Pressable
           onPress={() => setShowPicker(true)}
-          className={`bg-surface-2 h-12 flex-row items-center justify-between rounded-[10px] border-[1.5px] px-5 ${borderClass}`}
+          className={`bg-surface-2 flex-row items-center justify-between rounded-[10px] border-[1.5px] px-5 ${borderClass}`}
+          style={{ height: 48 }}
         >
           <Text
             className={`text-[15px] ${value ? "text-text-primary" : "text-text-disabled"}`}

@@ -67,7 +67,8 @@ export function SelectInput({
 
         <Pressable
           onPress={() => setOpen(true)}
-          className={`bg-surface-2 h-12 flex-row items-center justify-between rounded-[10px] border-[1.5px] px-5 ${borderClass}`}
+          className={`bg-surface-2 flex-row items-center justify-between rounded-[10px] border-[1.5px] px-5 ${borderClass}`}
+          style={{ height: 48 }}
         >
           <Text
             className={`flex-1 text-[15px] ${selected ? "text-text-primary" : "text-text-disabled"}`}
@@ -121,8 +122,7 @@ export function SelectInput({
           <FlatList
             data={options}
             keyExtractor={(item) => item.value}
-            className="px-4"
-            contentContainerStyle={{ paddingBottom: 24 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => {
               const isSelected = item.value === value;

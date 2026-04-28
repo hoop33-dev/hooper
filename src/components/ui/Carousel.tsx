@@ -43,7 +43,6 @@ export function Carousel<T>({
 
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [slideHeight, setSlideHeight] = useState(0);
   const opacity = useRef(new Animated.Value(1)).current;
   const translate = useRef(new Animated.Value(0)).current;
 
@@ -128,17 +127,9 @@ export function Carousel<T>({
           style={{
             opacity,
             transform: [{ translateY: translate }],
-            minHeight: slideHeight || undefined,
           }}
         >
-          <View
-            onLayout={(e) => {
-              const h = e.nativeEvent.layout.height;
-              setSlideHeight((prev) => Math.max(prev, h));
-            }}
-          >
-            {renderItem(items[index], index)}
-          </View>
+          {renderItem(items[index], index)}
         </Animated.View>
       </View>
 

@@ -21,9 +21,10 @@ export { RadioTile } from "./RadioTile";
 export type { RadioTileProps } from "./RadioTile";
 
 export { SelectInput } from "./SelectInput";
-export type { SelectOption } from "./SelectInput";
+export type { SelectOption, SelectInputHandle } from "./SelectInput";
 
 export { DateInput } from "./DateInput";
+export type { DateInputHandle } from "./DateInput";
 
 export { PhoneInput } from "./PhoneInput";
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import { ErrorMessage } from "./ErrorMessage";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
+export type SelectInputHandle = { open: () => void };
+
 export type SelectOption = {
   label: string;
   value: string;
@@ -28,137 +30,152 @@ type SelectInputProps = {
   onChange: (value: string) => void;
 };
 
-export function SelectInput({
-  label,
-  value,
-  options,
-  placeholder = "Select an option",
-  error,
-  onChange,
-}: SelectInputProps) {
-  const [open, setOpen] = useState(false);
+export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
+  function SelectInput(
+    {
+      label,
+      value,
+      options,
+      placeholder = "Select an option",
+      error,
+      onChange,
+    },
+    ref,
+  ) {
+    const [open, setOpen] = useState(false);
 
-  const selected = options.find((o) => o.value === value);
+    useImperativeHandle(ref, () => ({ open: () => setOpen(true) }));
 
-  const borderClass = error
-    ? "border-danger"
-    : open
-      ? "border-white/25"
-      : "border-border-subtle";
+    const selected = options.find((o) => o.value === value);
 
-  return (
-    <>
-      <View className="gap-1.5">
-        {label && (
-          <Text
-            className={
-              error ? "text-danger uppercase" : "text-text-tertiary uppercase"
-            }
-            style={{
-              fontFamily: "Inter",
-              fontWeight: "500",
-              fontSize: 10,
-              letterSpacing: 10 * 0.12,
-            }}
+    const borderClass = error
+      ? "border-danger"
+      : open
+        ? "border-white/25"
+        : "border-border-subtle";
+
+    return (
+      <>
+        <View className="gap-1.5">
+          {label && (
+            <Text
+              className={
+                error ? "text-danger uppercase" : "text-text-tertiary uppercase"
+              }
+              style={{
+                fontFamily: "Inter",
+                fontWeight: "500",
+                fontSize: 10,
+                letterSpacing: 10 * 0.12,
+              }}
+            >
+              {label}
+            </Text>
+          )}
+
+          <Pressable
+            onPress={() => setOpen(true)}
+            className={`bg-surface-2 flex-row items-center justify-between rounded-[10px] border-[1.5px] px-5 ${borderClass}`}
+            style={{ height: 48 }}
           >
-            {label}
-          </Text>
-        )}
+            <Text
+              className={`flex-1 text-[15px] ${selected ? "text-text-primary" : "text-text-disabled"}`}
+              style={{ fontFamily: "Inter" }}
+              numberOfLines={1}
+            >
+              {selected ? selected.label : placeholder}
+            </Text>
 
-        <Pressable
-          onPress={() => setOpen(true)}
-          className={`bg-surface-2 flex-row items-center justify-between rounded-[10px] border-[1.5px] px-5 ${borderClass}`}
-          style={{ height: 48 }}
+            <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+              <Path
+                d="M4 6L8 10L12 6"
+                stroke="rgba(255,255,255,0.35)"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+          </Pressable>
+
+          {error && <ErrorMessage message={error} />}
+        </View>
+
+        <Modal
+          visible={open}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setOpen(false)}
         >
-          <Text
-            className={`flex-1 text-[15px] ${selected ? "text-text-primary" : "text-text-disabled"}`}
-            style={{ fontFamily: "Inter" }}
-            numberOfLines={1}
-          >
-            {selected ? selected.label : placeholder}
-          </Text>
-
-          <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-            <Path
-              d="M4 6L8 10L12 6"
-              stroke="rgba(255,255,255,0.35)"
-              strokeWidth={1.6}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-        </Pressable>
-
-        {error && <ErrorMessage message={error} />}
-      </View>
-
-      <Modal
-        visible={open}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setOpen(false)}
-      >
-        <Pressable
-          className="flex-1 bg-black/60"
-          onPress={() => setOpen(false)}
-        />
-
-        <StyledSafeAreaView
-          className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t"
-          style={{ maxHeight: "70%" }}
-        >
-          <View className="items-center pt-3 pb-2">
-            <View className="bg-border-strong mb-4 h-1 w-9 rounded-full" />
-            {label && (
-              <Text
-                className="text-text-primary mb-2 text-[15px] font-semibold"
-                style={{ fontFamily: "Inter" }}
-              >
-                {label}
-              </Text>
-            )}
-          </View>
-
-          <FlatList
-            data={options}
-            keyExtractor={(item) => item.value}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => {
-              const isSelected = item.value === value;
-              return (
-                <TouchableOpacity
-                  onPress={() => {
-                    onChange(item.value);
-                    setOpen(false);
-                  }}
-                  className="flex-row items-center justify-between border-b border-white/[0.06] px-1 py-[14px]"
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    className={`text-[15px] ${isSelected ? "text-brand-orange font-semibold" : "text-text-primary"}`}
-                    style={{ fontFamily: "Inter" }}
-                  >
-                    {item.label}
-                  </Text>
-
-                  {isSelected && (
-                    <Svg width={18} height={18} viewBox="0 0 18 18" fill="none">
-                      <Path
-                        d="M3 9l4.5 4.5L15 5"
-                        stroke="#F15825"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </Svg>
-                  )}
-                </TouchableOpacity>
-              );
-            }}
+          <Pressable
+            className="flex-1 bg-black/60"
+            onPress={() => setOpen(false)}
           />
-        </StyledSafeAreaView>
-      </Modal>
-    </>
-  );
-}
+
+          <StyledSafeAreaView
+            className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t"
+            style={{ maxHeight: "70%" }}
+          >
+            <View className="items-center pt-3 pb-2">
+              <View className="bg-border-strong mb-4 h-1 w-9 rounded-full" />
+              {label && (
+                <Text
+                  className="text-text-primary mb-2 text-[15px] font-semibold"
+                  style={{ fontFamily: "Inter" }}
+                >
+                  {label}
+                </Text>
+              )}
+            </View>
+
+            <FlatList
+              data={options}
+              keyExtractor={(item) => item.value}
+              contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingBottom: 24,
+              }}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => {
+                const isSelected = item.value === value;
+                return (
+                  <TouchableOpacity
+                    onPress={() => {
+                      onChange(item.value);
+                      setOpen(false);
+                    }}
+                    className="flex-row items-center justify-between border-b border-white/[0.06] px-1 py-[14px]"
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      className={`text-[15px] ${isSelected ? "text-brand-orange font-semibold" : "text-text-primary"}`}
+                      style={{ fontFamily: "Inter" }}
+                    >
+                      {item.label}
+                    </Text>
+
+                    {isSelected && (
+                      <Svg
+                        width={18}
+                        height={18}
+                        viewBox="0 0 18 18"
+                        fill="none"
+                      >
+                        <Path
+                          d="M3 9l4.5 4.5L15 5"
+                          stroke="#F15825"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </Svg>
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </StyledSafeAreaView>
+        </Modal>
+      </>
+    );
+  },
+);

@@ -16,7 +16,9 @@ import Svg, { Path } from "react-native-svg";
 import {
   Input,
   SelectInput,
+  type SelectInputHandle,
   DateInput,
+  type DateInputHandle,
   PhoneInput,
   Checkbox,
   PasswordInput,
@@ -63,6 +65,8 @@ export default function SignupDetailsScreen() {
 
   const scrollRef = useRef<ScrollView>(null);
   const lastNameRef = useRef<RNTextInput>(null);
+  const dateInputRef = useRef<DateInputHandle>(null);
+  const regionInputRef = useRef<SelectInputHandle>(null);
   const usernameRef = useRef<RNTextInput>(null);
   const emailRef = useRef<RNTextInput>(null);
   const mobileRef = useRef<RNTextInput>(null);
@@ -91,7 +95,13 @@ export default function SignupDetailsScreen() {
     if (key === "dob" && value instanceof Date) {
       if (calcAge(value) < 16) {
         setAgeGateVisible(true);
+      } else {
+        setTimeout(() => usernameRef.current?.focus(), 300);
       }
+    }
+
+    if (key === "region") {
+      setTimeout(() => passwordRef.current?.focus(), 300);
     }
   }
 
@@ -239,7 +249,11 @@ export default function SignupDetailsScreen() {
                 textContentType="familyName"
                 returnKeyType="next"
                 blurOnSubmit={false}
-                onSubmitEditing={() => usernameRef.current?.focus()}
+                onSubmitEditing={() =>
+                  roleId === "player"
+                    ? dateInputRef.current?.open()
+                    : usernameRef.current?.focus()
+                }
               />
               {errors.lastName && <ErrorMessage message={errors.lastName} />}
             </View>
@@ -247,6 +261,7 @@ export default function SignupDetailsScreen() {
 
           {roleId === "player" && (
             <DateInput
+              ref={dateInputRef}
               label="Date of birth"
               value={form.dob}
               onChange={(d) => setField("dob", d)}
@@ -302,10 +317,11 @@ export default function SignupDetailsScreen() {
             error={errors.mobile}
             returnKeyType="next"
             blurOnSubmit={false}
-            onSubmitEditing={() => passwordRef.current?.focus()}
+            onSubmitEditing={() => regionInputRef.current?.open()}
           />
 
           <SelectInput
+            ref={regionInputRef}
             label="Region"
             value={form.region}
             options={NZ_REGIONS}

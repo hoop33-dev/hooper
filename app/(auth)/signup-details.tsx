@@ -8,6 +8,7 @@ import {
 import {
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
+  KeyboardStickyView,
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -368,34 +369,36 @@ export default function SignupDetailsScreen() {
         </KeyboardAwareScrollView>
 
         {/* Submit CTA */}
-        <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
-          <View className="px-6 py-3">
-            <Pressable
-              onPress={handleSubmit}
-              style={({ pressed }) => ({
-                height: 52,
-                borderRadius: 9999,
-                backgroundColor: accent,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: pressed ? 0.85 : 1,
-                transform: [{ scale: pressed ? 0.97 : 1 }],
-                shadowColor: accent,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.35,
-                shadowRadius: 20,
-                elevation: 8,
-              })}
-            >
-              <Text
-                className="text-text-primary text-[15px] font-bold"
-                style={{ fontFamily: "Inter" }}
+        <KeyboardStickyView>
+          <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
+            <View className="px-6 py-3">
+              <Pressable
+                onPress={handleSubmit}
+                style={({ pressed }) => ({
+                  height: 52,
+                  borderRadius: 9999,
+                  backgroundColor: accent,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: pressed ? 0.85 : 1,
+                  transform: [{ scale: pressed ? 0.97 : 1 }],
+                  shadowColor: accent,
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 20,
+                  elevation: 8,
+                })}
               >
-                Create account
-              </Text>
-            </Pressable>
-          </View>
-        </StyledSafeAreaView>
+                <Text
+                  className="text-text-primary text-[15px] font-bold"
+                  style={{ fontFamily: "Inter" }}
+                >
+                  Create account
+                </Text>
+              </Pressable>
+            </View>
+          </StyledSafeAreaView>
+        </KeyboardStickyView>
       </View>
 
       <AgeGateModal

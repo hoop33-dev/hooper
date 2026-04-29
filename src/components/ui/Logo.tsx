@@ -11,7 +11,7 @@ export function Logo({ height = 68, style, ...rest }: LogoProps) {
       style={[
         {
           height,
-          width: height * 4,
+          aspectRatio: 10170 / 11929,
           resizeMode: "contain",
         },
         style,

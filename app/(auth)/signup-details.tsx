@@ -216,7 +216,7 @@ export default function SignupDetailsScreen() {
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          bottomOffset={24}
+          bottomOffset={100}
         >
           {/* Name row */}
           <View className="flex-row gap-3">

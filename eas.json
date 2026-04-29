@@ -12,6 +12,10 @@
       "channel": "development",
       "distribution": "internal"
     },
+    "staging": {
+      "channel": "development",
+      "distribution": "internal"
+    },
     "production": {
       "channel": "production",
       "autoIncrement": true

@@ -1,5 +1,11 @@
-import { useState } from "react";
-import { View, Text, Pressable, type TextInputProps } from "react-native";
+import { useState, forwardRef } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  type TextInputProps,
+  type TextInput as RNTextInput,
+} from "react-native";
 import Svg, { Path, Circle } from "react-native-svg";
 import { Input } from "./Input";
 import { ErrorMessage } from "./ErrorMessage";
@@ -43,56 +49,54 @@ function EyeIcon({ visible }: { visible: boolean }) {
   );
 }
 
-export function PasswordInput({
-  label,
-  error,
-  hasError,
-  ...rest
-}: PasswordInputProps) {
-  const [show, setShow] = useState(false);
-  const isError = !!error || !!hasError;
+export const PasswordInput = forwardRef<RNTextInput, PasswordInputProps>(
+  function PasswordInput({ label, error, hasError, ...rest }, ref) {
+    const [show, setShow] = useState(false);
+    const isError = !!error || !!hasError;
 
-  return (
-    <View className="gap-1.5">
-      {label && (
-        <Text
-          className={
-            isError ? "text-danger uppercase" : "text-text-tertiary uppercase"
-          }
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "500",
-            fontSize: 10,
-            letterSpacing: 10 * 0.12,
-          }}
-        >
-          {label}
-        </Text>
-      )}
-      <View>
-        <Input
-          hasError={isError}
-          inputClassName="pr-12"
-          secureTextEntry={!show}
-          {...rest}
-        />
-        <Pressable
-          onPress={() => setShow((v) => !v)}
-          style={{
-            position: "absolute",
-            right: 12,
-            bottom: 0,
-            height: 48,
-            justifyContent: "center",
-            padding: 4,
-          }}
-          hitSlop={8}
-          accessibilityLabel={show ? "Hide password" : "Show password"}
-        >
-          <EyeIcon visible={show} />
-        </Pressable>
+    return (
+      <View className="gap-1.5">
+        {label && (
+          <Text
+            className={
+              isError ? "text-danger uppercase" : "text-text-tertiary uppercase"
+            }
+            style={{
+              fontFamily: "Inter",
+              fontWeight: "500",
+              fontSize: 10,
+              letterSpacing: 10 * 0.12,
+            }}
+          >
+            {label}
+          </Text>
+        )}
+        <View>
+          <Input
+            ref={ref}
+            hasError={isError}
+            inputClassName="pr-12"
+            secureTextEntry={!show}
+            {...rest}
+          />
+          <Pressable
+            onPress={() => setShow((v) => !v)}
+            style={{
+              position: "absolute",
+              right: 12,
+              bottom: 0,
+              height: 48,
+              justifyContent: "center",
+              padding: 4,
+            }}
+            hitSlop={8}
+            accessibilityLabel={show ? "Hide password" : "Show password"}
+          >
+            <EyeIcon visible={show} />
+          </Pressable>
+        </View>
+        {error && <ErrorMessage message={error} />}
       </View>
-      {error && <ErrorMessage message={error} />}
-    </View>
-  );
-}
+    );
+  },
+);

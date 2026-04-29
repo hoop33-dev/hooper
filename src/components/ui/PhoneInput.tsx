@@ -10,6 +10,9 @@ type PhoneInputProps = {
   error?: string;
   placeholder?: string;
   countryCode?: string;
+  returnKeyType?: import("react-native").TextInputProps["returnKeyType"];
+  blurOnSubmit?: boolean;
+  onSubmitEditing?: import("react-native").TextInputProps["onSubmitEditing"];
 };
 
 export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
@@ -21,6 +24,9 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
       error,
       placeholder = "21 000 0000",
       countryCode = "+64",
+      returnKeyType,
+      blurOnSubmit,
+      onSubmitEditing,
     },
     ref,
   ) {
@@ -66,6 +72,9 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
             textContentType="telephoneNumber"
             hasError={!!error}
             className="flex-1"
+            returnKeyType={returnKeyType}
+            blurOnSubmit={blurOnSubmit}
+            onSubmitEditing={onSubmitEditing}
           />
         </View>
 

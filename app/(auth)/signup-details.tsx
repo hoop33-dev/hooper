@@ -6,6 +6,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  type TextInput as RNTextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -61,6 +62,12 @@ export default function SignupDetailsScreen() {
   const roleConfig = ROLES.find((r) => r.id === roleId) ?? ROLES[0];
 
   const scrollRef = useRef<ScrollView>(null);
+  const lastNameRef = useRef<RNTextInput>(null);
+  const usernameRef = useRef<RNTextInput>(null);
+  const emailRef = useRef<RNTextInput>(null);
+  const mobileRef = useRef<RNTextInput>(null);
+  const passwordRef = useRef<RNTextInput>(null);
+  const confirmPasswordRef = useRef<RNTextInput>(null);
 
   const [form, setForm] = useState<FormState>({
     firstName: "",
@@ -213,11 +220,15 @@ export default function SignupDetailsScreen() {
                 autoCapitalize="words"
                 autoComplete="given-name"
                 textContentType="givenName"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => lastNameRef.current?.focus()}
               />
               {errors.firstName && <ErrorMessage message={errors.firstName} />}
             </View>
             <View className="flex-1">
               <Input
+                ref={lastNameRef}
                 label="Last name"
                 value={form.lastName}
                 onChangeText={(v) => setField("lastName", v)}
@@ -226,6 +237,9 @@ export default function SignupDetailsScreen() {
                 autoCapitalize="words"
                 autoComplete="family-name"
                 textContentType="familyName"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => usernameRef.current?.focus()}
               />
               {errors.lastName && <ErrorMessage message={errors.lastName} />}
             </View>
@@ -245,6 +259,7 @@ export default function SignupDetailsScreen() {
 
           <View>
             <Input
+              ref={usernameRef}
               label="Username"
               value={form.username}
               onChangeText={(v) => setField("username", v)}
@@ -253,12 +268,16 @@ export default function SignupDetailsScreen() {
               autoCapitalize="none"
               autoComplete="username"
               textContentType="username"
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => emailRef.current?.focus()}
             />
             {errors.username && <ErrorMessage message={errors.username} />}
           </View>
 
           <View>
             <Input
+              ref={emailRef}
               label="Email address"
               value={form.email}
               onChangeText={(v) => setField("email", v)}
@@ -268,15 +287,22 @@ export default function SignupDetailsScreen() {
               autoCapitalize="none"
               autoComplete="email"
               textContentType="emailAddress"
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => mobileRef.current?.focus()}
             />
             {errors.email && <ErrorMessage message={errors.email} />}
           </View>
 
           <PhoneInput
+            ref={mobileRef}
             label="Mobile number"
             value={form.mobile}
             onChangeText={(v) => setField("mobile", v)}
             error={errors.mobile}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordRef.current?.focus()}
           />
 
           <SelectInput
@@ -289,6 +315,7 @@ export default function SignupDetailsScreen() {
           />
 
           <PasswordInput
+            ref={passwordRef}
             label="Password"
             value={form.password}
             onChangeText={(v) => setField("password", v)}
@@ -296,9 +323,13 @@ export default function SignupDetailsScreen() {
             error={errors.password}
             autoComplete="new-password"
             textContentType="newPassword"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
           />
 
           <PasswordInput
+            ref={confirmPasswordRef}
             label="Confirm password"
             value={form.confirmPassword}
             onChangeText={(v) => setField("confirmPassword", v)}
@@ -306,6 +337,8 @@ export default function SignupDetailsScreen() {
             error={errors.confirmPassword}
             autoComplete="new-password"
             textContentType="newPassword"
+            returnKeyType="done"
+            onSubmitEditing={handleSubmit}
           />
 
           <Checkbox

@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
-import { View, Text, Pressable, Modal, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  Modal,
+  Platform,
+  TouchableOpacity,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import DateTimePicker, {
@@ -82,8 +89,16 @@ export function DateInput({
       ? "border-white/25"
       : "border-border-subtle";
 
-  const handleChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (selectedDate) setTempDate(selectedDate);
+  const handleChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === "android") {
+      setShowPicker(false);
+      if (event.type === "set" && selectedDate) {
+        setTempDate(selectedDate);
+        onChange(selectedDate);
+      }
+    } else {
+      if (selectedDate) setTempDate(selectedDate);
+    }
   };
 
   const handleDone = () => {
@@ -133,53 +148,66 @@ export function DateInput({
         {error && <ErrorMessage message={error} />}
       </View>
 
-      {/* Bottom sheet modal — same on iOS and Android */}
-      <Modal
-        visible={showPicker}
-        transparent
-        animationType="slide"
-        onRequestClose={handleCancel}
-      >
-        <Pressable className="flex-1 bg-black/60" onPress={handleCancel} />
-        <StyledSafeAreaView className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t">
-          <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
-            <TouchableOpacity onPress={handleCancel} activeOpacity={0.7}>
-              <Text
-                className="text-[15px] text-white/50"
-                style={{ fontFamily: "Inter" }}
-              >
-                Cancel
-              </Text>
-            </TouchableOpacity>
+      {/* Android: native calendar dialog */}
+      {Platform.OS === "android" && showPicker && (
+        <DateTimePicker
+          mode="date"
+          display="default"
+          value={tempDate}
+          onChange={handleChange}
+          maximumDate={maxDate}
+          minimumDate={minDate}
+          positiveButton={accentColor ? { textColor: accentColor } : undefined}
+          negativeButton={accentColor ? { textColor: accentColor } : undefined}
+        />
+      )}
 
-            <View className="bg-border-strong h-1 w-9 rounded-full" />
+      {/* iOS: spinner in a bottom sheet modal */}
+      {Platform.OS === "ios" && (
+        <Modal
+          visible={showPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={handleCancel}
+        >
+          <Pressable className="flex-1 bg-black/60" onPress={handleCancel} />
+          <StyledSafeAreaView className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t">
+            <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
+              <TouchableOpacity onPress={handleCancel} activeOpacity={0.7}>
+                <Text
+                  className="text-[15px] text-white/50"
+                  style={{ fontFamily: "Inter" }}
+                >
+                  Cancel
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleDone} activeOpacity={0.7}>
-              <Text
-                className="text-[15px] font-semibold"
-                style={{
-                  fontFamily: "Inter",
-                  color: accentColor ?? "#F15825",
-                }}
-              >
-                Done
-              </Text>
-            </TouchableOpacity>
-          </View>
+              <View className="bg-border-strong h-1 w-9 rounded-full" />
 
-          <DateTimePicker
-            mode="date"
-            display="spinner"
-            value={tempDate}
-            onChange={handleChange}
-            maximumDate={maxDate}
-            minimumDate={minDate}
-            themeVariant="dark"
-            accentColor={accentColor}
-            style={{ height: 200 }}
-          />
-        </StyledSafeAreaView>
-      </Modal>
+              <TouchableOpacity onPress={handleDone} activeOpacity={0.7}>
+                <Text
+                  className="text-brand-orange text-[15px] font-semibold"
+                  style={{ fontFamily: "Inter" }}
+                >
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <DateTimePicker
+              mode="date"
+              display="spinner"
+              value={tempDate}
+              onChange={handleChange}
+              maximumDate={maxDate}
+              minimumDate={minDate}
+              themeVariant="dark"
+              accentColor={accentColor}
+              style={{ height: 200 }}
+            />
+          </StyledSafeAreaView>
+        </Modal>
+      )}
     </>
   );
 }

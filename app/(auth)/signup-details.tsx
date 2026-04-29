@@ -216,7 +216,7 @@ export default function SignupDetailsScreen() {
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          bottomOffset={100}
+          bottomOffset={120}
         >
           {/* Name row */}
           <View className="flex-row gap-3">
@@ -354,7 +354,6 @@ export default function SignupDetailsScreen() {
             autoComplete="new-password"
             textContentType="newPassword"
             returnKeyType="done"
-            onSubmitEditing={handleSubmit}
           />
 
           <Checkbox

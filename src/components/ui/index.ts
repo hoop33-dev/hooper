@@ -16,3 +16,20 @@ export { Input } from "./Input";
 export { Logo } from "./Logo";
 
 export { Carousel } from "./Carousel";
+
+export { RadioTile } from "./RadioTile";
+export type { RadioTileProps } from "./RadioTile";
+
+export { SelectInput } from "./SelectInput";
+export type { SelectOption, SelectInputHandle } from "./SelectInput";
+
+export { DateInput } from "./DateInput";
+export type { DateInputHandle } from "./DateInput";
+
+export { PhoneInput } from "./PhoneInput";
+
+export { Checkbox } from "./Checkbox";
+
+export { ErrorMessage } from "./ErrorMessage";
+
+export { PasswordInput } from "./PasswordInput";

@@ -11,26 +11,39 @@ type InputProps = Omit<TextInputProps, "style"> & {
   label?: string;
   hint?: string;
   error?: string;
+  hasError?: boolean;
   className?: string;
+  inputClassName?: string;
 };
 
 export const Input = forwardRef<RNTextInput, InputProps>(function Input(
-  { label, hint, error, className = "", onFocus, onBlur, ...rest },
+  {
+    label,
+    hint,
+    error,
+    hasError = false,
+    className = "",
+    inputClassName = "",
+    onFocus,
+    onBlur,
+    ...rest
+  },
   ref,
 ) {
   const [focused, setFocused] = useState(false);
 
-  const borderClass = error
-    ? "border-danger"
-    : focused
-      ? "border-brand-orange"
-      : "border-border-subtle";
+  const borderClass =
+    error || hasError
+      ? "border-danger"
+      : focused
+        ? "border-brand-orange"
+        : "border-border-subtle";
 
   return (
     <View className={`gap-1.5 ${className}`}>
       {label ? (
         <Text
-          className="text-text-tertiary"
+          className={error || hasError ? "text-danger" : "text-text-tertiary"}
           style={{
             fontFamily: "Inter",
             fontWeight: "500",
@@ -45,11 +58,16 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
       <TextInput
         ref={ref}
         placeholderTextColor="rgba(255,255,255,0.25)"
-        className={`bg-surface-2 rounded-lg border px-4 py-3 ${borderClass}`}
+        underlineColorAndroid="transparent"
+        className={`bg-surface-2 rounded-lg border ${borderClass} ${inputClassName}`}
         style={{
           fontFamily: "Inter",
           fontSize: 15,
           color: "rgba(255,255,255,0.85)",
+          paddingHorizontal: 20,
+          paddingVertical: 12,
+          height: 48,
+          textAlignVertical: "center",
         }}
         onFocus={(e) => {
           setFocused(true);

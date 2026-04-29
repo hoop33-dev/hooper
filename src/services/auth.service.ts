@@ -17,18 +17,29 @@ export type SignUpResult =
   | { ok: true }
   | { ok: false; field?: "username" | "email"; error: string };
 
+// Returns true (available), false (taken), or null (RPC error — treat as retryable)
 export async function checkUsernameAvailable(
   username: string
-): Promise<boolean> {
+): Promise<boolean | null> {
   const { data, error } = await supabase.rpc("is_username_available", {
     p_username: username,
   });
-  if (error) return false;
+  if (error) return null;
   return data === true;
+}
+
+function formatLocalDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 export async function signUp(params: SignUpParams): Promise<SignUpResult> {
   const available = await checkUsernameAvailable(params.username);
+  if (available === null) {
+    return { ok: false, error: "Unable to verify username availability. Please try again." };
+  }
   if (!available) {
     return { ok: false, field: "username", error: "That username is already taken." };
   }
@@ -44,9 +55,7 @@ export async function signUp(params: SignUpParams): Promise<SignUpResult> {
         mobile: params.mobile,
         region_slug: params.regionSlug,
         role: params.role,
-        date_of_birth: params.dateOfBirth
-          ? params.dateOfBirth.toISOString().split("T")[0]
-          : null,
+        date_of_birth: params.dateOfBirth ? formatLocalDate(params.dateOfBirth) : null,
       },
     },
   });

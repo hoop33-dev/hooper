@@ -1,0 +1,56 @@
+name: Auto Development Update
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [dev]
+    types: [completed]
+
+jobs:
+  publish:
+    name: Publish development update
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Build update message
+        id: update_meta
+        shell: bash
+        env:
+          COMMIT_MESSAGE: ${{ github.event.workflow_run.head_commit.message }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          FIRST_LINE=$(printf '%s' "$COMMIT_MESSAGE" | head -1 | cut -c1-120)
+          SHA_SHORT=$(printf '%s' "$HEAD_SHA" | cut -c1-7)
+          echo "message=[dev ${SHA_SHORT}] ${FIRST_LINE}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish EAS update (development)
+        run: |
+          eas update \
+            --branch development \
+            --environment development \
+            --message "${{ steps.update_meta.outputs.message }}" \
+            --non-interactive

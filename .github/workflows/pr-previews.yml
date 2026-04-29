@@ -144,6 +144,8 @@ jobs:
           echo "dashboard_url=$DASHBOARD_URL" >> "$GITHUB_OUTPUT"
         env:
           CI: "1"
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Update preview comment (ready)
         if: success()

@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { Pressable, View, Text } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Path, Circle } from "react-native-svg";
 
 type CheckboxProps = {
   checked: boolean;
@@ -95,6 +95,16 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
             paddingHorizontal: 2,
           }}
         >
+          <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+            <Circle cx={6} cy={6} r={5.5} stroke="#E53E3E" strokeWidth={1} />
+            <Path
+              d="M6 3.5V6.5"
+              stroke="#E53E3E"
+              strokeWidth={1.2}
+              strokeLinecap="round"
+            />
+            <Circle cx={6} cy={8.5} r={0.6} fill="#E53E3E" />
+          </Svg>
           <Text style={{ fontFamily: "Inter", fontSize: 11, color: "#E53E3E" }}>
             {error}
           </Text>

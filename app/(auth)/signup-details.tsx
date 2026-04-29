@@ -6,6 +6,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
   type TextInput as RNTextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,6 +29,7 @@ import { AgeGateModal } from "@/src/components/auth/AgeGateModal";
 import { DisclosureLabel } from "@/src/components/auth/DisclosureLabel";
 import { ROLES, type RoleId } from "@/src/constants/roles";
 import { NZ_REGIONS } from "@/src/constants/regions";
+import { signUp } from "@/src/services/auth.service";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -87,6 +89,8 @@ export default function SignupDetailsScreen() {
   const [disclosure, setDisclosure] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [ageGateVisible, setAgeGateVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -124,14 +128,44 @@ export default function SignupDetailsScreen() {
     return e;
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const e = validate();
     setErrors(e);
     if (Object.keys(e).length > 0) {
       scrollRef.current?.scrollTo({ y: 0, animated: true });
       return;
     }
-    // TODO: hook up Supabase signup
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    const result = await signUp({
+      firstName: form.firstName,
+      lastName: form.lastName,
+      username: form.username,
+      email: form.email,
+      mobile: form.mobile,
+      regionSlug: form.region!,
+      password: form.password,
+      role: roleId,
+      dateOfBirth: form.dob,
+    });
+
+    setIsSubmitting(false);
+
+    if (!result.ok) {
+      if (result.field === "username") {
+        setErrors((prev) => ({ ...prev, username: result.error }));
+      } else if (result.field === "email") {
+        setErrors((prev) => ({ ...prev, email: result.error }));
+      } else {
+        setSubmitError(result.error);
+      }
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      return;
+    }
+
+    router.replace("/");
   }
 
   function dismissAgeGate() {
@@ -218,6 +252,29 @@ export default function SignupDetailsScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {submitError && (
+            <View
+              style={{
+                backgroundColor: "rgba(229,62,62,0.12)",
+                borderWidth: 1,
+                borderColor: "rgba(229,62,62,0.35)",
+                borderRadius: 10,
+                padding: 12,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Inter",
+                  fontSize: 13,
+                  color: "#E53E3E",
+                  lineHeight: 18,
+                }}
+              >
+                {submitError}
+              </Text>
+            </View>
+          )}
+
           {/* Name row */}
           <View className="flex-row gap-3">
             <View className="flex-1">
@@ -373,14 +430,15 @@ export default function SignupDetailsScreen() {
           <View className="px-6 py-3">
             <Pressable
               onPress={handleSubmit}
+              disabled={isSubmitting}
               style={({ pressed }) => ({
                 height: 52,
                 borderRadius: 9999,
                 backgroundColor: accent,
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: pressed ? 0.85 : 1,
-                transform: [{ scale: pressed ? 0.97 : 1 }],
+                opacity: isSubmitting ? 0.7 : pressed ? 0.85 : 1,
+                transform: [{ scale: pressed && !isSubmitting ? 0.97 : 1 }],
                 shadowColor: accent,
                 shadowOffset: { width: 0, height: 0 },
                 shadowOpacity: 0.35,
@@ -388,12 +446,16 @@ export default function SignupDetailsScreen() {
                 elevation: 8,
               })}
             >
-              <Text
-                className="text-text-primary text-[15px] font-bold"
-                style={{ fontFamily: "Inter" }}
-              >
-                Create account
-              </Text>
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text
+                  className="text-text-primary text-[15px] font-bold"
+                  style={{ fontFamily: "Inter" }}
+                >
+                  Create account
+                </Text>
+              )}
             </Pressable>
           </View>
         </StyledSafeAreaView>

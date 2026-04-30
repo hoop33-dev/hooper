@@ -167,7 +167,7 @@ export default function SignupDetailsScreen() {
       return;
     }
 
-    router.replace("/");
+    router.replace("/dashboard");
   }
 
   function dismissAgeGate() {

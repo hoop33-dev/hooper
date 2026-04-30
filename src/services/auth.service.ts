@@ -19,7 +19,7 @@ export type SignUpResult =
 
 // Returns true (available), false (taken), or null (RPC error — treat as retryable)
 export async function checkUsernameAvailable(
-  username: string
+  username: string,
 ): Promise<boolean | null> {
   const { data, error } = await supabase.rpc("is_username_available", {
     p_username: username,
@@ -35,13 +35,41 @@ function formatLocalDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+export type SignInResult = { ok: true } | { ok: false; error: string };
+
+export async function signIn(
+  email: string,
+  password: string,
+): Promise<SignInResult> {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("invalid") || msg.includes("credentials")) {
+      return { ok: false, error: "Incorrect email or password." };
+    }
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+
+export async function signOut(): Promise<void> {
+  await supabase.auth.signOut();
+}
+
 export async function signUp(params: SignUpParams): Promise<SignUpResult> {
   const available = await checkUsernameAvailable(params.username);
   if (available === null) {
-    return { ok: false, error: "Unable to verify username availability. Please try again." };
+    return {
+      ok: false,
+      error: "Unable to verify username availability. Please try again.",
+    };
   }
   if (!available) {
-    return { ok: false, field: "username", error: "That username is already taken." };
+    return {
+      ok: false,
+      field: "username",
+      error: "That username is already taken.",
+    };
   }
 
   const { error } = await supabase.auth.signUp({
@@ -55,7 +83,9 @@ export async function signUp(params: SignUpParams): Promise<SignUpResult> {
         mobile: params.mobile,
         region_slug: params.regionSlug,
         role: params.role,
-        date_of_birth: params.dateOfBirth ? formatLocalDate(params.dateOfBirth) : null,
+        date_of_birth: params.dateOfBirth
+          ? formatLocalDate(params.dateOfBirth)
+          : null,
       },
     },
   });
@@ -63,7 +93,11 @@ export async function signUp(params: SignUpParams): Promise<SignUpResult> {
   if (error) {
     const msg = error.message.toLowerCase();
     if (msg.includes("already registered") || msg.includes("already exists")) {
-      return { ok: false, field: "email", error: "An account with this email already exists." };
+      return {
+        ok: false,
+        field: "email",
+        error: "An account with this email already exists.",
+      };
     }
     return { ok: false, error: error.message };
   }

@@ -123,6 +123,7 @@ jobs:
         run: |
           OUTPUT=$(eas update \
             --branch "${{ steps.preview_meta.outputs.branch }}" \
+            --environment preview \
             --message "${{ steps.preview_meta.outputs.message }}" \
             --json)
 

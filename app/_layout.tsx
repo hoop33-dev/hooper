@@ -5,6 +5,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { supabase } from "@/src/lib/supabase";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -21,6 +22,14 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      // Listener required to drive session refresh and clear stale tokens.
+      // Route-level auth redirects will be added here as screens are built.
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   if (!fontsLoaded && !fontError) {
     return null;

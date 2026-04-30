@@ -35,25 +35,80 @@ function formatLocalDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-export type SignInResult = { ok: true } | { ok: false; error: string };
+export type SignInResult =
+  | { ok: true; requiresVerification: false }
+  | { ok: true; requiresVerification: true; email: string }
+  | { ok: false; error: string };
 
-export async function signIn(
-  email: string,
+export async function signInWithUsername(
+  username: string,
   password: string,
 ): Promise<SignInResult> {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.functions.invoke(
+    "signin-with-username",
+    { body: { username, password } },
+  );
+
   if (error) {
-    const msg = error.message.toLowerCase();
-    if (msg.includes("invalid") || msg.includes("credentials")) {
-      return { ok: false, error: "Incorrect email or password." };
-    }
-    return { ok: false, error: error.message };
+    return { ok: false, error: "Unable to sign in. Please try again." };
   }
-  return { ok: true };
+
+  if (!data.ok) {
+    return { ok: false, error: data.error ?? "Invalid username or password." };
+  }
+
+  await supabase.auth.setSession(data.session);
+
+  if (data.requires_verification) {
+    return { ok: true, requiresVerification: true, email: data.email_for_otp };
+  }
+  return { ok: true, requiresVerification: false };
 }
 
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
+}
+
+export type VerifyOtpResult = { ok: true } | { ok: false; error: string };
+
+export async function verifyEmailOtp(
+  email: string,
+  token: string,
+): Promise<VerifyOtpResult> {
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "signup",
+  });
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("expired")) return { ok: false, error: "Code expired. Request a new one." };
+    return { ok: false, error: "Invalid code. Please try again." };
+  }
+  return { ok: true };
+}
+
+export type ResendOtpResult =
+  | { ok: true }
+  | { ok: false; error: string; retryAfterSeconds?: number };
+
+export async function resendVerificationOtp(
+  email: string,
+): Promise<ResendOtpResult> {
+  const { error } = await supabase.auth.resend({ email, type: "signup" });
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("429") || msg.includes("rate")) {
+      const match = error.message.match(/(\d+)/);
+      return {
+        ok: false,
+        error: "Too many requests. Please wait before resending.",
+        retryAfterSeconds: match ? parseInt(match[1], 10) : 60,
+      };
+    }
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
 }
 
 export async function signUp(params: SignUpParams): Promise<SignUpResult> {

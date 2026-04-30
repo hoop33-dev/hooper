@@ -21,6 +21,7 @@ import {
   ErrorMessage,
   TextButton,
 } from "@/src/components/ui";
+import { signInWithUsername } from "@/src/services/auth.service";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -56,8 +57,13 @@ export default function LoginScreen() {
     setSubmitError("");
     if (!validate()) return;
     setIsSubmitting(true);
-    // Auth integration will go here
+    const result = await signInWithUsername(username.trim(), password);
     setIsSubmitting(false);
+    if (!result.ok) {
+      setSubmitError(result.error);
+      return;
+    }
+    router.replace("/dashboard");
   }
 
   return (

@@ -16,6 +16,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { styled } from "nativewind";
 import Svg, { Path } from "react-native-svg";
 
+import { validatePassword } from "@/src/lib/passwordRules";
 import {
   Input,
   SelectInput,
@@ -121,8 +122,8 @@ export default function SignupDetailsScreen() {
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Enter a valid email";
     if (!form.mobile.trim()) e.mobile = "Required";
     if (!form.region) e.region = "Select your region";
-    if (!form.password) e.password = "Required";
-    else if (form.password.length < 8) e.password = "Minimum 8 characters";
+    const pwError = validatePassword(form.password);
+    if (pwError) e.password = pwError;
     if (!form.confirmPassword) e.confirmPassword = "Required";
     else if (form.password !== form.confirmPassword)
       e.confirmPassword = "Passwords don't match";

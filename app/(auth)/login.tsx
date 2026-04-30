@@ -15,7 +15,13 @@ import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import Svg, { Path } from "react-native-svg";
 
-import { Input, PasswordInput, ErrorMessage, TextButton } from "@/src/components/ui";
+import {
+  Input,
+  PasswordInput,
+  ErrorMessage,
+  TextButton,
+} from "@/src/components/ui";
+import { signIn } from "@/src/services/auth.service";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -54,8 +60,13 @@ export default function LoginScreen() {
     setSubmitError("");
     if (!validate()) return;
     setIsSubmitting(true);
-    // Auth integration will go here
+    const result = await signIn(email, password);
     setIsSubmitting(false);
+    if (!result.ok) {
+      setSubmitError(result.error);
+      return;
+    }
+    router.replace("/dashboard");
   }
 
   return (
@@ -170,9 +181,7 @@ export default function LoginScreen() {
                   fontSize: 10,
                   letterSpacing: 10 * 0.12,
                   textTransform: "uppercase",
-                  color: passwordError
-                    ? "#E53E3E"
-                    : "rgba(255,255,255,0.35)",
+                  color: passwordError ? "#E53E3E" : "rgba(255,255,255,0.35)",
                 }}
               >
                 Password
@@ -206,7 +215,7 @@ export default function LoginScreen() {
         {/* CTA */}
         <KeyboardStickyView>
           <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
-            <View className="px-6 py-3 gap-3">
+            <View className="gap-3 px-6 py-3">
               <Pressable
                 onPress={handleSignIn}
                 disabled={isSubmitting}

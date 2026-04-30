@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import {
   KeyboardAwareScrollView,
   KeyboardStickyView,
@@ -137,7 +132,9 @@ export default function ForgotPasswordScreen() {
                   lineHeight: 18,
                 }}
               >
-                If an account exists for {email}, you'll receive an email shortly.
+                {"If an account exists for "}
+                {email}
+                {", you'll receive an email shortly."}
               </Text>
             </View>
           ) : (

@@ -21,7 +21,6 @@ import {
   ErrorMessage,
   TextButton,
 } from "@/src/components/ui";
-import { signIn } from "@/src/services/auth.service";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -29,23 +28,20 @@ export default function LoginScreen() {
   const router = useRouter();
   const passwordRef = useRef<RNTextInput>(null);
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [emailError, setEmailError] = useState("");
+  const [usernameError, setUsernameError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function validate(): boolean {
     let valid = true;
-    if (!email.trim()) {
-      setEmailError("Required");
-      valid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setEmailError("Enter a valid email");
+    if (!username.trim()) {
+      setUsernameError("Required");
       valid = false;
     } else {
-      setEmailError("");
+      setUsernameError("");
     }
     if (!password) {
       setPasswordError("Required");
@@ -60,13 +56,8 @@ export default function LoginScreen() {
     setSubmitError("");
     if (!validate()) return;
     setIsSubmitting(true);
-    const result = await signIn(email, password);
+    // Auth integration will go here
     setIsSubmitting(false);
-    if (!result.ok) {
-      setSubmitError(result.error);
-      return;
-    }
-    router.replace("/dashboard");
   }
 
   return (
@@ -153,23 +144,22 @@ export default function LoginScreen() {
 
           <View>
             <Input
-              label="Email address"
-              value={email}
+              label="Username"
+              value={username}
               onChangeText={(v) => {
-                setEmail(v);
-                setEmailError("");
+                setUsername(v);
+                setUsernameError("");
               }}
-              placeholder="you@email.com"
-              hasError={!!emailError}
-              keyboardType="email-address"
+              placeholder="jordan33"
+              hasError={!!usernameError}
               autoCapitalize="none"
-              autoComplete="email"
-              textContentType="emailAddress"
+              autoComplete="username"
+              textContentType="username"
               returnKeyType="next"
               blurOnSubmit={false}
               onSubmitEditing={() => passwordRef.current?.focus()}
             />
-            {emailError ? <ErrorMessage message={emailError} /> : null}
+            {usernameError ? <ErrorMessage message={usernameError} /> : null}
           </View>
 
           <View>

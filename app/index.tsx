@@ -121,7 +121,7 @@ export default function SplashScreen() {
             variant="secondary"
             size="lg"
             className="w-full"
-            onPress={() => router.push("/design-system")}
+            onPress={() => router.push("/(auth)/login")}
           >
             Sign in
           </Button>

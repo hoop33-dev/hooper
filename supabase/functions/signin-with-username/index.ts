@@ -1,10 +1,9 @@
 // Deploy: supabase functions deploy signin-with-username --no-verify-jwt
 //
-// This function resolves a username to its stored email (kept server-side),
-// then signs in using the service-role client so the email is never returned
-// to unauthenticated callers. email_for_otp is only included when the caller
-// has already proven their password — exposing their own email at that point
-// is acceptable (they own the account).
+// Resolves a username to its stored email via the admin API (never
+// returned to the caller), verifies password via signInWithPassword, and
+// handles the "email not confirmed" case by creating an admin session so the
+// client can proceed to the verify-email screen without a second round-trip.
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -13,7 +12,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req: Request) => {
@@ -41,9 +41,10 @@ serve(async (req: Request) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  // Step 1: resolve username → profile (service role bypasses RLS)
   const { data: profile, error: profileError } = await admin
-    .from("profile_with_verification")
-    .select("auth_email, is_verified, has_real_email")
+    .from("profiles")
+    .select("id, auth_user_id, has_real_email")
     .eq("username", username.trim().toLowerCase())
     .maybeSingle();
 
@@ -51,23 +52,65 @@ serve(async (req: Request) => {
     return json(200, { ok: false, error: "Invalid username or password" });
   }
 
-  const { data, error: signInError } = await admin.auth.signInWithPassword({
-    email: profile.auth_email,
-    password,
-  });
+  // Step 2: get the auth user record to retrieve email (admin only — never
+  // returned to the caller for unauthenticated requests)
+  const { data: authUserData, error: authUserError } =
+    await admin.auth.admin.getUserById(profile.auth_user_id);
 
-  if (signInError || !data.session) {
+  if (authUserError || !authUserData?.user?.email) {
     return json(200, { ok: false, error: "Invalid username or password" });
   }
 
-  const requiresVerification =
-    profile.has_real_email === true && profile.is_verified === false;
+  const authUser = authUserData.user;
+
+  // Step 3: verify credentials
+  const { data: signInData, error: signInError } =
+    await admin.auth.signInWithPassword({
+      email: authUser.email!,
+      password,
+    });
+
+  if (signInError) {
+    // GoTrue verifies the password BEFORE checking email confirmation.
+    // "Email not confirmed" therefore means the password was correct.
+    const isEmailNotConfirmed =
+      signInError.message?.toLowerCase().includes("email not confirmed") ||
+      (signInError as any).code === "email_not_confirmed";
+
+    if (isEmailNotConfirmed && profile.has_real_email) {
+      // Password was valid; create a session via the admin API so the client
+      // can proceed to the verify-email screen.
+      const { data: sessionData, error: sessionError } =
+        await admin.auth.admin.createSession({ user_id: profile.auth_user_id });
+
+      if (sessionError || !sessionData?.session) {
+        return json(200, { ok: false, error: "Invalid username or password" });
+      }
+
+      return json(200, {
+        ok: true,
+        session: sessionData.session,
+        requires_verification: true,
+        email_for_otp: authUser.email,
+      });
+    }
+
+    return json(200, { ok: false, error: "Invalid username or password" });
+  }
+
+  if (!signInData?.session) {
+    return json(200, { ok: false, error: "Invalid username or password" });
+  }
+
+  const isVerified =
+    !profile.has_real_email || authUser.email_confirmed_at != null;
 
   return json(200, {
     ok: true,
-    session: data.session,
-    requires_verification: requiresVerification,
-    email_for_otp: requiresVerification ? profile.auth_email : null,
+    session: signInData.session,
+    requires_verification: profile.has_real_email && !isVerified,
+    email_for_otp:
+      profile.has_real_email && !isVerified ? authUser.email : null,
   });
 });
 

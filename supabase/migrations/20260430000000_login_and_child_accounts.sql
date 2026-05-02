@@ -67,7 +67,10 @@ CREATE POLICY "profiles_select_children"
 -- Convenience join used by sign-in flow and auth store.
 -- is_verified is true when the user has no real email (child accounts)
 -- or when their real email has been confirmed.
-CREATE VIEW profile_with_verification AS
+-- security_invoker = true ensures the view respects the caller's RLS context
+-- on the underlying profiles table, preventing any authenticated user from
+-- reading rows they don't own (e.g. another user's auth_email / PII).
+CREATE VIEW profile_with_verification WITH (security_invoker = true) AS
 SELECT
   p.*,
   (NOT p.has_real_email OR u.email_confirmed_at IS NOT NULL) AS is_verified,

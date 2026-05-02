@@ -63,6 +63,10 @@ export default function LoginScreen() {
       setSubmitError(result.error);
       return;
     }
+    if (result.requiresVerification) {
+      router.replace("/(auth)/verify-email");
+      return;
+    }
     router.replace("/dashboard");
   }
 

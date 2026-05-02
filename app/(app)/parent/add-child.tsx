@@ -8,152 +8,101 @@ import {
 } from "react-native";
 import {
   KeyboardAwareScrollView,
-  type KeyboardAwareScrollViewRef,
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import Svg, { Path } from "react-native-svg";
 
-import { validatePassword } from "@/src/lib/passwordRules";
 import {
   Input,
-  SelectInput,
-  type SelectInputHandle,
   DateInput,
   type DateInputHandle,
   PhoneInput,
-  Checkbox,
+  SelectInput,
+  type SelectInputHandle,
   PasswordInput,
   ErrorMessage,
 } from "@/src/components/ui";
-import { AgeGateModal } from "@/src/components/auth/AgeGateModal";
-import { DisclosureLabel } from "@/src/components/auth/DisclosureLabel";
-import { ROLES, type RoleId } from "@/src/constants/roles";
 import { NZ_REGIONS } from "@/src/constants/regions";
-import { signUp } from "@/src/services/auth.service";
-import { useAuthStore } from "@/src/stores/auth.store";
+import { validatePassword } from "@/src/lib/passwordRules";
+import { createChildAccount } from "@/src/services/parent.service";
 
 const StyledSafeAreaView = styled(SafeAreaView);
-
-/* ── Form state ──────────────────────────────────────────────── */
 
 type FormState = {
   firstName: string;
   lastName: string;
-  dob: Date | null;
   username: string;
-  email: string;
+  dateOfBirth: Date | null;
   mobile: string;
   region: string | null;
   password: string;
   confirmPassword: string;
 };
 
-type FormErrors = Partial<Record<keyof FormState | "disclosure", string>>;
+type FormErrors = Partial<Record<keyof FormState, string>>;
 
-function calcAge(dob: Date): number {
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-  return age;
-}
-
-/* ── Screen ──────────────────────────────────────────────────── */
-
-export default function SignupDetailsScreen() {
+export default function AddChildScreen() {
   const router = useRouter();
-  const { setVerificationPending } = useAuthStore();
-  const { role } = useLocalSearchParams<{ role: RoleId }>();
-  const roleId: RoleId = role ?? "player";
-  const roleConfig = ROLES.find((r) => r.id === roleId) ?? ROLES[0];
 
-  const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
   const lastNameRef = useRef<RNTextInput>(null);
   const dateInputRef = useRef<DateInputHandle>(null);
-  const regionInputRef = useRef<SelectInputHandle>(null);
   const usernameRef = useRef<RNTextInput>(null);
-  const emailRef = useRef<RNTextInput>(null);
   const mobileRef = useRef<RNTextInput>(null);
+  const regionRef = useRef<SelectInputHandle>(null);
   const passwordRef = useRef<RNTextInput>(null);
   const confirmPasswordRef = useRef<RNTextInput>(null);
 
   const [form, setForm] = useState<FormState>({
     firstName: "",
     lastName: "",
-    dob: null,
     username: "",
-    email: "",
+    dateOfBirth: null,
     mobile: "",
     region: null,
     password: "",
     confirmPassword: "",
   });
-  const [disclosure, setDisclosure] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [ageGateVisible, setAgeGateVisible] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => ({ ...e, [key]: undefined }));
-
-    if (key === "dob" && value instanceof Date) {
-      if (calcAge(value) < 16) {
-        setAgeGateVisible(true);
-      } else {
-        setTimeout(() => usernameRef.current?.focus(), 300);
-      }
-    }
-
-    if (key === "region") {
-      setTimeout(() => passwordRef.current?.focus(), 300);
-    }
   }
 
   function validate(): FormErrors {
     const e: FormErrors = {};
     if (!form.firstName.trim()) e.firstName = "Required";
     if (!form.lastName.trim()) e.lastName = "Required";
-    if (roleId === "player" && !form.dob) e.dob = "Required";
     if (!form.username.trim()) e.username = "Required";
-    if (!form.email.trim()) e.email = "Required";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Enter a valid email";
-    if (!form.mobile.trim()) e.mobile = "Required";
-    if (!form.region) e.region = "Select your region";
     const pwError = validatePassword(form.password);
     if (pwError) e.password = pwError;
     if (!form.confirmPassword) e.confirmPassword = "Required";
     else if (form.password !== form.confirmPassword)
       e.confirmPassword = "Passwords don't match";
-    if (!disclosure) e.disclosure = "You must acknowledge the disclosure";
     return e;
   }
 
   async function handleSubmit() {
     const e = validate();
     setErrors(e);
-    if (Object.keys(e).length > 0) {
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
-      return;
-    }
+    if (Object.keys(e).length > 0) return;
 
     setIsSubmitting(true);
     setSubmitError(null);
 
-    const result = await signUp({
+    const result = await createChildAccount({
       firstName: form.firstName,
       lastName: form.lastName,
       username: form.username,
-      email: form.email,
-      mobile: form.mobile,
-      regionSlug: form.region!,
       password: form.password,
-      role: roleId,
-      dateOfBirth: form.dob,
+      dateOfBirth: form.dateOfBirth,
+      regionSlug: form.region,
+      mobile: form.mobile || null,
     });
 
     setIsSubmitting(false);
@@ -161,25 +110,16 @@ export default function SignupDetailsScreen() {
     if (!result.ok) {
       if (result.field === "username") {
         setErrors((prev) => ({ ...prev, username: result.error }));
-      } else if (result.field === "email") {
-        setErrors((prev) => ({ ...prev, email: result.error }));
+      } else if (result.field === "password") {
+        setErrors((prev) => ({ ...prev, password: result.error }));
       } else {
         setSubmitError(result.error);
       }
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
       return;
     }
 
-    setVerificationPending(form.email);
-    router.replace("/(auth)/verify-email");
+    router.back();
   }
-
-  function dismissAgeGate() {
-    setAgeGateVisible(false);
-    setField("dob", null);
-  }
-
-  const accent = roleConfig.accent;
 
   return (
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top"]}>
@@ -204,47 +144,36 @@ export default function SignupDetailsScreen() {
               className="text-text-tertiary text-[13px]"
               style={{ fontFamily: "Inter" }}
             >
-              Choose your role
+              Back
             </Text>
           </Pressable>
 
           <Text
-            className="mb-2 text-[10px] font-medium uppercase"
             style={{
               fontFamily: "Inter",
-              letterSpacing: 10 * 0.14,
-              color: accent,
-            }}
-          >
-            Step 3 of 3
-          </Text>
-
-          <Text
-            className="text-text-primary mb-1 font-black"
-            style={{
-              fontFamily: "Inter",
+              fontWeight: "900",
               fontSize: 26,
               letterSpacing: 26 * -0.03,
               lineHeight: 26 * 1.12,
+              color: "#FFFFFF",
+              marginBottom: 4,
             }}
           >
-            Your details
+            Add a child
           </Text>
-
           <Text
-            className="text-text-secondary text-[13px]"
-            style={{ fontFamily: "Inter", lineHeight: 13 * 1.5 }}
+            style={{
+              fontFamily: "Inter",
+              fontSize: 13,
+              color: "rgba(255,255,255,0.5)",
+              lineHeight: 13 * 1.5,
+            }}
           >
-            Signing up as a{" "}
-            <Text style={{ color: accent, fontWeight: "600" }}>
-              {roleConfig.title}
-            </Text>
+            Create a player account for your child
           </Text>
         </View>
 
-        {/* Scrollable form */}
         <KeyboardAwareScrollView
-          ref={scrollRef}
           className="flex-1"
           contentContainerStyle={{
             paddingHorizontal: 24,
@@ -256,7 +185,7 @@ export default function SignupDetailsScreen() {
           keyboardShouldPersistTaps="handled"
           bottomOffset={120}
         >
-          {submitError && (
+          {submitError ? (
             <View
               style={{
                 backgroundColor: "rgba(229,62,62,0.12)",
@@ -277,9 +206,8 @@ export default function SignupDetailsScreen() {
                 {submitError}
               </Text>
             </View>
-          )}
+          ) : null}
 
-          {/* Name row */}
           <View className="flex-row gap-3">
             <View className="flex-1">
               <Input
@@ -310,28 +238,21 @@ export default function SignupDetailsScreen() {
                 textContentType="familyName"
                 returnKeyType="next"
                 blurOnSubmit={false}
-                onSubmitEditing={() =>
-                  roleId === "player"
-                    ? dateInputRef.current?.open()
-                    : usernameRef.current?.focus()
-                }
+                onSubmitEditing={() => dateInputRef.current?.open()}
               />
               {errors.lastName && <ErrorMessage message={errors.lastName} />}
             </View>
           </View>
 
-          {roleId === "player" && (
-            <DateInput
-              ref={dateInputRef}
-              label="Date of birth"
-              value={form.dob}
-              onChange={(d) => setField("dob", d)}
-              maxDate={new Date()}
-              error={errors.dob}
-              placeholder="DD/MM/YYYY"
-              accentColor={accent}
-            />
-          )}
+          <DateInput
+            ref={dateInputRef}
+            label="Date of birth (optional)"
+            value={form.dateOfBirth}
+            onChange={(d) => setField("dateOfBirth", d)}
+            maxDate={new Date()}
+            placeholder="DD/MM/YYYY"
+            accentColor="#34D399"
+          />
 
           <View>
             <Input
@@ -346,48 +267,27 @@ export default function SignupDetailsScreen() {
               textContentType="username"
               returnKeyType="next"
               blurOnSubmit={false}
-              onSubmitEditing={() => emailRef.current?.focus()}
+              onSubmitEditing={() => mobileRef.current?.focus()}
             />
             {errors.username && <ErrorMessage message={errors.username} />}
           </View>
 
-          <View>
-            <Input
-              ref={emailRef}
-              label="Email address"
-              value={form.email}
-              onChangeText={(v) => setField("email", v)}
-              placeholder="you@email.com"
-              hasError={!!errors.email}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              textContentType="emailAddress"
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => mobileRef.current?.focus()}
-            />
-            {errors.email && <ErrorMessage message={errors.email} />}
-          </View>
-
           <PhoneInput
             ref={mobileRef}
-            label="Mobile number"
+            label="Mobile (optional)"
             value={form.mobile}
             onChangeText={(v) => setField("mobile", v)}
-            error={errors.mobile}
             returnKeyType="next"
             blurOnSubmit={false}
-            onSubmitEditing={() => regionInputRef.current?.open()}
+            onSubmitEditing={() => regionRef.current?.open()}
           />
 
           <SelectInput
-            ref={regionInputRef}
-            label="Region"
+            ref={regionRef}
+            label="Region (optional — inherits yours if blank)"
             value={form.region}
             options={NZ_REGIONS}
-            placeholder="Select your region"
-            error={errors.region}
+            placeholder="Select region"
             onChange={(v) => setField("region", v)}
           />
 
@@ -410,25 +310,14 @@ export default function SignupDetailsScreen() {
             label="Confirm password"
             value={form.confirmPassword}
             onChangeText={(v) => setField("confirmPassword", v)}
-            placeholder="Repeat your password"
+            placeholder="Repeat password"
             error={errors.confirmPassword}
             autoComplete="new-password"
             textContentType="newPassword"
             returnKeyType="done"
           />
-
-          <Checkbox
-            checked={disclosure}
-            onChange={(v) => {
-              setDisclosure(v);
-              setErrors((e) => ({ ...e, disclosure: undefined }));
-            }}
-            label={<DisclosureLabel />}
-            error={errors.disclosure}
-          />
         </KeyboardAwareScrollView>
 
-        {/* Submit CTA */}
         <KeyboardStickyView>
           <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
             <View className="px-6 py-3">
@@ -438,24 +327,30 @@ export default function SignupDetailsScreen() {
                 style={({ pressed }) => ({
                   height: 52,
                   borderRadius: 9999,
-                  backgroundColor: accent,
+                  backgroundColor: "#34D399",
                   alignItems: "center",
                   justifyContent: "center",
                   opacity: isSubmitting ? 0.7 : pressed ? 0.85 : 1,
                   transform: [{ scale: pressed && !isSubmitting ? 0.97 : 1 }],
-                  shadowColor: accent,
+                  shadowColor: "#34D399",
                   shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 0.35,
-                  shadowRadius: 20,
-                  elevation: 8,
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                  elevation: 6,
                 })}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color="#000" />
                 ) : (
                   <Text
-                    className="text-text-primary text-[15px] font-bold"
-                    style={{ fontFamily: "Inter" }}
+                    style={{
+                      fontFamily: "Inter",
+                      fontWeight: "700",
+                      fontSize: 15,
+                      letterSpacing: 15 * 0.08,
+                      textTransform: "uppercase",
+                      color: "#000000",
+                    }}
                   >
                     Create account
                   </Text>
@@ -465,12 +360,6 @@ export default function SignupDetailsScreen() {
           </StyledSafeAreaView>
         </KeyboardStickyView>
       </View>
-
-      <AgeGateModal
-        visible={ageGateVisible}
-        roleId={roleId}
-        onDismiss={dismissAgeGate}
-      />
     </StyledSafeAreaView>
   );
 }

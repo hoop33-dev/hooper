@@ -22,11 +22,13 @@ import {
   TextButton,
 } from "@/src/components/ui";
 import { signInWithUsername } from "@/src/services/auth.service";
+import { useAuthStore } from "@/src/stores/auth.store";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { setVerificationPending } = useAuthStore();
   const passwordRef = useRef<RNTextInput>(null);
 
   const [username, setUsername] = useState("");
@@ -64,10 +66,11 @@ export default function LoginScreen() {
       return;
     }
     if (result.requiresVerification) {
-      router.replace("/(auth)/verify-email");
+      setVerificationPending(result.email);
+      // Guard in _layout.tsx takes over routing
       return;
     }
-    router.replace("/dashboard");
+    // Guard in _layout.tsx routes to the correct dashboard
   }
 
   return (

@@ -36,5 +36,11 @@ jobs:
         run: |
           for fn in signin-with-username; do
             echo "Deploying $fn..."
-            supabase functions deploy "$fn" --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+            extra_flags=""
+            # signin-with-username is a public endpoint (callers are unauthenticated),
+            # so JWT verification must be disabled at the gateway level.
+            if [ "$fn" = "signin-with-username" ]; then
+              extra_flags="--no-verify-jwt"
+            fi
+            supabase functions deploy "$fn" --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" $extra_flags
           done

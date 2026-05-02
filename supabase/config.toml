@@ -1,2 +1,6 @@
+# project_id is overridden at deploy time by --project-ref. The value here
+# is a placeholder required by the Supabase CLI to parse this file at all.
+project_id = "hooper"
+
 [functions.signin-with-username]
 verify_jwt = false

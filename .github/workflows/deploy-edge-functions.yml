@@ -34,7 +34,7 @@ jobs:
 
       - name: Deploy edge functions
         run: |
-          for fn in signin-with-username; do
+          for fn in signin-with-username create-child-account; do
             echo "Deploying $fn..."
             extra_flags=""
             # signin-with-username is a public endpoint (callers are unauthenticated),

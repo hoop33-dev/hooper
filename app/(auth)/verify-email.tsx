@@ -293,8 +293,7 @@ export default function VerifyEmailScreen() {
     setIsContinuing(true);
     try {
       await refreshProfile();
-      const { primaryRole } = useAuthStore.getState();
-      router.replace(`/(app)/${primaryRole ?? "player"}` as `/(app)/${string}`);
+      // Guard in _layout.tsx fires from the status change and routes to the dashboard
     } finally {
       setIsContinuing(false);
     }

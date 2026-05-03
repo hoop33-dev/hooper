@@ -291,8 +291,12 @@ export default function VerifyEmailScreen() {
 
   async function handleContinue() {
     setIsContinuing(true);
-    await refreshProfile();
-    // Guard in _layout.tsx routes to the correct dashboard
+    try {
+      await refreshProfile();
+      // Guard in _layout.tsx routes to the correct dashboard
+    } finally {
+      setIsContinuing(false);
+    }
   }
 
   async function handleResend() {
@@ -509,7 +513,7 @@ export default function VerifyEmailScreen() {
                 <Text style={{ fontFamily: "Inter", fontSize: 13, color: C.text3 }}>
                   Didn&apos;t get it?{" "}
                   <Text
-                    onPress={resendCooldown > 0 ? undefined : handleResend}
+                    onPress={resendCooldown > 0 || isResending ? undefined : handleResend}
                     style={{
                       fontFamily: "Inter",
                       fontWeight: "600",

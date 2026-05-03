@@ -1,4 +1,5 @@
 import { supabase } from "@/src/lib/supabase";
+import type { Session } from "@supabase/supabase-js";
 import type { RoleId } from "@/src/constants/roles";
 
 export type SignUpParams = {
@@ -36,8 +37,8 @@ function formatLocalDate(date: Date): string {
 }
 
 export type SignInResult =
-  | { ok: true; requiresVerification: false }
-  | { ok: true; requiresVerification: true; email: string }
+  | { ok: true; requiresVerification: false; session: Session }
+  | { ok: true; requiresVerification: true; session: Session; email: string }
   | { ok: false; error: string };
 
 export async function signInWithUsername(
@@ -57,12 +58,16 @@ export async function signInWithUsername(
     return { ok: false, error: data.error ?? "Invalid username or password." };
   }
 
-  await supabase.auth.setSession(data.session);
+  const { data: { session } } = await supabase.auth.setSession(data.session);
+
+  if (!session) {
+    return { ok: false, error: "Unable to sign in. Please try again." };
+  }
 
   if (data.requires_verification) {
-    return { ok: true, requiresVerification: true, email: data.email_for_otp };
+    return { ok: true, requiresVerification: true, session, email: data.email_for_otp };
   }
-  return { ok: true, requiresVerification: false };
+  return { ok: true, requiresVerification: false, session };
 }
 
 export async function signOut(): Promise<void> {

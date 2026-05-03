@@ -18,6 +18,7 @@ type AuthState = {
   pendingVerificationEmail: string | null;
 
   hydrate: () => Promise<void>;
+  signInComplete: (session: Session) => Promise<void>;
   setVerificationPending: (email: string) => void;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -50,8 +51,6 @@ async function fetchProfileAndRole(userId: string, session: Session | null): Pro
     .limit(1)
     .maybeSingle();
 
-  // Derive is_verified from the caller's session — avoids an extra getSession() call
-  // that can trigger a token refresh and re-fire onAuthStateChange, causing update loops.
   // A child account (has_real_email = false) is always considered verified.
   const isVerified =
     !profileData.has_real_email ||
@@ -91,13 +90,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     }
 
-    // Always subscribe — must run even when app started unauthenticated so that
-    // sign-in events (triggered by setSession after login) are caught.
+    // onAuthStateChange only handles session updates and sign-out — no async profile
+    // fetching here, which avoids concurrent-fetch update loops. Profile fetching is
+    // handled explicitly via signInComplete, refreshProfile, and hydrate.
     supabase.auth.onAuthStateChange((event, newSession) => {
-      // INITIAL_SESSION is already handled synchronously above via getSession()
+      // INITIAL_SESSION is already handled synchronously above via getSession().
       if (event === "INITIAL_SESSION") return;
-
-      const current = get();
 
       if (!newSession) {
         set({
@@ -110,32 +108,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return;
       }
 
-      // On token refresh the user id hasn't changed — just update session quietly
-      if (
-        event === "TOKEN_REFRESHED" &&
-        current.profile?.auth_user_id === newSession.user.id
-      ) {
-        set({ session: newSession });
-        return;
-      }
+      // For any auth event that carries a session (TOKEN_REFRESHED, USER_UPDATED,
+      // SIGNED_IN from setSession), just keep the session fresh.
+      set({ session: newSession });
+    });
+  },
 
-      // On sign-in or user-updated events, re-fetch profile only if user id changed or profile is absent
-      if (
-        current.profile?.auth_user_id !== newSession.user.id ||
-        !current.profile
-      ) {
-        fetchProfileAndRole(newSession.user.id, newSession).then(
-          ({ profile: p, primaryRole: r, isVerified: v, hasRealEmail: h }) => {
-            const needs = h && !v;
-            set({
-              session: newSession,
-              profile: p,
-              primaryRole: r,
-              status: needs ? "needs_verification" : "authenticated",
-            });
-          },
-        );
-      }
+  // Called by the login screen after signInWithUsername succeeds. Fetches profile
+  // and sets the appropriate status so the route guard can navigate.
+  signInComplete: async (session: Session) => {
+    const { profile, primaryRole, isVerified, hasRealEmail } =
+      await fetchProfileAndRole(session.user.id, session);
+
+    const needsVerification = hasRealEmail && !isVerified;
+
+    set({
+      session,
+      profile,
+      primaryRole,
+      status: needsVerification ? "needs_verification" : "authenticated",
+      pendingVerificationEmail: needsVerification ? (session.user.email ?? null) : null,
     });
   },
 
@@ -143,8 +135,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ status: "needs_verification", pendingVerificationEmail: email });
   },
 
+  // Uses a fresh session from the Supabase client so that changes like email
+  // confirmation (email_confirmed_at) are reflected without a separate state sync.
+  // Safe to call getSession() here because onAuthStateChange no longer does async work.
   refreshProfile: async () => {
-    const { session } = get();
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
     const { profile, primaryRole, isVerified, hasRealEmail } =
@@ -153,6 +148,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const needsVerification = hasRealEmail && !isVerified;
 
     set({
+      session,
       profile,
       primaryRole,
       status: needsVerification ? "needs_verification" : "authenticated",

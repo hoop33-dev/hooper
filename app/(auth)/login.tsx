@@ -28,7 +28,7 @@ const StyledSafeAreaView = styled(SafeAreaView);
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { setVerificationPending } = useAuthStore();
+  const { signInComplete } = useAuthStore();
   const passwordRef = useRef<RNTextInput>(null);
 
   const [username, setUsername] = useState("");
@@ -65,12 +65,8 @@ export default function LoginScreen() {
       setSubmitError(result.error);
       return;
     }
-    if (result.requiresVerification) {
-      setVerificationPending(result.email);
-      // Guard in _layout.tsx takes over routing
-      return;
-    }
-    // Guard in _layout.tsx routes to the correct dashboard
+    await signInComplete(result.session);
+    // Guard in _layout.tsx routes based on status set by signInComplete
   }
 
   return (

@@ -77,23 +77,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     if (!session) {
       set({ status: "unauthenticated", session: null, profile: null, primaryRole: null });
-      return;
+    } else {
+      const { profile, primaryRole, isVerified, hasRealEmail } =
+        await fetchProfileAndRole(session.user.id, session);
+
+      const needsVerification = hasRealEmail && !isVerified;
+
+      set({
+        session,
+        profile,
+        primaryRole,
+        status: needsVerification ? "needs_verification" : "authenticated",
+      });
     }
 
-    const { profile, primaryRole, isVerified, hasRealEmail } =
-      await fetchProfileAndRole(session.user.id, session);
-
-    const needsVerification = hasRealEmail && !isVerified;
-
-    set({
-      session,
-      profile,
-      primaryRole,
-      status: needsVerification ? "needs_verification" : "authenticated",
-    });
-
-    // Subscribe to auth state changes (idempotent — only update session, don't re-fetch profile on token refresh)
+    // Always subscribe — must run even when app started unauthenticated so that
+    // sign-in events (triggered by setSession after login) are caught.
     supabase.auth.onAuthStateChange((event, newSession) => {
+      // INITIAL_SESSION is already handled synchronously above via getSession()
+      if (event === "INITIAL_SESSION") return;
+
       const current = get();
 
       if (!newSession) {

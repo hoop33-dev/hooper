@@ -70,13 +70,13 @@ export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
 }
 
-export type VerifyOtpResult = { ok: true } | { ok: false; error: string };
+export type VerifyOtpResult = { ok: true; session: Session } | { ok: false; error: string };
 
 export async function verifyEmailOtp(
   email: string,
   token: string,
 ): Promise<VerifyOtpResult> {
-  const { error } = await supabase.auth.verifyOtp({
+  const { data, error } = await supabase.auth.verifyOtp({
     email,
     token,
     type: "signup",
@@ -86,7 +86,10 @@ export async function verifyEmailOtp(
     if (msg.includes("expired")) return { ok: false, error: "Code expired. Request a new one." };
     return { ok: false, error: "Invalid code. Please try again." };
   }
-  return { ok: true };
+  if (!data.session) {
+    return { ok: false, error: "Verification failed. Please try again." };
+  }
+  return { ok: true, session: data.session };
 }
 
 export type ResendOtpResult =

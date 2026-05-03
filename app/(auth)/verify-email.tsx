@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import Svg, { Path, Rect, Circle } from "react-native-svg";
 
+import type { Session } from "@supabase/supabase-js";
 import { verifyEmailOtp, resendVerificationOtp } from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
 
@@ -199,7 +200,7 @@ function SuccessView({ onContinue, isLoading }: { onContinue: () => void; isLoad
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { pendingVerificationEmail, status, profile, refreshProfile } = useAuthStore();
+  const { pendingVerificationEmail, status, profile, signInComplete } = useAuthStore();
   // profile is set by signInComplete (sign-in path) but null during sign-up
   // (profile not loaded yet because email isn't confirmed). Use this to adapt the UI.
   const fromSignIn = profile !== null;
@@ -208,6 +209,7 @@ export default function VerifyEmailScreen() {
   const [errorMsg, setErrorMsg] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [verifiedSession, setVerifiedSession] = useState<Session | null>(null);
   const [isContinuing, setIsContinuing] = useState(false);
   const [shake, setShake] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -249,6 +251,7 @@ export default function VerifyEmailScreen() {
       return;
     }
 
+    setVerifiedSession(result.session);
     setIsSuccess(true);
   }, [pendingVerificationEmail, isVerifying]);
 
@@ -298,11 +301,15 @@ export default function VerifyEmailScreen() {
   }, [code, triggerVerify]);
 
   async function handleContinue() {
+    if (!verifiedSession) return;
     setIsContinuing(true);
     try {
-      await refreshProfile();
-      // Guard in _layout.tsx fires from the status change and routes to the dashboard
-    } finally {
+      // Use the session returned by verifyOtp directly — avoids calling getUser()
+      // which can return stale email_confirmed_at immediately after verification.
+      await signInComplete(verifiedSession, false);
+      // Guard in _layout.tsx fires from the status change and routes to the dashboard.
+      // isContinuing intentionally not reset on success — screen unmounts.
+    } catch {
       setIsContinuing(false);
     }
   }

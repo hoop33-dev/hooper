@@ -293,7 +293,8 @@ export default function VerifyEmailScreen() {
     setIsContinuing(true);
     try {
       await refreshProfile();
-      // Guard in _layout.tsx routes to the correct dashboard
+      const { primaryRole } = useAuthStore.getState();
+      router.replace(`/(app)/${primaryRole ?? "player"}` as `/(app)/${string}`);
     } finally {
       setIsContinuing(false);
     }
@@ -326,45 +327,47 @@ export default function VerifyEmailScreen() {
 
   return (
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
-      {/* Step header */}
-      <View style={{ paddingHorizontal: 24, paddingTop: 20 }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 10,
-            fontWeight: "500",
-            letterSpacing: 10 * 0.14,
-            textTransform: "uppercase",
-            color: C.orange,
-            marginBottom: 10,
-          }}
-        >
-          Step 4 of 4
-        </Text>
-        <Pressable
-          onPress={() => router.back()}
-          style={({ pressed }) => ({
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 6,
-            alignSelf: "flex-start",
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-            <Path
-              d="M10 3L5 8L10 13"
-              stroke="rgba(255,255,255,0.35)"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-          <Text style={{ fontFamily: "Inter", fontSize: 13, color: C.text2 }}>
-            Your details
+      {/* Step header — hidden on success */}
+      {!isSuccess && (
+        <View style={{ paddingHorizontal: 24, paddingTop: 20 }}>
+          <Text
+            style={{
+              fontFamily: "Inter",
+              fontSize: 10,
+              fontWeight: "500",
+              letterSpacing: 10 * 0.14,
+              textTransform: "uppercase",
+              color: C.orange,
+              marginBottom: 10,
+            }}
+          >
+            Step 4 of 4
           </Text>
-        </Pressable>
-      </View>
+          <Pressable
+            onPress={() => router.back()}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              alignSelf: "flex-start",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+              <Path
+                d="M10 3L5 8L10 13"
+                stroke="rgba(255,255,255,0.35)"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+            <Text style={{ fontFamily: "Inter", fontSize: 13, color: C.text2 }}>
+              Your details
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Body */}
       <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 32, paddingBottom: 40 }}>

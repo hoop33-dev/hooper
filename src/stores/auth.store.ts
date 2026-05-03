@@ -24,7 +24,7 @@ type AuthState = {
   signOut: () => Promise<void>;
 };
 
-async function fetchProfileAndRole(userId: string, session: Session | null): Promise<{
+async function fetchProfileAndRole(userId: string): Promise<{
   profile: Profile | null;
   primaryRole: RoleType | null;
   isVerified: boolean;
@@ -42,19 +42,25 @@ async function fetchProfileAndRole(userId: string, session: Session | null): Pro
     return { profile: null, primaryRole: null, isVerified: false, hasRealEmail: true };
   }
 
-  // Fetch role — use maybeSingle() so 0 rows returns null data without an error.
-  const { data: roleData } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("profile_id", profileData.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  // Fetch role and email confirmation status in parallel.
+  // getUser() makes a server call — email_confirmed_at is NOT reliably present
+  // in the JWT payload decoded by setSession/getSession, so we can't use
+  // session.user.email_confirmed_at here.
+  const [{ data: roleData }, userResult] = await Promise.all([
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("profile_id", profileData.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    profileData.has_real_email ? supabase.auth.getUser() : null,
+  ]);
 
   // A child account (has_real_email = false) is always considered verified.
   const isVerified =
     !profileData.has_real_email ||
-    session?.user?.email_confirmed_at != null;
+    (userResult?.data?.user?.email_confirmed_at != null);
 
   return {
     profile: profileData as unknown as Profile,
@@ -78,7 +84,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ status: "unauthenticated", session: null, profile: null, primaryRole: null });
     } else {
       const { profile, primaryRole, isVerified, hasRealEmail } =
-        await fetchProfileAndRole(session.user.id, session);
+        await fetchProfileAndRole(session.user.id);
 
       const needsVerification = hasRealEmail && !isVerified;
 
@@ -118,7 +124,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // and sets the appropriate status so the route guard can navigate.
   signInComplete: async (session: Session) => {
     const { profile, primaryRole, isVerified, hasRealEmail } =
-      await fetchProfileAndRole(session.user.id, session);
+      await fetchProfileAndRole(session.user.id);
 
     const needsVerification = hasRealEmail && !isVerified;
 
@@ -143,7 +149,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!session) return;
 
     const { profile, primaryRole, isVerified, hasRealEmail } =
-      await fetchProfileAndRole(session.user.id, session);
+      await fetchProfileAndRole(session.user.id);
 
     const needsVerification = hasRealEmail && !isVerified;
 

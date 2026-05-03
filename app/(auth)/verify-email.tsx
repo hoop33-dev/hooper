@@ -199,7 +199,7 @@ function SuccessView({ onContinue, isLoading }: { onContinue: () => void; isLoad
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { pendingVerificationEmail, refreshProfile } = useAuthStore();
+  const { pendingVerificationEmail, status, refreshProfile } = useAuthStore();
 
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [errorMsg, setErrorMsg] = useState("");
@@ -214,10 +214,15 @@ export default function VerifyEmailScreen() {
   const inputRefs = useRef<(RNTextInput | null)[]>(Array(CODE_LENGTH).fill(null));
 
   useEffect(() => {
+    // Only redirect when we're genuinely in needs_verification state with no email —
+    // i.e. user landed here directly without going through sign-up/login.
+    // When status transitions away (e.g. to "authenticated" after refreshProfile),
+    // the route guard in _layout.tsx handles navigation; don't also fire here.
+    if (status !== "needs_verification") return;
     if (!pendingVerificationEmail) {
       router.replace("/");
     }
-  }, [pendingVerificationEmail, router]);
+  }, [pendingVerificationEmail, status, router]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;

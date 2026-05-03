@@ -29,29 +29,39 @@ async function fetchProfileAndRole(userId: string): Promise<{
   isVerified: boolean;
   hasRealEmail: boolean;
 }> {
+  // Query profiles directly — simpler RLS, avoids the auth.users join in the
+  // profile_with_verification view which is not accessible to the authenticated role.
   const { data: profileData } = await supabase
-    .from("profile_with_verification")
+    .from("profiles")
     .select("*")
     .eq("auth_user_id", userId)
-    .single();
+    .maybeSingle();
 
   if (!profileData) {
     return { profile: null, primaryRole: null, isVerified: false, hasRealEmail: true };
   }
 
+  // Fetch role — use maybeSingle() so 0 rows returns null data without an error.
   const { data: roleData } = await supabase
     .from("user_roles")
     .select("role")
     .eq("profile_id", profileData.id)
     .order("created_at", { ascending: true })
     .limit(1)
-    .single();
+    .maybeSingle();
+
+  // Derive is_verified from the cached session (no extra network call).
+  // A child account (has_real_email = false) is always considered verified.
+  const { data: { session } } = await supabase.auth.getSession();
+  const isVerified =
+    !profileData.has_real_email ||
+    session?.user?.email_confirmed_at != null;
 
   return {
     profile: profileData as unknown as Profile,
     primaryRole: (roleData?.role ?? null) as RoleType | null,
-    isVerified: profileData.is_verified as boolean,
-    hasRealEmail: profileData.has_real_email as boolean,
+    isVerified,
+    hasRealEmail: profileData.has_real_email,
   };
 }
 

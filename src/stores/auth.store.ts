@@ -23,7 +23,7 @@ type AuthState = {
   signOut: () => Promise<void>;
 };
 
-async function fetchProfileAndRole(userId: string): Promise<{
+async function fetchProfileAndRole(userId: string, session: Session | null): Promise<{
   profile: Profile | null;
   primaryRole: RoleType | null;
   isVerified: boolean;
@@ -50,9 +50,9 @@ async function fetchProfileAndRole(userId: string): Promise<{
     .limit(1)
     .maybeSingle();
 
-  // Derive is_verified from the cached session (no extra network call).
+  // Derive is_verified from the caller's session — avoids an extra getSession() call
+  // that can trigger a token refresh and re-fire onAuthStateChange, causing update loops.
   // A child account (has_real_email = false) is always considered verified.
-  const { data: { session } } = await supabase.auth.getSession();
   const isVerified =
     !profileData.has_real_email ||
     session?.user?.email_confirmed_at != null;
@@ -81,7 +81,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     const { profile, primaryRole, isVerified, hasRealEmail } =
-      await fetchProfileAndRole(session.user.id);
+      await fetchProfileAndRole(session.user.id, session);
 
     const needsVerification = hasRealEmail && !isVerified;
 
@@ -121,7 +121,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         current.profile?.auth_user_id !== newSession.user.id ||
         !current.profile
       ) {
-        fetchProfileAndRole(newSession.user.id).then(
+        fetchProfileAndRole(newSession.user.id, newSession).then(
           ({ profile: p, primaryRole: r, isVerified: v, hasRealEmail: h }) => {
             const needs = h && !v;
             set({
@@ -145,7 +145,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!session) return;
 
     const { profile, primaryRole, isVerified, hasRealEmail } =
-      await fetchProfileAndRole(session.user.id);
+      await fetchProfileAndRole(session.user.id, session);
 
     const needsVerification = hasRealEmail && !isVerified;
 

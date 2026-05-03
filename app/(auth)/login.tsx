@@ -59,14 +59,21 @@ export default function LoginScreen() {
     setSubmitError("");
     if (!validate()) return;
     setIsSubmitting(true);
+
     const result = await signInWithUsername(username.trim(), password);
-    setIsSubmitting(false);
     if (!result.ok) {
+      setIsSubmitting(false);
       setSubmitError(result.error);
       return;
     }
-    await signInComplete(result.session);
-    // Guard in _layout.tsx routes based on status set by signInComplete
+
+    try {
+      await signInComplete(result.session);
+      // isSubmitting intentionally not reset — guard navigates away and screen unmounts.
+    } catch {
+      setIsSubmitting(false);
+      setSubmitError("Unable to sign in. Please try again.");
+    }
   }
 
   return (

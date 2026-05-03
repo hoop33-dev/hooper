@@ -199,7 +199,10 @@ function SuccessView({ onContinue, isLoading }: { onContinue: () => void; isLoad
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { pendingVerificationEmail, status, refreshProfile } = useAuthStore();
+  const { pendingVerificationEmail, status, profile, refreshProfile } = useAuthStore();
+  // profile is set by signInComplete (sign-in path) but null during sign-up
+  // (profile not loaded yet because email isn't confirmed). Use this to adapt the UI.
+  const fromSignIn = profile !== null;
 
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [errorMsg, setErrorMsg] = useState("");
@@ -334,19 +337,21 @@ export default function VerifyEmailScreen() {
       {/* Step header — hidden on success */}
       {!isSuccess && (
         <View style={{ paddingHorizontal: 24, paddingTop: 20 }}>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 10,
-              fontWeight: "500",
-              letterSpacing: 10 * 0.14,
-              textTransform: "uppercase",
-              color: C.orange,
-              marginBottom: 10,
-            }}
-          >
-            Step 4 of 4
-          </Text>
+          {!fromSignIn && (
+            <Text
+              style={{
+                fontFamily: "Inter",
+                fontSize: 10,
+                fontWeight: "500",
+                letterSpacing: 10 * 0.14,
+                textTransform: "uppercase",
+                color: C.orange,
+                marginBottom: 10,
+              }}
+            >
+              Step 4 of 4
+            </Text>
+          )}
           <Pressable
             onPress={() => router.back()}
             style={({ pressed }) => ({
@@ -367,7 +372,7 @@ export default function VerifyEmailScreen() {
               />
             </Svg>
             <Text style={{ fontFamily: "Inter", fontSize: 13, color: C.text2 }}>
-              Your details
+              {fromSignIn ? "Sign in" : "Your details"}
             </Text>
           </Pressable>
         </View>

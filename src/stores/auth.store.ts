@@ -30,8 +30,6 @@ async function fetchProfileAndRole(userId: string): Promise<{
   isVerified: boolean;
   hasRealEmail: boolean;
 }> {
-  // Query profiles directly — simpler RLS, avoids the auth.users join in the
-  // profile_with_verification view which is not accessible to the authenticated role.
   const { data: profileData } = await supabase
     .from("profiles")
     .select("*")
@@ -42,10 +40,9 @@ async function fetchProfileAndRole(userId: string): Promise<{
     return { profile: null, primaryRole: null, isVerified: false, hasRealEmail: true };
   }
 
-  // Fetch role and email confirmation status in parallel.
-  // getUser() makes a server call — email_confirmed_at is NOT reliably present
-  // in the JWT payload decoded by setSession/getSession, so we can't use
-  // session.user.email_confirmed_at here.
+  // Fetch role and email confirmation in parallel.
+  // getUser() makes a server call — email_confirmed_at is NOT in the JWT payload
+  // so session.user.email_confirmed_at is always null and cannot be used.
   const [{ data: roleData }, userResult] = await Promise.all([
     supabase
       .from("user_roles")
@@ -70,6 +67,9 @@ async function fetchProfileAndRole(userId: string): Promise<{
   };
 }
 
+// Module-level ref so hydrate() can unsubscribe a stale listener if called again.
+let authSubscription: { unsubscribe: () => void } | null = null;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   status: "loading",
   session: null,
@@ -83,23 +83,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!session) {
       set({ status: "unauthenticated", session: null, profile: null, primaryRole: null });
     } else {
-      const { profile, primaryRole, isVerified, hasRealEmail } =
-        await fetchProfileAndRole(session.user.id);
+      try {
+        const { profile, primaryRole, isVerified, hasRealEmail } =
+          await fetchProfileAndRole(session.user.id);
 
-      const needsVerification = hasRealEmail && !isVerified;
+        const needsVerification = hasRealEmail && !isVerified;
 
-      set({
-        session,
-        profile,
-        primaryRole,
-        status: needsVerification ? "needs_verification" : "authenticated",
-      });
+        set({
+          session,
+          profile,
+          primaryRole,
+          status: needsVerification ? "needs_verification" : "authenticated",
+        });
+      } catch {
+        // Profile fetch failed on app start — clear session so the user can sign in again.
+        set({ status: "unauthenticated", session: null, profile: null, primaryRole: null });
+      }
     }
 
+    // Unsubscribe any previous listener before registering a new one, so calling
+    // hydrate() more than once doesn't stack up duplicate subscriptions.
+    authSubscription?.unsubscribe();
+
     // onAuthStateChange only handles session updates and sign-out — no async profile
-    // fetching here, which avoids concurrent-fetch update loops. Profile fetching is
-    // handled explicitly via signInComplete, refreshProfile, and hydrate.
-    supabase.auth.onAuthStateChange((event, newSession) => {
+    // fetching, which avoids concurrent-fetch update loops.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       // INITIAL_SESSION is already handled synchronously above via getSession().
       if (event === "INITIAL_SESSION") return;
 
@@ -115,51 +123,62 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       // For any auth event that carries a session (TOKEN_REFRESHED, USER_UPDATED,
-      // SIGNED_IN from setSession), just keep the session fresh.
+      // SIGNED_IN from setSession), just keep the stored session fresh.
       set({ session: newSession });
     });
+
+    authSubscription = subscription;
   },
 
   // Called by the login screen after signInWithUsername succeeds. Fetches profile
   // and sets the appropriate status so the route guard can navigate.
   signInComplete: async (session: Session) => {
-    const { profile, primaryRole, isVerified, hasRealEmail } =
-      await fetchProfileAndRole(session.user.id);
+    try {
+      const { profile, primaryRole, isVerified, hasRealEmail } =
+        await fetchProfileAndRole(session.user.id);
 
-    const needsVerification = hasRealEmail && !isVerified;
+      const needsVerification = hasRealEmail && !isVerified;
 
-    set({
-      session,
-      profile,
-      primaryRole,
-      status: needsVerification ? "needs_verification" : "authenticated",
-      pendingVerificationEmail: needsVerification ? (session.user.email ?? null) : null,
-    });
+      set({
+        session,
+        profile,
+        primaryRole,
+        status: needsVerification ? "needs_verification" : "authenticated",
+        pendingVerificationEmail: needsVerification ? (session.user.email ?? null) : null,
+      });
+    } catch {
+      set({ status: "unauthenticated", session: null, profile: null, primaryRole: null });
+      throw new Error("Unable to load your profile. Please try again.");
+    }
   },
 
   setVerificationPending: (email: string) => {
     set({ status: "needs_verification", pendingVerificationEmail: email });
   },
 
-  // Uses a fresh session from the Supabase client so that changes like email
-  // confirmation (email_confirmed_at) are reflected without a separate state sync.
-  // Safe to call getSession() here because onAuthStateChange no longer does async work.
+  // Uses a fresh session from the Supabase client so changes like email confirmation
+  // are reflected. Safe to call getSession() here because onAuthStateChange no longer
+  // does async work that could loop back through here.
   refreshProfile: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    const { profile, primaryRole, isVerified, hasRealEmail } =
-      await fetchProfileAndRole(session.user.id);
+      const { profile, primaryRole, isVerified, hasRealEmail } =
+        await fetchProfileAndRole(session.user.id);
 
-    const needsVerification = hasRealEmail && !isVerified;
+      const needsVerification = hasRealEmail && !isVerified;
 
-    set({
-      session,
-      profile,
-      primaryRole,
-      status: needsVerification ? "needs_verification" : "authenticated",
-      pendingVerificationEmail: needsVerification ? get().pendingVerificationEmail : null,
-    });
+      set({
+        session,
+        profile,
+        primaryRole,
+        status: needsVerification ? "needs_verification" : "authenticated",
+        pendingVerificationEmail: needsVerification ? get().pendingVerificationEmail : null,
+      });
+    } catch {
+      // Network error — leave current status unchanged so the user can retry.
+    }
   },
 
   signOut: async () => {

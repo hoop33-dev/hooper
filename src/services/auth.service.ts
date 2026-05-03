@@ -37,8 +37,7 @@ function formatLocalDate(date: Date): string {
 }
 
 export type SignInResult =
-  | { ok: true; requiresVerification: false; session: Session }
-  | { ok: true; requiresVerification: true; session: Session; email: string }
+  | { ok: true; session: Session }
   | { ok: false; error: string };
 
 export async function signInWithUsername(
@@ -64,10 +63,7 @@ export async function signInWithUsername(
     return { ok: false, error: "Unable to sign in. Please try again." };
   }
 
-  if (data.requires_verification) {
-    return { ok: true, requiresVerification: true, session, email: data.email_for_otp };
-  }
-  return { ok: true, requiresVerification: false, session };
+  return { ok: true, session };
 }
 
 export async function signOut(): Promise<void> {

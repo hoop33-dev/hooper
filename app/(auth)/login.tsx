@@ -68,7 +68,7 @@ export default function LoginScreen() {
     }
 
     try {
-      await signInComplete(result.session);
+      await signInComplete(result.session, result.requiresVerification);
       // isSubmitting intentionally not reset — guard navigates away and screen unmounts.
     } catch {
       setIsSubmitting(false);

@@ -6,6 +6,7 @@ import {
   type TextInputProps,
   type TextInput as RNTextInput,
 } from "react-native";
+import { colors } from "@/src/constants/theme";
 
 type InputProps = Omit<TextInputProps, "style"> & {
   label?: string;
@@ -57,7 +58,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
       ) : null}
       <TextInput
         ref={ref}
-        placeholderTextColor="rgba(255,255,255,0.25)"
+        placeholderTextColor={colors.textDisabled}
         underlineColorAndroid="transparent"
         className={`bg-surface-2 rounded-lg border ${borderClass} ${inputClassName}`}
         style={{

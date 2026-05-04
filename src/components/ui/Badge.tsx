@@ -1,4 +1,5 @@
 import { View, Text, type ViewProps } from "react-native";
+import { colors } from "@/src/constants/theme";
 
 export type BadgeVariant =
   | "orange"
@@ -115,7 +116,7 @@ export function NumberBadge({ count }: { count: number | string }) {
           fontFamily: "Inter",
           fontWeight: "700",
           fontSize: 11,
-          color: "#FFFFFF",
+          color: colors.textPrimary,
         }}
       >
         {count}

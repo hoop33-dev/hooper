@@ -17,23 +17,19 @@ import Svg, { Path, Rect, Circle } from "react-native-svg";
 import type { Session } from "@supabase/supabase-js";
 import { verifyEmailOtp, resendVerificationOtp } from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
+import { BackButton } from "@/src/components/ui";
+import { colors } from "@/src/constants/theme";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
-const C = {
-  orange:       "#F15825",
-  surface:      "#1A1718",
-  surface2:     "#2D2829",
-  text1:        "#FFFFFF",
-  text2:        "rgba(255,255,255,0.65)",
-  text3:        "rgba(255,255,255,0.35)",
-  borderStrong: "rgba(255,255,255,0.16)",
-  danger:       "#E53E3E",
-  dangerDim:    "rgba(229,62,62,0.12)",
-  dangerBorder: "rgba(229,62,62,0.3)",
-  success:      "#34D399",
-  successDim:   "rgba(52,211,153,0.12)",
-};
+// Tints not in the theme palette
+const dangerDim = "rgba(229,62,62,0.12)";
+const dangerBorder = "rgba(229,62,62,0.3)";
+const successColor = "#34D399";
+const successDim = "rgba(52,211,153,0.12)";
+const successBorder = "rgba(52,211,153,0.3)";
+const orangeFilled = "rgba(241,88,37,0.08)";
+const orangeFilledBorder = "rgba(241,88,37,0.45)";
 
 const CODE_LENGTH = 6;
 const RESEND_COOLDOWN = 60;
@@ -59,23 +55,23 @@ function EmailIllustration({ shake }: { shake: boolean }) {
           width: 72,
           height: 72,
           borderRadius: 20,
-          backgroundColor: "rgba(241,88,37,0.1)",
+          backgroundColor: colors.orangeTint10,
           borderWidth: 1.5,
-          borderColor: "rgba(241,88,37,0.22)",
+          borderColor: colors.orangeTint20,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
         <Svg width={34} height={34} viewBox="0 0 34 34" fill="none">
-          <Rect x={3} y={7} width={28} height={20} rx={4} stroke={C.orange} strokeWidth={1.8} />
+          <Rect x={3} y={7} width={28} height={20} rx={4} stroke={colors.brandOrange} strokeWidth={1.8} />
           <Path
             d="M3 11L17 20L31 11"
-            stroke={C.orange}
+            stroke={colors.brandOrange}
             strokeWidth={1.8}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <Circle cx={25} cy={9} r={5} fill={C.orange} />
+          <Circle cx={25} cy={9} r={5} fill={colors.brandOrange} />
           <Path
             d="M22.5 9L24.2 10.8L27.5 7.5"
             stroke="white"
@@ -115,9 +111,9 @@ function SuccessView({ onContinue, isLoading }: { onContinue: () => void; isLoad
           width: 80,
           height: 80,
           borderRadius: 24,
-          backgroundColor: C.successDim,
+          backgroundColor: successDim,
           borderWidth: 1.5,
-          borderColor: "rgba(52,211,153,0.3)",
+          borderColor: successBorder,
           alignItems: "center",
           justifyContent: "center",
           transform: [{ scale: scaleAnim }],
@@ -126,7 +122,7 @@ function SuccessView({ onContinue, isLoading }: { onContinue: () => void; isLoad
         <Svg width={36} height={36} viewBox="0 0 36 36" fill="none">
           <Path
             d="M8 18L15 25L28 11"
-            stroke={C.success}
+            stroke={successColor}
             strokeWidth={2.5}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -140,7 +136,7 @@ function SuccessView({ onContinue, isLoading }: { onContinue: () => void; isLoad
             fontFamily: "Inter",
             fontWeight: "700",
             fontSize: 22,
-            color: C.text1,
+            color: colors.textPrimary,
             marginBottom: 8,
           }}
         >
@@ -150,7 +146,7 @@ function SuccessView({ onContinue, isLoading }: { onContinue: () => void; isLoad
           style={{
             fontFamily: "Inter",
             fontSize: 14,
-            color: C.text2,
+            color: colors.textSecondary,
             lineHeight: 14 * 1.5,
             textAlign: "center",
           }}
@@ -164,15 +160,15 @@ function SuccessView({ onContinue, isLoading }: { onContinue: () => void; isLoad
         disabled={isLoading}
         style={({ pressed }) => ({
           width: "100%",
-          height: 52,
+          height: 56,
           borderRadius: 14,
-          backgroundColor: C.orange,
+          backgroundColor: colors.brandOrange,
           alignItems: "center",
           justifyContent: "center",
           marginTop: 16,
           opacity: isLoading ? 0.7 : pressed ? 0.85 : 1,
           transform: [{ scale: pressed && !isLoading ? 0.97 : 1 }],
-          shadowColor: C.orange,
+          shadowColor: colors.brandOrange,
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.4,
           shadowRadius: 20,
@@ -180,14 +176,14 @@ function SuccessView({ onContinue, isLoading }: { onContinue: () => void; isLoad
         })}
       >
         {isLoading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.textPrimary} />
         ) : (
           <Text
             style={{
               fontFamily: "Inter",
               fontWeight: "600",
               fontSize: 15,
-              color: C.text1,
+              color: colors.textPrimary,
             }}
           >
             Continue to Hooper
@@ -352,36 +348,17 @@ export default function VerifyEmailScreen() {
                 fontWeight: "500",
                 letterSpacing: 10 * 0.14,
                 textTransform: "uppercase",
-                color: C.orange,
+                color: colors.brandOrange,
                 marginBottom: 10,
               }}
             >
               Step 4 of 4
             </Text>
           )}
-          <Pressable
+          <BackButton
+            label={fromSignIn ? "Sign in" : "Your details"}
             onPress={() => router.back()}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              alignSelf: "flex-start",
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-              <Path
-                d="M10 3L5 8L10 13"
-                stroke="rgba(255,255,255,0.35)"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-            <Text style={{ fontFamily: "Inter", fontSize: 13, color: C.text2 }}>
-              {fromSignIn ? "Sign in" : "Your details"}
-            </Text>
-          </Pressable>
+          />
         </View>
       )}
 
@@ -400,7 +377,7 @@ export default function VerifyEmailScreen() {
                     fontFamily: "Inter",
                     fontWeight: "700",
                     fontSize: 22,
-                    color: C.text1,
+                    color: colors.textPrimary,
                     marginBottom: 8,
                   }}
                 >
@@ -410,13 +387,13 @@ export default function VerifyEmailScreen() {
                   style={{
                     fontFamily: "Inter",
                     fontSize: 14,
-                    color: C.text2,
+                    color: colors.textSecondary,
                     lineHeight: 14 * 1.6,
                     textAlign: "center",
                   }}
                 >
                   We sent a 6-digit code to{"\n"}
-                  <Text style={{ color: C.text1, fontWeight: "500" }}>{maskedEmail}</Text>
+                  <Text style={{ color: colors.textPrimary, fontWeight: "500" }}>{maskedEmail}</Text>
                 </Text>
               </View>
             </View>
@@ -449,16 +426,16 @@ export default function VerifyEmailScreen() {
                       borderRadius: 12,
                       borderWidth: 1.5,
                       borderColor: errorMsg
-                        ? C.dangerBorder
+                        ? dangerBorder
                         : filled
-                          ? "rgba(241,88,37,0.45)"
-                          : C.borderStrong,
+                          ? orangeFilledBorder
+                          : colors.borderStrong,
                       backgroundColor: errorMsg
-                        ? C.dangerDim
+                        ? dangerDim
                         : filled
-                          ? "rgba(241,88,37,0.08)"
-                          : C.surface2,
-                      color: errorMsg ? C.danger : C.text1,
+                          ? orangeFilled
+                          : colors.surface2,
+                      color: errorMsg ? colors.danger : colors.textPrimary,
                       fontSize: 24,
                       fontFamily: "Inter",
                       fontWeight: "600",
@@ -476,7 +453,7 @@ export default function VerifyEmailScreen() {
                   style={{
                     fontFamily: "Inter",
                     fontSize: 12,
-                    color: C.danger,
+                    color: colors.danger,
                     textAlign: "center",
                   }}
                 >
@@ -491,14 +468,14 @@ export default function VerifyEmailScreen() {
               disabled={isVerifying || !isComplete}
               style={({ pressed }) => ({
                 width: "100%",
-                height: 52,
+                height: 56,
                 borderRadius: 14,
-                backgroundColor: isComplete ? C.orange : C.surface2,
+                backgroundColor: isComplete ? colors.brandOrange : colors.surface2,
                 alignItems: "center",
                 justifyContent: "center",
                 opacity: isVerifying ? 0.7 : pressed && isComplete ? 0.85 : 1,
                 transform: [{ scale: pressed && isComplete && !isVerifying ? 0.97 : 1 }],
-                shadowColor: C.orange,
+                shadowColor: colors.brandOrange,
                 shadowOffset: { width: 0, height: 0 },
                 shadowOpacity: isComplete ? 0.35 : 0,
                 shadowRadius: 20,
@@ -507,14 +484,14 @@ export default function VerifyEmailScreen() {
               })}
             >
               {isVerifying ? (
-                <ActivityIndicator color={isComplete ? "#fff" : C.text3} />
+                <ActivityIndicator color={isComplete ? colors.textPrimary : colors.textTertiary} />
               ) : (
                 <Text
                   style={{
                     fontFamily: "Inter",
                     fontWeight: "600",
                     fontSize: 15,
-                    color: isComplete ? C.text1 : C.text3,
+                    color: isComplete ? colors.textPrimary : colors.textTertiary,
                   }}
                 >
                   Verify email
@@ -525,11 +502,11 @@ export default function VerifyEmailScreen() {
             {/* Resend row */}
             <View style={{ alignItems: "center" }}>
               {resendSent ? (
-                <Text style={{ fontFamily: "Inter", fontSize: 13, color: C.success }}>
+                <Text style={{ fontFamily: "Inter", fontSize: 13, color: successColor }}>
                   Code resent — check your inbox
                 </Text>
               ) : (
-                <Text style={{ fontFamily: "Inter", fontSize: 13, color: C.text3 }}>
+                <Text style={{ fontFamily: "Inter", fontSize: 13, color: colors.textTertiary }}>
                   Didn&apos;t get it?{" "}
                   <Text
                     onPress={resendCooldown > 0 || isResending ? undefined : handleResend}
@@ -537,7 +514,7 @@ export default function VerifyEmailScreen() {
                       fontFamily: "Inter",
                       fontWeight: "600",
                       fontSize: 13,
-                      color: resendCooldown > 0 ? C.text3 : C.orange,
+                      color: resendCooldown > 0 ? colors.textTertiary : colors.brandOrange,
                     }}
                   >
                     {isResending

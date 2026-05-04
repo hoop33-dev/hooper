@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
@@ -8,6 +8,8 @@ import { supabase } from "@/src/lib/supabase";
 import { signOut } from "@/src/services/auth.service";
 import { ROLES } from "@/src/constants/roles";
 import type { RoleId } from "@/src/constants/roles";
+import { Label, Button } from "@/src/components/ui";
+import { colors } from "@/src/constants/theme";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -49,39 +51,18 @@ export default function DashboardScreen() {
   return (
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
       <View className="flex-1 px-6 pt-8">
-        {/* Temporary label */}
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 10,
-            fontWeight: "500",
-            letterSpacing: 10 * 0.14,
-            textTransform: "uppercase",
-            color: "rgba(255,255,255,0.25)",
-            marginBottom: 32,
-          }}
-        >
-          Temporary dashboard
-        </Text>
+        <Label className="text-text-disabled mb-8">Temporary dashboard</Label>
 
         {!user ? (
-          <ActivityIndicator color="#F15825" style={{ marginTop: 40 }} />
+          <ActivityIndicator
+            color={colors.brandOrange}
+            style={{ marginTop: 40 }}
+          />
         ) : (
           <View style={{ gap: 24 }}>
             {/* Name */}
             <View style={{ gap: 4 }}>
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontSize: 10,
-                  fontWeight: "500",
-                  letterSpacing: 10 * 0.12,
-                  textTransform: "uppercase",
-                  color: "rgba(255,255,255,0.35)",
-                }}
-              >
-                Name
-              </Text>
+              <Label>Name</Label>
               <Text
                 style={{
                   fontFamily: "Inter",
@@ -89,7 +70,7 @@ export default function DashboardScreen() {
                   fontSize: 32,
                   letterSpacing: 32 * -0.03,
                   lineHeight: 32 * 1.1,
-                  color: "#FFFFFF",
+                  color: colors.textPrimary,
                 }}
               >
                 {user.firstName} {user.lastName}
@@ -99,7 +80,7 @@ export default function DashboardScreen() {
                   style={{
                     fontFamily: "Inter",
                     fontSize: 14,
-                    color: "rgba(255,255,255,0.45)",
+                    color: colors.textTertiary,
                   }}
                 >
                   @{user.username}
@@ -109,18 +90,7 @@ export default function DashboardScreen() {
 
             {/* Role */}
             <View style={{ gap: 8 }}>
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontSize: 10,
-                  fontWeight: "500",
-                  letterSpacing: 10 * 0.12,
-                  textTransform: "uppercase",
-                  color: "rgba(255,255,255,0.35)",
-                }}
-              >
-                Role
-              </Text>
+              <Label>Role</Label>
               <View
                 style={{
                   alignSelf: "flex-start",
@@ -151,38 +121,19 @@ export default function DashboardScreen() {
 
       {/* Sign out */}
       <View className="px-6 pb-4">
-        <Pressable
+        <Button
+          variant="secondary"
           onPress={handleSignOut}
           disabled={signingOut}
-          style={({ pressed }) => ({
-            height: 52,
-            borderRadius: 9999,
-            backgroundColor: "transparent",
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.16)",
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: signingOut ? 0.6 : pressed ? 0.7 : 1,
-            transform: [{ scale: pressed && !signingOut ? 0.97 : 1 }],
-          })}
+          className="w-full"
+          size="lg"
         >
           {signingOut ? (
-            <ActivityIndicator color="rgba(255,255,255,0.6)" />
+            <ActivityIndicator color={colors.textSecondary} />
           ) : (
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontWeight: "700",
-                fontSize: 15,
-                letterSpacing: 15 * 0.08,
-                textTransform: "uppercase",
-                color: "rgba(255,255,255,0.65)",
-              }}
-            >
-              Sign out
-            </Text>
+            "Sign out"
           )}
-        </Pressable>
+        </Button>
       </View>
     </StyledSafeAreaView>
   );

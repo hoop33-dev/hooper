@@ -2,7 +2,6 @@ import { useState, useRef } from "react";
 import {
   View,
   Text,
-  Pressable,
   ActivityIndicator,
   type TextInput as RNTextInput,
 } from "react-native";
@@ -13,7 +12,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
-import Svg, { Path } from "react-native-svg";
 
 import {
   Input,
@@ -24,7 +22,11 @@ import {
   type SelectInputHandle,
   PasswordInput,
   ErrorMessage,
+  Button,
+  BackButton,
+  ErrorBanner,
 } from "@/src/components/ui";
+import { colors, shadows } from "@/src/constants/theme";
 import { NZ_REGIONS } from "@/src/constants/regions";
 import { validatePassword } from "@/src/lib/passwordRules";
 import { createChildAccount } from "@/src/services/parent.service";
@@ -127,27 +129,7 @@ export default function AddChildScreen() {
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 pt-2 pb-4">
-          <Pressable
-            onPress={() => router.back()}
-            className="mb-6 flex-row items-center gap-1.5 self-start"
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          >
-            <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-              <Path
-                d="M10 3L5 8L10 13"
-                stroke="rgba(255,255,255,0.35)"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-            <Text
-              className="text-text-tertiary text-[13px]"
-              style={{ fontFamily: "Inter" }}
-            >
-              Back
-            </Text>
-          </Pressable>
+          <BackButton onPress={() => router.back()} />
 
           <Text
             style={{
@@ -156,7 +138,7 @@ export default function AddChildScreen() {
               fontSize: 26,
               letterSpacing: 26 * -0.03,
               lineHeight: 26 * 1.12,
-              color: "#FFFFFF",
+              color: colors.textPrimary,
               marginBottom: 4,
             }}
           >
@@ -166,7 +148,7 @@ export default function AddChildScreen() {
             style={{
               fontFamily: "Inter",
               fontSize: 13,
-              color: "rgba(255,255,255,0.5)",
+              color: colors.textSecondary,
               lineHeight: 13 * 1.5,
             }}
           >
@@ -186,28 +168,7 @@ export default function AddChildScreen() {
           keyboardShouldPersistTaps="handled"
           bottomOffset={120}
         >
-          {submitError ? (
-            <View
-              style={{
-                backgroundColor: "rgba(229,62,62,0.12)",
-                borderWidth: 1,
-                borderColor: "rgba(229,62,62,0.35)",
-                borderRadius: 10,
-                padding: 12,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontSize: 13,
-                  color: "#E53E3E",
-                  lineHeight: 18,
-                }}
-              >
-                {submitError}
-              </Text>
-            </View>
-          ) : null}
+          {submitError ? <ErrorBanner message={submitError} /> : null}
 
           <View className="flex-row gap-3">
             <View className="flex-1">
@@ -253,7 +214,7 @@ export default function AddChildScreen() {
               onChange={(d) => setField("dateOfBirth", d)}
               maxDate={new Date()}
               placeholder="DD/MM/YYYY"
-              accentColor="#F15825"
+              accentColor={colors.brandOrange}
             />
             {errors.dateOfBirth && <ErrorMessage message={errors.dateOfBirth} />}
           </View>
@@ -325,41 +286,15 @@ export default function AddChildScreen() {
         <KeyboardStickyView>
           <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
             <View className="px-6 py-3">
-              <Pressable
+              <Button
                 onPress={handleSubmit}
                 disabled={isSubmitting}
-                style={({ pressed }) => ({
-                  height: 52,
-                  borderRadius: 9999,
-                  backgroundColor: "#F15825",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: isSubmitting ? 0.7 : pressed ? 0.85 : 1,
-                  transform: [{ scale: pressed && !isSubmitting ? 0.97 : 1 }],
-                  shadowColor: "#F15825",
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 16,
-                  elevation: 6,
-                })}
+                size="lg"
+                className="w-full"
+                style={shadows.orangeGlow}
               >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#000" />
-                ) : (
-                  <Text
-                    style={{
-                      fontFamily: "Inter",
-                      fontWeight: "700",
-                      fontSize: 15,
-                      letterSpacing: 15 * 0.08,
-                      textTransform: "uppercase",
-                      color: "#000000",
-                    }}
-                  >
-                    Create account
-                  </Text>
-                )}
-              </Pressable>
+                {isSubmitting ? <ActivityIndicator color={colors.textPrimary} /> : "Create account"}
+              </Button>
             </View>
           </StyledSafeAreaView>
         </KeyboardStickyView>

@@ -1,5 +1,9 @@
 export { H1, H2, H3, H4, Body, BodySm, Label, Stat } from "./Typography";
 
+export { BackButton } from "./BackButton";
+
+export { ErrorBanner } from "./ErrorBanner";
+
 export { Button } from "./Button";
 export type { ButtonVariant, ButtonSize } from "./Button";
 

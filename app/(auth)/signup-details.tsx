@@ -14,7 +14,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { styled } from "nativewind";
-import Svg, { Path } from "react-native-svg";
 
 import { validatePassword } from "@/src/lib/passwordRules";
 import {
@@ -27,7 +26,10 @@ import {
   Checkbox,
   PasswordInput,
   ErrorMessage,
+  BackButton,
+  ErrorBanner,
 } from "@/src/components/ui";
+import { colors } from "@/src/constants/theme";
 import { AgeGateModal } from "@/src/components/auth/AgeGateModal";
 import { DisclosureLabel } from "@/src/components/auth/DisclosureLabel";
 import { ROLES, type RoleId } from "@/src/constants/roles";
@@ -186,27 +188,7 @@ export default function SignupDetailsScreen() {
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 pt-2 pb-4">
-          <Pressable
-            onPress={() => router.back()}
-            className="mb-6 flex-row items-center gap-1.5 self-start"
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          >
-            <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-              <Path
-                d="M10 3L5 8L10 13"
-                stroke="rgba(255,255,255,0.35)"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-            <Text
-              className="text-text-tertiary text-[13px]"
-              style={{ fontFamily: "Inter" }}
-            >
-              Choose your role
-            </Text>
-          </Pressable>
+          <BackButton label="Choose your role" onPress={() => router.back()} />
 
           <Text
             className="mb-2 text-[10px] font-medium uppercase"
@@ -256,28 +238,7 @@ export default function SignupDetailsScreen() {
           keyboardShouldPersistTaps="handled"
           bottomOffset={120}
         >
-          {submitError && (
-            <View
-              style={{
-                backgroundColor: "rgba(229,62,62,0.12)",
-                borderWidth: 1,
-                borderColor: "rgba(229,62,62,0.35)",
-                borderRadius: 10,
-                padding: 12,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontSize: 13,
-                  color: "#E53E3E",
-                  lineHeight: 18,
-                }}
-              >
-                {submitError}
-              </Text>
-            </View>
-          )}
+          {submitError && <ErrorBanner message={submitError} />}
 
           {/* Name row */}
           <View className="flex-row gap-3">
@@ -436,7 +397,7 @@ export default function SignupDetailsScreen() {
                 onPress={handleSubmit}
                 disabled={isSubmitting}
                 style={({ pressed }) => ({
-                  height: 52,
+                  height: 56,
                   borderRadius: 9999,
                   backgroundColor: accent,
                   alignItems: "center",
@@ -451,11 +412,17 @@ export default function SignupDetailsScreen() {
                 })}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={colors.textPrimary} />
                 ) : (
                   <Text
-                    className="text-text-primary text-[15px] font-bold"
-                    style={{ fontFamily: "Inter" }}
+                    style={{
+                      fontFamily: "Inter",
+                      fontWeight: "700",
+                      fontSize: 15,
+                      letterSpacing: 15 * 0.08,
+                      textTransform: "uppercase",
+                      color: colors.textPrimary,
+                    }}
                   >
                     Create account
                   </Text>

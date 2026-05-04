@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Pressable, View, Text, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
+import { colors } from "@/src/constants/theme";
 
 export type RadioTileProps = {
   id: string;
@@ -39,7 +40,7 @@ export function RadioTile({
 
   const gradientColors: [string, string] = selected
     ? [hexToRgba(accent, 0.2), hexToRgba(accent, 0)]
-    : ["rgba(0,0,0,0)", "rgba(0,0,0,0)"];
+    : ["transparent", "transparent"];
 
   // Android: elevation creates a hardware layer that clips gradient children
   // regardless of the view hierarchy arrangement. Disable elevation on Android
@@ -47,9 +48,9 @@ export function RadioTile({
   return (
     <View
       style={{
-        backgroundColor: selected ? accentDim : "#2D2829",
+        backgroundColor: selected ? accentDim : colors.surface2,
         borderWidth: 1.5,
-        borderColor: selected ? accentBorder : "rgba(255,255,255,0.08)",
+        borderColor: selected ? accentBorder : colors.borderSubtle,
         borderRadius: 16,
         transform: [{ scale: pressed ? 0.97 : 1 }],
         opacity: pressed ? 0.88 : 1,
@@ -86,11 +87,9 @@ export function RadioTile({
                 width: 56,
                 height: 56,
                 borderRadius: 14,
-                backgroundColor: selected
-                  ? accentDim
-                  : "rgba(255,255,255,0.04)",
+                backgroundColor: selected ? accentDim : "rgba(255,255,255,0.04)",
                 borderWidth: 1,
-                borderColor: selected ? accentBorder : "rgba(255,255,255,0.08)",
+                borderColor: selected ? accentBorder : colors.borderSubtle,
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -104,7 +103,7 @@ export function RadioTile({
                 height: 22,
                 borderRadius: 11,
                 borderWidth: 2,
-                borderColor: selected ? accent : "rgba(255,255,255,0.16)",
+                borderColor: selected ? accent : colors.borderStrong,
                 backgroundColor: selected ? accent : "transparent",
                 alignItems: "center",
                 justifyContent: "center",
@@ -133,7 +132,7 @@ export function RadioTile({
               fontSize: 10,
               letterSpacing: 10 * 0.14,
               textTransform: "uppercase",
-              color: selected ? accent : "rgba(255,255,255,0.35)",
+              color: selected ? accent : colors.textTertiary,
               marginBottom: 5,
             }}
           >
@@ -147,7 +146,7 @@ export function RadioTile({
               fontWeight: "800",
               fontSize: 22,
               letterSpacing: 22 * -0.03,
-              color: "#FFFFFF",
+              color: colors.textPrimary,
               marginBottom: 8,
               lineHeight: 22 * 1.1,
             }}
@@ -162,7 +161,7 @@ export function RadioTile({
               fontWeight: "400",
               fontSize: 13,
               lineHeight: 13 * 1.55,
-              color: "rgba(255,255,255,0.65)",
+              color: colors.textSecondary,
             }}
           >
             {body}

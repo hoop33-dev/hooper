@@ -67,44 +67,29 @@ export async function createChildAccount(
 }
 
 export async function listChildren(): Promise<ChildSummary[]> {
-  const { data: session } = await supabase.auth.getSession();
-  if (!session.session) return [];
-
-  // Get caller's profile id
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("auth_user_id", session.session.user.id)
-    .single();
-
-  if (!profile) return [];
-
-  // Query via RLS-protected join (profiles_select_children policy covers children rows)
-  const { data, error } = await supabase
+  // RLS (parent_player_links_select_parent) already limits results to
+  // the authenticated parent's links — no manual parent_profile_id filter needed.
+  const { data: links, error: linksError } = await supabase
     .from("parent_player_links")
-    .select(
-      "player_profile_id, profiles!player_profile_id(id, first_name, last_name, username)",
-    )
-    .eq("parent_profile_id", profile.id)
+    .select("player_profile_id")
     .eq("status", "active");
 
-  if (error || !data) return [];
+  if (linksError || !links || links.length === 0) return [];
 
-  return data
-    .map((row) => {
-      const p = row.profiles as unknown as {
-        id: string;
-        first_name: string;
-        last_name: string;
-        username: string;
-      } | null;
-      if (!p) return null;
-      return {
-        id: p.id,
-        firstName: p.first_name,
-        lastName: p.last_name,
-        username: p.username,
-      };
-    })
-    .filter((c): c is ChildSummary => c !== null);
+  const ids = links.map((l) => l.player_profile_id);
+
+  // profiles_select_children RLS allows the parent to read their children's profiles.
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id, first_name, last_name, username")
+    .in("id", ids);
+
+  if (profilesError || !profiles) return [];
+
+  return profiles.map((p) => ({
+    id: p.id,
+    firstName: p.first_name,
+    lastName: p.last_name,
+    username: p.username,
+  }));
 }

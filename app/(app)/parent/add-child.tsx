@@ -253,7 +253,7 @@ export default function AddChildScreen() {
               onChange={(d) => setField("dateOfBirth", d)}
               maxDate={new Date()}
               placeholder="DD/MM/YYYY"
-              accentColor="#34D399"
+              accentColor="#F15825"
             />
             {errors.dateOfBirth && <ErrorMessage message={errors.dateOfBirth} />}
           </View>
@@ -331,12 +331,12 @@ export default function AddChildScreen() {
                 style={({ pressed }) => ({
                   height: 52,
                   borderRadius: 9999,
-                  backgroundColor: "#34D399",
+                  backgroundColor: "#F15825",
                   alignItems: "center",
                   justifyContent: "center",
                   opacity: isSubmitting ? 0.7 : pressed ? 0.85 : 1,
                   transform: [{ scale: pressed && !isSubmitting ? 0.97 : 1 }],
-                  shadowColor: "#34D399",
+                  shadowColor: "#F15825",
                   shadowOffset: { width: 0, height: 0 },
                   shadowOpacity: 0.3,
                   shadowRadius: 16,

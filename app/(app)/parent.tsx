@@ -29,7 +29,7 @@ function ChildCard({ child }: { child: ChildSummary }) {
           width: 36,
           height: 36,
           borderRadius: 18,
-          backgroundColor: "rgba(52,211,153,0.15)",
+          backgroundColor: "rgba(241,88,37,0.15)",
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -39,7 +39,7 @@ function ChildCard({ child }: { child: ChildSummary }) {
             fontFamily: "Inter",
             fontWeight: "700",
             fontSize: 14,
-            color: "#34D399",
+            color: "#F15825",
           }}
         >
           {child.firstName.charAt(0).toUpperCase()}
@@ -118,12 +118,12 @@ export default function ParentDashboard() {
           style={({ pressed }) => ({
             height: 52,
             borderRadius: 9999,
-            backgroundColor: "#34D399",
+            backgroundColor: "#F15825",
             alignItems: "center",
             justifyContent: "center",
             opacity: pressed ? 0.85 : 1,
             transform: [{ scale: pressed ? 0.97 : 1 }],
-            shadowColor: "#34D399",
+            shadowColor: "#F15825",
             shadowOffset: { width: 0, height: 0 },
             shadowOpacity: 0.3,
             shadowRadius: 16,

@@ -4,6 +4,8 @@ export { BackButton } from "./BackButton";
 
 export { ErrorBanner } from "./ErrorBanner";
 
+export { AccountFormLayout } from "./AccountFormLayout";
+
 export { Button } from "./Button";
 export type { ButtonVariant, ButtonSize } from "./Button";
 

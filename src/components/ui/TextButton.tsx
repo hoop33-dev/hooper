@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pressable, Text, type PressableProps } from "react-native";
+import { colors } from "@/src/constants/theme";
 
 type TextButtonProps = Omit<PressableProps, "children" | "style"> & {
   /** Text shown inside the clickable region */
@@ -16,9 +17,9 @@ type TextButtonProps = Omit<PressableProps, "children" | "style"> & {
 };
 
 const toneColor: Record<NonNullable<TextButtonProps["tone"]>, string> = {
-  brand: "#F15825",
-  muted: "rgba(255,255,255,0.65)",
-  interactive: "#0047BA",
+  brand: colors.brandOrange,
+  muted: colors.textSecondary,
+  interactive: colors.brandBlue,
 };
 
 const weightMap: Record<NonNullable<TextButtonProps["weight"]>, string> = {
@@ -39,7 +40,7 @@ export function TextButton({
   ...rest
 }: TextButtonProps) {
   const [pressed, setPressed] = useState(false);
-  const color = disabled ? "rgba(255,255,255,0.25)" : toneColor[tone];
+  const color = disabled ? colors.textDisabled : toneColor[tone];
 
   return (
     <Pressable

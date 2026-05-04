@@ -3,9 +3,9 @@ import { View, ScrollView, Pressable, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
-import Svg, { Path } from "react-native-svg";
 
-import { RadioTile } from "@/src/components/ui";
+import { RadioTile, BackButton } from "@/src/components/ui";
+import { colors } from "@/src/constants/theme";
 import { ROLES, type RoleId } from "@/src/constants/roles";
 
 const StyledSafeAreaView = styled(SafeAreaView);
@@ -28,27 +28,7 @@ export default function RoleSelectorScreen() {
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
       {/* Header */}
       <View className="px-6 pt-2 pb-5">
-        <Pressable
-          onPress={() => router.back()}
-          className="mb-6 flex-row items-center gap-1.5 self-start"
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-        >
-          <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-            <Path
-              d="M10 3L5 8L10 13"
-              stroke="rgba(255,255,255,0.35)"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-          <Text
-            className="text-text-tertiary text-[13px]"
-            style={{ fontFamily: "Inter" }}
-          >
-            Create account
-          </Text>
-        </Pressable>
+        <BackButton label="Create account" onPress={() => router.back()} />
 
         <Text
           className="text-brand-orange mb-2 text-[10px] font-medium uppercase"
@@ -112,9 +92,9 @@ export default function RoleSelectorScreen() {
           onPress={handleContinue}
           disabled={!selectedId}
           style={({ pressed }) => ({
-            height: 52,
+            height: 56,
             borderRadius: 9999,
-            backgroundColor: selectedRole ? selectedRole.accent : "#3D3738",
+            backgroundColor: selectedRole ? selectedRole.accent : colors.surface3,
             alignItems: "center",
             justifyContent: "center",
             opacity: pressed && selectedId ? 0.85 : 1,

@@ -1,20 +1,9 @@
 import { useState, useRef } from "react";
+import { View, Text, type TextInput as RNTextInput } from "react-native";
 import {
-  View,
-  Text,
-  Pressable,
-  ActivityIndicator,
-  type TextInput as RNTextInput,
-} from "react-native";
-import {
-  KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
-  KeyboardStickyView,
 } from "react-native-keyboard-controller";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { styled } from "nativewind";
-import Svg, { Path } from "react-native-svg";
 
 import { validatePassword } from "@/src/lib/passwordRules";
 import {
@@ -27,6 +16,7 @@ import {
   Checkbox,
   PasswordInput,
   ErrorMessage,
+  AccountFormLayout,
 } from "@/src/components/ui";
 import { AgeGateModal } from "@/src/components/auth/AgeGateModal";
 import { DisclosureLabel } from "@/src/components/auth/DisclosureLabel";
@@ -34,10 +24,6 @@ import { ROLES, type RoleId } from "@/src/constants/roles";
 import { NZ_REGIONS } from "@/src/constants/regions";
 import { signUp } from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
-
-const StyledSafeAreaView = styled(SafeAreaView);
-
-/* ── Form state ──────────────────────────────────────────────── */
 
 type FormState = {
   firstName: string;
@@ -61,14 +47,13 @@ function calcAge(dob: Date): number {
   return age;
 }
 
-/* ── Screen ──────────────────────────────────────────────────── */
-
 export default function SignupDetailsScreen() {
   const router = useRouter();
   const { setVerificationPending } = useAuthStore();
   const { role } = useLocalSearchParams<{ role: RoleId }>();
   const roleId: RoleId = role ?? "player";
   const roleConfig = ROLES.find((r) => r.id === roleId) ?? ROLES[0];
+  const accent = roleConfig.accent;
 
   const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
   const lastNameRef = useRef<RNTextInput>(null);
@@ -174,303 +159,184 @@ export default function SignupDetailsScreen() {
     router.replace("/(auth)/verify-email");
   }
 
-  function dismissAgeGate() {
-    setAgeGateVisible(false);
-    setField("dob", null);
-  }
-
-  const accent = roleConfig.accent;
-
   return (
-    <StyledSafeAreaView className="bg-surface flex-1" edges={["top"]}>
-      <View className="flex-1">
-        {/* Header */}
-        <View className="px-6 pt-2 pb-4">
-          <Pressable
-            onPress={() => router.back()}
-            className="mb-6 flex-row items-center gap-1.5 self-start"
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          >
-            <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-              <Path
-                d="M10 3L5 8L10 13"
-                stroke="rgba(255,255,255,0.35)"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-            <Text
-              className="text-text-tertiary text-[13px]"
-              style={{ fontFamily: "Inter" }}
-            >
-              Choose your role
-            </Text>
-          </Pressable>
-
-          <Text
-            className="mb-2 text-[10px] font-medium uppercase"
-            style={{
-              fontFamily: "Inter",
-              letterSpacing: 10 * 0.14,
-              color: accent,
-            }}
-          >
-            Step 3 of 3
+    <AccountFormLayout
+      onBack={() => router.back()}
+      backLabel="Choose your role"
+      stepLabel="Step 3 of 3"
+      accentColor={accent}
+      title="Your details"
+      subtitle={
+        <>
+          {"Signing up as a "}
+          <Text style={{ color: accent, fontWeight: "600" }}>
+            {roleConfig.title}
           </Text>
-
-          <Text
-            className="text-text-primary mb-1 font-black"
-            style={{
-              fontFamily: "Inter",
-              fontSize: 26,
-              letterSpacing: 26 * -0.03,
-              lineHeight: 26 * 1.12,
-            }}
-          >
-            Your details
-          </Text>
-
-          <Text
-            className="text-text-secondary text-[13px]"
-            style={{ fontFamily: "Inter", lineHeight: 13 * 1.5 }}
-          >
-            Signing up as a{" "}
-            <Text style={{ color: accent, fontWeight: "600" }}>
-              {roleConfig.title}
-            </Text>
-          </Text>
-        </View>
-
-        {/* Scrollable form */}
-        <KeyboardAwareScrollView
-          ref={scrollRef}
-          className="flex-1"
-          contentContainerStyle={{
-            paddingHorizontal: 24,
-            paddingTop: 8,
-            paddingBottom: 24,
-            gap: 16,
+        </>
+      }
+      scrollRef={scrollRef}
+      submitLabel="Create account"
+      onSubmit={handleSubmit}
+      isSubmitting={isSubmitting}
+      submitError={submitError}
+      footer={
+        <AgeGateModal
+          visible={ageGateVisible}
+          roleId={roleId}
+          onDismiss={() => {
+            setAgeGateVisible(false);
+            setField("dob", null);
           }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bottomOffset={120}
-        >
-          {submitError && (
-            <View
-              style={{
-                backgroundColor: "rgba(229,62,62,0.12)",
-                borderWidth: 1,
-                borderColor: "rgba(229,62,62,0.35)",
-                borderRadius: 10,
-                padding: 12,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontSize: 13,
-                  color: "#E53E3E",
-                  lineHeight: 18,
-                }}
-              >
-                {submitError}
-              </Text>
-            </View>
-          )}
-
-          {/* Name row */}
-          <View className="flex-row gap-3">
-            <View className="flex-1">
-              <Input
-                label="First name"
-                value={form.firstName}
-                onChangeText={(v) => setField("firstName", v)}
-                placeholder="Jordan"
-                hasError={!!errors.firstName}
-                autoCapitalize="words"
-                autoComplete="given-name"
-                textContentType="givenName"
-                returnKeyType="next"
-                blurOnSubmit={false}
-                onSubmitEditing={() => lastNameRef.current?.focus()}
-              />
-              {errors.firstName && <ErrorMessage message={errors.firstName} />}
-            </View>
-            <View className="flex-1">
-              <Input
-                ref={lastNameRef}
-                label="Last name"
-                value={form.lastName}
-                onChangeText={(v) => setField("lastName", v)}
-                placeholder="Taylor"
-                hasError={!!errors.lastName}
-                autoCapitalize="words"
-                autoComplete="family-name"
-                textContentType="familyName"
-                returnKeyType="next"
-                blurOnSubmit={false}
-                onSubmitEditing={() =>
-                  roleId === "player"
-                    ? dateInputRef.current?.open()
-                    : usernameRef.current?.focus()
-                }
-              />
-              {errors.lastName && <ErrorMessage message={errors.lastName} />}
-            </View>
-          </View>
-
-          {roleId === "player" && (
-            <DateInput
-              ref={dateInputRef}
-              label="Date of birth"
-              value={form.dob}
-              onChange={(d) => setField("dob", d)}
-              maxDate={new Date()}
-              error={errors.dob}
-              placeholder="DD/MM/YYYY"
-              accentColor={accent}
-            />
-          )}
-
-          <View>
-            <Input
-              ref={usernameRef}
-              label="Username"
-              value={form.username}
-              onChangeText={(v) => setField("username", v)}
-              placeholder="jordan33"
-              hasError={!!errors.username}
-              autoCapitalize="none"
-              autoComplete="username"
-              textContentType="username"
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => emailRef.current?.focus()}
-            />
-            {errors.username && <ErrorMessage message={errors.username} />}
-          </View>
-
-          <View>
-            <Input
-              ref={emailRef}
-              label="Email address"
-              value={form.email}
-              onChangeText={(v) => setField("email", v)}
-              placeholder="you@email.com"
-              hasError={!!errors.email}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              textContentType="emailAddress"
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => mobileRef.current?.focus()}
-            />
-            {errors.email && <ErrorMessage message={errors.email} />}
-          </View>
-
-          <PhoneInput
-            ref={mobileRef}
-            label="Mobile number"
-            value={form.mobile}
-            onChangeText={(v) => setField("mobile", v)}
-            error={errors.mobile}
+        />
+      }
+    >
+      {/* Name row */}
+      <View className="flex-row gap-3">
+        <View className="flex-1">
+          <Input
+            label="First name"
+            value={form.firstName}
+            onChangeText={(v) => setField("firstName", v)}
+            placeholder="Jordan"
+            hasError={!!errors.firstName}
+            autoCapitalize="words"
+            autoComplete="given-name"
+            textContentType="givenName"
             returnKeyType="next"
             blurOnSubmit={false}
-            onSubmitEditing={() => regionInputRef.current?.open()}
+            onSubmitEditing={() => lastNameRef.current?.focus()}
           />
-
-          <SelectInput
-            ref={regionInputRef}
-            label="Region"
-            value={form.region}
-            options={NZ_REGIONS}
-            placeholder="Select your region"
-            error={errors.region}
-            onChange={(v) => setField("region", v)}
-          />
-
-          <PasswordInput
-            ref={passwordRef}
-            label="Password"
-            value={form.password}
-            onChangeText={(v) => setField("password", v)}
-            placeholder="8+ characters"
-            error={errors.password}
-            autoComplete="new-password"
-            textContentType="newPassword"
+          {errors.firstName && <ErrorMessage message={errors.firstName} />}
+        </View>
+        <View className="flex-1">
+          <Input
+            ref={lastNameRef}
+            label="Last name"
+            value={form.lastName}
+            onChangeText={(v) => setField("lastName", v)}
+            placeholder="Taylor"
+            hasError={!!errors.lastName}
+            autoCapitalize="words"
+            autoComplete="family-name"
+            textContentType="familyName"
             returnKeyType="next"
             blurOnSubmit={false}
-            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+            onSubmitEditing={() =>
+              roleId === "player"
+                ? dateInputRef.current?.open()
+                : usernameRef.current?.focus()
+            }
           />
-
-          <PasswordInput
-            ref={confirmPasswordRef}
-            label="Confirm password"
-            value={form.confirmPassword}
-            onChangeText={(v) => setField("confirmPassword", v)}
-            placeholder="Repeat your password"
-            error={errors.confirmPassword}
-            autoComplete="new-password"
-            textContentType="newPassword"
-            returnKeyType="done"
-          />
-
-          <Checkbox
-            checked={disclosure}
-            onChange={(v) => {
-              setDisclosure(v);
-              setErrors((e) => ({ ...e, disclosure: undefined }));
-            }}
-            label={<DisclosureLabel />}
-            error={errors.disclosure}
-          />
-        </KeyboardAwareScrollView>
-
-        {/* Submit CTA */}
-        <KeyboardStickyView>
-          <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
-            <View className="px-6 py-3">
-              <Pressable
-                onPress={handleSubmit}
-                disabled={isSubmitting}
-                style={({ pressed }) => ({
-                  height: 52,
-                  borderRadius: 9999,
-                  backgroundColor: accent,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: isSubmitting ? 0.7 : pressed ? 0.85 : 1,
-                  transform: [{ scale: pressed && !isSubmitting ? 0.97 : 1 }],
-                  shadowColor: accent,
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 0.35,
-                  shadowRadius: 20,
-                  elevation: 8,
-                })}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text
-                    className="text-text-primary text-[15px] font-bold"
-                    style={{ fontFamily: "Inter" }}
-                  >
-                    Create account
-                  </Text>
-                )}
-              </Pressable>
-            </View>
-          </StyledSafeAreaView>
-        </KeyboardStickyView>
+          {errors.lastName && <ErrorMessage message={errors.lastName} />}
+        </View>
       </View>
 
-      <AgeGateModal
-        visible={ageGateVisible}
-        roleId={roleId}
-        onDismiss={dismissAgeGate}
+      {roleId === "player" && (
+        <DateInput
+          ref={dateInputRef}
+          label="Date of birth"
+          value={form.dob}
+          onChange={(d) => setField("dob", d)}
+          maxDate={new Date()}
+          error={errors.dob}
+          placeholder="DD/MM/YYYY"
+          accentColor={accent}
+        />
+      )}
+
+      <View>
+        <Input
+          ref={usernameRef}
+          label="Username"
+          value={form.username}
+          onChangeText={(v) => setField("username", v)}
+          placeholder="jordan33"
+          hasError={!!errors.username}
+          autoCapitalize="none"
+          autoComplete="username"
+          textContentType="username"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => emailRef.current?.focus()}
+        />
+        {errors.username && <ErrorMessage message={errors.username} />}
+      </View>
+
+      <View>
+        <Input
+          ref={emailRef}
+          label="Email address"
+          value={form.email}
+          onChangeText={(v) => setField("email", v)}
+          placeholder="you@email.com"
+          hasError={!!errors.email}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          textContentType="emailAddress"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => mobileRef.current?.focus()}
+        />
+        {errors.email && <ErrorMessage message={errors.email} />}
+      </View>
+
+      <PhoneInput
+        ref={mobileRef}
+        label="Mobile number"
+        value={form.mobile}
+        onChangeText={(v) => setField("mobile", v)}
+        error={errors.mobile}
+        returnKeyType="next"
+        blurOnSubmit={false}
+        onSubmitEditing={() => regionInputRef.current?.open()}
       />
-    </StyledSafeAreaView>
+
+      <SelectInput
+        ref={regionInputRef}
+        label="Region"
+        value={form.region}
+        options={NZ_REGIONS}
+        placeholder="Select your region"
+        error={errors.region}
+        onChange={(v) => setField("region", v)}
+      />
+
+      <PasswordInput
+        ref={passwordRef}
+        label="Password"
+        value={form.password}
+        onChangeText={(v) => setField("password", v)}
+        placeholder="8+ characters"
+        error={errors.password}
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="next"
+        blurOnSubmit={false}
+        onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+      />
+
+      <PasswordInput
+        ref={confirmPasswordRef}
+        label="Confirm password"
+        value={form.confirmPassword}
+        onChangeText={(v) => setField("confirmPassword", v)}
+        placeholder="Repeat your password"
+        error={errors.confirmPassword}
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="done"
+      />
+
+      <Checkbox
+        checked={disclosure}
+        onChange={(v) => {
+          setDisclosure(v);
+          setErrors((e) => ({ ...e, disclosure: undefined }));
+        }}
+        label={<DisclosureLabel />}
+        error={errors.disclosure}
+      />
+    </AccountFormLayout>
   );
 }

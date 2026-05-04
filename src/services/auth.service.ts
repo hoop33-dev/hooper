@@ -1,4 +1,5 @@
 import { supabase } from "@/src/lib/supabase";
+import type { Session } from "@supabase/supabase-js";
 import type { RoleId } from "@/src/constants/roles";
 
 export type SignUpParams = {
@@ -36,8 +37,7 @@ function formatLocalDate(date: Date): string {
 }
 
 export type SignInResult =
-  | { ok: true; requiresVerification: false }
-  | { ok: true; requiresVerification: true; email: string }
+  | { ok: true; session: Session; requiresVerification: boolean }
   | { ok: false; error: string };
 
 export async function signInWithUsername(
@@ -57,25 +57,26 @@ export async function signInWithUsername(
     return { ok: false, error: data.error ?? "Invalid username or password." };
   }
 
-  await supabase.auth.setSession(data.session);
+  const { data: { session } } = await supabase.auth.setSession(data.session);
 
-  if (data.requires_verification) {
-    return { ok: true, requiresVerification: true, email: data.email_for_otp };
+  if (!session) {
+    return { ok: false, error: "Unable to sign in. Please try again." };
   }
-  return { ok: true, requiresVerification: false };
+
+  return { ok: true, session, requiresVerification: data.requires_verification ?? false };
 }
 
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
 }
 
-export type VerifyOtpResult = { ok: true } | { ok: false; error: string };
+export type VerifyOtpResult = { ok: true; session: Session } | { ok: false; error: string };
 
 export async function verifyEmailOtp(
   email: string,
   token: string,
 ): Promise<VerifyOtpResult> {
-  const { error } = await supabase.auth.verifyOtp({
+  const { data, error } = await supabase.auth.verifyOtp({
     email,
     token,
     type: "signup",
@@ -85,7 +86,10 @@ export async function verifyEmailOtp(
     if (msg.includes("expired")) return { ok: false, error: "Code expired. Request a new one." };
     return { ok: false, error: "Invalid code. Please try again." };
   }
-  return { ok: true };
+  if (!data.session) {
+    return { ok: false, error: "Verification failed. Please try again." };
+  }
+  return { ok: true, session: data.session };
 }
 
 export type ResendOtpResult =

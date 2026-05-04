@@ -26,7 +26,7 @@ type AccountFormLayoutProps = {
   subtitle: ReactNode;
 
   // Scroll area
-  scrollRef?: RefObject<KeyboardAwareScrollViewRef>;
+  scrollRef?: RefObject<KeyboardAwareScrollViewRef | null>;
   children: ReactNode;
 
   // Submit CTA

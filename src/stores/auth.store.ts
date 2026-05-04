@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create, type StateCreator } from "zustand";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/src/lib/supabase";
 import { signOut as authSignOut } from "@/src/services/auth.service";
@@ -18,7 +18,10 @@ type AuthState = {
   pendingVerificationEmail: string | null;
 
   hydrate: () => Promise<void>;
-  signInComplete: (session: Session, requiresVerification: boolean) => Promise<void>;
+  signInComplete: (
+    session: Session,
+    requiresVerification: boolean,
+  ) => Promise<void>;
   setVerificationPending: (email: string) => void;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -47,7 +50,12 @@ async function fetchProfileAndRole(
     // Profile unreadable (RLS timing race or transient error). Don't route to
     // verification screen — the session IS valid. Route guard uses session metadata
     // for role until the profile becomes readable.
-    return { profile: null, primaryRole: null, isVerified: true, hasRealEmail: true };
+    return {
+      profile: null,
+      primaryRole: null,
+      isVerified: true,
+      hasRealEmail: true,
+    };
   }
 
   // verifyOtp and admin-created sessions include email_confirmed_at on the user
@@ -77,7 +85,7 @@ async function fetchProfileAndRole(
     !checkVerification ||
     !profileData.has_real_email ||
     sessionConfirmed ||
-    (userResult?.data?.user?.email_confirmed_at != null);
+    userResult?.data?.user?.email_confirmed_at != null;
 
   return {
     profile: profileData as unknown as Profile,
@@ -90,7 +98,7 @@ async function fetchProfileAndRole(
 // Module-level ref so hydrate() can unsubscribe a stale listener if called again.
 let authSubscription: { unsubscribe: () => void } | null = null;
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+const storeCreator: StateCreator<AuthState> = (set, get) => ({
   status: "loading",
   session: null,
   profile: null,
@@ -102,7 +110,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // change fires between the two calls and would be silently missed.
     authSubscription?.unsubscribe();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (event === "INITIAL_SESSION") return;
 
       if (!newSession) {
@@ -121,10 +131,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     authSubscription = subscription;
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session) {
-      set({ status: "unauthenticated", session: null, profile: null, primaryRole: null });
+      set({
+        status: "unauthenticated",
+        session: null,
+        profile: null,
+        primaryRole: null,
+      });
     } else {
       try {
         const { profile, primaryRole, isVerified, hasRealEmail } =
@@ -139,7 +156,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           status: needsVerification ? "needs_verification" : "authenticated",
         });
       } catch {
-        set({ status: "unauthenticated", session: null, profile: null, primaryRole: null });
+        set({
+          status: "unauthenticated",
+          session: null,
+          profile: null,
+          primaryRole: null,
+        });
       }
     }
   },
@@ -161,8 +183,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return;
       }
 
-      const { profile, primaryRole } =
-        await fetchProfileAndRole(session.user.id, false);
+      const { profile, primaryRole } = await fetchProfileAndRole(
+        session.user.id,
+        false,
+      );
 
       set({
         session,
@@ -172,7 +196,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         pendingVerificationEmail: null,
       });
     } catch {
-      set({ status: "unauthenticated", session: null, profile: null, primaryRole: null });
+      set({
+        status: "unauthenticated",
+        session: null,
+        profile: null,
+        primaryRole: null,
+      });
       throw new Error("Unable to load your profile. Please try again.");
     }
   },
@@ -183,7 +212,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   refreshProfile: async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       const { profile, primaryRole, isVerified, hasRealEmail } =
@@ -196,7 +227,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         profile,
         primaryRole,
         status: needsVerification ? "needs_verification" : "authenticated",
-        pendingVerificationEmail: needsVerification ? get().pendingVerificationEmail : null,
+        pendingVerificationEmail: needsVerification
+          ? get().pendingVerificationEmail
+          : null,
       });
     } catch {
       // Network error — leave current status unchanged so the user can retry.
@@ -213,4 +246,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       pendingVerificationEmail: null,
     });
   },
-}));
+});
+
+export const useAuthStore = create<AuthState>(storeCreator);

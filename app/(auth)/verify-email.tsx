@@ -15,7 +15,10 @@ import { styled } from "nativewind";
 import Svg, { Path, Rect, Circle } from "react-native-svg";
 
 import type { Session } from "@supabase/supabase-js";
-import { verifyEmailOtp, resendVerificationOtp } from "@/src/services/auth.service";
+import {
+  verifyEmailOtp,
+  resendVerificationOtp,
+} from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
 import { BackButton } from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
@@ -40,11 +43,36 @@ function EmailIllustration({ shake }: { shake: boolean }) {
   useEffect(() => {
     if (!shake) return;
     Animated.sequence([
-      Animated.timing(shakeAnim, { toValue: -8, duration: 60, useNativeDriver: true, easing: Easing.linear }),
-      Animated.timing(shakeAnim, { toValue:  8, duration: 60, useNativeDriver: true, easing: Easing.linear }),
-      Animated.timing(shakeAnim, { toValue: -6, duration: 60, useNativeDriver: true, easing: Easing.linear }),
-      Animated.timing(shakeAnim, { toValue:  4, duration: 60, useNativeDriver: true, easing: Easing.linear }),
-      Animated.timing(shakeAnim, { toValue:  0, duration: 60, useNativeDriver: true, easing: Easing.linear }),
+      Animated.timing(shakeAnim, {
+        toValue: -8,
+        duration: 60,
+        useNativeDriver: true,
+        easing: Easing.linear,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 8,
+        duration: 60,
+        useNativeDriver: true,
+        easing: Easing.linear,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: -6,
+        duration: 60,
+        useNativeDriver: true,
+        easing: Easing.linear,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 4,
+        duration: 60,
+        useNativeDriver: true,
+        easing: Easing.linear,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 0,
+        duration: 60,
+        useNativeDriver: true,
+        easing: Easing.linear,
+      }),
     ]).start();
   }, [shake]);
 
@@ -63,7 +91,15 @@ function EmailIllustration({ shake }: { shake: boolean }) {
         }}
       >
         <Svg width={34} height={34} viewBox="0 0 34 34" fill="none">
-          <Rect x={3} y={7} width={28} height={20} rx={4} stroke={colors.brandOrange} strokeWidth={1.8} />
+          <Rect
+            x={3}
+            y={7}
+            width={28}
+            height={20}
+            rx={4}
+            stroke={colors.brandOrange}
+            strokeWidth={1.8}
+          />
           <Path
             d="M3 11L17 20L31 11"
             stroke={colors.brandOrange}
@@ -85,14 +121,29 @@ function EmailIllustration({ shake }: { shake: boolean }) {
   );
 }
 
-function SuccessView({ onContinue, isLoading }: { onContinue: () => void; isLoading: boolean }) {
+function SuccessView({
+  onContinue,
+  isLoading,
+}: {
+  onContinue: () => void;
+  isLoading: boolean;
+}) {
   const scaleAnim = useRef(new Animated.Value(0.7)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(scaleAnim, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }),
-      Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 5,
+        tension: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
 
@@ -151,7 +202,7 @@ function SuccessView({ onContinue, isLoading }: { onContinue: () => void; isLoad
             textAlign: "center",
           }}
         >
-          Your account is ready.{"\n"}Let's get started.
+          Your account is ready.{"\n"}Let&apos;s get started.
         </Text>
       </View>
 
@@ -196,7 +247,8 @@ function SuccessView({ onContinue, isLoading }: { onContinue: () => void; isLoad
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { pendingVerificationEmail, status, profile, signInComplete } = useAuthStore();
+  const { pendingVerificationEmail, status, profile, signInComplete } =
+    useAuthStore();
   // profile is set by signInComplete (sign-in path) but null during sign-up
   // (profile not loaded yet because email isn't confirmed). Use this to adapt the UI.
   const fromSignIn = profile !== null;
@@ -212,7 +264,9 @@ export default function VerifyEmailScreen() {
   const [isResending, setIsResending] = useState(false);
   const [resendSent, setResendSent] = useState(false);
 
-  const inputRefs = useRef<(RNTextInput | null)[]>(Array(CODE_LENGTH).fill(null));
+  const inputRefs = useRef<(RNTextInput | null)[]>(
+    Array(CODE_LENGTH).fill(null),
+  );
 
   useEffect(() => {
     // Only redirect when we're genuinely in needs_verification state with no email —
@@ -231,32 +285,37 @@ export default function VerifyEmailScreen() {
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
-  const triggerVerify = useCallback(async (token: string) => {
-    if (!pendingVerificationEmail || isVerifying) return;
-    setIsVerifying(true);
-    setErrorMsg("");
-    const result = await verifyEmailOtp(pendingVerificationEmail, token);
-    setIsVerifying(false);
+  const triggerVerify = useCallback(
+    async (token: string) => {
+      if (!pendingVerificationEmail || isVerifying) return;
+      setIsVerifying(true);
+      setErrorMsg("");
+      const result = await verifyEmailOtp(pendingVerificationEmail, token);
+      setIsVerifying(false);
 
-    if (!result.ok) {
-      setErrorMsg(result.error);
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-      setCode(Array(CODE_LENGTH).fill(""));
-      inputRefs.current[0]?.focus();
-      return;
-    }
+      if (!result.ok) {
+        setErrorMsg(result.error);
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+        setCode(Array(CODE_LENGTH).fill(""));
+        inputRefs.current[0]?.focus();
+        return;
+      }
 
-    setVerifiedSession(result.session);
-    setIsSuccess(true);
-  }, [pendingVerificationEmail, isVerifying]);
+      setVerifiedSession(result.session);
+      setIsSuccess(true);
+    },
+    [pendingVerificationEmail, isVerifying],
+  );
 
   function handleChange(index: number, value: string) {
     // Handle full-code paste into first box
     if (value.length === CODE_LENGTH && index === 0) {
       const digits = value.replace(/\D/g, "").slice(0, CODE_LENGTH).split("");
       const next = Array(CODE_LENGTH).fill("") as string[];
-      digits.forEach((d, i) => { next[i] = d; });
+      digits.forEach((d, i) => {
+        next[i] = d;
+      });
       setCode(next);
       setErrorMsg("");
       inputRefs.current[CODE_LENGTH - 1]?.focus();
@@ -330,7 +389,10 @@ export default function VerifyEmailScreen() {
   }
 
   const maskedEmail = pendingVerificationEmail
-    ? pendingVerificationEmail.replace(/(.{2})(.*)(@.*)/, (_m, a, _b, c) => `${a}···${c}`)
+    ? pendingVerificationEmail.replace(
+        /(.{2})(.*)(@.*)/,
+        (_m: string, a: string, _b: string, c: string) => `${a}···${c}`,
+      )
     : "";
 
   const isComplete = code.filter(Boolean).length === CODE_LENGTH;
@@ -363,7 +425,14 @@ export default function VerifyEmailScreen() {
       )}
 
       {/* Body */}
-      <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 32, paddingBottom: 40 }}>
+      <View
+        style={{
+          flex: 1,
+          paddingHorizontal: 24,
+          paddingTop: 32,
+          paddingBottom: 40,
+        }}
+      >
         {isSuccess ? (
           <SuccessView onContinue={handleContinue} isLoading={isContinuing} />
         ) : (
@@ -393,7 +462,11 @@ export default function VerifyEmailScreen() {
                   }}
                 >
                   We sent a 6-digit code to{"\n"}
-                  <Text style={{ color: colors.textPrimary, fontWeight: "500" }}>{maskedEmail}</Text>
+                  <Text
+                    style={{ color: colors.textPrimary, fontWeight: "500" }}
+                  >
+                    {maskedEmail}
+                  </Text>
                 </Text>
               </View>
             </View>
@@ -412,10 +485,14 @@ export default function VerifyEmailScreen() {
                 return (
                   <TextInput
                     key={i}
-                    ref={(el) => { inputRefs.current[i] = el; }}
+                    ref={(el) => {
+                      inputRefs.current[i] = el;
+                    }}
                     value={code[i]}
                     onChangeText={(v) => handleChange(i, v)}
-                    onKeyPress={({ nativeEvent }) => handleKeyPress(i, nativeEvent.key)}
+                    onKeyPress={({ nativeEvent }) =>
+                      handleKeyPress(i, nativeEvent.key)
+                    }
                     keyboardType="number-pad"
                     maxLength={i === 0 ? CODE_LENGTH : 1}
                     autoFocus={i === 0}
@@ -447,7 +524,9 @@ export default function VerifyEmailScreen() {
             </View>
 
             {/* Error / spacer */}
-            <View style={{ height: 20, alignItems: "center", marginBottom: 32 }}>
+            <View
+              style={{ height: 20, alignItems: "center", marginBottom: 32 }}
+            >
               {errorMsg ? (
                 <Text
                   style={{
@@ -470,11 +549,15 @@ export default function VerifyEmailScreen() {
                 width: "100%",
                 height: 56,
                 borderRadius: 14,
-                backgroundColor: isComplete ? colors.brandOrange : colors.surface2,
+                backgroundColor: isComplete
+                  ? colors.brandOrange
+                  : colors.surface2,
                 alignItems: "center",
                 justifyContent: "center",
                 opacity: isVerifying ? 0.7 : pressed && isComplete ? 0.85 : 1,
-                transform: [{ scale: pressed && isComplete && !isVerifying ? 0.97 : 1 }],
+                transform: [
+                  { scale: pressed && isComplete && !isVerifying ? 0.97 : 1 },
+                ],
                 shadowColor: colors.brandOrange,
                 shadowOffset: { width: 0, height: 0 },
                 shadowOpacity: isComplete ? 0.35 : 0,
@@ -484,14 +567,18 @@ export default function VerifyEmailScreen() {
               })}
             >
               {isVerifying ? (
-                <ActivityIndicator color={isComplete ? colors.textPrimary : colors.textTertiary} />
+                <ActivityIndicator
+                  color={isComplete ? colors.textPrimary : colors.textTertiary}
+                />
               ) : (
                 <Text
                   style={{
                     fontFamily: "Inter",
                     fontWeight: "600",
                     fontSize: 15,
-                    color: isComplete ? colors.textPrimary : colors.textTertiary,
+                    color: isComplete
+                      ? colors.textPrimary
+                      : colors.textTertiary,
                   }}
                 >
                   Verify email
@@ -502,19 +589,38 @@ export default function VerifyEmailScreen() {
             {/* Resend row */}
             <View style={{ alignItems: "center" }}>
               {resendSent ? (
-                <Text style={{ fontFamily: "Inter", fontSize: 13, color: successColor }}>
+                <Text
+                  style={{
+                    fontFamily: "Inter",
+                    fontSize: 13,
+                    color: successColor,
+                  }}
+                >
                   Code resent — check your inbox
                 </Text>
               ) : (
-                <Text style={{ fontFamily: "Inter", fontSize: 13, color: colors.textTertiary }}>
+                <Text
+                  style={{
+                    fontFamily: "Inter",
+                    fontSize: 13,
+                    color: colors.textTertiary,
+                  }}
+                >
                   Didn&apos;t get it?{" "}
                   <Text
-                    onPress={resendCooldown > 0 || isResending ? undefined : handleResend}
+                    onPress={
+                      resendCooldown > 0 || isResending
+                        ? undefined
+                        : handleResend
+                    }
                     style={{
                       fontFamily: "Inter",
                       fontWeight: "600",
                       fontSize: 13,
-                      color: resendCooldown > 0 ? colors.textTertiary : colors.brandOrange,
+                      color:
+                        resendCooldown > 0
+                          ? colors.textTertiary
+                          : colors.brandOrange,
                     }}
                   >
                     {isResending

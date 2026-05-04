@@ -24,9 +24,14 @@ type AuthState = {
   signOut: () => Promise<void>;
 };
 
-// checkVerification=true  → call getUser() to check email_confirmed_at (hydrate/refreshProfile)
-// checkVerification=false → skip getUser(); caller already knows verification status (signInComplete)
-async function fetchProfileAndRole(userId: string, checkVerification: boolean): Promise<{
+// checkVerification=true  → check email confirmation (hydrate/refreshProfile)
+// checkVerification=false → skip verification check; caller already knows it's confirmed (signInComplete)
+// session is used to read email_confirmed_at/confirmed_at before falling back to getUser()
+async function fetchProfileAndRole(
+  userId: string,
+  checkVerification: boolean,
+  session?: Session | null,
+): Promise<{
   profile: Profile | null;
   primaryRole: RoleType | null;
   isVerified: boolean;
@@ -39,8 +44,19 @@ async function fetchProfileAndRole(userId: string, checkVerification: boolean): 
     .maybeSingle();
 
   if (!profileData) {
-    return { profile: null, primaryRole: null, isVerified: false, hasRealEmail: true };
+    // Profile unreadable (RLS timing race or transient error). Don't route to
+    // verification screen — the session IS valid. Route guard uses session metadata
+    // for role until the profile becomes readable.
+    return { profile: null, primaryRole: null, isVerified: true, hasRealEmail: true };
   }
+
+  // verifyOtp and admin-created sessions include email_confirmed_at on the user
+  // object. Persisted sessions also store this if it was present when setSession
+  // was called. Trust it when available to avoid an extra getUser() network call.
+  const sessionConfirmed = !!(
+    session?.user?.email_confirmed_at ||
+    (session?.user as unknown as { confirmed_at?: string })?.confirmed_at
+  );
 
   const [{ data: roleData }, userResult] = await Promise.all([
     supabase
@@ -50,16 +66,17 @@ async function fetchProfileAndRole(userId: string, checkVerification: boolean): 
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
-    // Only call getUser() when we need to check email confirmation ourselves.
-    // getUser() makes a server-side request and can fail silently after setSession
-    // in some Supabase JS v2 versions, so we skip it when the edge function has
-    // already given us a definitive answer via requiresVerification.
-    checkVerification && profileData.has_real_email ? supabase.auth.getUser() : null,
+    // Skip getUser() when the session already tells us the email is confirmed,
+    // or when the caller has already determined verification status.
+    checkVerification && profileData.has_real_email && !sessionConfirmed
+      ? supabase.auth.getUser()
+      : null,
   ]);
 
   const isVerified =
-    !checkVerification || // caller already determined it's verified
+    !checkVerification ||
     !profileData.has_real_email ||
+    sessionConfirmed ||
     (userResult?.data?.user?.email_confirmed_at != null);
 
   return {
@@ -81,28 +98,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   pendingVerificationEmail: null,
 
   hydrate: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session) {
-      set({ status: "unauthenticated", session: null, profile: null, primaryRole: null });
-    } else {
-      try {
-        const { profile, primaryRole, isVerified, hasRealEmail } =
-          await fetchProfileAndRole(session.user.id, true);
-
-        const needsVerification = hasRealEmail && !isVerified;
-
-        set({
-          session,
-          profile,
-          primaryRole,
-          status: needsVerification ? "needs_verification" : "authenticated",
-        });
-      } catch {
-        set({ status: "unauthenticated", session: null, profile: null, primaryRole: null });
-      }
-    }
-
+    // Subscribe BEFORE getSession() to close the race window where a session
+    // change fires between the two calls and would be silently missed.
     authSubscription?.unsubscribe();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
@@ -123,6 +120,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
 
     authSubscription = subscription;
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      set({ status: "unauthenticated", session: null, profile: null, primaryRole: null });
+    } else {
+      try {
+        const { profile, primaryRole, isVerified, hasRealEmail } =
+          await fetchProfileAndRole(session.user.id, true, session);
+
+        const needsVerification = hasRealEmail && !isVerified;
+
+        set({
+          session,
+          profile,
+          primaryRole,
+          status: needsVerification ? "needs_verification" : "authenticated",
+        });
+      } catch {
+        set({ status: "unauthenticated", session: null, profile: null, primaryRole: null });
+      }
+    }
   },
 
   // requiresVerification comes directly from the edge function (admin-API-derived,
@@ -168,7 +187,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!session) return;
 
       const { profile, primaryRole, isVerified, hasRealEmail } =
-        await fetchProfileAndRole(session.user.id, true);
+        await fetchProfileAndRole(session.user.id, true, session);
 
       const needsVerification = hasRealEmail && !isVerified;
 

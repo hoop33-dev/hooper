@@ -77,7 +77,9 @@ serve(async (req: Request) => {
     typeof username !== "string" ||
     !username.trim() ||
     typeof password !== "string" ||
-    !password
+    !password ||
+    typeof dateOfBirth !== "string" ||
+    !dateOfBirth.trim()
   ) {
     return json(400, { ok: false, error: "Missing required fields" });
   }

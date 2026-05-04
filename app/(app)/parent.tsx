@@ -1,6 +1,7 @@
+import { useCallback } from "react";
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { styled } from "nativewind";
 
 import { useAuthStore } from "@/src/stores/auth.store";
@@ -72,7 +73,13 @@ function ChildCard({ child }: { child: ChildSummary }) {
 export default function ParentDashboard() {
   const router = useRouter();
   const { profile, signOut } = useAuthStore();
-  const { children, isLoading } = useChildren();
+  const { children, isLoading, refresh } = useChildren();
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
 
   return (
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>

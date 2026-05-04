@@ -12,7 +12,7 @@ export type CreateChildInput = {
   lastName: string;
   username: string;
   password: string;
-  dateOfBirth: Date | null;
+  dateOfBirth: Date;
   regionSlug?: string | null;
   mobile?: string | null;
 };
@@ -39,9 +39,7 @@ export async function createChildAccount(
         lastName: input.lastName,
         username: input.username,
         password: input.password,
-        dateOfBirth: input.dateOfBirth
-          ? formatLocalDate(input.dateOfBirth)
-          : null,
+        dateOfBirth: formatLocalDate(input.dateOfBirth),
         regionSlug: input.regionSlug ?? null,
         mobile: input.mobile ?? null,
       },

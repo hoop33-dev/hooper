@@ -78,6 +78,7 @@ export default function AddChildScreen() {
     const e: FormErrors = {};
     if (!form.firstName.trim()) e.firstName = "Required";
     if (!form.lastName.trim()) e.lastName = "Required";
+    if (!form.dateOfBirth) e.dateOfBirth = "Required";
     if (!form.username.trim()) e.username = "Required";
     const pwError = validatePassword(form.password);
     if (pwError) e.password = pwError;
@@ -100,7 +101,7 @@ export default function AddChildScreen() {
       lastName: form.lastName,
       username: form.username,
       password: form.password,
-      dateOfBirth: form.dateOfBirth,
+      dateOfBirth: form.dateOfBirth!,
       regionSlug: form.region,
       mobile: form.mobile || null,
     });
@@ -244,15 +245,18 @@ export default function AddChildScreen() {
             </View>
           </View>
 
-          <DateInput
-            ref={dateInputRef}
-            label="Date of birth (optional)"
-            value={form.dateOfBirth}
-            onChange={(d) => setField("dateOfBirth", d)}
-            maxDate={new Date()}
-            placeholder="DD/MM/YYYY"
-            accentColor="#34D399"
-          />
+          <View>
+            <DateInput
+              ref={dateInputRef}
+              label="Date of birth"
+              value={form.dateOfBirth}
+              onChange={(d) => setField("dateOfBirth", d)}
+              maxDate={new Date()}
+              placeholder="DD/MM/YYYY"
+              accentColor="#34D399"
+            />
+            {errors.dateOfBirth && <ErrorMessage message={errors.dateOfBirth} />}
+          </View>
 
           <View>
             <Input

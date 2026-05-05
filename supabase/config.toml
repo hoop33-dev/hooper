@@ -2,5 +2,9 @@
 # is a placeholder required by the Supabase CLI to parse this file at all.
 project_id = "hooper"
 
+[auth.email.template.recovery]
+subject = "Reset your Hooper password"
+content_path = "./supabase/templates/recovery.html"
+
 [functions.signin-with-username]
 verify_jwt = false

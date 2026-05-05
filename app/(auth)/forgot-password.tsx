@@ -16,6 +16,7 @@ import {
   ErrorBanner,
 } from "@/src/components/ui";
 import { shadows } from "@/src/constants/theme";
+import { sendPasswordResetEmail } from "@/src/services/auth.service";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -24,6 +25,7 @@ export default function ForgotPasswordScreen() {
 
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [serviceError, setServiceError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -43,8 +45,13 @@ export default function ForgotPasswordScreen() {
   async function handleSend() {
     if (!validate()) return;
     setIsSubmitting(true);
-    // Password reset integration will go here
+    setServiceError("");
+    const result = await sendPasswordResetEmail(email.trim());
     setIsSubmitting(false);
+    if (!result.ok) {
+      setServiceError(result.error);
+      return;
+    }
     setSent(true);
   }
 
@@ -100,25 +107,49 @@ export default function ForgotPasswordScreen() {
               message={`If an account exists for ${email}, you'll receive an email shortly.`}
             />
           ) : (
-            <View>
-              <Input
-                label="Email address"
-                value={email}
-                onChangeText={(v) => {
-                  setEmail(v);
-                  setEmailError("");
-                }}
-                placeholder="you@email.com"
-                hasError={!!emailError}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                textContentType="emailAddress"
-                returnKeyType="done"
-                onSubmitEditing={handleSend}
-              />
-              {emailError ? <ErrorMessage message={emailError} /> : null}
-            </View>
+            <>
+              {serviceError ? (
+                <ErrorBanner variant="error" title="Error" message={serviceError} />
+              ) : null}
+
+              <View>
+                <Input
+                  label="Email address"
+                  value={email}
+                  onChangeText={(v) => {
+                    setEmail(v);
+                    setEmailError("");
+                    setServiceError("");
+                  }}
+                  placeholder="you@email.com"
+                  hasError={!!emailError}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  returnKeyType="done"
+                  onSubmitEditing={handleSend}
+                />
+                {emailError ? <ErrorMessage message={emailError} /> : null}
+              </View>
+
+              {/* Child account notice */}
+              <View
+                className="rounded-xl px-4 py-3"
+                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+              >
+                <Text
+                  className="text-text-secondary text-[13px]"
+                  style={{ fontFamily: "Inter", lineHeight: 13 * 1.5 }}
+                >
+                  <Text className="text-white" style={{ fontFamily: "Inter" }}>
+                    Child account?{" "}
+                  </Text>
+                  A parent can change your password from within the app — no
+                  email reset needed.
+                </Text>
+              </View>
+            </>
           )}
         </KeyboardAwareScrollView>
 

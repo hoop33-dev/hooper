@@ -115,6 +115,34 @@ export async function resendVerificationOtp(
   return { ok: true };
 }
 
+export type PasswordResetResult = { ok: true } | { ok: false; error: string };
+
+export async function sendPasswordResetEmail(
+  email: string,
+): Promise<PasswordResetResult> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: "hooper://reset-password",
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function exchangeResetCode(
+  code: string,
+): Promise<PasswordResetResult> {
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) return { ok: false, error: "Reset link is invalid or expired." };
+  return { ok: true };
+}
+
+export async function updatePassword(
+  newPassword: string,
+): Promise<PasswordResetResult> {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
 export async function signUp(params: SignUpParams): Promise<SignUpResult> {
   const available = await checkUsernameAvailable(params.username);
   if (available === null) {

@@ -4,14 +4,12 @@ on:
   pull_request:
     paths:
       - "supabase/templates/**"
-      - "supabase/config.toml"
   push:
     branches:
       - dev
       - main
     paths:
       - "supabase/templates/**"
-      - "supabase/config.toml"
   workflow_dispatch:
 
 concurrency:
@@ -25,15 +23,22 @@ jobs:
       !(github.head_ref == 'main' && github.base_ref == 'dev')
     runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/dev' && 'development' || 'feature' }}
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Push email templates
+      - name: Deploy recovery (password reset) email template
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
-          supabase config push --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+          payload=$(jq -n \
+            --arg subject "Reset your Hooper password" \
+            --arg body "$(cat supabase/templates/recovery.html)" \
+            '{mailer_subjects_recovery: $subject, mailer_templates_recovery: $body}')
+
+          curl --fail --silent --show-error \
+            -X PATCH \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$payload"

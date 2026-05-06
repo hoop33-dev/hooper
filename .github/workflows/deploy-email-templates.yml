@@ -1,0 +1,39 @@
+name: Deploy Email Templates
+
+on:
+  pull_request:
+    paths:
+      - "supabase/templates/**"
+      - "supabase/config.toml"
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - "supabase/templates/**"
+      - "supabase/config.toml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-email-templates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-email-templates:
+    if: >-
+      !(github.head_ref == 'dev' && github.base_ref == 'main') &&
+      !(github.head_ref == 'main' && github.base_ref == 'dev')
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/dev' && 'development' || 'feature' }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Push email templates
+        run: |
+          supabase config push --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"

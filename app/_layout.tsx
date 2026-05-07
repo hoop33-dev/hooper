@@ -3,6 +3,7 @@ import "../global.css";
 import { useEffect } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import * as Updates from "expo-updates";
 import { useFonts } from "expo-font";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -10,6 +11,19 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useAuthStore } from "@/src/stores/auth.store";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+async function checkForOTAUpdate() {
+  if (__DEV__ || !Updates.isEnabled) return;
+  try {
+    const result = await Updates.checkForUpdateAsync();
+    if (result.isAvailable) {
+      await Updates.fetchUpdateAsync();
+      await Updates.reloadAsync();
+    }
+  } catch (e) {
+    console.warn("[updates] check failed:", e);
+  }
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -19,6 +33,10 @@ export default function RootLayout() {
   const { status, primaryRole, session, hydrate } = useAuthStore();
   const router = useRouter();
   const segments = useSegments() as string[];
+
+  useEffect(() => {
+    checkForOTAUpdate();
+  }, []);
 
   // Hydrate auth state once on mount
   useEffect(() => {

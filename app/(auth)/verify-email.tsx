@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { styled } from "nativewind";
 import Svg, { Path, Rect, Circle } from "react-native-svg";
 
 import type { Session } from "@supabase/supabase-js";
@@ -22,8 +21,6 @@ import {
 import { useAuthStore } from "@/src/stores/auth.store";
 import { BackButton } from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
-
-const StyledSafeAreaView = styled(SafeAreaView);
 
 // Tints not in the theme palette
 const dangerDim = "rgba(229,62,62,0.12)";
@@ -43,36 +40,11 @@ function EmailIllustration({ shake }: { shake: boolean }) {
   useEffect(() => {
     if (!shake) return;
     Animated.sequence([
-      Animated.timing(shakeAnim, {
-        toValue: -8,
-        duration: 60,
-        useNativeDriver: true,
-        easing: Easing.linear,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 8,
-        duration: 60,
-        useNativeDriver: true,
-        easing: Easing.linear,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: -6,
-        duration: 60,
-        useNativeDriver: true,
-        easing: Easing.linear,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 4,
-        duration: 60,
-        useNativeDriver: true,
-        easing: Easing.linear,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 0,
-        duration: 60,
-        useNativeDriver: true,
-        easing: Easing.linear,
-      }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 60, useNativeDriver: true, easing: Easing.linear }),
+      Animated.timing(shakeAnim, { toValue: 8, duration: 60, useNativeDriver: true, easing: Easing.linear }),
+      Animated.timing(shakeAnim, { toValue: -6, duration: 60, useNativeDriver: true, easing: Easing.linear }),
+      Animated.timing(shakeAnim, { toValue: 4, duration: 60, useNativeDriver: true, easing: Easing.linear }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true, easing: Easing.linear }),
     ]).start();
   }, [shake]);
 
@@ -91,30 +63,10 @@ function EmailIllustration({ shake }: { shake: boolean }) {
         }}
       >
         <Svg width={34} height={34} viewBox="0 0 34 34" fill="none">
-          <Rect
-            x={3}
-            y={7}
-            width={28}
-            height={20}
-            rx={4}
-            stroke={colors.brandOrange}
-            strokeWidth={1.8}
-          />
-          <Path
-            d="M3 11L17 20L31 11"
-            stroke={colors.brandOrange}
-            strokeWidth={1.8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <Rect x={3} y={7} width={28} height={20} rx={4} stroke={colors.brandOrange} strokeWidth={1.8} />
+          <Path d="M3 11L17 20L31 11" stroke={colors.brandOrange} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
           <Circle cx={25} cy={9} r={5} fill={colors.brandOrange} />
-          <Path
-            d="M22.5 9L24.2 10.8L27.5 7.5"
-            stroke="white"
-            strokeWidth={1.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <Path d="M22.5 9L24.2 10.8L27.5 7.5" stroke="white" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
       </View>
     </Animated.View>
@@ -133,17 +85,8 @@ function SuccessView({
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 5,
-        tension: 120,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
     ]).start();
   }, []);
 
@@ -171,37 +114,15 @@ function SuccessView({
         }}
       >
         <Svg width={36} height={36} viewBox="0 0 36 36" fill="none">
-          <Path
-            d="M8 18L15 25L28 11"
-            stroke={successColor}
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <Path d="M8 18L15 25L28 11" stroke={successColor} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
       </Animated.View>
 
       <View style={{ alignItems: "center" }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "700",
-            fontSize: 22,
-            color: colors.textPrimary,
-            marginBottom: 8,
-          }}
-        >
+        <Text className="font-inter font-bold text-[22px] text-text-primary mb-2">
           Email verified
         </Text>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 14,
-            color: colors.textSecondary,
-            lineHeight: 14 * 1.5,
-            textAlign: "center",
-          }}
-        >
+        <Text className="font-inter text-[14px] text-text-secondary leading-[21px] text-center">
           Your account is ready.{"\n"}Let&apos;s get started.
         </Text>
       </View>
@@ -229,14 +150,7 @@ function SuccessView({
         {isLoading ? (
           <ActivityIndicator color={colors.textPrimary} />
         ) : (
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontWeight: "600",
-              fontSize: 15,
-              color: colors.textPrimary,
-            }}
-          >
+          <Text className="font-inter font-semibold text-[15px] text-text-primary">
             Continue to Hooper
           </Text>
         )}
@@ -313,9 +227,7 @@ export default function VerifyEmailScreen() {
     if (value.length === CODE_LENGTH && index === 0) {
       const digits = value.replace(/\D/g, "").slice(0, CODE_LENGTH).split("");
       const next = Array(CODE_LENGTH).fill("") as string[];
-      digits.forEach((d, i) => {
-        next[i] = d;
-      });
+      digits.forEach((d, i) => { next[i] = d; });
       setCode(next);
       setErrorMsg("");
       inputRefs.current[CODE_LENGTH - 1]?.focus();
@@ -398,22 +310,12 @@ export default function VerifyEmailScreen() {
   const isComplete = code.filter(Boolean).length === CODE_LENGTH;
 
   return (
-    <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
+    <SafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
       {/* Step header — hidden on success */}
       {!isSuccess && (
         <View style={{ paddingHorizontal: 24, paddingTop: 20 }}>
           {!fromSignIn && (
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 10,
-                fontWeight: "500",
-                letterSpacing: 10 * 0.14,
-                textTransform: "uppercase",
-                color: colors.brandOrange,
-                marginBottom: 10,
-              }}
-            >
+            <Text className="font-inter font-medium text-[10px] tracking-[1.4px] uppercase text-brand-orange mb-[10px]">
               Step 4 of 4
             </Text>
           )}
@@ -441,30 +343,12 @@ export default function VerifyEmailScreen() {
             <View style={{ alignItems: "center", gap: 20, marginBottom: 40 }}>
               <EmailIllustration shake={shake} />
               <View style={{ alignItems: "center" }}>
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontWeight: "700",
-                    fontSize: 22,
-                    color: colors.textPrimary,
-                    marginBottom: 8,
-                  }}
-                >
+                <Text className="font-inter font-bold text-[22px] text-text-primary mb-2">
                   Check your email
                 </Text>
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 14,
-                    color: colors.textSecondary,
-                    lineHeight: 14 * 1.6,
-                    textAlign: "center",
-                  }}
-                >
+                <Text className="font-inter text-[14px] text-text-secondary leading-[22.4px] text-center">
                   We sent a 6-digit code to{"\n"}
-                  <Text
-                    style={{ color: colors.textPrimary, fontWeight: "500" }}
-                  >
+                  <Text className="text-text-primary font-medium">
                     {maskedEmail}
                   </Text>
                 </Text>
@@ -485,9 +369,7 @@ export default function VerifyEmailScreen() {
                 return (
                   <TextInput
                     key={i}
-                    ref={(el) => {
-                      inputRefs.current[i] = el;
-                    }}
+                    ref={(el) => { inputRefs.current[i] = el; }}
                     value={code[i]}
                     onChangeText={(v) => handleChange(i, v)}
                     onKeyPress={({ nativeEvent }) =>
@@ -497,6 +379,7 @@ export default function VerifyEmailScreen() {
                     maxLength={i === 0 ? CODE_LENGTH : 1}
                     autoFocus={i === 0}
                     selectTextOnFocus
+                    className="font-inter"
                     style={{
                       width: 46,
                       height: 58,
@@ -514,7 +397,6 @@ export default function VerifyEmailScreen() {
                           : colors.surface2,
                       color: errorMsg ? colors.danger : colors.textPrimary,
                       fontSize: 24,
-                      fontFamily: "Inter",
                       fontWeight: "600",
                       textAlign: "center",
                     }}
@@ -528,14 +410,7 @@ export default function VerifyEmailScreen() {
               style={{ height: 20, alignItems: "center", marginBottom: 32 }}
             >
               {errorMsg ? (
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 12,
-                    color: colors.danger,
-                    textAlign: "center",
-                  }}
-                >
+                <Text className="font-inter text-[12px] text-danger text-center">
                   Incorrect code — please try again
                 </Text>
               ) : null}
@@ -572,14 +447,8 @@ export default function VerifyEmailScreen() {
                 />
               ) : (
                 <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontWeight: "600",
-                    fontSize: 15,
-                    color: isComplete
-                      ? colors.textPrimary
-                      : colors.textTertiary,
-                  }}
+                  className="font-inter font-semibold text-[15px]"
+                  style={{ color: isComplete ? colors.textPrimary : colors.textTertiary }}
                 >
                   Verify email
                 </Text>
@@ -590,22 +459,13 @@ export default function VerifyEmailScreen() {
             <View style={{ alignItems: "center" }}>
               {resendSent ? (
                 <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 13,
-                    color: successColor,
-                  }}
+                  className="font-inter text-[13px]"
+                  style={{ color: successColor }}
                 >
                   Code resent — check your inbox
                 </Text>
               ) : (
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 13,
-                    color: colors.textTertiary,
-                  }}
-                >
+                <Text className="font-inter text-[13px] text-text-tertiary">
                   Didn&apos;t get it?{" "}
                   <Text
                     onPress={
@@ -613,10 +473,8 @@ export default function VerifyEmailScreen() {
                         ? undefined
                         : handleResend
                     }
+                    className="font-inter font-semibold text-[13px]"
                     style={{
-                      fontFamily: "Inter",
-                      fontWeight: "600",
-                      fontSize: 13,
                       color:
                         resendCooldown > 0
                           ? colors.textTertiary
@@ -635,6 +493,6 @@ export default function VerifyEmailScreen() {
           </>
         )}
       </View>
-    </StyledSafeAreaView>
+    </SafeAreaView>
   );
 }

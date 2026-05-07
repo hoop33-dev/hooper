@@ -1,42 +1,22 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { styled } from "nativewind";
 
-import { supabase } from "@/src/lib/supabase";
-import { signOut } from "@/src/services/auth.service";
+import { useAuthStore } from "@/src/stores/auth.store";
 import { ROLES } from "@/src/constants/roles";
 import type { RoleId } from "@/src/constants/roles";
 import { Label, Button } from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
 
-const StyledSafeAreaView = styled(SafeAreaView);
-
-type UserInfo = {
-  firstName: string;
-  lastName: string;
-  username: string;
-  role: RoleId;
-};
-
 export default function DashboardScreen() {
   const router = useRouter();
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const { profile, primaryRole, signOut } = useAuthStore();
   const [signingOut, setSigningOut] = useState(false);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      const meta = data.user?.user_metadata;
-      if (!meta) return;
-      setUser({
-        firstName: meta.first_name ?? "",
-        lastName: meta.last_name ?? "",
-        username: meta.username ?? "",
-        role: (meta.role ?? "player") as RoleId,
-      });
-    });
-  }, []);
+  const roleConfig = primaryRole
+    ? (ROLES.find((r) => r.id === (primaryRole as RoleId)) ?? ROLES[0])
+    : null;
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -44,72 +24,43 @@ export default function DashboardScreen() {
     router.replace("/");
   }
 
-  const roleConfig = user
-    ? (ROLES.find((r) => r.id === user.role) ?? ROLES[0])
-    : null;
-
   return (
-    <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
+    <SafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
       <View className="flex-1 px-6 pt-8">
         <Label className="text-text-disabled mb-8">Temporary dashboard</Label>
 
-        {!user ? (
-          <ActivityIndicator
-            color={colors.brandOrange}
-            style={{ marginTop: 40 }}
-          />
+        {!profile ? (
+          <View className="mt-10 items-center">
+            <ActivityIndicator color={colors.brandOrange} />
+          </View>
         ) : (
-          <View style={{ gap: 24 }}>
+          <View className="gap-6">
             {/* Name */}
-            <View style={{ gap: 4 }}>
+            <View className="gap-1">
               <Label>Name</Label>
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: "800",
-                  fontSize: 32,
-                  letterSpacing: 32 * -0.03,
-                  lineHeight: 32 * 1.1,
-                  color: colors.textPrimary,
-                }}
-              >
-                {user.firstName} {user.lastName}
+              <Text className="font-inter font-extrabold text-[32px] tracking-[-0.96px] leading-[35.2px] text-text-primary">
+                {profile.first_name} {profile.last_name}
               </Text>
-              {user.username ? (
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 14,
-                    color: colors.textTertiary,
-                  }}
-                >
-                  @{user.username}
+              {profile.username ? (
+                <Text className="font-inter text-[14px] text-text-tertiary">
+                  @{profile.username}
                 </Text>
               ) : null}
             </View>
 
             {/* Role */}
-            <View style={{ gap: 8 }}>
+            <View className="gap-2">
               <Label>Role</Label>
               <View
+                className="self-start rounded-full px-4 py-2 border"
                 style={{
-                  alignSelf: "flex-start",
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 9999,
                   backgroundColor: roleConfig?.accentDim,
-                  borderWidth: 1,
                   borderColor: roleConfig?.accentBorder,
                 }}
               >
                 <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontWeight: "700",
-                    fontSize: 13,
-                    letterSpacing: 13 * 0.04,
-                    color: roleConfig?.accent,
-                  }}
+                  className="font-inter font-bold text-[13px] tracking-[0.52px]"
+                  style={{ color: roleConfig?.accent }}
                 >
                   {roleConfig?.title}
                 </Text>
@@ -135,6 +86,6 @@ export default function DashboardScreen() {
           )}
         </Button>
       </View>
-    </StyledSafeAreaView>
+    </SafeAreaView>
   );
 }

@@ -1,7 +1,6 @@
 import { ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 
 import {
   Badge,
@@ -23,8 +22,6 @@ import {
   TextButton,
 } from "@/src/components/ui";
 
-const StyledSafeAreaView = styled(SafeAreaView);
-
 function Section({
   title,
   children,
@@ -44,7 +41,7 @@ export default function DesignSystem() {
   const router = useRouter();
 
   return (
-    <StyledSafeAreaView className="bg-surface flex-1" edges={["top"]}>
+    <SafeAreaView className="bg-surface flex-1" edges={["top"]}>
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 28 }}
@@ -331,6 +328,6 @@ export default function DesignSystem() {
           </View>
         </Section>
       </ScrollView>
-    </StyledSafeAreaView>
+    </SafeAreaView>
   );
 }

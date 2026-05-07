@@ -11,7 +11,6 @@ import {
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { styled } from "nativewind";
 
 import {
   Input,
@@ -25,8 +24,6 @@ import {
 import { signInWithUsername } from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
 import { shadows } from "@/src/constants/theme";
-
-const StyledSafeAreaView = styled(SafeAreaView);
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -79,7 +76,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <StyledSafeAreaView className="bg-surface flex-1" edges={["top"]}>
+    <SafeAreaView className="bg-surface flex-1" edges={["top"]}>
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 pt-2 pb-4">
@@ -89,21 +86,10 @@ export default function LoginScreen() {
             className="mb-8"
           />
 
-          <Text
-            className="mb-1 font-black text-white"
-            style={{
-              fontFamily: "Inter",
-              fontSize: 28,
-              letterSpacing: 28 * -0.03,
-              lineHeight: 28 * 1.1,
-            }}
-          >
+          <Text className="font-inter font-black text-white text-[28px] tracking-[-0.84px] leading-[30.8px] mb-1">
             Welcome back
           </Text>
-          <Text
-            className="text-text-secondary text-[14px]"
-            style={{ fontFamily: "Inter", lineHeight: 14 * 1.5 }}
-          >
+          <Text className="font-inter text-text-secondary text-[14px] leading-[21px]">
             Sign in to your account
           </Text>
         </View>
@@ -148,16 +134,7 @@ export default function LoginScreen() {
           <View>
             <View className="mb-1.5 flex-row items-center justify-between">
               <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: "500",
-                  fontSize: 10,
-                  letterSpacing: 10 * 0.12,
-                  textTransform: "uppercase",
-                  color: passwordError
-                    ? "rgba(229,62,62,1)"
-                    : "rgba(255,255,255,0.35)",
-                }}
+                className={`font-inter font-medium text-[10px] tracking-[1.2px] uppercase ${passwordError ? "text-danger" : "text-text-tertiary"}`}
               >
                 Password
               </Text>
@@ -189,7 +166,7 @@ export default function LoginScreen() {
 
         {/* CTA */}
         <KeyboardStickyView>
-          <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
+          <SafeAreaView edges={["bottom"]} className="bg-surface">
             <View className="gap-3 px-6 py-3">
               <Button
                 onPress={handleSignIn}
@@ -202,10 +179,7 @@ export default function LoginScreen() {
               </Button>
 
               <View className="flex-row items-center justify-center gap-1.5">
-                <Text
-                  className="text-text-tertiary"
-                  style={{ fontFamily: "Inter", fontSize: 13 }}
-                >
+                <Text className="font-inter text-text-tertiary text-[13px]">
                   No account?
                 </Text>
                 <TextButton
@@ -218,9 +192,9 @@ export default function LoginScreen() {
                 </TextButton>
               </View>
             </View>
-          </StyledSafeAreaView>
+          </SafeAreaView>
         </KeyboardStickyView>
       </View>
-    </StyledSafeAreaView>
+    </SafeAreaView>
   );
 }

@@ -44,14 +44,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
     <View className={`gap-1.5 ${className}`}>
       {label ? (
         <Text
-          className={error || hasError ? "text-danger" : "text-text-tertiary"}
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "500",
-            fontSize: 10,
-            letterSpacing: 10 * 0.12,
-            textTransform: "uppercase",
-          }}
+          className={`font-inter font-medium text-[10px] tracking-[1.2px] uppercase ${error || hasError ? "text-danger" : "text-text-tertiary"}`}
         >
           {label}
         </Text>
@@ -60,16 +53,8 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
         ref={ref}
         placeholderTextColor={colors.textDisabled}
         underlineColorAndroid="transparent"
-        className={`bg-surface-2 rounded-lg border ${borderClass} ${inputClassName}`}
-        style={{
-          fontFamily: "Inter",
-          fontSize: 15,
-          color: "rgba(255,255,255,0.85)",
-          paddingHorizontal: 20,
-          paddingVertical: 12,
-          height: 48,
-          textAlignVertical: "center",
-        }}
+        className={`bg-surface-2 rounded-lg border font-inter text-[15px] text-white/85 px-5 h-12 ${borderClass} ${inputClassName}`}
+        style={{ textAlignVertical: "center", paddingVertical: 12 }}
         onFocus={(e) => {
           setFocused(true);
           onFocus?.(e);
@@ -81,19 +66,9 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
         {...rest}
       />
       {error ? (
-        <Text
-          className="text-danger"
-          style={{ fontFamily: "Inter", fontSize: 11 }}
-        >
-          {error}
-        </Text>
+        <Text className="font-inter text-[11px] text-danger">{error}</Text>
       ) : hint ? (
-        <Text
-          className="text-text-tertiary"
-          style={{ fontFamily: "Inter", fontSize: 11 }}
-        >
-          {hint}
-        </Text>
+        <Text className="font-inter text-[11px] text-text-tertiary">{hint}</Text>
       ) : null}
     </View>
   );

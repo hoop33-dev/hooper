@@ -6,13 +6,10 @@ import {
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 
 import { BackButton } from "./BackButton";
 import { ErrorBanner } from "./ErrorBanner";
 import { colors } from "@/src/constants/theme";
-
-const StyledSafeAreaView = styled(SafeAreaView);
 
 type AccountFormLayoutProps = {
   // Navigation
@@ -55,7 +52,7 @@ export function AccountFormLayout({
   footer,
 }: AccountFormLayoutProps) {
   return (
-    <StyledSafeAreaView className="bg-surface flex-1" edges={["top"]}>
+    <SafeAreaView className="bg-surface flex-1" edges={["top"]}>
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 pt-2 pb-4">
@@ -63,33 +60,18 @@ export function AccountFormLayout({
 
           {stepLabel ? (
             <Text
-              className="mb-2 text-[10px] font-medium uppercase"
-              style={{
-                fontFamily: "Inter",
-                letterSpacing: 10 * 0.14,
-                color: accentColor,
-              }}
+              className="font-inter font-medium text-[10px] tracking-[1.4px] uppercase mb-2"
+              style={{ color: accentColor }}
             >
               {stepLabel}
             </Text>
           ) : null}
 
-          <Text
-            className="text-text-primary mb-1 font-black"
-            style={{
-              fontFamily: "Inter",
-              fontSize: 26,
-              letterSpacing: 26 * -0.03,
-              lineHeight: 26 * 1.12,
-            }}
-          >
+          <Text className="font-inter font-black text-text-primary text-[26px] tracking-[-0.78px] leading-[29.12px] mb-1">
             {title}
           </Text>
 
-          <Text
-            className="text-text-secondary text-[13px]"
-            style={{ fontFamily: "Inter", lineHeight: 13 * 1.5 }}
-          >
+          <Text className="font-inter text-text-secondary text-[13px] leading-[19.5px]">
             {subtitle}
           </Text>
         </View>
@@ -114,7 +96,7 @@ export function AccountFormLayout({
 
         {/* Sticky CTA */}
         <KeyboardStickyView>
-          <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
+          <SafeAreaView edges={["bottom"]} className="bg-surface">
             <View className="px-6 py-3">
               <Pressable
                 onPress={onSubmit}
@@ -137,26 +119,17 @@ export function AccountFormLayout({
                 {isSubmitting ? (
                   <ActivityIndicator color={colors.textPrimary} />
                 ) : (
-                  <Text
-                    style={{
-                      fontFamily: "Inter",
-                      fontWeight: "700",
-                      fontSize: 15,
-                      letterSpacing: 15 * 0.08,
-                      textTransform: "uppercase",
-                      color: colors.textPrimary,
-                    }}
-                  >
+                  <Text className="font-inter font-bold text-[15px] tracking-[1.2px] uppercase text-text-primary">
                     {submitLabel}
                   </Text>
                 )}
               </Pressable>
             </View>
-          </StyledSafeAreaView>
+          </SafeAreaView>
         </KeyboardStickyView>
       </View>
 
       {footer}
-    </StyledSafeAreaView>
+    </SafeAreaView>
   );
 }

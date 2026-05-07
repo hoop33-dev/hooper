@@ -34,15 +34,7 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
       <View className="gap-1.5">
         {label && (
           <Text
-            className={
-              error ? "text-danger uppercase" : "text-text-tertiary uppercase"
-            }
-            style={{
-              fontFamily: "Inter",
-              fontWeight: "500",
-              fontSize: 10,
-              letterSpacing: 10 * 0.12,
-            }}
+            className={`font-inter font-medium text-[10px] tracking-[1.2px] uppercase ${error ? "text-danger" : "text-text-tertiary"}`}
           >
             {label}
           </Text>
@@ -53,10 +45,7 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
           <View
             className={`bg-surface-2 items-center justify-center self-stretch rounded-[10px] border-[1.5px] px-4 ${error ? "border-danger" : "border-border-subtle"}`}
           >
-            <Text
-              className="text-text-secondary text-[15px] font-medium"
-              style={{ fontFamily: "Inter" }}
-            >
+            <Text className="font-inter text-text-secondary text-[15px] font-medium">
               {countryCode}
             </Text>
           </View>

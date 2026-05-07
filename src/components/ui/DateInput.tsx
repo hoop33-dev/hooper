@@ -8,14 +8,11 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import Svg, { Path, Rect } from "react-native-svg";
 import { ErrorMessage } from "./ErrorMessage";
-
-const StyledSafeAreaView = styled(SafeAreaView);
 
 export type DateInputHandle = { open: () => void };
 
@@ -126,15 +123,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
         <View className="gap-1.5">
           {label && (
             <Text
-              className={
-                error ? "text-danger uppercase" : "text-text-tertiary uppercase"
-              }
-              style={{
-                fontFamily: "Inter",
-                fontWeight: "500",
-                fontSize: 10,
-                letterSpacing: 10 * 0.12,
-              }}
+              className={`font-inter font-medium text-[10px] tracking-[1.2px] uppercase ${error ? "text-danger" : "text-text-tertiary"}`}
             >
               {label}
             </Text>
@@ -146,8 +135,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
             style={{ height: 48 }}
           >
             <Text
-              className={`text-[15px] ${value ? "text-text-primary" : "text-text-disabled"}`}
-              style={{ fontFamily: "Inter" }}
+              className={`font-inter text-[15px] ${value ? "text-text-primary" : "text-text-disabled"}`}
             >
               {value ? formatDate(value) : placeholder}
             </Text>
@@ -185,13 +173,10 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
             onRequestClose={handleCancel}
           >
             <Pressable className="flex-1 bg-black/60" onPress={handleCancel} />
-            <StyledSafeAreaView className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t">
+            <SafeAreaView className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t">
               <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
                 <TouchableOpacity onPress={handleCancel} activeOpacity={0.7}>
-                  <Text
-                    className="text-[15px] text-white/50"
-                    style={{ fontFamily: "Inter" }}
-                  >
+                  <Text className="font-inter text-[15px] text-white/50">
                     Cancel
                   </Text>
                 </TouchableOpacity>
@@ -199,10 +184,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
                 <View className="bg-border-strong h-1 w-9 rounded-full" />
 
                 <TouchableOpacity onPress={handleDone} activeOpacity={0.7}>
-                  <Text
-                    className="text-brand-orange text-[15px] font-semibold"
-                    style={{ fontFamily: "Inter" }}
-                  >
+                  <Text className="font-inter text-brand-orange text-[15px] font-semibold">
                     Done
                   </Text>
                 </TouchableOpacity>
@@ -219,7 +201,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
                 accentColor={accentColor}
                 style={{ height: 200 }}
               />
-            </StyledSafeAreaView>
+            </SafeAreaView>
           </Modal>
         )}
       </>

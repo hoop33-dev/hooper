@@ -1,4 +1,5 @@
 import { supabase } from "@/src/lib/supabase";
+import { formatLocalDate } from "@/src/lib/date";
 
 export type ChildSummary = {
   id: string;
@@ -20,13 +21,6 @@ export type CreateChildInput = {
 export type CreateChildResult =
   | { ok: true; child: ChildSummary }
   | { ok: false; field?: "username" | "password"; error: string };
-
-function formatLocalDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
 
 export async function createChildAccount(
   input: CreateChildInput,

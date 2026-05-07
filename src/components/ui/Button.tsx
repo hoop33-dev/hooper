@@ -26,10 +26,10 @@ const sizeClasses: Record<ButtonSize, string> = {
   lg: "h-14 px-7",
 };
 
-const sizeText: Record<ButtonSize, number> = {
-  sm: 11,
-  md: 13,
-  lg: 15,
+const sizeTextClasses: Record<ButtonSize, string> = {
+  sm: "text-[11px] tracking-[0.88px]",
+  md: "text-[13px] tracking-[1.04px]",
+  lg: "text-[15px] tracking-[1.2px]",
 };
 
 function variantClasses(variant: ButtonVariant, disabled: boolean) {
@@ -118,14 +118,8 @@ export function Button({
     >
       {typeof children === "string" ? (
         <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "700",
-            fontSize: sizeText[size],
-            letterSpacing: sizeText[size] * 0.08,
-            textTransform: "uppercase",
-            color: variantTextColor(variant, disabled),
-          }}
+          className={`font-inter font-bold uppercase ${sizeTextClasses[size]}`}
+          style={{ color: variantTextColor(variant, disabled) }}
         >
           {children}
         </Text>

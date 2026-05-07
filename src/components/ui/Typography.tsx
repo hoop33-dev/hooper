@@ -4,23 +4,14 @@ type TypographyProps = TextProps & {
   className?: string;
 };
 
-const base = "text-text-primary";
+const base = "text-text-primary font-inter";
 
 /** Display / Hero — 64px, black weight, tight tracking */
 export function H1({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
-      className={`${base} ${className}`}
-      style={[
-        {
-          fontFamily: "Inter",
-          fontWeight: "900",
-          fontSize: 64,
-          lineHeight: 64 * 1.15,
-          letterSpacing: -64 * 0.04,
-        },
-        style,
-      ]}
+      className={`${base} font-black text-[64px] leading-[73.6px] tracking-[-2.56px] ${className}`}
+      style={style}
       {...rest}
     />
   );
@@ -30,17 +21,8 @@ export function H1({ className = "", style, ...rest }: TypographyProps) {
 export function H2({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
-      className={`${base} ${className}`}
-      style={[
-        {
-          fontFamily: "Inter",
-          fontWeight: "700",
-          fontSize: 36,
-          lineHeight: 36 * 1.15,
-          letterSpacing: -36 * 0.02,
-        },
-        style,
-      ]}
+      className={`${base} font-bold text-[36px] leading-[41.4px] tracking-[-0.72px] ${className}`}
+      style={style}
       {...rest}
     />
   );
@@ -50,17 +32,8 @@ export function H2({ className = "", style, ...rest }: TypographyProps) {
 export function H3({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
-      className={`${base} ${className}`}
-      style={[
-        {
-          fontFamily: "Inter",
-          fontWeight: "700",
-          fontSize: 28,
-          lineHeight: 28 * 1.3,
-          letterSpacing: -28 * 0.02,
-        },
-        style,
-      ]}
+      className={`${base} font-bold text-[28px] leading-[36.4px] tracking-[-0.56px] ${className}`}
+      style={style}
       {...rest}
     />
   );
@@ -70,16 +43,8 @@ export function H3({ className = "", style, ...rest }: TypographyProps) {
 export function H4({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
-      className={`${base} ${className}`}
-      style={[
-        {
-          fontFamily: "Inter",
-          fontWeight: "600",
-          fontSize: 22,
-          lineHeight: 22 * 1.3,
-        },
-        style,
-      ]}
+      className={`${base} font-semibold text-[22px] leading-[28.6px] ${className}`}
+      style={style}
       {...rest}
     />
   );
@@ -89,16 +54,8 @@ export function H4({ className = "", style, ...rest }: TypographyProps) {
 export function Body({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
-      className={`text-text-secondary ${className}`}
-      style={[
-        {
-          fontFamily: "Inter",
-          fontWeight: "400",
-          fontSize: 16,
-          lineHeight: 16 * 1.5,
-        },
-        style,
-      ]}
+      className={`font-inter text-text-secondary font-normal text-[16px] leading-[24px] ${className}`}
+      style={style}
       {...rest}
     />
   );
@@ -108,16 +65,8 @@ export function Body({ className = "", style, ...rest }: TypographyProps) {
 export function BodySm({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
-      className={`text-text-secondary ${className}`}
-      style={[
-        {
-          fontFamily: "Inter",
-          fontWeight: "400",
-          fontSize: 13,
-          lineHeight: 13 * 1.5,
-        },
-        style,
-      ]}
+      className={`font-inter text-text-secondary font-normal text-[13px] leading-[19.5px] ${className}`}
+      style={style}
       {...rest}
     />
   );
@@ -127,18 +76,8 @@ export function BodySm({ className = "", style, ...rest }: TypographyProps) {
 export function Label({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
-      className={`text-text-tertiary ${className}`}
-      style={[
-        {
-          fontFamily: "Inter",
-          fontWeight: "500",
-          fontSize: 11,
-          lineHeight: 11,
-          letterSpacing: 11 * 0.15,
-          textTransform: "uppercase",
-        },
-        style,
-      ]}
+      className={`font-inter text-text-tertiary font-medium text-[11px] leading-[11px] tracking-[1.65px] uppercase ${className}`}
+      style={style}
       {...rest}
     />
   );
@@ -148,17 +87,8 @@ export function Label({ className = "", style, ...rest }: TypographyProps) {
 export function Stat({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
-      className={`text-brand-orange ${className}`}
-      style={[
-        {
-          fontFamily: "Inter",
-          fontWeight: "900",
-          fontSize: 48,
-          lineHeight: 48,
-          letterSpacing: -48 * 0.04,
-        },
-        style,
-      ]}
+      className={`font-inter text-brand-orange font-black text-[48px] leading-[48px] tracking-[-1.92px] ${className}`}
+      style={style}
       {...rest}
     />
   );

@@ -2,13 +2,10 @@ import { useState } from "react";
 import { View, ScrollView, Pressable, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { styled } from "nativewind";
 
 import { RadioTile, BackButton } from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
 import { ROLES, type RoleId } from "@/src/constants/roles";
-
-const StyledSafeAreaView = styled(SafeAreaView);
 
 export default function RoleSelectorScreen() {
   const router = useRouter();
@@ -25,34 +22,20 @@ export default function RoleSelectorScreen() {
   }
 
   return (
-    <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
+    <SafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
       {/* Header */}
       <View className="px-6 pt-2 pb-5">
         <BackButton label="Create account" onPress={() => router.back()} />
 
-        <Text
-          className="text-brand-orange mb-2 text-[10px] font-medium uppercase"
-          style={{ fontFamily: "Inter", letterSpacing: 10 * 0.14 }}
-        >
+        <Text className="font-inter font-medium text-[10px] tracking-[1.4px] uppercase text-brand-orange mb-2">
           Step 2 of 3
         </Text>
 
-        <Text
-          className="text-text-primary mb-1.5 font-black"
-          style={{
-            fontFamily: "Inter",
-            fontSize: 28,
-            letterSpacing: 28 * -0.03,
-            lineHeight: 28 * 1.12,
-          }}
-        >
+        <Text className="font-inter font-black text-text-primary text-[28px] tracking-[-0.84px] leading-[31.36px] mb-1.5">
           Who are you?
         </Text>
 
-        <Text
-          className="text-text-secondary text-sm"
-          style={{ fontFamily: "Inter", lineHeight: 14 * 1.5 }}
-        >
+        <Text className="font-inter text-text-secondary text-sm leading-[21px]">
           Pick your role. You can add more later.
         </Text>
       </View>
@@ -107,13 +90,12 @@ export default function RoleSelectorScreen() {
           })}
         >
           <Text
-            className={`text-[15px] font-bold ${selectedId ? "text-text-primary" : "text-text-tertiary"}`}
-            style={{ fontFamily: "Inter", letterSpacing: 15 * 0.01 }}
+            className={`font-inter font-bold text-[15px] tracking-[0.15px] ${selectedId ? "text-text-primary" : "text-text-tertiary"}`}
           >
             {selectedRole ? selectedRole.cta : "Select a role to continue"}
           </Text>
         </Pressable>
       </View>
-    </StyledSafeAreaView>
+    </SafeAreaView>
   );
 }

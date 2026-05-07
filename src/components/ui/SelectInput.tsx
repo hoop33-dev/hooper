@@ -8,11 +8,8 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 import Svg, { Path } from "react-native-svg";
 import { ErrorMessage } from "./ErrorMessage";
-
-const StyledSafeAreaView = styled(SafeAreaView);
 
 export type SelectInputHandle = { open: () => void };
 
@@ -59,15 +56,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
         <View className="gap-1.5">
           {label && (
             <Text
-              className={
-                error ? "text-danger uppercase" : "text-text-tertiary uppercase"
-              }
-              style={{
-                fontFamily: "Inter",
-                fontWeight: "500",
-                fontSize: 10,
-                letterSpacing: 10 * 0.12,
-              }}
+              className={`font-inter font-medium text-[10px] tracking-[1.2px] uppercase ${error ? "text-danger" : "text-text-tertiary"}`}
             >
               {label}
             </Text>
@@ -79,8 +68,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
             style={{ height: 48 }}
           >
             <Text
-              className={`flex-1 text-[15px] ${selected ? "text-text-primary" : "text-text-disabled"}`}
-              style={{ fontFamily: "Inter" }}
+              className={`font-inter flex-1 text-[15px] ${selected ? "text-text-primary" : "text-text-disabled"}`}
               numberOfLines={1}
             >
               {selected ? selected.label : placeholder}
@@ -111,17 +99,14 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
             onPress={() => setOpen(false)}
           />
 
-          <StyledSafeAreaView
+          <SafeAreaView
             className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t"
             style={{ maxHeight: "70%" }}
           >
             <View className="items-center pt-3 pb-2">
               <View className="bg-border-strong mb-4 h-1 w-9 rounded-full" />
               {label && (
-                <Text
-                  className="text-text-primary mb-2 text-[15px] font-semibold"
-                  style={{ fontFamily: "Inter" }}
-                >
+                <Text className="font-inter text-text-primary mb-2 text-[15px] font-semibold">
                   {label}
                 </Text>
               )}
@@ -147,8 +132,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
                     activeOpacity={0.7}
                   >
                     <Text
-                      className={`text-[15px] ${isSelected ? "text-brand-orange font-semibold" : "text-text-primary"}`}
-                      style={{ fontFamily: "Inter" }}
+                      className={`font-inter text-[15px] ${isSelected ? "text-brand-orange font-semibold" : "text-text-primary"}`}
                     >
                       {item.label}
                     </Text>
@@ -173,7 +157,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
                 );
               }}
             />
-          </StyledSafeAreaView>
+          </SafeAreaView>
         </Modal>
       </>
     );

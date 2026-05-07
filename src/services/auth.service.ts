@@ -1,6 +1,7 @@
 import { supabase } from "@/src/lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 import type { RoleId } from "@/src/constants/roles";
+import { formatLocalDate } from "@/src/lib/date";
 
 export type SignUpParams = {
   firstName: string;
@@ -27,13 +28,6 @@ export async function checkUsernameAvailable(
   });
   if (error) return null;
   return data === true;
-}
-
-function formatLocalDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
 }
 
 export type SignInResult =

@@ -11,7 +11,6 @@ import {
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { styled } from "nativewind";
 
 import {
   PasswordInput,
@@ -25,8 +24,6 @@ import {
   exchangeResetCode,
   updatePassword,
 } from "@/src/services/auth.service";
-
-const StyledSafeAreaView = styled(SafeAreaView);
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -99,27 +96,16 @@ export default function ResetPasswordScreen() {
   }
 
   return (
-    <StyledSafeAreaView className="bg-surface flex-1" edges={["top"]}>
+    <SafeAreaView className="bg-surface flex-1" edges={["top"]}>
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 pt-2 pb-4">
           <BackButton onPress={() => router.back()} className="mb-8" />
 
-          <Text
-            className="mb-1 font-black text-white"
-            style={{
-              fontFamily: "Inter",
-              fontSize: 28,
-              letterSpacing: 28 * -0.03,
-              lineHeight: 28 * 1.1,
-            }}
-          >
+          <Text className="font-inter font-black text-white text-[28px] tracking-[-0.84px] leading-[30.8px] mb-1">
             Reset password
           </Text>
-          <Text
-            className="text-text-secondary text-[14px]"
-            style={{ fontFamily: "Inter", lineHeight: 14 * 1.5 }}
-          >
+          <Text className="font-inter text-text-secondary text-[14px] leading-[21px]">
             {done
               ? "Your password has been updated."
               : "Choose a new password for your account."}
@@ -148,10 +134,7 @@ export default function ResetPasswordScreen() {
           ) : isExchanging ? (
             <View className="items-center py-8">
               <ActivityIndicator color="#fff" />
-              <Text
-                className="text-text-secondary mt-3 text-[14px]"
-                style={{ fontFamily: "Inter" }}
-              >
+              <Text className="font-inter text-text-secondary mt-3 text-[14px]">
                 Verifying reset link…
               </Text>
             </View>
@@ -208,7 +191,7 @@ export default function ResetPasswordScreen() {
 
         {/* CTA */}
         <KeyboardStickyView>
-          <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
+          <SafeAreaView edges={["bottom"]} className="bg-surface">
             <View className="px-6 py-3">
               {done ? (
                 <Button
@@ -244,9 +227,9 @@ export default function ResetPasswordScreen() {
                 </Button>
               )}
             </View>
-          </StyledSafeAreaView>
+          </SafeAreaView>
         </KeyboardStickyView>
       </View>
-    </StyledSafeAreaView>
+    </SafeAreaView>
   );
 }

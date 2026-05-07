@@ -53,8 +53,8 @@ export function TextButton({
       {...rest}
     >
       <Text
+        className="font-inter"
         style={{
-          fontFamily: "Inter",
           fontWeight: weightMap[weight] as "400" | "500" | "600" | "700",
           fontSize: size,
           color,

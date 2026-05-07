@@ -3,7 +3,6 @@ import { ImageBackground, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 
 import { Body, Button, Carousel, H2, Label, Logo } from "@/src/components/ui";
 import {
@@ -11,9 +10,6 @@ import {
   CourtIllustration,
   ProgressIllustration,
 } from "@/src/components/splash/illustrations";
-
-const StyledImageBackground = styled(ImageBackground);
-const StyledSafeAreaView = styled(SafeAreaView);
 
 const HERO_IMAGE_URI =
   "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=900&q=80";
@@ -54,7 +50,7 @@ export default function SplashScreen() {
   const router = useRouter();
 
   return (
-    <StyledImageBackground
+    <ImageBackground
       source={{ uri: HERO_IMAGE_URI }}
       resizeMode="cover"
       className="bg-surface flex-1"
@@ -70,7 +66,7 @@ export default function SplashScreen() {
         style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
       />
 
-      <StyledSafeAreaView className="flex-1" edges={["top", "bottom"]}>
+      <SafeAreaView className="flex-1" edges={["top", "bottom"]}>
         <View className="items-center pt-2 pb-2">
           <Logo height={85} />
         </View>
@@ -126,7 +122,7 @@ export default function SplashScreen() {
             Sign in
           </Button>
         </View>
-      </StyledSafeAreaView>
-    </StyledImageBackground>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }

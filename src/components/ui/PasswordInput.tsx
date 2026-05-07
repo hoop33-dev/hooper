@@ -58,15 +58,7 @@ export const PasswordInput = forwardRef<RNTextInput, PasswordInputProps>(
       <View className="gap-1.5">
         {label && (
           <Text
-            className={
-              isError ? "text-danger uppercase" : "text-text-tertiary uppercase"
-            }
-            style={{
-              fontFamily: "Inter",
-              fontWeight: "500",
-              fontSize: 10,
-              letterSpacing: 10 * 0.12,
-            }}
+            className={`font-inter font-medium text-[10px] tracking-[1.2px] uppercase ${isError ? "text-danger" : "text-text-tertiary"}`}
           >
             {label}
           </Text>

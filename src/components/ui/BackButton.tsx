@@ -28,12 +28,7 @@ export function BackButton({
           strokeLinejoin="round"
         />
       </Svg>
-      <Text
-        className="text-text-tertiary text-[13px]"
-        style={{ fontFamily: "Inter" }}
-      >
-        {label}
-      </Text>
+      <Text className="font-inter text-text-tertiary text-[13px]">{label}</Text>
     </Pressable>
   );
 }

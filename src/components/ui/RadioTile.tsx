@@ -47,11 +47,11 @@ export function RadioTile({
   // (shadow props have no effect there anyway — elevation is the only mechanism).
   return (
     <View
+      className="rounded-2xl"
       style={{
         backgroundColor: selected ? accentDim : colors.surface2,
         borderWidth: 1.5,
         borderColor: selected ? accentBorder : colors.borderSubtle,
-        borderRadius: 16,
         transform: [{ scale: pressed ? 0.97 : 1 }],
         opacity: pressed ? 0.88 : 1,
         shadowColor: "#000",
@@ -126,44 +126,19 @@ export function RadioTile({
 
           {/* Role label — uppercase caps */}
           <Text
-            style={{
-              fontFamily: "Inter",
-              fontWeight: "500",
-              fontSize: 10,
-              letterSpacing: 10 * 0.14,
-              textTransform: "uppercase",
-              color: selected ? accent : colors.textTertiary,
-              marginBottom: 5,
-            }}
+            className="font-inter font-medium text-[10px] tracking-[1.4px] uppercase mb-[5px]"
+            style={{ color: selected ? accent : colors.textTertiary }}
           >
             {label}
           </Text>
 
           {/* Title */}
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontWeight: "800",
-              fontSize: 22,
-              letterSpacing: 22 * -0.03,
-              color: colors.textPrimary,
-              marginBottom: 8,
-              lineHeight: 22 * 1.1,
-            }}
-          >
+          <Text className="font-inter font-extrabold text-[22px] tracking-[-0.66px] text-text-primary mb-2 leading-[24.2px]">
             {title}
           </Text>
 
           {/* Body */}
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontWeight: "400",
-              fontSize: 13,
-              lineHeight: 13 * 1.55,
-              color: colors.textSecondary,
-            }}
-          >
+          <Text className="font-inter text-[13px] leading-[20.15px] text-text-secondary">
             {body}
           </Text>
         </LinearGradient>

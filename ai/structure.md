@@ -15,6 +15,8 @@
 
 ### `app/` — Navigation only
 
+Screens call hooks for data. Never import from `src/services/` or `src/lib/supabase` directly in a screen.
+
 ### `src/components/` — UI only
 
 - `ui/` — primitive components: Button, Card, Input, Typography
@@ -26,23 +28,27 @@
 
 - Hooks call services, never Supabase directly
 - Named `use[noun].ts`
+- Return `{ data, isLoading, refresh }` shape where possible
 
 ### `src/services/` — All Supabase queries
 
 - Every database query lives here and nowhere else
 - One file per entity: `program.service.ts`, `workoutLog.service.ts`, etc.
 - If you are writing a Supabase query outside of `services/`, stop and move it here
+- All functions return `{ ok: true; ... } | { ok: false; error: string }` — never throw
 
 ### `src/stores/` — Global state (Zustand)
 
 - `auth.store.ts` — current user and session
 - `workoutSession.store.ts` — active in-progress workout state
 
-### `src/lib/` — Third-party client setup
+### `src/lib/` — Third-party client setup and shared utilities
 
 - `supabase.ts` — single Supabase client instance, imported everywhere
-- `sentry.ts` — Sentry init
-- `storage.ts` — Supabase Storage helpers
+- `date.ts` — date formatting helpers
+- `passwordRules.ts` — password validation
+- `sentry.ts` — Sentry init (when added)
+- If a helper is used in more than one place, it belongs here — never duplicate
 
 ### `src/types/`
 
@@ -52,10 +58,108 @@
 
 ### `src/constants/`
 
-- `theme.ts` — all design tokens (colors, spacing, typography)
-- `config.ts` — app-wide constants
+- `theme.ts` — all design tokens (colors, spacing, typography, shadows)
+- `regions.ts` — region list
+- `roles.tsx` — role configuration
 
 ### `supabase/`
 
 - `migrations/` — SQL migration files
 - `functions/` — Edge Functions if needed
+
+---
+
+## Styling Rules
+
+**All styling uses NativeWind `className`.** This is enforced — no exceptions for static values.
+
+### The one rule: className for static, style for dynamic
+
+```tsx
+// ✅ Right — static values in className
+<Text className="font-inter font-bold text-[15px] text-text-primary uppercase tracking-[1.2px]">
+
+// ✅ Right — dynamic runtime value in style
+<View style={{ backgroundColor: roleConfig.accentColor }}>
+
+// ❌ Wrong — static values as inline style
+<Text style={{ fontFamily: "Inter", fontWeight: "700", fontSize: 15 }}>
+```
+
+### Font family
+
+The Inter font is available as `font-inter` (defined in `global.css` via `--font-family-inter`).
+Never write `style={{ fontFamily: "Inter" }}` — always use `className="font-inter"`.
+
+### Available token classes (from `global.css`)
+
+Colors: `text-brand-orange`, `bg-brand-navy`, `text-text-primary`, `text-text-secondary`,
+`text-text-tertiary`, `text-text-disabled`, `bg-surface`, `bg-surface-2`, `bg-surface-3`,
+`border-border-subtle`, `border-border-strong`, `text-danger`, `text-success`,
+`bg-orange-tint-10`, `bg-orange-tint-20`
+
+### Do not use `styled()` from NativeWind
+
+All components accept `className` directly through `react-native-css`. The `styled()` wrapper is never needed.
+
+```tsx
+// ✅ Right
+import { SafeAreaView } from "react-native-safe-area-context";
+<SafeAreaView className="bg-surface flex-1" edges={["top"]}>
+
+// ❌ Wrong
+import { styled } from "nativewind";
+const StyledSafeAreaView = styled(SafeAreaView);
+```
+
+### Do not hardcode colors or spacing
+
+```tsx
+// ✅ Right
+<View className="bg-surface-2 rounded-xl p-4">
+
+// ❌ Wrong
+<View style={{ backgroundColor: "#2D2829", borderRadius: 12, padding: 16 }}>
+```
+
+If a value isn't in the token set, propose adding it to `global.css` and `theme.ts`.
+
+---
+
+## Service Response Pattern
+
+All service functions return a discriminated union. Never throw, never return null.
+
+```ts
+// Simple success/failure
+type Result = { ok: true } | { ok: false; error: string };
+
+// Success with data
+type Result = { ok: true; data: Widget } | { ok: false; error: string };
+
+// With optional field hint for forms
+type Result =
+  | { ok: true }
+  | { ok: false; error: string; field?: "email" | "username" };
+```
+
+Callers check `result.ok` before accessing success properties.
+
+---
+
+## Typography Components
+
+Always use these instead of raw `<Text>` for content:
+
+```tsx
+import { H1, H2, H3, H4, Body, BodySm, Label, Stat } from "@/src/components/ui";
+
+<H3>Section title</H3>
+<BodySm className="text-text-tertiary">Subtitle copy</BodySm>
+<Label className="text-brand-orange">Step 1 of 3</Label>
+```
+
+Override size or color via `className`. Override calculated values (lineHeight, letterSpacing) via `style`.
+
+Raw `<Text>` is acceptable only for inline text spans within a Typography component,
+or for truly custom one-off text (e.g. OTP digit boxes) that doesn't map to any variant.

@@ -2,69 +2,27 @@ import { useCallback } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
-import { styled } from "nativewind";
 
 import { useAuthStore } from "@/src/stores/auth.store";
 import { useChildren } from "@/src/hooks/useChildren";
 import type { ChildSummary } from "@/src/services/parent.service";
 import { Label, H3, Button } from "@/src/components/ui";
-import { colors, shadows } from "@/src/constants/theme";
+import { shadows } from "@/src/constants/theme";
 
-const StyledSafeAreaView = styled(SafeAreaView);
 
 function ChildCard({ child }: { child: ChildSummary }) {
   return (
-    <View
-      style={{
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        backgroundColor: "rgba(255,255,255,0.04)",
-        padding: 16,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-      }}
-    >
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          backgroundColor: "rgba(241,88,37,0.15)",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "700",
-            fontSize: 14,
-            color: colors.brandOrange,
-          }}
-        >
+    <View className="rounded-xl border border-border-subtle bg-white/[0.04] p-4 flex-row items-center gap-3">
+      <View className="w-9 h-9 rounded-full bg-brand-orange/15 items-center justify-center">
+        <Text className="font-inter font-bold text-[14px] text-brand-orange">
           {child.firstName.charAt(0).toUpperCase()}
         </Text>
       </View>
-      <View style={{ flex: 1 }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "600",
-            fontSize: 15,
-            color: colors.textPrimary,
-          }}
-        >
+      <View className="flex-1">
+        <Text className="font-inter font-semibold text-[15px] text-text-primary">
           {child.firstName} {child.lastName}
         </Text>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 12,
-            color: colors.textTertiary,
-          }}
-        >
+        <Text className="font-inter text-[12px] text-text-tertiary">
           @{child.username}
         </Text>
       </View>
@@ -84,7 +42,7 @@ export default function ParentDashboard() {
   );
 
   return (
-    <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
+    <SafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
       <View className="flex-1 px-6 pt-8">
         <Label className="text-text-disabled mb-8">Parent dashboard</Label>
 
@@ -104,24 +62,13 @@ export default function ParentDashboard() {
         <Label className="mb-3">My children</Label>
 
         {isLoading ? (
-          <ActivityIndicator
-            color={colors.textTertiary}
-            style={{ marginTop: 16 }}
-          />
+          <ActivityIndicator color="rgba(255,255,255,0.35)" style={{ marginTop: 16 }} />
         ) : children.length === 0 ? (
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 14,
-              color: colors.textDisabled,
-              textAlign: "center",
-              marginTop: 16,
-            }}
-          >
+          <Text className="font-inter text-[14px] text-text-disabled text-center mt-4">
             No children added yet
           </Text>
         ) : (
-          <View style={{ gap: 10 }}>
+          <View className="gap-2.5">
             {children.map((child) => (
               <ChildCard key={child.id} child={child} />
             ))}
@@ -134,6 +81,6 @@ export default function ParentDashboard() {
           Log out
         </Button>
       </View>
-    </StyledSafeAreaView>
+    </SafeAreaView>
   );
 }

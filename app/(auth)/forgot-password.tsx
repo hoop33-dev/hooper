@@ -6,7 +6,6 @@ import {
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { styled } from "nativewind";
 
 import {
   Input,
@@ -17,8 +16,6 @@ import {
 } from "@/src/components/ui";
 import { shadows } from "@/src/constants/theme";
 import { sendPasswordResetEmail } from "@/src/services/auth.service";
-
-const StyledSafeAreaView = styled(SafeAreaView);
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -56,7 +53,7 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <StyledSafeAreaView className="bg-surface flex-1" edges={["top"]}>
+    <SafeAreaView className="bg-surface flex-1" edges={["top"]}>
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 pt-2 pb-4">
@@ -66,21 +63,10 @@ export default function ForgotPasswordScreen() {
             className="mb-8"
           />
 
-          <Text
-            className="mb-1 font-black text-white"
-            style={{
-              fontFamily: "Inter",
-              fontSize: 28,
-              letterSpacing: 28 * -0.03,
-              lineHeight: 28 * 1.1,
-            }}
-          >
+          <Text className="font-inter font-black text-white text-[28px] tracking-[-0.84px] leading-[30.8px] mb-1">
             Forgot password?
           </Text>
-          <Text
-            className="text-text-secondary text-[14px]"
-            style={{ fontFamily: "Inter", lineHeight: 14 * 1.5 }}
-          >
+          <Text className="font-inter text-text-secondary text-[14px] leading-[21px]">
             {sent
               ? "Check your inbox — we've sent a reset link."
               : "Enter your email and we'll send you a reset link."}
@@ -138,11 +124,8 @@ export default function ForgotPasswordScreen() {
                 className="rounded-xl px-4 py-3"
                 style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
               >
-                <Text
-                  className="text-text-secondary text-[13px]"
-                  style={{ fontFamily: "Inter", lineHeight: 13 * 1.5 }}
-                >
-                  <Text className="text-white" style={{ fontFamily: "Inter" }}>
+                <Text className="font-inter text-text-secondary text-[13px] leading-[19.5px]">
+                  <Text className="font-inter text-white">
                     Child account?{" "}
                   </Text>
                   A parent can change your password from within the app — no
@@ -155,7 +138,7 @@ export default function ForgotPasswordScreen() {
 
         {/* CTA */}
         <KeyboardStickyView>
-          <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
+          <SafeAreaView edges={["bottom"]} className="bg-surface">
             <View className="px-6 py-3">
               {sent ? (
                 <Button
@@ -182,9 +165,9 @@ export default function ForgotPasswordScreen() {
                 </Button>
               )}
             </View>
-          </StyledSafeAreaView>
+          </SafeAreaView>
         </KeyboardStickyView>
       </View>
-    </StyledSafeAreaView>
+    </SafeAreaView>
   );
 }

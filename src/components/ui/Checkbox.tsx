@@ -12,7 +12,7 @@ type CheckboxProps = {
 
 export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
   return (
-    <View style={{ gap: 4 }}>
+    <View className="gap-1">
       <Pressable
         onPress={() => onChange(!checked)}
         style={({ pressed }) => ({
@@ -70,15 +70,7 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
         {/* Label */}
         {label ? (
           typeof label === "string" ? (
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 12.5,
-                color: colors.textSecondary,
-                lineHeight: 12.5 * 1.55,
-                flex: 1,
-              }}
-            >
+            <Text className="font-inter text-[12.5px] text-text-secondary leading-[19.4px] flex-1">
               {label}
             </Text>
           ) : (
@@ -88,14 +80,7 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
       </Pressable>
 
       {error ? (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 4,
-            paddingHorizontal: 2,
-          }}
-        >
+        <View className="flex-row items-center gap-1 px-0.5">
           <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
             <Circle cx={6} cy={6} r={5.5} stroke={colors.danger} strokeWidth={1} />
             <Path
@@ -106,9 +91,7 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
             />
             <Circle cx={6} cy={8.5} r={0.6} fill={colors.danger} />
           </Svg>
-          <Text style={{ fontFamily: "Inter", fontSize: 11, color: colors.danger }}>
-            {error}
-          </Text>
+          <Text className="font-inter text-[11px] text-danger">{error}</Text>
         </View>
       ) : null}
     </View>

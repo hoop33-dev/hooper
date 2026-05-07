@@ -1,10 +1,7 @@
 import { Modal, View, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 import Svg, { Path, Circle } from "react-native-svg";
 import type { RoleId } from "@/src/constants/roles";
-
-const StyledSafeAreaView = styled(SafeAreaView);
 
 type AgeGateModalProps = {
   visible: boolean;
@@ -27,7 +24,7 @@ export function AgeGateModal({
       onRequestClose={onDismiss}
     >
       <View className="flex-1 justify-end bg-black/[72]">
-        <StyledSafeAreaView
+        <SafeAreaView
           className="bg-surface-2 border-danger/30 rounded-t-[20px] border-t p-6 pb-8"
           edges={["bottom"]}
         >
@@ -49,21 +46,11 @@ export function AgeGateModal({
             </Svg>
           </View>
 
-          <Text
-            className="text-text-primary mb-3 text-center font-black"
-            style={{
-              fontFamily: "Inter",
-              fontSize: 22,
-              letterSpacing: 22 * -0.03,
-            }}
-          >
+          <Text className="font-inter font-black text-text-primary text-[22px] tracking-[-0.66px] mb-3 text-center">
             You must be 16 or over
           </Text>
 
-          <Text
-            className="text-text-secondary mb-7 text-center text-sm"
-            style={{ fontFamily: "Inter", lineHeight: 14 * 1.6 }}
-          >
+          <Text className="font-inter text-text-secondary text-sm leading-[22.4px] mb-7 text-center">
             {isPlayer
               ? "Players must be at least 16 to create their own account. Ask a parent or guardian to sign up and add you as an athlete."
               : "You must be at least 16 years old to create a Hooper account."}
@@ -74,14 +61,11 @@ export function AgeGateModal({
             activeOpacity={0.85}
             className="bg-danger h-[52px] items-center justify-center rounded-full"
           >
-            <Text
-              className="text-text-primary text-[15px] font-bold"
-              style={{ fontFamily: "Inter" }}
-            >
+            <Text className="font-inter text-text-primary text-[15px] font-bold">
               {isPlayer ? "Got it" : "Update date of birth"}
             </Text>
           </TouchableOpacity>
-        </StyledSafeAreaView>
+        </SafeAreaView>
       </View>
     </Modal>
   );

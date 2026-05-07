@@ -1,4 +1,5 @@
 import { supabase } from "@/src/lib/supabase";
+import type { Session } from "@supabase/supabase-js";
 import type { RoleId } from "@/src/constants/roles";
 
 export type SignUpParams = {
@@ -35,25 +36,111 @@ function formatLocalDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-export type SignInResult = { ok: true } | { ok: false; error: string };
+export type SignInResult =
+  | { ok: true; session: Session; requiresVerification: boolean }
+  | { ok: false; error: string };
 
-export async function signIn(
-  email: string,
+export async function signInWithUsername(
+  username: string,
   password: string,
 ): Promise<SignInResult> {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.functions.invoke(
+    "signin-with-username",
+    { body: { username, password } },
+  );
+
+  if (error) {
+    return { ok: false, error: "Unable to sign in. Please try again." };
+  }
+
+  if (!data.ok) {
+    return { ok: false, error: data.error ?? "Invalid username or password." };
+  }
+
+  const { data: { session } } = await supabase.auth.setSession(data.session);
+
+  if (!session) {
+    return { ok: false, error: "Unable to sign in. Please try again." };
+  }
+
+  return { ok: true, session, requiresVerification: data.requires_verification ?? false };
+}
+
+export async function signOut(): Promise<void> {
+  await supabase.auth.signOut();
+}
+
+export type VerifyOtpResult = { ok: true; session: Session } | { ok: false; error: string };
+
+export async function verifyEmailOtp(
+  email: string,
+  token: string,
+): Promise<VerifyOtpResult> {
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "signup",
+  });
   if (error) {
     const msg = error.message.toLowerCase();
-    if (msg.includes("invalid") || msg.includes("credentials")) {
-      return { ok: false, error: "Incorrect email or password." };
+    if (msg.includes("expired")) return { ok: false, error: "Code expired. Request a new one." };
+    return { ok: false, error: "Invalid code. Please try again." };
+  }
+  if (!data.session) {
+    return { ok: false, error: "Verification failed. Please try again." };
+  }
+  return { ok: true, session: data.session };
+}
+
+export type ResendOtpResult =
+  | { ok: true }
+  | { ok: false; error: string; retryAfterSeconds?: number };
+
+export async function resendVerificationOtp(
+  email: string,
+): Promise<ResendOtpResult> {
+  const { error } = await supabase.auth.resend({ email, type: "signup" });
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("429") || msg.includes("rate")) {
+      const match = error.message.match(/(\d+)/);
+      return {
+        ok: false,
+        error: "Too many requests. Please wait before resending.",
+        retryAfterSeconds: match ? parseInt(match[1], 10) : 60,
+      };
     }
     return { ok: false, error: error.message };
   }
   return { ok: true };
 }
 
-export async function signOut(): Promise<void> {
-  await supabase.auth.signOut();
+export type PasswordResetResult = { ok: true } | { ok: false; error: string };
+
+export async function sendPasswordResetEmail(
+  email: string,
+): Promise<PasswordResetResult> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: "hooper://reset-password",
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function exchangeResetCode(
+  code: string,
+): Promise<PasswordResetResult> {
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) return { ok: false, error: "Reset link is invalid or expired." };
+  return { ok: true };
+}
+
+export async function updatePassword(
+  newPassword: string,
+): Promise<PasswordResetResult> {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 
 export async function signUp(params: SignUpParams): Promise<SignUpResult> {

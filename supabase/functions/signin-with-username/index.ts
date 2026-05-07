@@ -1,0 +1,122 @@
+// Deploy: supabase functions deploy signin-with-username --no-verify-jwt
+//
+// Resolves a username to its stored email via the admin API (never
+// returned to the caller), verifies password via signInWithPassword, and
+// handles the "email not confirmed" case by creating an admin session so the
+// client can proceed to the verify-email screen without a second round-trip.
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  let body: { username?: unknown; password?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return json(400, { ok: false, error: "Invalid request body" });
+  }
+
+  const { username, password } = body;
+
+  if (typeof username !== "string" || !username.trim()) {
+    return json(400, { ok: false, error: "username is required" });
+  }
+  if (typeof password !== "string" || !password) {
+    return json(400, { ok: false, error: "password is required" });
+  }
+
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  // Step 1: resolve username → profile (service role bypasses RLS)
+  const { data: profile, error: profileError } = await admin
+    .from("profiles")
+    .select("id, auth_user_id, has_real_email")
+    .eq("username", username.trim().toLowerCase())
+    .maybeSingle();
+
+  if (profileError || !profile) {
+    return json(200, { ok: false, error: "Invalid username or password" });
+  }
+
+  // Step 2: get the auth user record to retrieve email (admin only — never
+  // returned to the caller for unauthenticated requests)
+  const { data: authUserData, error: authUserError } =
+    await admin.auth.admin.getUserById(profile.auth_user_id);
+
+  if (authUserError || !authUserData?.user?.email) {
+    return json(200, { ok: false, error: "Invalid username or password" });
+  }
+
+  const authUser = authUserData.user;
+
+  // Step 3: verify credentials
+  const { data: signInData, error: signInError } =
+    await admin.auth.signInWithPassword({
+      email: authUser.email!,
+      password,
+    });
+
+  if (signInError) {
+    // GoTrue verifies the password BEFORE checking email confirmation.
+    // "Email not confirmed" therefore means the password was correct.
+    const isEmailNotConfirmed =
+      signInError.message?.toLowerCase().includes("email not confirmed") ||
+      (signInError as any).code === "email_not_confirmed";
+
+    if (isEmailNotConfirmed && profile.has_real_email) {
+      // Password was valid; create a session via the admin API so the client
+      // can proceed to the verify-email screen.
+      const { data: sessionData, error: sessionError } =
+        await admin.auth.admin.createSession({ user_id: profile.auth_user_id });
+
+      if (sessionError || !sessionData?.session) {
+        return json(200, { ok: false, error: "Invalid username or password" });
+      }
+
+      return json(200, {
+        ok: true,
+        session: sessionData.session,
+        requires_verification: true,
+        email_for_otp: authUser.email,
+      });
+    }
+
+    return json(200, { ok: false, error: "Invalid username or password" });
+  }
+
+  if (!signInData?.session) {
+    return json(200, { ok: false, error: "Invalid username or password" });
+  }
+
+  const isVerified =
+    !profile.has_real_email || authUser.email_confirmed_at != null;
+
+  return json(200, {
+    ok: true,
+    session: signInData.session,
+    requires_verification: profile.has_real_email && !isVerified,
+    email_for_otp:
+      profile.has_real_email && !isVerified ? authUser.email : null,
+  });
+});
+
+function json(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}

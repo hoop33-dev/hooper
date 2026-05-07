@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Reset your Hooper password</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    body, table, td, a {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table, td {
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+    img {
+      -ms-interpolation-mode: bicubic;
+      border: 0;
+      outline: none;
+      text-decoration: none;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100% !important;
+      min-width: 100%;
+      background-color: #111010;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+    a {
+      color: #F15825;
+    }
+    .button-link {
+      display: inline-block;
+      background-color: #F15825;
+      color: #ffffff !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      line-height: 1;
+      text-decoration: none !important;
+      border-radius: 12px;
+      padding: 16px 32px;
+    }
+    @media only screen and (max-width: 600px) {
+      .email-container {
+        width: 100% !important;
+      }
+      .button-link {
+        display: block !important;
+        text-align: center !important;
+      }
+      .button-wrapper {
+        text-align: center !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #111010;">
+    <tr>
+      <td align="center" style="padding: 40px 16px;">
+
+        <!-- Email card -->
+        <table class="email-container" role="presentation" cellpadding="0" cellspacing="0" border="0" width="520" style="background-color: #1A1718; border-radius: 20px; overflow: hidden;">
+
+          <!-- Orange top bar -->
+          <tr>
+            <td style="background-color: #F15825; height: 4px; line-height: 4px; font-size: 4px;">&nbsp;</td>
+          </tr>
+
+          <!-- Logo / wordmark -->
+          <tr>
+            <td align="center" style="padding: 40px 48px 0 48px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    <!-- Ball icon -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
+                      <tr>
+                        <td style="width: 48px; height: 48px; background-color: #F15825; border-radius: 12px; text-align: center; vertical-align: middle;">
+                          <span style="font-size: 26px; line-height: 48px; display: inline-block;">🏀</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top: 14px;">
+                    <span style="font-size: 22px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">hooper</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Heading -->
+          <tr>
+            <td align="center" style="padding: 32px 48px 0 48px;">
+              <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #ffffff; letter-spacing: -0.6px; line-height: 1.2;">
+                Reset your password
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Body copy -->
+          <tr>
+            <td align="center" style="padding: 16px 48px 0 48px;">
+              <p style="margin: 0; font-size: 15px; line-height: 1.6; color: rgba(255,255,255,0.65); text-align: center;">
+                We received a request to reset the password for your Hooper account.
+                Tap the button below to choose a new one. This link expires in&nbsp;<strong style="color: rgba(255,255,255,0.85);">1&nbsp;hour</strong>.
+              </p>
+            </td>
+          </tr>
+
+          <!-- CTA button -->
+          <tr>
+            <td class="button-wrapper" align="center" style="padding: 36px 48px;">
+              <a href="{{ .ConfirmationURL }}" class="button-link" target="_blank">
+                Reset password
+              </a>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding: 0 48px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="border-top: 1px solid rgba(255,255,255,0.08); height: 1px; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Fallback URL -->
+          <tr>
+            <td style="padding: 24px 48px 0 48px;">
+              <p style="margin: 0; font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.4);">
+                Button not working? Copy and paste this link into your browser:
+              </p>
+              <p style="margin: 8px 0 0 0; font-size: 12px; line-height: 1.5; word-break: break-all;">
+                <a href="{{ .ConfirmationURL }}" style="color: #F15825; text-decoration: underline;">{{ .ConfirmationURL }}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Child account note -->
+          <tr>
+            <td style="padding: 20px 48px 0 48px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="background-color: rgba(241,88,37,0.10); border-radius: 10px; padding: 14px 16px;">
+                    <p style="margin: 0; font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.55);">
+                      <strong style="color: rgba(255,255,255,0.75);">Have a child account?</strong>
+                      A parent or guardian can change the password directly from within the app — no email reset required.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Didn't request note -->
+          <tr>
+            <td style="padding: 20px 48px 40px 48px;">
+              <p style="margin: 0; font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.35); text-align: center;">
+                Didn't request this? You can safely ignore this email — your password won't be changed.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Email card -->
+
+        <!-- Footer -->
+        <table class="email-container" role="presentation" cellpadding="0" cellspacing="0" border="0" width="520">
+          <tr>
+            <td align="center" style="padding: 24px 0;">
+              <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.25); line-height: 1.6;">
+                &copy; 2026 Hooper. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

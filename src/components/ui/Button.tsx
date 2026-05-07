@@ -6,6 +6,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import { colors } from "@/src/constants/theme";
 
 export type ButtonVariant = "primary" | "secondary" | "navy" | "ghost" | "icon";
 export type ButtonSize = "sm" | "md" | "lg";
@@ -48,16 +49,15 @@ function variantClasses(variant: ButtonVariant, disabled: boolean) {
 }
 
 function variantTextColor(variant: ButtonVariant, disabled: boolean): string {
-  if (disabled) return "rgba(255,255,255,0.3)";
+  if (disabled) return colors.textDisabled;
   switch (variant) {
     case "primary":
     case "navy":
-    case "icon":
-      return "#FFFFFF";
     case "secondary":
-      return "#FFFFFF";
+    case "icon":
+      return colors.textPrimary;
     case "ghost":
-      return "#F15825";
+      return colors.brandOrange;
   }
 }
 

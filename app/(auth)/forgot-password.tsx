@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator } from "react-native";
 import {
   KeyboardAwareScrollView,
   KeyboardStickyView,
@@ -7,9 +7,16 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
-import Svg, { Path } from "react-native-svg";
 
-import { Input, ErrorMessage } from "@/src/components/ui";
+import {
+  Input,
+  ErrorMessage,
+  Button,
+  BackButton,
+  ErrorBanner,
+} from "@/src/components/ui";
+import { shadows } from "@/src/constants/theme";
+import { sendPasswordResetEmail } from "@/src/services/auth.service";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -18,6 +25,7 @@ export default function ForgotPasswordScreen() {
 
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [serviceError, setServiceError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -37,8 +45,13 @@ export default function ForgotPasswordScreen() {
   async function handleSend() {
     if (!validate()) return;
     setIsSubmitting(true);
-    // Password reset integration will go here
+    setServiceError("");
+    const result = await sendPasswordResetEmail(email.trim());
     setIsSubmitting(false);
+    if (!result.ok) {
+      setServiceError(result.error);
+      return;
+    }
     setSent(true);
   }
 
@@ -47,27 +60,11 @@ export default function ForgotPasswordScreen() {
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 pt-2 pb-4">
-          <Pressable
+          <BackButton
+            label="Sign in"
             onPress={() => router.back()}
-            className="mb-8 flex-row items-center gap-1.5 self-start"
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          >
-            <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-              <Path
-                d="M10 3L5 8L10 13"
-                stroke="rgba(255,255,255,0.35)"
-                strokeWidth={1.8}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-            <Text
-              className="text-text-tertiary text-[13px]"
-              style={{ fontFamily: "Inter" }}
-            >
-              Sign in
-            </Text>
-          </Pressable>
+            className="mb-8"
+          />
 
           <Text
             className="mb-1 font-black text-white"
@@ -104,59 +101,55 @@ export default function ForgotPasswordScreen() {
           bottomOffset={120}
         >
           {sent ? (
-            <View
-              style={{
-                backgroundColor: "rgba(56,161,105,0.12)",
-                borderWidth: 1,
-                borderColor: "rgba(56,161,105,0.35)",
-                borderRadius: 10,
-                padding: 16,
-                gap: 4,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: "600",
-                  fontSize: 14,
-                  color: "#38A169",
-                }}
-              >
-                Reset link sent
-              </Text>
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontSize: 13,
-                  color: "rgba(56,161,105,0.85)",
-                  lineHeight: 18,
-                }}
-              >
-                {"If an account exists for "}
-                {email}
-                {", you'll receive an email shortly."}
-              </Text>
-            </View>
+            <ErrorBanner
+              variant="success"
+              title="Reset link sent"
+              message={`If an account exists for ${email}, you'll receive an email shortly.`}
+            />
           ) : (
-            <View>
-              <Input
-                label="Email address"
-                value={email}
-                onChangeText={(v) => {
-                  setEmail(v);
-                  setEmailError("");
-                }}
-                placeholder="you@email.com"
-                hasError={!!emailError}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                textContentType="emailAddress"
-                returnKeyType="done"
-                onSubmitEditing={handleSend}
-              />
-              {emailError ? <ErrorMessage message={emailError} /> : null}
-            </View>
+            <>
+              {serviceError ? (
+                <ErrorBanner variant="error" title="Error" message={serviceError} />
+              ) : null}
+
+              <View>
+                <Input
+                  label="Email address"
+                  value={email}
+                  onChangeText={(v) => {
+                    setEmail(v);
+                    setEmailError("");
+                    setServiceError("");
+                  }}
+                  placeholder="you@email.com"
+                  hasError={!!emailError}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  returnKeyType="done"
+                  onSubmitEditing={handleSend}
+                />
+                {emailError ? <ErrorMessage message={emailError} /> : null}
+              </View>
+
+              {/* Child account notice */}
+              <View
+                className="rounded-xl px-4 py-3"
+                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+              >
+                <Text
+                  className="text-text-secondary text-[13px]"
+                  style={{ fontFamily: "Inter", lineHeight: 13 * 1.5 }}
+                >
+                  <Text className="text-white" style={{ fontFamily: "Inter" }}>
+                    Child account?{" "}
+                  </Text>
+                  A parent can change your password from within the app — no
+                  email reset needed.
+                </Text>
+              </View>
+            </>
           )}
         </KeyboardAwareScrollView>
 
@@ -165,69 +158,28 @@ export default function ForgotPasswordScreen() {
           <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
             <View className="px-6 py-3">
               {sent ? (
-                <Pressable
+                <Button
+                  variant="secondary"
                   onPress={() => router.back()}
-                  style={({ pressed }) => ({
-                    height: 52,
-                    borderRadius: 9999,
-                    backgroundColor: "transparent",
-                    borderWidth: 1,
-                    borderColor: "rgba(255,255,255,0.16)",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    opacity: pressed ? 0.7 : 1,
-                    transform: [{ scale: pressed ? 0.97 : 1 }],
-                  })}
+                  size="lg"
+                  className="w-full"
                 >
-                  <Text
-                    style={{
-                      fontFamily: "Inter",
-                      fontWeight: "700",
-                      fontSize: 15,
-                      letterSpacing: 15 * 0.08,
-                      textTransform: "uppercase",
-                      color: "#FFFFFF",
-                    }}
-                  >
-                    Back to sign in
-                  </Text>
-                </Pressable>
+                  Back to sign in
+                </Button>
               ) : (
-                <Pressable
+                <Button
                   onPress={handleSend}
                   disabled={isSubmitting}
-                  style={({ pressed }) => ({
-                    height: 52,
-                    borderRadius: 9999,
-                    backgroundColor: "#F15825",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    opacity: isSubmitting ? 0.7 : pressed ? 0.85 : 1,
-                    transform: [{ scale: pressed && !isSubmitting ? 0.97 : 1 }],
-                    shadowColor: "#F15825",
-                    shadowOffset: { width: 0, height: 0 },
-                    shadowOpacity: 0.35,
-                    shadowRadius: 20,
-                    elevation: 8,
-                  })}
+                  size="lg"
+                  className="w-full"
+                  style={shadows.orangeGlow}
                 >
                   {isSubmitting ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text
-                      style={{
-                        fontFamily: "Inter",
-                        fontWeight: "700",
-                        fontSize: 15,
-                        letterSpacing: 15 * 0.08,
-                        textTransform: "uppercase",
-                        color: "#FFFFFF",
-                      }}
-                    >
-                      Send reset link
-                    </Text>
+                    "Send reset link"
                   )}
-                </Pressable>
+                </Button>
               )}
             </View>
           </StyledSafeAreaView>

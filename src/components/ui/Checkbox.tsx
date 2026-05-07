@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import { Pressable, View, Text } from "react-native";
 import Svg, { Path, Circle } from "react-native-svg";
+import { colors } from "@/src/constants/theme";
 
 type CheckboxProps = {
   checked: boolean;
@@ -22,14 +23,14 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
           backgroundColor: error
             ? "rgba(229,62,62,0.12)"
             : checked
-              ? "rgba(241,88,37,0.06)"
-              : "#2D2829",
+              ? colors.orangeTint10
+              : colors.surface2,
           borderWidth: 1.5,
           borderColor: error
             ? "rgba(229,62,62,0.3)"
             : checked
-              ? "rgba(241,88,37,0.25)"
-              : "rgba(255,255,255,0.08)",
+              ? colors.orangeTint20
+              : colors.borderSubtle,
           borderRadius: 10,
           opacity: pressed ? 0.85 : 1,
         })}
@@ -42,11 +43,11 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
             borderRadius: 5,
             borderWidth: 2,
             borderColor: error
-              ? "#E53E3E"
+              ? colors.danger
               : checked
-                ? "#F15825"
-                : "rgba(255,255,255,0.16)",
-            backgroundColor: checked ? "#F15825" : "transparent",
+                ? colors.brandOrange
+                : colors.borderStrong,
+            backgroundColor: checked ? colors.brandOrange : "transparent",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
@@ -73,7 +74,7 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
               style={{
                 fontFamily: "Inter",
                 fontSize: 12.5,
-                color: "rgba(255,255,255,0.65)",
+                color: colors.textSecondary,
                 lineHeight: 12.5 * 1.55,
                 flex: 1,
               }}
@@ -96,16 +97,16 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
           }}
         >
           <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-            <Circle cx={6} cy={6} r={5.5} stroke="#E53E3E" strokeWidth={1} />
+            <Circle cx={6} cy={6} r={5.5} stroke={colors.danger} strokeWidth={1} />
             <Path
               d="M6 3.5V6.5"
-              stroke="#E53E3E"
+              stroke={colors.danger}
               strokeWidth={1.2}
               strokeLinecap="round"
             />
-            <Circle cx={6} cy={8.5} r={0.6} fill="#E53E3E" />
+            <Circle cx={6} cy={8.5} r={0.6} fill={colors.danger} />
           </Svg>
-          <Text style={{ fontFamily: "Inter", fontSize: 11, color: "#E53E3E" }}>
+          <Text style={{ fontFamily: "Inter", fontSize: 11, color: colors.danger }}>
             {error}
           </Text>
         </View>

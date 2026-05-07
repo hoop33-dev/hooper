@@ -48,8 +48,9 @@ jobs:
           COMMIT_MESSAGE: ${{ github.event.workflow_run.head_commit.message }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          FIRST_LINE=$(printf '%s' "$COMMIT_MESSAGE" | head -1 | cut -c1-120)
-          SHA_SHORT=$(printf '%s' "$HEAD_SHA" | cut -c1-7)
+          FIRST_LINE="${COMMIT_MESSAGE%%$'\n'*}"
+          FIRST_LINE="${FIRST_LINE:0:120}"
+          SHA_SHORT="${HEAD_SHA:0:7}"
           echo "message=[dev ${SHA_SHORT}] ${FIRST_LINE}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node

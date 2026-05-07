@@ -1,4 +1,4 @@
-import { Text , Linking } from "react-native";
+import { Text, Linking } from "react-native";
 
 export function DisclosureLabel() {
   return (
@@ -9,14 +9,16 @@ export function DisclosureLabel() {
       {"I confirm I am 16 or older and agree to Hooper's "}
       <Text
         className="text-brand-blue underline"
-        onPress={() => Linking.openURL("https://hoop33.co.nz/terms")}
+        onPress={() => Linking.openURL("https://www.hoop33.co.nz/terms")}
       >
         Terms of Service
       </Text>
       {" and "}
       <Text
         className="text-brand-blue underline"
-        onPress={() => Linking.openURL("https://hoop33.co.nz/privacy")}
+        onPress={() =>
+          Linking.openURL("https://www.hoop33.co.nz/privacypolicy")
+        }
       >
         Privacy Policy
       </Text>

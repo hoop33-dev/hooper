@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,17 +10,32 @@ import {
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { styled } from "nativewind";
 
-import { PasswordInput, Button, BackButton, ErrorBanner } from "@/src/components/ui";
+import {
+  PasswordInput,
+  Button,
+  BackButton,
+  ErrorBanner,
+} from "@/src/components/ui";
 import { shadows } from "@/src/constants/theme";
+import { validatePassword } from "@/src/lib/passwordRules";
+import {
+  exchangeResetCode,
+  updatePassword,
+} from "@/src/services/auth.service";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
+  const { code } = useLocalSearchParams<{ code?: string }>();
   const confirmPasswordRef = useRef<RNTextInput>(null);
+
+  const [exchangeError, setExchangeError] = useState("");
+  const [isExchanging, setIsExchanging] = useState(!!code);
+  const [sessionReady, setSessionReady] = useState(false);
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -28,14 +43,32 @@ export default function ResetPasswordScreen() {
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    if (!code) {
+      setExchangeError("No reset code found. Please use the link from your email.");
+      return;
+    }
+    let cancelled = false;
+    setIsExchanging(true);
+    exchangeResetCode(code).then((result) => {
+      if (cancelled) return;
+      setIsExchanging(false);
+      if (!result.ok) {
+        setExchangeError(result.error);
+      } else {
+        setSessionReady(true);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [code]);
 
   function validate(): boolean {
     let valid = true;
-    if (!password) {
-      setPasswordError("Required");
-      valid = false;
-    } else if (password.length < 8) {
-      setPasswordError("Minimum 8 characters");
+    const pwErr = validatePassword(password);
+    if (pwErr) {
+      setPasswordError(pwErr);
       valid = false;
     } else {
       setPasswordError("");
@@ -55,8 +88,13 @@ export default function ResetPasswordScreen() {
   async function handleReset() {
     if (!validate()) return;
     setIsSubmitting(true);
-    // Password reset confirmation will go here
+    setSubmitError("");
+    const result = await updatePassword(password);
     setIsSubmitting(false);
+    if (!result.ok) {
+      setSubmitError(result.error);
+      return;
+    }
     setDone(true);
   }
 
@@ -107,8 +145,32 @@ export default function ResetPasswordScreen() {
               title="Password updated"
               message="You can now sign in with your new password."
             />
+          ) : isExchanging ? (
+            <View className="items-center py-8">
+              <ActivityIndicator color="#fff" />
+              <Text
+                className="text-text-secondary mt-3 text-[14px]"
+                style={{ fontFamily: "Inter" }}
+              >
+                Verifying reset link…
+              </Text>
+            </View>
+          ) : exchangeError ? (
+            <ErrorBanner
+              variant="error"
+              title="Link invalid or expired"
+              message={exchangeError}
+            />
           ) : (
             <>
+              {submitError ? (
+                <ErrorBanner
+                  variant="error"
+                  title="Error"
+                  message={submitError}
+                />
+              ) : null}
+
               <PasswordInput
                 label="New password"
                 value={password}
@@ -116,7 +178,7 @@ export default function ResetPasswordScreen() {
                   setPassword(v);
                   setPasswordError("");
                 }}
-                placeholder="8+ characters"
+                placeholder="Min 8 chars, uppercase & number"
                 error={passwordError}
                 autoComplete="new-password"
                 textContentType="newPassword"
@@ -157,10 +219,19 @@ export default function ResetPasswordScreen() {
                 >
                   Sign in
                 </Button>
+              ) : exchangeError ? (
+                <Button
+                  variant="secondary"
+                  onPress={() => router.replace("/(auth)/forgot-password")}
+                  size="lg"
+                  className="w-full"
+                >
+                  Request a new link
+                </Button>
               ) : (
                 <Button
                   onPress={handleReset}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isExchanging || !sessionReady}
                   size="lg"
                   className="w-full"
                   style={shadows.orangeGlow}

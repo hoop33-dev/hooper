@@ -39,6 +39,7 @@ export default function RootLayout() {
     const inApp = segments[0] === "(app)";
     const inRoot = !inAuth && !inApp;
     const inVerify = inAuth && segments[1] === "verify-email";
+    const inResetPassword = inAuth && segments[1] === "reset-password";
 
     if (status === "unauthenticated") {
       if (!inRoot && !inAuth) {
@@ -55,6 +56,9 @@ export default function RootLayout() {
     }
 
     if (status === "authenticated") {
+      // Allow the reset-password screen to complete before redirecting.
+      if (inResetPassword) return;
+
       // Fall back to session user_metadata when profile hasn't loaded yet.
       // This prevents defaulting to "player" while primaryRole is still null.
       const role = (primaryRole ??

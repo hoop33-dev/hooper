@@ -1,0 +1,55 @@
+name: Deploy Email Templates
+
+on:
+  pull_request:
+    paths:
+      - "supabase/templates/**"
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - "supabase/templates/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-email-templates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-email-templates:
+    if: >-
+      !(github.head_ref == 'dev' && github.base_ref == 'main') &&
+      !(github.head_ref == 'main' && github.base_ref == 'dev')
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/dev' && 'development' || 'feature' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure auth URLs and deploy email templates
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          # SITE_URL is the public-facing URL for this environment.
+          # For a mobile-only app it isn't used directly, but Supabase requires
+          # a non-localhost value before it will honour custom redirect URLs.
+          SITE_URL: ${{ vars.SITE_URL || 'https://hooper.app' }}
+        run: |
+          payload=$(jq -n \
+            --arg site_url        "$SITE_URL" \
+            --arg redirect_urls   "hooper://**" \
+            --arg subject         "Reset your Hooper password" \
+            --arg body            "$(cat supabase/templates/recovery.html)" \
+            '{
+              site_url:                  $site_url,
+              uri_allow_list:            $redirect_urls,
+              mailer_subjects_recovery:  $subject,
+              mailer_templates_recovery: $body
+            }')
+
+          curl --fail --silent --show-error \
+            -X PATCH \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$payload"

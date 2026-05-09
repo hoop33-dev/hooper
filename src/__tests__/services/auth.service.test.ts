@@ -311,6 +311,28 @@ describe("signUp", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("clears any persisted session after a successful sign-up so the user must complete OTP verification", async () => {
+    mockRpc.mockResolvedValue({ data: true, error: null });
+    mockAuthSignUp.mockResolvedValue({ data: {}, error: null });
+    mockAuthSignOut.mockResolvedValue({ error: null });
+
+    await signUp(validParams);
+
+    expect(mockAuthSignOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+
+  it("does not call signOut when sign-up fails", async () => {
+    mockRpc.mockResolvedValue({ data: true, error: null });
+    mockAuthSignUp.mockResolvedValue({
+      data: {},
+      error: { message: "User already registered" },
+    });
+
+    await signUp(validParams);
+
+    expect(mockAuthSignOut).not.toHaveBeenCalled();
+  });
+
   it("returns ok: false with field='email' when the email is already registered", async () => {
     mockRpc.mockResolvedValue({ data: true, error: null });
     mockAuthSignUp.mockResolvedValue({

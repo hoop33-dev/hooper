@@ -247,7 +247,7 @@ function SuccessView({
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { pendingVerificationEmail, status, profile, signInComplete } =
+  const { pendingVerificationEmail, status, profile, signInComplete, signOut } =
     useAuthStore();
   // profile is set by signInComplete (sign-in path) but null during sign-up
   // (profile not loaded yet because email isn't confirmed). Use this to adapt the UI.
@@ -419,7 +419,13 @@ export default function VerifyEmailScreen() {
           )}
           <BackButton
             label={fromSignIn ? "Sign in" : "Your details"}
-            onPress={() => router.back()}
+            onPress={async () => {
+              // The route guard pins this screen while status is needs_verification,
+              // so plain router.back() is a no-op. Cancel the verification flow,
+              // then route to the splash where the user can resume sign-in/sign-up.
+              await signOut();
+              router.replace("/");
+            }}
           />
         </View>
       )}

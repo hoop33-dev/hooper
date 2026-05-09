@@ -46,18 +46,6 @@ async function fetchProfileAndRole(
     .eq("auth_user_id", userId)
     .maybeSingle();
 
-  if (!profileData) {
-    // Profile unreadable (RLS timing race or transient error). Don't route to
-    // verification screen — the session IS valid. Route guard uses session metadata
-    // for role until the profile becomes readable.
-    return {
-      profile: null,
-      primaryRole: null,
-      isVerified: true,
-      hasRealEmail: true,
-    };
-  }
-
   // verifyOtp and admin-created sessions include email_confirmed_at on the user
   // object. Persisted sessions also store this if it was present when setSession
   // was called. Trust it when available to avoid an extra getUser() network call.
@@ -65,6 +53,23 @@ async function fetchProfileAndRole(
     session?.user?.email_confirmed_at ||
     (session?.user as unknown as { confirmed_at?: string })?.confirmed_at
   );
+
+  if (!profileData) {
+    // Profile unreadable (RLS timing race, trigger lag, or transient error).
+    // We can't confirm has_real_email, so verify against the auth user before
+    // letting an unconfirmed signup through to the app.
+    let isVerified = !checkVerification || sessionConfirmed;
+    if (checkVerification && !sessionConfirmed) {
+      const { data: userData } = await supabase.auth.getUser();
+      isVerified = userData?.user?.email_confirmed_at != null;
+    }
+    return {
+      profile: null,
+      primaryRole: null,
+      isVerified,
+      hasRealEmail: true,
+    };
+  }
 
   const [{ data: roleData }, userResult] = await Promise.all([
     supabase

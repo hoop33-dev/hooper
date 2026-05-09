@@ -320,6 +320,42 @@ describe("hydrate", () => {
     expect(useAuthStore.getState().status).toBe("unauthenticated");
   });
 
+  it("sets needs_verification when profile is missing and the email is unconfirmed", async () => {
+    const fakeSession = {
+      user: { id: "u1", email: "u@example.com" }, // no email_confirmed_at
+    } as any;
+    mockAuthStateChange.mockReturnValue(stubSubscription());
+    mockGetSession.mockResolvedValue({ data: { session: fakeSession } });
+
+    // Profile lookup returns null (e.g. trigger lag right after signUp).
+    mockProfileAndRoleQueries({ data: null, error: null }, null);
+    (supabase.auth.getUser as jest.Mock).mockResolvedValue({
+      data: { user: { email_confirmed_at: null } },
+    });
+
+    await useAuthStore.getState().hydrate();
+
+    expect(useAuthStore.getState().status).toBe("needs_verification");
+  });
+
+  it("sets authenticated when profile is missing but the session is already confirmed", async () => {
+    const fakeSession = {
+      user: {
+        id: "u1",
+        email: "u@example.com",
+        email_confirmed_at: "2026-01-01T00:00:00Z",
+      },
+    } as any;
+    mockAuthStateChange.mockReturnValue(stubSubscription());
+    mockGetSession.mockResolvedValue({ data: { session: fakeSession } });
+
+    mockProfileAndRoleQueries({ data: null, error: null }, null);
+
+    await useAuthStore.getState().hydrate();
+
+    expect(useAuthStore.getState().status).toBe("authenticated");
+  });
+
   it("unsubscribes a previous listener before creating a new one", async () => {
     const unsubscribe = jest.fn();
     mockAuthStateChange.mockReturnValue({

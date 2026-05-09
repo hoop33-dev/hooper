@@ -4,12 +4,16 @@ on:
   pull_request:
     paths:
       - "supabase/templates/**"
+      - "supabase/config.toml"
+      - ".github/workflows/deploy-email-templates.yml"
   push:
     branches:
       - dev
       - main
     paths:
       - "supabase/templates/**"
+      - "supabase/config.toml"
+      - ".github/workflows/deploy-email-templates.yml"
   workflow_dispatch:
 
 concurrency:
@@ -26,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure auth URLs and deploy email templates
+      - name: Configure auth URLs, settings, and email templates
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
@@ -35,16 +39,37 @@ jobs:
           # a non-localhost value before it will honour custom redirect URLs.
           SITE_URL: ${{ vars.SITE_URL || 'https://hooper.app' }}
         run: |
+          # Auth settings below are kept in sync with supabase/config.toml.
+          # Field names follow the Supabase Management API schema
+          # (UpdateAuthConfigBody); template bodies require the _content suffix
+          # and mailer_autoconfirm is the inverse of enable_confirmations.
           payload=$(jq -n \
-            --arg site_url        "$SITE_URL" \
-            --arg redirect_urls   "hooper://**" \
-            --arg subject         "Reset your Hooper password" \
-            --arg body            "$(cat supabase/templates/recovery.html)" \
+            --arg site_url                    "$SITE_URL" \
+            --arg redirect_urls               "hooper://**" \
+            --arg recovery_subject            "Reset your Hooper password" \
+            --arg recovery_body               "$(cat supabase/templates/recovery.html)" \
+            --arg confirmation_subject        "Your Hooper verification code" \
+            --arg confirmation_body           "$(cat supabase/templates/confirmation.html)" \
+            --arg password_changed_subject    "Your Hooper password was changed" \
+            --arg password_changed_body       "$(cat supabase/templates/password_changed.html)" \
             '{
-              site_url:                  $site_url,
-              uri_allow_list:            $redirect_urls,
-              mailer_subjects_recovery:  $subject,
-              mailer_templates_recovery: $body
+              site_url:                                             $site_url,
+              uri_allow_list:                                       $redirect_urls,
+              disable_signup:                                       false,
+              external_email_enabled:                               true,
+              mailer_autoconfirm:                                   false,
+              mailer_secure_email_change_enabled:                   true,
+              security_update_password_require_reauthentication:    false,
+              smtp_max_frequency:                                   1,
+              mailer_otp_length:                                    6,
+              mailer_otp_exp:                                       600,
+              mailer_subjects_recovery:                             $recovery_subject,
+              mailer_templates_recovery_content:                    $recovery_body,
+              mailer_subjects_confirmation:                         $confirmation_subject,
+              mailer_templates_confirmation_content:                $confirmation_body,
+              mailer_notifications_password_changed_enabled:        true,
+              mailer_subjects_password_changed_notification:        $password_changed_subject,
+              mailer_templates_password_changed_notification_content: $password_changed_body
             }')
 
           curl --fail --silent --show-error \

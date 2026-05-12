@@ -159,6 +159,10 @@ const storeCreator: StateCreator<AuthState> = (set, get) => ({
           profile,
           primaryRole,
           status: needsVerification ? "needs_verification" : "authenticated",
+          // Keep the verify-email screen usable (it bails when this is null).
+          pendingVerificationEmail: needsVerification
+            ? (session.user.email ?? get().pendingVerificationEmail ?? null)
+            : null,
         });
       } catch {
         set({
@@ -233,7 +237,7 @@ const storeCreator: StateCreator<AuthState> = (set, get) => ({
         primaryRole,
         status: needsVerification ? "needs_verification" : "authenticated",
         pendingVerificationEmail: needsVerification
-          ? get().pendingVerificationEmail
+          ? (get().pendingVerificationEmail ?? session.user.email ?? null)
           : null,
       });
     } catch {

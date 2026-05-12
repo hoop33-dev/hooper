@@ -286,6 +286,9 @@ describe("hydrate", () => {
     await useAuthStore.getState().hydrate();
 
     expect(useAuthStore.getState().status).toBe("needs_verification");
+    expect(useAuthStore.getState().pendingVerificationEmail).toBe(
+      "u@example.com",
+    );
   });
 
   it("sets authenticated for a child account (has_real_email=false)", async () => {
@@ -336,6 +339,11 @@ describe("hydrate", () => {
     await useAuthStore.getState().hydrate();
 
     expect(useAuthStore.getState().status).toBe("needs_verification");
+    // Must be populated or the verify-email screen bounces and the route guard
+    // bounces back — an infinite redirect loop.
+    expect(useAuthStore.getState().pendingVerificationEmail).toBe(
+      "u@example.com",
+    );
   });
 
   it("sets authenticated when profile is missing but the session is already confirmed", async () => {

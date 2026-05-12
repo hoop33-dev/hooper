@@ -57,20 +57,28 @@ export async function signInWithUsername(
     return { ok: false, error: data.error ?? "Invalid username or password." };
   }
 
-  const { data: { session } } = await supabase.auth.setSession(data.session);
+  const {
+    data: { session },
+  } = await supabase.auth.setSession(data.session);
 
   if (!session) {
     return { ok: false, error: "Unable to sign in. Please try again." };
   }
 
-  return { ok: true, session, requiresVerification: data.requires_verification ?? false };
+  return {
+    ok: true,
+    session,
+    requiresVerification: data.requires_verification ?? false,
+  };
 }
 
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
 }
 
-export type VerifyOtpResult = { ok: true; session: Session } | { ok: false; error: string };
+export type VerifyOtpResult =
+  | { ok: true; session: Session }
+  | { ok: false; error: string };
 
 export async function verifyEmailOtp(
   email: string,
@@ -83,7 +91,8 @@ export async function verifyEmailOtp(
   });
   if (error) {
     const msg = error.message.toLowerCase();
-    if (msg.includes("expired")) return { ok: false, error: "Code expired. Request a new one." };
+    if (msg.includes("expired"))
+      return { ok: false, error: "Code expired. Request a new one." };
     return { ok: false, error: "Invalid code. Please try again." };
   }
   if (!data.session) {
@@ -143,6 +152,24 @@ export async function updatePassword(
   return { ok: true };
 }
 
+const EMAIL_ALREADY_EXISTS_ERROR = "An account with this email already exists.";
+
+// Sends the "account already exists" email to the address that owns the
+// account. signInWithOtp with shouldCreateUser:false only emails addresses that
+// already have an account, so it can't be used to probe for valid emails, and
+// GoTrue serves it from the magic-link template (see config.toml). Failures
+// (e.g. rate limiting) are swallowed: they must not change the sign-up result.
+async function sendAccountAlreadyExistsEmail(email: string): Promise<void> {
+  try {
+    await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false, emailRedirectTo: "hooper://" },
+    });
+  } catch {
+    // best-effort notification
+  }
+}
+
 export async function signUp(params: SignUpParams): Promise<SignUpResult> {
   const available = await checkUsernameAvailable(params.username);
   if (available === null) {
@@ -159,7 +186,7 @@ export async function signUp(params: SignUpParams): Promise<SignUpResult> {
     };
   }
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: params.email,
     password: params.password,
     options: {
@@ -180,13 +207,18 @@ export async function signUp(params: SignUpParams): Promise<SignUpResult> {
   if (error) {
     const msg = error.message.toLowerCase();
     if (msg.includes("already registered") || msg.includes("already exists")) {
-      return {
-        ok: false,
-        field: "email",
-        error: "An account with this email already exists.",
-      };
+      await sendAccountAlreadyExistsEmail(params.email);
+      return { ok: false, field: "email", error: EMAIL_ALREADY_EXISTS_ERROR };
     }
     return { ok: false, error: error.message };
+  }
+
+  // With email confirmations enabled, GoTrue hides duplicate sign-ups instead
+  // of erroring: it returns a fabricated user with an empty `identities` array.
+  // Treat that as "email already in use" and notify the real account owner.
+  if (data?.user && (data.user.identities?.length ?? 0) === 0) {
+    await sendAccountAlreadyExistsEmail(params.email);
+    return { ok: false, field: "email", error: EMAIL_ALREADY_EXISTS_ERROR };
   }
 
   return { ok: true };

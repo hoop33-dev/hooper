@@ -90,12 +90,12 @@ export default function SignupDetailsScreen() {
       if (calcAge(value) < 16) {
         setAgeGateVisible(true);
       } else {
-        setTimeout(() => usernameRef.current?.focus(), 300);
+        setTimeout(() => emailRef.current?.focus(), 300);
       }
     }
 
     if (key === "region") {
-      setTimeout(() => passwordRef.current?.focus(), 300);
+      setTimeout(() => usernameRef.current?.focus(), 300);
     }
   }
 
@@ -156,7 +156,7 @@ export default function SignupDetailsScreen() {
     }
 
     setVerificationPending(form.email);
-    router.replace("/(auth)/verify-email");
+    router.push("/(auth)/verify-email");
   }
 
   return (
@@ -197,7 +197,6 @@ export default function SignupDetailsScreen() {
             label="First name"
             value={form.firstName}
             onChangeText={(v) => setField("firstName", v)}
-            placeholder="Jordan"
             hasError={!!errors.firstName}
             autoCapitalize="words"
             autoComplete="given-name"
@@ -214,7 +213,6 @@ export default function SignupDetailsScreen() {
             label="Last name"
             value={form.lastName}
             onChangeText={(v) => setField("lastName", v)}
-            placeholder="Taylor"
             hasError={!!errors.lastName}
             autoCapitalize="words"
             autoComplete="family-name"
@@ -224,7 +222,7 @@ export default function SignupDetailsScreen() {
             onSubmitEditing={() =>
               roleId === "player"
                 ? dateInputRef.current?.open()
-                : usernameRef.current?.focus()
+                : emailRef.current?.focus()
             }
           />
           {errors.lastName && <ErrorMessage message={errors.lastName} />}
@@ -246,29 +244,10 @@ export default function SignupDetailsScreen() {
 
       <View>
         <Input
-          ref={usernameRef}
-          label="Username"
-          value={form.username}
-          onChangeText={(v) => setField("username", v)}
-          placeholder="jordan33"
-          hasError={!!errors.username}
-          autoCapitalize="none"
-          autoComplete="username"
-          textContentType="username"
-          returnKeyType="next"
-          blurOnSubmit={false}
-          onSubmitEditing={() => emailRef.current?.focus()}
-        />
-        {errors.username && <ErrorMessage message={errors.username} />}
-      </View>
-
-      <View>
-        <Input
           ref={emailRef}
           label="Email address"
           value={form.email}
           onChangeText={(v) => setField("email", v)}
-          placeholder="you@email.com"
           hasError={!!errors.email}
           keyboardType="email-address"
           autoCapitalize="none"
@@ -301,6 +280,23 @@ export default function SignupDetailsScreen() {
         error={errors.region}
         onChange={(v) => setField("region", v)}
       />
+
+      <View>
+        <Input
+          ref={usernameRef}
+          label="Username"
+          value={form.username}
+          onChangeText={(v) => setField("username", v)}
+          hasError={!!errors.username}
+          autoCapitalize="none"
+          autoComplete="username"
+          textContentType="username"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => passwordRef.current?.focus()}
+        />
+        {errors.username && <ErrorMessage message={errors.username} />}
+      </View>
 
       <PasswordInput
         ref={passwordRef}

@@ -71,7 +71,10 @@ export default function LoginScreen() {
 
     // Unverified account: route to verify-email; OTP completes the sign-in.
     // push (not replace) keeps login on the stack so verify-email's back works.
+    // Because the screen stays mounted, reset isSubmitting so the button isn't
+    // stuck loading when the user navigates back.
     if (result.requiresVerification) {
+      setIsSubmitting(false);
       setVerificationPending(result.email);
       router.push("/(auth)/verify-email");
       return;

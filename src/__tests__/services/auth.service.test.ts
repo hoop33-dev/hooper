@@ -378,7 +378,7 @@ describe("signUp", () => {
 
     expect(mockSignInWithOtp).toHaveBeenCalledWith({
       email: validParams.email,
-      options: { shouldCreateUser: false, emailRedirectTo: "hooper://" },
+      options: { shouldCreateUser: false },
     });
   });
 
@@ -393,7 +393,7 @@ describe("signUp", () => {
 
     expect(mockSignInWithOtp).toHaveBeenCalledWith({
       email: validParams.email,
-      options: { shouldCreateUser: false, emailRedirectTo: "hooper://" },
+      options: { shouldCreateUser: false },
     });
   });
 

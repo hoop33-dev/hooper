@@ -157,13 +157,15 @@ const EMAIL_ALREADY_EXISTS_ERROR = "An account with this email already exists.";
 // Sends the "account already exists" email to the address that owns the
 // account. signInWithOtp with shouldCreateUser:false only emails addresses that
 // already have an account, so it can't be used to probe for valid emails, and
-// GoTrue serves it from the magic-link template (see config.toml). Failures
-// (e.g. rate limiting) are swallowed: they must not change the sign-up result.
+// GoTrue serves it from the magic-link template (see config.toml). The template
+// links to the login screen rather than exposing the magic link, since Hooper
+// signs in with username + password. Failures (e.g. rate limiting) are
+// swallowed: they must not change the sign-up result.
 async function sendAccountAlreadyExistsEmail(email: string): Promise<void> {
   try {
     await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: false, emailRedirectTo: "hooper://" },
+      options: { shouldCreateUser: false },
     });
   } catch {
     // best-effort notification

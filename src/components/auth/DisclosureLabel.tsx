@@ -6,7 +6,7 @@ export function DisclosureLabel() {
       className="text-text-secondary"
       style={{ fontFamily: "Inter", fontSize: 12.5, lineHeight: 12.5 * 1.55 }}
     >
-      {"I confirm I am 16 or older and agree to Hooper's "}
+      {"I agree to Hooper's "}
       <Text
         className="text-brand-blue underline"
         onPress={() => Linking.openURL("https://www.hoop33.co.nz/terms")}

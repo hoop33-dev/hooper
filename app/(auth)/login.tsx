@@ -70,9 +70,10 @@ export default function LoginScreen() {
     }
 
     // Unverified account: route to verify-email; OTP completes the sign-in.
+    // push (not replace) keeps login on the stack so verify-email's back works.
     if (result.requiresVerification) {
       setVerificationPending(result.email);
-      router.replace("/(auth)/verify-email");
+      router.push("/(auth)/verify-email");
       return;
     }
 

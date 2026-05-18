@@ -420,11 +420,18 @@ export default function VerifyEmailScreen() {
           <BackButton
             label={fromSignIn ? "Sign in" : "Your details"}
             onPress={async () => {
-              // The route guard pins this screen while status is needs_verification,
-              // so plain router.back() is a no-op. Cancel the verification flow,
-              // then route to the splash where the user can resume sign-in/sign-up.
+              // signOut() is required regardless of how we got here: the route
+              // guard re-pins this screen while status is needs_verification, so
+              // back navigation is a no-op until that status is cleared.
               await signOut();
-              router.replace("/");
+              // The previous screen (signup-details / login) is still on the
+              // stack via router.push, so return to it; fall back to the splash
+              // when the app opened directly onto verify-email.
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/");
+              }
             }}
           />
         </View>

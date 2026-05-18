@@ -18,10 +18,7 @@ type AuthState = {
   pendingVerificationEmail: string | null;
 
   hydrate: () => Promise<void>;
-  signInComplete: (
-    session: Session,
-    requiresVerification: boolean,
-  ) => Promise<void>;
+  signInComplete: (session: Session) => Promise<void>;
   setVerificationPending: (email: string) => void;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -175,23 +172,12 @@ const storeCreator: StateCreator<AuthState> = (set, get) => ({
     }
   },
 
-  // requiresVerification comes directly from the edge function (admin-API-derived,
-  // definitive). When false, we still fetch profile/role but skip the getUser() call
-  // because we already know the email is confirmed. When true, we set state directly
-  // without fetching the profile — it will be loaded by refreshProfile() after OTP.
-  signInComplete: async (session: Session, requiresVerification: boolean) => {
+  // Called once the caller holds a session for a confirmed email (password
+  // sign-in or completed OTP). Loads profile/role and skips the getUser()
+  // verification check. Unverified accounts never reach here — they route to
+  // the verify-email screen via setVerificationPending() instead.
+  signInComplete: async (session: Session) => {
     try {
-      if (requiresVerification) {
-        set({
-          session,
-          profile: null,
-          primaryRole: null,
-          status: "needs_verification",
-          pendingVerificationEmail: session.user.email ?? null,
-        });
-        return;
-      }
-
       const { profile, primaryRole } = await fetchProfileAndRole(
         session.user.id,
         false,

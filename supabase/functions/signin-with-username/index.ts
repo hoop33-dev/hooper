@@ -2,8 +2,9 @@
 //
 // Resolves a username to its stored email via the admin API (never
 // returned to the caller), verifies password via signInWithPassword, and
-// handles the "email not confirmed" case by creating an admin session so the
-// client can proceed to the verify-email screen without a second round-trip.
+// for the "email not confirmed" case tells the client to go to the
+// verify-email screen WITHOUT issuing a session — an unverified user must
+// not hold one, and verifyOtp needs no session.
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -78,18 +79,12 @@ serve(async (req: Request) => {
       (signInError as any).code === "email_not_confirmed";
 
     if (isEmailNotConfirmed && profile.has_real_email) {
-      // Password was valid; create a session via the admin API so the client
-      // can proceed to the verify-email screen.
-      const { data: sessionData, error: sessionError } =
-        await admin.auth.admin.createSession({ user_id: profile.auth_user_id });
-
-      if (sessionError || !sessionData?.session) {
-        return json(200, { ok: false, error: "Invalid username or password" });
-      }
-
+      // Password was valid but the email is unconfirmed. Issue no session —
+      // the client completes verifyOtp (which needs none) on the verify-email
+      // screen, and an unverified user must never hold a session.
       return json(200, {
         ok: true,
-        session: sessionData.session,
+        session: null,
         requires_verification: true,
         email_for_otp: authUser.email,
       });

@@ -361,7 +361,7 @@ export default function VerifyEmailScreen() {
     try {
       // Use the session returned by verifyOtp directly — avoids calling getUser()
       // which can return stale email_confirmed_at immediately after verification.
-      await signInComplete(verifiedSession, false);
+      await signInComplete(verifiedSession);
       // Guard in _layout.tsx fires from the status change and routes to the dashboard.
       // isContinuing intentionally not reset on success — screen unmounts.
     } catch {

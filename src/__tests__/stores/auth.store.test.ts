@@ -118,26 +118,14 @@ describe("signInComplete", () => {
     user: { id: "u1", email: "user@example.com" },
   } as any;
 
-  it("sets needs_verification state when requiresVerification=true (no DB fetch)", async () => {
-    await useAuthStore.getState().signInComplete(fakeSession, true);
-
-    const { status, pendingVerificationEmail, session, profile } =
-      useAuthStore.getState();
-    expect(status).toBe("needs_verification");
-    expect(pendingVerificationEmail).toBe("user@example.com");
-    expect(session).toEqual(fakeSession);
-    expect(profile).toBeNull();
-    expect(mockFrom).not.toHaveBeenCalled();
-  });
-
-  it("sets authenticated state when requiresVerification=false and profile loads", async () => {
+  it("sets authenticated state when the profile loads", async () => {
     const fakeProfile = { id: "p1", auth_user_id: "u1", has_real_email: true };
     mockProfileAndRoleQueries(
       { data: fakeProfile, error: null },
       { data: { role: "player" }, error: null },
     );
 
-    await useAuthStore.getState().signInComplete(fakeSession, false);
+    await useAuthStore.getState().signInComplete(fakeSession);
 
     const { status, primaryRole, pendingVerificationEmail } =
       useAuthStore.getState();
@@ -153,7 +141,7 @@ describe("signInComplete", () => {
       { data: null, error: null },
     );
 
-    await useAuthStore.getState().signInComplete(fakeSession, false);
+    await useAuthStore.getState().signInComplete(fakeSession);
 
     expect(useAuthStore.getState().status).toBe("authenticated");
     expect(useAuthStore.getState().primaryRole).toBeNull();
@@ -165,20 +153,13 @@ describe("signInComplete", () => {
     });
 
     await expect(
-      useAuthStore.getState().signInComplete(fakeSession, false),
+      useAuthStore.getState().signInComplete(fakeSession),
     ).rejects.toThrow("Unable to load your profile");
 
     const { status, session, profile } = useAuthStore.getState();
     expect(status).toBe("unauthenticated");
     expect(session).toBeNull();
     expect(profile).toBeNull();
-  });
-
-  it("stores null email as pendingVerificationEmail when session.user.email is absent", async () => {
-    const sessionWithoutEmail = { user: { id: "u2" } } as any;
-    await useAuthStore.getState().signInComplete(sessionWithoutEmail, true);
-
-    expect(useAuthStore.getState().pendingVerificationEmail).toBeNull();
   });
 });
 

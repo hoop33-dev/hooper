@@ -69,23 +69,30 @@ describe("signInWithUsername", () => {
     const result = await signInWithUsername("user", "Password1");
 
     expect(result.ok).toBe(true);
-    if (result.ok) {
+    if (result.ok && !result.requiresVerification) {
       expect(result.session).toEqual(fakeSession);
-      expect(result.requiresVerification).toBe(false);
     }
   });
 
-  it("returns requiresVerification: true when edge function signals it", async () => {
+  it("returns requiresVerification with the email and no session for unverified accounts", async () => {
     mockInvoke.mockResolvedValue({
-      data: { ok: true, session: fakeSession, requires_verification: true },
+      data: {
+        ok: true,
+        session: null,
+        requires_verification: true,
+        email_for_otp: "u@example.com",
+      },
       error: null,
     });
-    mockSetSession.mockResolvedValue({ data: { session: fakeSession } });
 
     const result = await signInWithUsername("user", "Password1");
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.requiresVerification).toBe(true);
+    if (result.ok && result.requiresVerification) {
+      expect(result.email).toBe("u@example.com");
+    }
+    // No session to set when verification is still required.
+    expect(mockSetSession).not.toHaveBeenCalled();
   });
 
   it("returns ok: false when the edge function throws", async () => {

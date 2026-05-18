@@ -1,5 +1,10 @@
 import { useState, useRef } from "react";
-import { View, Text, Pressable, type TextInput as RNTextInput } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  type TextInput as RNTextInput,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";

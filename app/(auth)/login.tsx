@@ -30,7 +30,7 @@ const StyledSafeAreaView = styled(SafeAreaView);
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signInComplete } = useAuthStore();
+  const { signInComplete, setVerificationPending } = useAuthStore();
   const passwordRef = useRef<RNTextInput>(null);
 
   const [username, setUsername] = useState("");
@@ -69,8 +69,19 @@ export default function LoginScreen() {
       return;
     }
 
+    // Unverified account: route to verify-email; OTP completes the sign-in.
+    // push (not replace) keeps login on the stack so verify-email's back works.
+    // Because the screen stays mounted, reset isSubmitting so the button isn't
+    // stuck loading when the user navigates back.
+    if (result.requiresVerification) {
+      setIsSubmitting(false);
+      setVerificationPending(result.email);
+      router.push("/(auth)/verify-email");
+      return;
+    }
+
     try {
-      await signInComplete(result.session, result.requiresVerification);
+      await signInComplete(result.session);
       // isSubmitting intentionally not reset — guard navigates away and screen unmounts.
     } catch {
       setIsSubmitting(false);
@@ -121,9 +132,7 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           bottomOffset={120}
         >
-          {submitError ? (
-            <ErrorBanner message={submitError} />
-          ) : null}
+          {submitError ? <ErrorBanner message={submitError} /> : null}
 
           <View>
             <Input

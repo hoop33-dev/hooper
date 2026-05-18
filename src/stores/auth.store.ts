@@ -18,10 +18,7 @@ type AuthState = {
   pendingVerificationEmail: string | null;
 
   hydrate: () => Promise<void>;
-  signInComplete: (
-    session: Session,
-    requiresVerification: boolean,
-  ) => Promise<void>;
+  signInComplete: (session: Session) => Promise<void>;
   setVerificationPending: (email: string) => void;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -46,18 +43,6 @@ async function fetchProfileAndRole(
     .eq("auth_user_id", userId)
     .maybeSingle();
 
-  if (!profileData) {
-    // Profile unreadable (RLS timing race or transient error). Don't route to
-    // verification screen — the session IS valid. Route guard uses session metadata
-    // for role until the profile becomes readable.
-    return {
-      profile: null,
-      primaryRole: null,
-      isVerified: true,
-      hasRealEmail: true,
-    };
-  }
-
   // verifyOtp and admin-created sessions include email_confirmed_at on the user
   // object. Persisted sessions also store this if it was present when setSession
   // was called. Trust it when available to avoid an extra getUser() network call.
@@ -65,6 +50,23 @@ async function fetchProfileAndRole(
     session?.user?.email_confirmed_at ||
     (session?.user as unknown as { confirmed_at?: string })?.confirmed_at
   );
+
+  if (!profileData) {
+    // Profile unreadable (RLS timing race, trigger lag, or transient error).
+    // We can't confirm has_real_email, so verify against the auth user before
+    // letting an unconfirmed signup through to the app.
+    let isVerified = !checkVerification || sessionConfirmed;
+    if (checkVerification && !sessionConfirmed) {
+      const { data: userData } = await supabase.auth.getUser();
+      isVerified = userData?.user?.email_confirmed_at != null;
+    }
+    return {
+      profile: null,
+      primaryRole: null,
+      isVerified,
+      hasRealEmail: true,
+    };
+  }
 
   const [{ data: roleData }, userResult] = await Promise.all([
     supabase
@@ -154,6 +156,10 @@ const storeCreator: StateCreator<AuthState> = (set, get) => ({
           profile,
           primaryRole,
           status: needsVerification ? "needs_verification" : "authenticated",
+          // Keep the verify-email screen usable (it bails when this is null).
+          pendingVerificationEmail: needsVerification
+            ? (session.user.email ?? get().pendingVerificationEmail ?? null)
+            : null,
         });
       } catch {
         set({
@@ -166,23 +172,12 @@ const storeCreator: StateCreator<AuthState> = (set, get) => ({
     }
   },
 
-  // requiresVerification comes directly from the edge function (admin-API-derived,
-  // definitive). When false, we still fetch profile/role but skip the getUser() call
-  // because we already know the email is confirmed. When true, we set state directly
-  // without fetching the profile — it will be loaded by refreshProfile() after OTP.
-  signInComplete: async (session: Session, requiresVerification: boolean) => {
+  // Called once the caller holds a session for a confirmed email (password
+  // sign-in or completed OTP). Loads profile/role and skips the getUser()
+  // verification check. Unverified accounts never reach here — they route to
+  // the verify-email screen via setVerificationPending() instead.
+  signInComplete: async (session: Session) => {
     try {
-      if (requiresVerification) {
-        set({
-          session,
-          profile: null,
-          primaryRole: null,
-          status: "needs_verification",
-          pendingVerificationEmail: session.user.email ?? null,
-        });
-        return;
-      }
-
       const { profile, primaryRole } = await fetchProfileAndRole(
         session.user.id,
         false,
@@ -228,7 +223,7 @@ const storeCreator: StateCreator<AuthState> = (set, get) => ({
         primaryRole,
         status: needsVerification ? "needs_verification" : "authenticated",
         pendingVerificationEmail: needsVerification
-          ? get().pendingVerificationEmail
+          ? (get().pendingVerificationEmail ?? session.user.email ?? null)
           : null,
       });
     } catch {

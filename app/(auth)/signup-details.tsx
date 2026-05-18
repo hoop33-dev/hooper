@@ -1,8 +1,6 @@
 import { useState, useRef } from "react";
 import { View, Text, type TextInput as RNTextInput } from "react-native";
-import {
-  type KeyboardAwareScrollViewRef,
-} from "react-native-keyboard-controller";
+import { type KeyboardAwareScrollViewRef } from "react-native-keyboard-controller";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
 import { validatePassword } from "@/src/lib/passwordRules";

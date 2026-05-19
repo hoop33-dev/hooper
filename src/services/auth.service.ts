@@ -37,7 +37,8 @@ function formatLocalDate(date: Date): string {
 }
 
 export type SignInResult =
-  | { ok: true; session: Session; requiresVerification: boolean }
+  | { ok: true; requiresVerification: true; email: string }
+  | { ok: true; requiresVerification: false; session: Session }
   | { ok: false; error: string };
 
 export async function signInWithUsername(
@@ -57,6 +58,12 @@ export async function signInWithUsername(
     return { ok: false, error: data.error ?? "Invalid username or password." };
   }
 
+  // Unverified account: the edge function issues no session. The client
+  // proceeds to the verify-email screen and gets a session from verifyOtp.
+  if (data.requires_verification) {
+    return { ok: true, requiresVerification: true, email: data.email_for_otp };
+  }
+
   const {
     data: { session },
   } = await supabase.auth.setSession(data.session);
@@ -65,11 +72,7 @@ export async function signInWithUsername(
     return { ok: false, error: "Unable to sign in. Please try again." };
   }
 
-  return {
-    ok: true,
-    session,
-    requiresVerification: data.requires_verification ?? false,
-  };
+  return { ok: true, requiresVerification: false, session };
 }
 
 export async function signOut(): Promise<void> {
@@ -222,6 +225,11 @@ export async function signUp(params: SignUpParams): Promise<SignUpResult> {
     await sendAccountAlreadyExistsEmail(params.email);
     return { ok: false, field: "email", error: EMAIL_ALREADY_EXISTS_ERROR };
   }
+
+  // Supabase's signUp can persist a session for the not-yet-confirmed user,
+  // which would let a quit/reopen bypass the OTP step. Drop it locally so the
+  // only route to a session is verifyOtp.
+  await supabase.auth.signOut({ scope: "local" });
 
   return { ok: true };
 }

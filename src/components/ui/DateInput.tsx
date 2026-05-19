@@ -210,14 +210,14 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
 
               <DateTimePicker
                 mode="date"
-                display="spinner"
+                display="inline"
                 value={tempDate}
                 onChange={handleChange}
                 maximumDate={maxDate}
                 minimumDate={minDate}
                 themeVariant="dark"
                 accentColor={accentColor}
-                style={{ height: 200 }}
+                style={{ height: 360 }}
               />
             </StyledSafeAreaView>
           </Modal>

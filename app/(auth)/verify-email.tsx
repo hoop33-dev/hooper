@@ -247,7 +247,7 @@ function SuccessView({
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { pendingVerificationEmail, status, profile, signInComplete } =
+  const { pendingVerificationEmail, status, profile, signInComplete, signOut } =
     useAuthStore();
   // profile is set by signInComplete (sign-in path) but null during sign-up
   // (profile not loaded yet because email isn't confirmed). Use this to adapt the UI.
@@ -361,7 +361,7 @@ export default function VerifyEmailScreen() {
     try {
       // Use the session returned by verifyOtp directly — avoids calling getUser()
       // which can return stale email_confirmed_at immediately after verification.
-      await signInComplete(verifiedSession, false);
+      await signInComplete(verifiedSession);
       // Guard in _layout.tsx fires from the status change and routes to the dashboard.
       // isContinuing intentionally not reset on success — screen unmounts.
     } catch {
@@ -419,7 +419,20 @@ export default function VerifyEmailScreen() {
           )}
           <BackButton
             label={fromSignIn ? "Sign in" : "Your details"}
-            onPress={() => router.back()}
+            onPress={async () => {
+              // signOut() is required regardless of how we got here: the route
+              // guard re-pins this screen while status is needs_verification, so
+              // back navigation is a no-op until that status is cleared.
+              await signOut();
+              // The previous screen (signup-details / login) is still on the
+              // stack via router.push, so return to it; fall back to the splash
+              // when the app opened directly onto verify-email.
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/");
+              }
+            }}
           />
         </View>
       )}

@@ -78,7 +78,7 @@ export default function SplashScreen() {
         <View className="flex-1 items-center justify-center px-6">
           <Carousel
             items={SLIDES}
-            autoAdvanceMs={4000}
+            autoAdvanceMs={6000}
             renderItem={(slide) => (
               <View className="items-center">
                 <View style={{ width: 200, height: 140 }} className="mb-5">

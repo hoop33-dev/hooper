@@ -155,6 +155,26 @@ export async function updatePassword(
   return { ok: true };
 }
 
+const EMAIL_ALREADY_EXISTS_ERROR = "An account with this email already exists.";
+
+// Sends the "account already exists" email to the address that owns the
+// account. signInWithOtp with shouldCreateUser:false only emails addresses that
+// already have an account, so it can't be used to probe for valid emails, and
+// GoTrue serves it from the magic-link template (see config.toml). The template
+// links to the login screen rather than exposing the magic link, since Hooper
+// signs in with username + password. Failures (e.g. rate limiting) are
+// swallowed: they must not change the sign-up result.
+async function sendAccountAlreadyExistsEmail(email: string): Promise<void> {
+  try {
+    await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
+  } catch {
+    // best-effort notification
+  }
+}
+
 export async function signUp(params: SignUpParams): Promise<SignUpResult> {
   const available = await checkUsernameAvailable(params.username);
   if (available === null) {
@@ -171,7 +191,7 @@ export async function signUp(params: SignUpParams): Promise<SignUpResult> {
     };
   }
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: params.email,
     password: params.password,
     options: {
@@ -192,13 +212,18 @@ export async function signUp(params: SignUpParams): Promise<SignUpResult> {
   if (error) {
     const msg = error.message.toLowerCase();
     if (msg.includes("already registered") || msg.includes("already exists")) {
-      return {
-        ok: false,
-        field: "email",
-        error: "An account with this email already exists.",
-      };
+      await sendAccountAlreadyExistsEmail(params.email);
+      return { ok: false, field: "email", error: EMAIL_ALREADY_EXISTS_ERROR };
     }
     return { ok: false, error: error.message };
+  }
+
+  // With email confirmations enabled, GoTrue hides duplicate sign-ups instead
+  // of erroring: it returns a fabricated user with an empty `identities` array.
+  // Treat that as "email already in use" and notify the real account owner.
+  if (data?.user && (data.user.identities?.length ?? 0) === 0) {
+    await sendAccountAlreadyExistsEmail(params.email);
+    return { ok: false, field: "email", error: EMAIL_ALREADY_EXISTS_ERROR };
   }
 
   // Supabase's signUp can persist a session for the not-yet-confirmed user,

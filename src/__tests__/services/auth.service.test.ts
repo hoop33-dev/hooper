@@ -18,6 +18,7 @@ jest.mock("@/src/lib/supabase", () => ({
       verifyOtp: jest.fn(),
       resend: jest.fn(),
       signUp: jest.fn(),
+      signInWithOtp: jest.fn(),
     },
   },
 }));
@@ -29,10 +30,14 @@ const mockAuthSignOut = supabase.auth.signOut as jest.Mock;
 const mockVerifyOtp = supabase.auth.verifyOtp as jest.Mock;
 const mockResend = supabase.auth.resend as jest.Mock;
 const mockAuthSignUp = supabase.auth.signUp as jest.Mock;
+const mockSignInWithOtp = supabase.auth.signInWithOtp as jest.Mock;
 
 const fakeSession = { user: { id: "u1", email: "test@example.com" } } as any;
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockSignInWithOtp.mockResolvedValue({ data: {}, error: null });
+});
 
 // ─── checkUsernameAvailable ───────────────────────────────────────────────────
 
@@ -311,11 +316,15 @@ describe("signUp", () => {
 
   it("returns ok: true on a successful sign-up", async () => {
     mockRpc.mockResolvedValue({ data: true, error: null });
-    mockAuthSignUp.mockResolvedValue({ data: {}, error: null });
+    mockAuthSignUp.mockResolvedValue({
+      data: { user: { id: "u1", identities: [{ id: "i1" }] }, session: null },
+      error: null,
+    });
 
     const result = await signUp(validParams);
 
     expect(result.ok).toBe(true);
+    expect(mockSignInWithOtp).not.toHaveBeenCalled();
   });
 
   it("clears any persisted session after a successful sign-up so the user must complete OTP verification", async () => {
@@ -343,7 +352,7 @@ describe("signUp", () => {
   it("returns ok: false with field='email' when the email is already registered", async () => {
     mockRpc.mockResolvedValue({ data: true, error: null });
     mockAuthSignUp.mockResolvedValue({
-      data: {},
+      data: { user: null, session: null },
       error: { message: "User already registered" },
     });
 
@@ -359,7 +368,7 @@ describe("signUp", () => {
   it("also catches 'already exists' phrasing for duplicate email errors", async () => {
     mockRpc.mockResolvedValue({ data: true, error: null });
     mockAuthSignUp.mockResolvedValue({
-      data: {},
+      data: { user: null, session: null },
       error: { message: "Email already exists" },
     });
 
@@ -367,6 +376,80 @@ describe("signUp", () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.field).toBe("email");
+  });
+
+  it("detects a duplicate email when GoTrue returns an obfuscated user", async () => {
+    // With email confirmations enabled, GoTrue hides duplicate sign-ups by
+    // returning a fabricated user whose `identities` array is empty.
+    mockRpc.mockResolvedValue({ data: true, error: null });
+    mockAuthSignUp.mockResolvedValue({
+      data: { user: { id: "obfuscated", identities: [] }, session: null },
+      error: null,
+    });
+
+    const result = await signUp(validParams);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.field).toBe("email");
+      expect(result.error).toMatch(/email already exists/i);
+    }
+  });
+
+  it("sends the 'account already exists' email when a duplicate is detected", async () => {
+    mockRpc.mockResolvedValue({ data: true, error: null });
+    mockAuthSignUp.mockResolvedValue({
+      data: { user: { id: "obfuscated", identities: [] }, session: null },
+      error: null,
+    });
+
+    await signUp(validParams);
+
+    expect(mockSignInWithOtp).toHaveBeenCalledWith({
+      email: validParams.email,
+      options: { shouldCreateUser: false },
+    });
+  });
+
+  it("sends the 'account already exists' email on the 'already registered' error path", async () => {
+    mockRpc.mockResolvedValue({ data: true, error: null });
+    mockAuthSignUp.mockResolvedValue({
+      data: { user: null, session: null },
+      error: { message: "User already registered" },
+    });
+
+    await signUp(validParams);
+
+    expect(mockSignInWithOtp).toHaveBeenCalledWith({
+      email: validParams.email,
+      options: { shouldCreateUser: false },
+    });
+  });
+
+  it("still reports the duplicate when the notification email fails to send", async () => {
+    mockRpc.mockResolvedValue({ data: true, error: null });
+    mockAuthSignUp.mockResolvedValue({
+      data: { user: { id: "obfuscated", identities: [] }, session: null },
+      error: null,
+    });
+    mockSignInWithOtp.mockRejectedValue(new Error("rate limited"));
+
+    const result = await signUp(validParams);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.field).toBe("email");
+  });
+
+  it("does not send the 'account already exists' email for other sign-up errors", async () => {
+    mockRpc.mockResolvedValue({ data: true, error: null });
+    mockAuthSignUp.mockResolvedValue({
+      data: { user: null, session: null },
+      error: { message: "Signup service unavailable" },
+    });
+
+    await signUp(validParams);
+
+    expect(mockSignInWithOtp).not.toHaveBeenCalled();
   });
 
   it("returns ok: false with the raw error message for other sign-up errors", async () => {

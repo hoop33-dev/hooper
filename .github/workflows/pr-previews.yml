@@ -120,10 +120,13 @@ jobs:
         id: publish
         shell: bash
         run: |
+          # Branch and message are passed via env (not inlined with ${{ }}) so
+          # that quotes or other shell metacharacters in the PR title/body
+          # cannot break this command.
           OUTPUT=$(eas update \
-            --branch "${{ steps.preview_meta.outputs.branch }}" \
+            --branch "$PREVIEW_BRANCH" \
             --environment preview \
-            --message "${{ steps.preview_meta.outputs.message }}" \
+            --message "$PREVIEW_MESSAGE" \
             --json)
 
           GROUP_ID=$(echo "$OUTPUT" | jq -r '.[0].group // empty')
@@ -144,6 +147,8 @@ jobs:
           echo "dashboard_url=$DASHBOARD_URL" >> "$GITHUB_OUTPUT"
         env:
           CI: "1"
+          PREVIEW_BRANCH: ${{ steps.preview_meta.outputs.branch }}
+          PREVIEW_MESSAGE: ${{ steps.preview_meta.outputs.message }}
 
       - name: Update preview comment (ready)
         if: success()

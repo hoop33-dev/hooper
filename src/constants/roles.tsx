@@ -17,6 +17,9 @@ export type RoleConfig = {
   accent: string;
   accentDim: string;
   accentBorder: string;
+  headerTint: string;
+  planName: string;
+  planSub: string;
 };
 
 export const ROLES: RoleConfig[] = [
@@ -30,6 +33,9 @@ export const ROLES: RoleConfig[] = [
     accent: "#F15825",
     accentDim: "rgba(241,88,37,0.12)",
     accentBorder: "rgba(241,88,37,0.3)",
+    headerTint: "rgba(241,88,37,0.06)",
+    planName: "Level 1",
+    planSub: "Standard access · No coach",
   },
   {
     id: "parent",
@@ -41,6 +47,9 @@ export const ROLES: RoleConfig[] = [
     accent: "#F68D68",
     accentDim: "rgba(246,141,104,0.10)",
     accentBorder: "rgba(246,141,104,0.25)",
+    headerTint: "rgba(246,141,104,0.06)",
+    planName: "Level 2",
+    planSub: "With coach access",
   },
   {
     id: "coach",
@@ -52,5 +61,12 @@ export const ROLES: RoleConfig[] = [
     accent: "#4A7FD4",
     accentDim: "rgba(74,127,212,0.12)",
     accentBorder: "rgba(74,127,212,0.3)",
+    headerTint: "rgba(0,32,92,0.35)",
+    planName: "Coach plan",
+    planSub: "Manage up to 30 athletes",
   },
 ];
+
+export function roleConfig(id: RoleId | null | undefined): RoleConfig {
+  return ROLES.find((r) => r.id === id) ?? ROLES[0];
+}

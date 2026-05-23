@@ -120,9 +120,9 @@ jobs:
         id: publish
         shell: bash
         run: |
-          # Branch and message are passed via env (not inlined with ${{ }}) so
-          # that quotes or other shell metacharacters in the PR title/body
-          # cannot break this command.
+          # Branch and message are passed via env (not inlined as GitHub
+          # expressions) so that quotes or other shell metacharacters in the
+          # PR title/body cannot break this command.
           OUTPUT=$(eas update \
             --branch "$PREVIEW_BRANCH" \
             --environment preview \

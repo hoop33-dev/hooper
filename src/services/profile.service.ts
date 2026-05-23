@@ -42,12 +42,11 @@ export async function uploadAvatar(
   const ext = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
   const path = `${profileId}/${Date.now()}.${ext}`;
 
-  const response = await fetch(uri);
-  const blob = await response.blob();
+  const arrayBuffer = await fetch(uri).then((r) => r.arrayBuffer());
 
   const { error } = await supabase.storage
     .from("avatars")
-    .upload(path, blob, { contentType: mimeType, upsert: true });
+    .upload(path, arrayBuffer, { contentType: mimeType, upsert: true });
 
   if (error) throw new Error("Failed to upload photo. Please try again.");
 

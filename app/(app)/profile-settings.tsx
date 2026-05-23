@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
 
 import { Avatar } from "@/src/components/dashboard/Avatar";
 import { SelectInput } from "@/src/components/ui/SelectInput";
@@ -399,6 +398,14 @@ export default function ProfileSettingsScreen() {
   }
 
   async function pickFromLibrary() {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    let ImagePicker: typeof import("expo-image-picker");
+    try {
+      ImagePicker = require("expo-image-picker");
+    } catch {
+      Alert.alert("Not available", "Photo upload requires an app update.");
+      return;
+    }
     const { status } =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -422,6 +429,14 @@ export default function ProfileSettingsScreen() {
   }
 
   async function pickFromCamera() {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    let ImagePicker: typeof import("expo-image-picker");
+    try {
+      ImagePicker = require("expo-image-picker");
+    } catch {
+      Alert.alert("Not available", "Photo upload requires an app update.");
+      return;
+    }
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(

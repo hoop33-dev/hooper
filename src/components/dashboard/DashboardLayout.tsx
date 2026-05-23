@@ -40,7 +40,7 @@ export function DashboardLayout({
       </SafeAreaView>
       <SafeAreaView
         edges={["bottom"]}
-        style={{ backgroundColor: "transparent" }}
+        style={{ backgroundColor: "rgba(20,17,18,0.92)" }}
       >
         <BottomNav active={activeTab} role={role} />
       </SafeAreaView>

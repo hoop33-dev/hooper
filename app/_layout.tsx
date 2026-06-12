@@ -77,7 +77,12 @@ export default function RootLayout() {
       }
       // Prevent a user from staying on another role's dashboard.
       // Shared screens (chat, settings) and parent-only nested routes are allowed.
-      const SHARED_ROUTES = new Set(["chat", "settings", "parent"]);
+      const SHARED_ROUTES = new Set([
+        "chat",
+        "settings",
+        "parent",
+        "profile-settings",
+      ]);
       if (inApp && segments[1] !== role && !SHARED_ROUTES.has(segments[1])) {
         router.replace(`/(app)/${role}` as `/(app)/${typeof role}`);
       }

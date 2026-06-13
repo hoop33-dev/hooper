@@ -307,6 +307,7 @@ export default function SettingsScreen() {
             {/* Subscription card */}
             <Pressable
               accessibilityRole="button"
+              onPress={() => router.push("/(app)/billing")}
               style={{
                 marginHorizontal: 20,
                 marginBottom: 8,
@@ -396,6 +397,7 @@ export default function SettingsScreen() {
                 title="Subscription & billing"
                 sub={`${r.planName} · Manage plan`}
                 accent={r.accent}
+                onPress={() => router.push("/(app)/billing")}
               />
               <MenuRow
                 icon={<LockIcon size={18} color={r.accent} />}

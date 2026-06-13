@@ -9,7 +9,14 @@ export default function AppLayout() {
         animation: "none",
       }}
     >
-      <Stack.Screen name="profile-settings" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen
+        name="profile-settings"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="billing"
+        options={{ animation: "slide_from_right" }}
+      />
     </Stack>
   );
 }

@@ -61,8 +61,12 @@ export default function RootLayout() {
 
       // Fall back to session user_metadata when profile hasn't loaded yet.
       // This prevents defaulting to "player" while primaryRole is still null.
-      const role = (primaryRole ??
-        (session?.user?.user_metadata?.role as import("@/src/types/database.types").RoleType | undefined)) ?? null;
+      const role =
+        primaryRole ??
+        (session?.user?.user_metadata?.role as
+          | import("@/src/types/database.types").RoleType
+          | undefined) ??
+        null;
 
       // Don't redirect until we know the role — avoids landing on the wrong dashboard.
       if (!role) return;
@@ -71,8 +75,15 @@ export default function RootLayout() {
         router.replace(`/(app)/${role}` as `/(app)/${typeof role}`);
         return;
       }
-      // Prevent a user from staying on another role's dashboard
-      if (inApp && segments[1] !== role && segments[1] !== "parent") {
+      // Prevent a user from staying on another role's dashboard.
+      // Shared screens (chat, settings) and parent-only nested routes are allowed.
+      const SHARED_ROUTES = new Set([
+        "chat",
+        "settings",
+        "parent",
+        "profile-settings",
+      ]);
+      if (inApp && segments[1] !== role && !SHARED_ROUTES.has(segments[1])) {
         router.replace(`/(app)/${role}` as `/(app)/${typeof role}`);
       }
     }

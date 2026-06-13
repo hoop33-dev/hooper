@@ -1,37 +1,46 @@
 import { useCallback } from "react";
-import { View, Text, ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { styled } from "nativewind";
 
-import { useAuthStore } from "@/src/stores/auth.store";
+import { DashboardHeader, DashboardLayout } from "@/src/components/dashboard";
+import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 import { useChildren } from "@/src/hooks/useChildren";
 import type { ChildSummary } from "@/src/services/parent.service";
-import { Label, H3, Button } from "@/src/components/ui";
-import { colors, shadows } from "@/src/constants/theme";
+import { colors } from "@/src/constants/theme";
+import { roleConfig } from "@/src/constants/roles";
 
-const StyledSafeAreaView = styled(SafeAreaView);
+const PARENT_ACCENT = roleConfig("parent").accent;
 
-function ChildCard({ child }: { child: ChildSummary }) {
+function ChildRow({ child }: { child: ChildSummary }) {
+  const initials =
+    (child.firstName.charAt(0) + child.lastName.charAt(0)).toUpperCase() || "?";
   return (
     <View
       style={{
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        backgroundColor: "rgba(255,255,255,0.04)",
-        padding: 16,
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
+        backgroundColor: colors.surface2,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+        borderRadius: 14,
+        padding: 14,
       }}
     >
       <View
         style={{
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          backgroundColor: "rgba(241,88,37,0.15)",
+          width: 38,
+          height: 38,
+          borderRadius: 19,
+          backgroundColor: `${PARENT_ACCENT}18`,
+          borderWidth: 1,
+          borderColor: `${PARENT_ACCENT}30`,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -39,20 +48,20 @@ function ChildCard({ child }: { child: ChildSummary }) {
         <Text
           style={{
             fontFamily: "Inter",
-            fontWeight: "700",
+            fontWeight: "800",
             fontSize: 14,
-            color: colors.brandOrange,
+            color: PARENT_ACCENT,
           }}
         >
-          {child.firstName.charAt(0).toUpperCase()}
+          {initials}
         </Text>
       </View>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
             fontFamily: "Inter",
             fontWeight: "600",
-            fontSize: 15,
+            fontSize: 14,
             color: colors.textPrimary,
           }}
         >
@@ -74,7 +83,7 @@ function ChildCard({ child }: { child: ChildSummary }) {
 
 export default function ParentDashboard() {
   const router = useRouter();
-  const { profile, signOut } = useAuthStore();
+  const user = useDashboardUser();
   const { children, isLoading, refresh } = useChildren();
 
   useFocusEffect(
@@ -84,56 +93,87 @@ export default function ParentDashboard() {
   );
 
   return (
-    <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
-      <View className="flex-1 px-6 pt-8">
-        <Label className="text-text-disabled mb-8">Parent dashboard</Label>
-
-        <H3 style={{ marginBottom: 32 }}>
-          Welcome{profile?.first_name ? `, ${profile.first_name}` : ""}
-        </H3>
-
-        <Button
-          onPress={() => router.push("/(app)/parent/add-child")}
-          className="w-full mb-8"
-          size="lg"
-          style={shadows.orangeGlow}
+    <DashboardLayout role="parent" activeTab="dashboard">
+      {user ? (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 24 }}
         >
-          Add child
-        </Button>
-
-        <Label className="mb-3">My children</Label>
-
-        {isLoading ? (
-          <ActivityIndicator
-            color={colors.textTertiary}
-            style={{ marginTop: 16 }}
+          <DashboardHeader
+            role="parent"
+            firstName={user.firstName}
+            initials={user.initials}
           />
-        ) : children.length === 0 ? (
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 14,
-              color: colors.textDisabled,
-              textAlign: "center",
-              marginTop: 16,
-            }}
-          >
-            No children added yet
-          </Text>
-        ) : (
-          <View style={{ gap: 10 }}>
-            {children.map((child) => (
-              <ChildCard key={child.id} child={child} />
-            ))}
-          </View>
-        )}
-      </View>
 
-      <View className="px-6 pb-4">
-        <Button variant="secondary" onPress={signOut} className="w-full" size="lg">
-          Log out
-        </Button>
-      </View>
-    </StyledSafeAreaView>
+          {/* Children section */}
+          <View style={{ paddingHorizontal: 20, gap: 10 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 2,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Inter",
+                  fontSize: 11,
+                  fontWeight: "700",
+                  letterSpacing: 11 * 0.13,
+                  color: colors.textSecondary,
+                  textTransform: "uppercase",
+                }}
+              >
+                My athletes
+              </Text>
+            </View>
+
+            {isLoading ? (
+              <ActivityIndicator
+                color={colors.textTertiary}
+                style={{ marginTop: 8 }}
+              />
+            ) : (
+              <>
+                {children.map((child) => (
+                  <ChildRow key={child.id} child={child} />
+                ))}
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => router.push("/(app)/parent/add-child")}
+                  style={({ pressed }) => ({
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    backgroundColor: `${PARENT_ACCENT}14`,
+                    borderWidth: 1.5,
+                    borderColor: `${PARENT_ACCENT}40`,
+                    borderStyle: "dashed",
+                    borderRadius: 14,
+                    paddingVertical: 14,
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Inter",
+                      fontSize: 14,
+                      fontWeight: "700",
+                      color: PARENT_ACCENT,
+                    }}
+                  >
+                    + Add athlete
+                  </Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </ScrollView>
+      ) : (
+        <View style={{ flex: 1 }} />
+      )}
+    </DashboardLayout>
   );
 }

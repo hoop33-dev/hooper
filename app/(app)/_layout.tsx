@@ -6,7 +6,10 @@ export default function AppLayout() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: "#1A1718" },
+        animation: "none",
       }}
-    />
+    >
+      <Stack.Screen name="profile-settings" options={{ animation: "slide_from_right" }} />
+    </Stack>
   );
 }

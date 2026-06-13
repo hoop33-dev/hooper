@@ -12,6 +12,11 @@ export type DashboardUser = {
   initials: string;
   role: RoleId;
   regionName: string | null;
+  regionId: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  isPrivate: boolean;
+  showAge: boolean;
 };
 
 function initialsOf(first: string, last: string): string {
@@ -66,5 +71,10 @@ export function useDashboardUser(): DashboardUser | null {
     initials: initialsOf(firstName, lastName),
     role,
     regionName,
+    regionId: profile?.region_id ?? null,
+    avatarUrl: profile?.avatar_url ?? null,
+    bio: profile?.bio ?? null,
+    isPrivate: profile?.is_private ?? false,
+    showAge: profile?.show_age ?? true,
   };
 }

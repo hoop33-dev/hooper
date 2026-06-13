@@ -166,22 +166,6 @@ export default function SettingsScreen() {
           >
             Profile
           </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Notifications"
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: colors.surface2,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <BellIcon size={18} color={colors.textSecondary} />
-          </Pressable>
         </View>
 
         {user ? (
@@ -212,10 +196,16 @@ export default function SettingsScreen() {
                 }}
               />
               <View>
-                <Avatar role={role} size={84} initials={user.initials} />
+                <Avatar
+                  role={role}
+                  size={84}
+                  initials={user.initials}
+                  imageUrl={user.avatarUrl}
+                />
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Change photo"
+                  onPress={() => router.push("/(app)/profile-settings")}
                   style={{
                     position: "absolute",
                     bottom: -2,
@@ -397,8 +387,9 @@ export default function SettingsScreen() {
               <MenuRow
                 icon={<SettingsGearIcon size={18} color={r.accent} />}
                 title="Profile settings"
-                sub="Avatar, region, username, privacy"
+                sub="Photo, name, username, bio, privacy"
                 accent={r.accent}
+                onPress={() => router.push("/(app)/profile-settings")}
               />
               <MenuRow
                 icon={<CreditIcon size={18} color={r.accent} />}
@@ -421,12 +412,6 @@ export default function SettingsScreen() {
                 icon={<BellIcon size={18} color={r.accent} />}
                 title="Notifications"
                 sub="Push, email, SMS"
-                accent={r.accent}
-              />
-              <MenuRow
-                icon={<ShieldIcon size={18} color={r.accent} />}
-                title="Privacy"
-                sub="Profile visibility, data"
                 accent={r.accent}
               />
             </View>

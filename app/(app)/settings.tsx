@@ -9,7 +9,11 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 
-import { Avatar, DashboardLayout } from "@/src/components/dashboard";
+import {
+  Avatar,
+  DashboardLayout,
+  GuardianLockPopup,
+} from "@/src/components/dashboard";
 import {
   BellIcon,
   CameraIcon,
@@ -25,6 +29,7 @@ import {
 import { colors } from "@/src/constants/theme";
 import { roleConfig } from "@/src/constants/roles";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
+import { useGuardianControls } from "@/src/hooks/useGuardianControls";
 import { useAuthStore } from "@/src/stores/auth.store";
 
 type MenuRowProps = {
@@ -33,10 +38,19 @@ type MenuRowProps = {
   sub?: string;
   accent: string;
   danger?: boolean;
+  locked?: boolean;
   onPress?: () => void;
 };
 
-function MenuRow({ icon, title, sub, accent, danger, onPress }: MenuRowProps) {
+function MenuRow({
+  icon,
+  title,
+  sub,
+  accent,
+  danger,
+  locked,
+  onPress,
+}: MenuRowProps) {
   const [pressed, setPressed] = useState(false);
   return (
     <Pressable
@@ -54,6 +68,7 @@ function MenuRow({ icon, title, sub, accent, danger, onPress }: MenuRowProps) {
         borderWidth: 1,
         borderColor: colors.borderSubtle,
         borderRadius: 14,
+        opacity: locked ? 0.55 : 1,
         transform: [{ scale: pressed ? 0.99 : 1 }],
       }}
     >
@@ -95,7 +110,11 @@ function MenuRow({ icon, title, sub, accent, danger, onPress }: MenuRowProps) {
           </Text>
         ) : null}
       </View>
-      <ChevronIcon size={16} color={colors.textTertiary} />
+      {locked ? (
+        <LockIcon size={16} color={colors.textTertiary} />
+      ) : (
+        <ChevronIcon size={16} color={colors.textTertiary} />
+      )}
     </Pressable>
   );
 }
@@ -127,6 +146,12 @@ export default function SettingsScreen() {
 
   const role = user?.role ?? "player";
   const r = roleConfig(role);
+
+  // Children (players managed by a guardian) have profile/billing locked.
+  const guardian = useGuardianControls(role === "player");
+  const isChild = guardian.isManaged;
+  const profileLocked = isChild && guardian.profileSettingsLocked;
+  const [billingLockOpen, setBillingLockOpen] = useState(false);
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -307,6 +332,7 @@ export default function SettingsScreen() {
             {/* Subscription card */}
             <Pressable
               accessibilityRole="button"
+              onPress={isChild ? () => setBillingLockOpen(true) : undefined}
               style={{
                 marginHorizontal: 20,
                 marginBottom: 8,
@@ -314,6 +340,7 @@ export default function SettingsScreen() {
                 borderColor: `${r.accent}30`,
                 borderRadius: 14,
                 overflow: "hidden",
+                opacity: isChild ? 0.55 : 1,
               }}
             >
               <LinearGradient
@@ -389,13 +416,20 @@ export default function SettingsScreen() {
                 title="Profile settings"
                 sub="Photo, name, username, bio, privacy"
                 accent={r.accent}
+                locked={profileLocked}
                 onPress={() => router.push("/(app)/profile-settings")}
               />
               <MenuRow
                 icon={<CreditIcon size={18} color={r.accent} />}
                 title="Subscription & billing"
-                sub={`${r.planName} · Manage plan`}
+                sub={
+                  isChild
+                    ? "Managed by your guardian"
+                    : `${r.planName} · Manage plan`
+                }
                 accent={r.accent}
+                locked={isChild}
+                onPress={isChild ? () => setBillingLockOpen(true) : undefined}
               />
               <MenuRow
                 icon={<LockIcon size={18} color={r.accent} />}
@@ -460,6 +494,11 @@ export default function SettingsScreen() {
           />
         )}
       </ScrollView>
+      <GuardianLockPopup
+        visible={billingLockOpen}
+        onClose={() => setBillingLockOpen(false)}
+        kind="billing"
+      />
     </DashboardLayout>
   );
 }

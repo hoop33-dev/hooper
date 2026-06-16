@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "app/**/*.{ts,tsx}",
+    "scripts/*.mjs",
+    "*.config.{js,mjs,ts}",
+    "supabase/functions/**/index.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx}", "app/**/*.{ts,tsx}"],
+  "ignore": ["supabase/functions/**"],
+  "ignoreDependencies": ["react-native-ai-devtools"]
+}

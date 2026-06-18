@@ -16,7 +16,7 @@
       "supportsTablet": true
     },
     "runtimeVersion": {
-      "policy": "sdkVersion"
+      "policy": "fingerprint"
     },
     "updates": {
       "url": "https://u.expo.dev/0d004a05-6825-40ab-8640-f2567d841f31"

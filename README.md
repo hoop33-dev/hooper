@@ -154,6 +154,60 @@ To test your branch on your phone:
 
 ---
 
+## Tester Builds (the `dev` channel)
+
+Testers run a **`preview`** build — a standalone release app with **no Expo
+launcher screen** — that auto-updates from the `dev` branch. They install it
+**once** and then receive over-the-air (OTA) updates on the next app launch.
+
+### How it works
+
+- The `preview` build profile (`eas.json`) is a release build, `distribution: internal`,
+  on the `development` channel. No `developmentClient`, so it launches straight
+  into the app.
+- Every push to `dev` that passes CI triggers `auto-development-update.yml`, which
+  publishes an OTA update to the `development` branch/channel.
+- On their next launch, testers' apps check for, download, and apply the update
+  (default `expo-updates` behaviour — applied on the following launch).
+
+### Cutting a tester build
+
+```bash
+# one build that testers install; send them the resulting install link / QR
+eas build --profile preview --platform all
+```
+
+- **iOS:** internal distribution is ad-hoc — each tester's device UDID must be
+  registered with the Apple account first (`eas device:create`), then rebuild.
+- **Android:** produces an installable `.apk`.
+
+Testers only need to reinstall when the **native layer** changes (see below).
+
+### Native modules — the important part
+
+`runtimeVersion.policy` is set to **`fingerprint`** (`app.json`). The runtime
+version is a hash of the native project, so:
+
+- **JS/asset-only change** → fingerprint unchanged → OTA is delivered to existing
+  tester installs automatically. No reinstall.
+- **Native change** (new native dependency, config-plugin change, SDK bump) →
+  fingerprint changes → the OTA is **not** delivered to old installs (they keep
+  running the last compatible version, no crash). You must cut a **new `preview`
+  build** and send testers the new install link.
+
+> Rule of thumb: if a PR adds/removes a package with native code or changes
+> `app.json` plugins/native config, testers need a fresh `eas build --profile preview`.
+
+### One-time setup checklist
+
+1. `EXPO_TOKEN` repo secret exists (used by all EAS workflows). Create a robot
+   token in the Expo dashboard if not.
+2. Register tester iOS devices: `eas device:create` (skip if Android-only).
+3. Cut the first build: `eas build --profile preview --platform all`.
+4. Send testers the install link. Done — pushes to `dev` now reach them OTA.
+
+---
+
 ## Environment Variables
 
 | Variable                        | Where to get it           |

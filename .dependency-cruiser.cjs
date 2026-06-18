@@ -31,10 +31,10 @@ module.exports = {
       name: "components-not-data-layer",
       severity: "error",
       comment:
-        "Presentational components must not reach into the data layer. Screens (app/**) fetch data via services and pass it down as props.",
+        "Presentational components must not reach into the data layer (services, or the Supabase client in src/lib). Screens (app/**) fetch data via services and pass it down as props.",
       from: { path: "^src/components/" },
       to: {
-        path: "^src/services/",
+        path: "^src/services/|^src/lib/supabase",
         // Type-only imports are allowed (no runtime coupling).
         dependencyTypesNot: ["type-only"],
       },

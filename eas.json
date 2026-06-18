@@ -12,7 +12,7 @@
       "channel": "development",
       "distribution": "internal"
     },
-    "preview": {
+    "dev": {
       "channel": "development",
       "distribution": "internal",
       "autoIncrement": true,

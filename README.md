@@ -156,13 +156,13 @@ To test your branch on your phone:
 
 ## Tester Builds (the `dev` channel)
 
-Testers run a **`preview`** build — a standalone release app with **no Expo
+Testers run a **`dev`** build — a standalone release app with **no Expo
 launcher screen** — that auto-updates from the `dev` branch. They install it
 **once** and then receive over-the-air (OTA) updates on the next app launch.
 
 ### How it works
 
-- The `preview` build profile (`eas.json`) is a release build, `distribution: internal`,
+- The `dev` build profile (`eas.json`) is a release build, `distribution: internal`,
   on the `development` channel. No `developmentClient`, so it launches straight
   into the app.
 - Every push to `dev` that passes CI triggers `auto-development-update.yml`, which
@@ -174,7 +174,7 @@ launcher screen** — that auto-updates from the `dev` branch. They install it
 
 ```bash
 # one build that testers install; send them the resulting install link / QR
-eas build --profile preview --platform all
+eas build --profile dev --platform all
 ```
 
 - **iOS:** internal distribution is ad-hoc — each tester's device UDID must be
@@ -192,18 +192,18 @@ version is a hash of the native project, so:
   tester installs automatically. No reinstall.
 - **Native change** (new native dependency, config-plugin change, SDK bump) →
   fingerprint changes → the OTA is **not** delivered to old installs (they keep
-  running the last compatible version, no crash). You must cut a **new `preview`
+  running the last compatible version, no crash). You must cut a **new `dev`
   build** and send testers the new install link.
 
 > Rule of thumb: if a PR adds/removes a package with native code or changes
-> `app.json` plugins/native config, testers need a fresh `eas build --profile preview`.
+> `app.json` plugins/native config, testers need a fresh `eas build --profile dev`.
 
 ### One-time setup checklist
 
 1. `EXPO_TOKEN` repo secret exists (used by all EAS workflows). Create a robot
    token in the Expo dashboard if not.
 2. Register tester iOS devices: `eas device:create` (skip if Android-only).
-3. Cut the first build: `eas build --profile preview --platform all`.
+3. Cut the first build: `eas build --profile dev --platform all`.
 4. Send testers the install link. Done — pushes to `dev` now reach them OTA.
 
 ---

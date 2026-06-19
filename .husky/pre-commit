@@ -1,1 +1,8 @@
+set -e
+
+# Fast, staged-file checks (prettier, eslint, migration guard).
 npx lint-staged
+
+# Architecture check runs on the whole src + app graph: circular-dependency and
+# layering detection need the full import graph, not just changed files.
+npx depcruise src app --config .dependency-cruiser.cjs --no-progress

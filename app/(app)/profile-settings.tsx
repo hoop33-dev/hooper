@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRouter } from "expo-router";
 import {
   useEffect,
@@ -427,13 +428,6 @@ export default function ProfileSettingsScreen() {
   async function pickFromLibrary() {
     setPhotoSheetVisible(false);
 
-    let ImagePicker: typeof import("expo-image-picker");
-    try {
-      ImagePicker = require("expo-image-picker");
-    } catch {
-      setSaveError("Photo upload requires an app update.");
-      return;
-    }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       setSaveError("Please allow access to your photo library in Settings.");
@@ -457,13 +451,6 @@ export default function ProfileSettingsScreen() {
   async function pickFromCamera() {
     setPhotoSheetVisible(false);
 
-    let ImagePicker: typeof import("expo-image-picker");
-    try {
-      ImagePicker = require("expo-image-picker");
-    } catch {
-      setSaveError("Photo upload requires an app update.");
-      return;
-    }
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
       setSaveError("Please allow camera access in Settings.");

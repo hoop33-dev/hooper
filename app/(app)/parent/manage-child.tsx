@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState, type RefObject } from "react";
 import {
@@ -378,13 +379,6 @@ type PickedImage = { uri: string; base64: string; mimeType: string };
 async function pickImageFromLibrary(
   onError: (msg: string) => void,
 ): Promise<PickedImage | null> {
-  let ImagePicker: typeof import("expo-image-picker");
-  try {
-    ImagePicker = require("expo-image-picker");
-  } catch {
-    onError("Photo upload requires an app update.");
-    return null;
-  }
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== "granted") {
     onError("Please allow access to your photo library in Settings.");
@@ -411,13 +405,6 @@ async function pickImageFromLibrary(
 async function pickImageFromCamera(
   onError: (msg: string) => void,
 ): Promise<PickedImage | null> {
-  let ImagePicker: typeof import("expo-image-picker");
-  try {
-    ImagePicker = require("expo-image-picker");
-  } catch {
-    onError("Photo upload requires an app update.");
-    return null;
-  }
   const { status } = await ImagePicker.requestCameraPermissionsAsync();
   if (status !== "granted") {
     onError("Please allow camera access in Settings.");

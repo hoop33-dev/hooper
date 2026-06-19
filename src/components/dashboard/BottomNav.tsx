@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { colors } from "@/src/constants/theme";
@@ -47,7 +47,7 @@ export function BottomNav({ active, role }: BottomNavProps) {
         backgroundColor: "rgba(20,17,18,0.92)",
         borderTopWidth: 1,
         borderTopColor: colors.borderSubtle,
-        paddingBottom: 22,
+        paddingBottom: 14,
         paddingTop: 6,
       }}
     >
@@ -64,9 +64,8 @@ export function BottomNav({ active, role }: BottomNavProps) {
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              gap: 4,
-              paddingTop: 6,
-              paddingBottom: 4,
+              paddingTop: 8,
+              paddingBottom: 6,
             }}
           >
             {isActive && (
@@ -82,18 +81,6 @@ export function BottomNav({ active, role }: BottomNavProps) {
               />
             )}
             <t.Icon size={22} color={color} />
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 10,
-                fontWeight: isActive ? "700" : "500",
-                letterSpacing: 10 * 0.05,
-                color,
-                textTransform: "uppercase",
-              }}
-            >
-              {t.label}
-            </Text>
           </Pressable>
         );
       })}

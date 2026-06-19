@@ -146,11 +146,6 @@
       "count": 1
     }
   },
-  "src/services/profile.service.ts": {
-    "no-restricted-syntax": {
-      "count": 1
-    }
-  },
   "src/stores/auth.store.ts": {
     "complexity": {
       "count": 1

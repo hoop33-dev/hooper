@@ -971,7 +971,7 @@ export default function ManageChildScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: tab === "profile" ? 120 : 32 }}
+        contentContainerStyle={{ paddingBottom: tab === "profile" ? (saveError ? 184 : 120) : 32 }}
         style={{ flex: 1 }}>
         <ManageHeader onBack={() => router.back()} />
         {form.loading ? (

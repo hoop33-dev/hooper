@@ -612,7 +612,7 @@ export default function ProfileSettingsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: saveError ? 184 : 120 }}
         style={{ flex: 1 }}>
         {/* Header */}
         <View

@@ -32,7 +32,7 @@ export function DashboardLayout({
           top: 0,
           left: 0,
           right: 0,
-          height: 320,
+          bottom: 0,
         }}
       />
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>

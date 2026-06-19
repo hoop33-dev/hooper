@@ -153,7 +153,12 @@ export default function ParentDashboard() {
   function viewAsChild(child: ChildSummary) {
     router.push({
       pathname: "/(app)/parent/view-as-child",
-      params: { id: child.id, firstName: child.firstName },
+      params: {
+        id: child.id,
+        firstName: child.firstName,
+        lastName: child.lastName,
+        username: child.username,
+      },
     });
   }
 

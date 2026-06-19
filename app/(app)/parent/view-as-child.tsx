@@ -1,45 +1,74 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { DashboardHeader } from "@/src/components/dashboard";
-import { EyeIcon, XIcon } from "@/src/components/dashboard/icons";
+import {
+  Avatar,
+  DashboardHeader,
+  GuardianBanner,
+} from "@/src/components/dashboard";
+import {
+  BellIcon,
+  ChatIcon,
+  ChevronIcon,
+  CreditIcon,
+  EyeIcon,
+  HelpIcon,
+  HomeIcon,
+  LockIcon,
+  SettingsIcon,
+  XIcon,
+} from "@/src/components/dashboard/icons";
 import { colors } from "@/src/constants/theme";
 import { roleConfig } from "@/src/constants/roles";
-import { getChildProfile } from "@/src/services/parent.service";
+import {
+  getChildProfile,
+  type ChildProfile,
+} from "@/src/services/parent.service";
 
 const PLAYER = roleConfig("player");
 
+type Tab = "dashboard" | "chat" | "settings";
+
 /**
- * A read-only preview of a child's player experience. The parent stays signed
- * in as themselves — this renders the player dashboard with the child's
- * details so a guardian can see what their athlete sees, then exit.
+ * Lets a parent step into their child's player experience. It renders the same
+ * tabs the child sees (Dashboard / Chat / Settings) populated with the child's
+ * data, topped by a persistent "Viewing as" banner. Everything is read-only —
+ * the parent stays signed in as themselves, so nothing here can mutate either
+ * account; they exit with the banner's button.
  */
 export default function ViewAsChildScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ id: string; firstName?: string }>();
+  const params = useLocalSearchParams<{
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+  }>();
 
-  const [firstName, setFirstName] = useState(params.firstName ?? "");
-  const [initials, setInitials] = useState(
-    (params.firstName?.charAt(0) ?? "?").toUpperCase(),
-  );
+  const [tab, setTab] = useState<Tab>("dashboard");
+  const [child, setChild] = useState<ChildProfile | null>(null);
 
   useEffect(() => {
     if (!params.id) return;
     let cancelled = false;
     getChildProfile(params.id).then((c) => {
-      if (cancelled || !c) return;
-      setFirstName(c.firstName);
-      setInitials(
-        (c.firstName.charAt(0) + c.lastName.charAt(0)).toUpperCase() || "?",
-      );
+      if (!cancelled && c) setChild(c);
     });
     return () => {
       cancelled = true;
     };
   }, [params.id]);
+
+  const firstName = child?.firstName ?? params.firstName ?? "";
+  const lastName = child?.lastName ?? params.lastName ?? "";
+  const username = child?.username ?? params.username ?? "";
+  const initials =
+    (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() ||
+    firstName.charAt(0).toUpperCase() ||
+    "?";
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface }}>
@@ -50,134 +79,450 @@ export default function ViewAsChildScreen() {
         pointerEvents="none"
         style={{ position: "absolute", top: 0, left: 0, right: 0, height: 320 }}
       />
-      <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 120 }}
-        >
-          <DashboardHeader
-            role="player"
-            firstName={firstName}
-            initials={initials || "?"}
-          />
 
-          {/* Empty player dashboard preview */}
-          <View
-            style={{
-              marginHorizontal: 20,
-              marginTop: 8,
-              padding: 22,
-              backgroundColor: colors.surface2,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle,
-              borderRadius: 18,
-              alignItems: "center",
-              gap: 8,
-            }}
+      <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+        <ViewAsBanner firstName={firstName} onExit={() => router.back()} />
+
+        {tab === "dashboard" ? (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 24 }}
           >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: `${PLAYER.accent}18`,
-                borderWidth: 1,
-                borderColor: `${PLAYER.accent}30`,
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 4,
-              }}
-            >
-              <EyeIcon size={20} color={PLAYER.accent} />
-            </View>
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 15,
-                fontWeight: "800",
-                color: colors.textPrimary,
-                textAlign: "center",
-              }}
-            >
-              {firstName ? `${firstName}'s player view` : "Player view"}
-            </Text>
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 13,
-                color: colors.textSecondary,
-                textAlign: "center",
-                lineHeight: 19,
-              }}
-            >
-              This is a read-only preview of what your athlete sees. Their
-              training, schedule, and progress will appear here.
-            </Text>
-          </View>
-        </ScrollView>
+            <DashboardHeader
+              role="player"
+              firstName={firstName}
+              initials={initials}
+            />
+          </ScrollView>
+        ) : tab === "chat" ? (
+          <ChatTab />
+        ) : (
+          <SettingsTab
+            initials={initials}
+            fullName={`${firstName} ${lastName}`.trim()}
+            username={username}
+            avatarUrl={child?.avatarUrl ?? null}
+            locked={child?.profileSettingsLocked ?? false}
+          />
+        )}
       </SafeAreaView>
 
-      {/* Floating "Viewing as" pill */}
       <SafeAreaView
         edges={["bottom"]}
-        pointerEvents="box-none"
-        style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
+        style={{ backgroundColor: "rgba(20,17,18,0.92)" }}
       >
-        <View
-          pointerEvents="box-none"
-          style={{ alignItems: "center", paddingBottom: 24 }}
+        <LocalNav active={tab} onChange={setTab} />
+      </SafeAreaView>
+    </View>
+  );
+}
+
+/* ─── Persistent "Viewing as" banner ────────────────────────── */
+function ViewAsBanner({
+  firstName,
+  onExit,
+}: {
+  firstName: string;
+  onExit: () => void;
+}) {
+  return (
+    <LinearGradient
+      colors={["#F8A488", "#F68D68"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 9,
+        marginHorizontal: 16,
+        marginTop: 4,
+        marginBottom: 6,
+        paddingVertical: 8,
+        paddingLeft: 14,
+        paddingRight: 8,
+        borderRadius: 999,
+      }}
+    >
+      <EyeIcon size={14} color="#3A1F12" />
+      <Text
+        style={{
+          flex: 1,
+          fontFamily: "Inter",
+          fontSize: 12.5,
+          fontWeight: "700",
+          color: "#3A1F12",
+          letterSpacing: -12.5 * 0.01,
+        }}
+      >
+        Viewing as{" "}
+        <Text style={{ fontWeight: "800" }}>{firstName || "athlete"}</Text>
+      </Text>
+      <Pressable
+        onPress={onExit}
+        accessibilityRole="button"
+        accessibilityLabel="Exit view as"
+        hitSlop={8}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 5,
+          height: 28,
+          paddingHorizontal: 12,
+          borderRadius: 999,
+          backgroundColor: "#3A1F12",
+        }}
+      >
+        <XIcon size={11} color="#FBD9C9" />
+        <Text
+          style={{
+            fontFamily: "Inter",
+            fontSize: 12,
+            fontWeight: "700",
+            color: "#FBD9C9",
+          }}
         >
-          <View
+          Exit
+        </Text>
+      </Pressable>
+    </LinearGradient>
+  );
+}
+
+/* ─── Chat tab (mirrors the child's chat screen) ────────────── */
+function ChatTab() {
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 32,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 22,
+          fontWeight: "800",
+          color: colors.textPrimary,
+          letterSpacing: -22 * 0.02,
+          marginBottom: 8,
+        }}
+      >
+        Chat
+      </Text>
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 14,
+          color: colors.textTertiary,
+          textAlign: "center",
+        }}
+      >
+        Coming soon.
+      </Text>
+    </View>
+  );
+}
+
+/* ─── Settings tab (read-only view of the child's profile area) ─ */
+function PreviewRow({
+  icon,
+  title,
+  sub,
+  locked,
+}: {
+  icon: ReactNode;
+  title: string;
+  sub?: string;
+  locked?: boolean;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 14,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        backgroundColor: colors.surface2,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+        borderRadius: 14,
+        opacity: locked ? 0.55 : 1,
+      }}
+    >
+      <View
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 10,
+          backgroundColor: `${PLAYER.accent}14`,
+          borderWidth: 1,
+          borderColor: `${PLAYER.accent}30`,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {icon}
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          style={{
+            fontFamily: "Inter",
+            fontSize: 14.5,
+            fontWeight: "600",
+            color: colors.textPrimary,
+            marginBottom: sub ? 2 : 0,
+          }}
+        >
+          {title}
+        </Text>
+        {sub ? (
+          <Text
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 9,
-              paddingVertical: 8,
-              paddingLeft: 14,
-              paddingRight: 10,
-              borderRadius: 999,
-              backgroundColor: "#F68D68",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.45,
-              shadowRadius: 22,
-              elevation: 10,
+              fontFamily: "Inter",
+              fontSize: 12,
+              color: colors.textTertiary,
             }}
           >
-            <EyeIcon size={13} color="#3A1F12" />
+            {sub}
+          </Text>
+        ) : null}
+      </View>
+      {locked ? (
+        <LockIcon size={16} color={colors.textTertiary} />
+      ) : (
+        <ChevronIcon size={16} color={colors.textTertiary} />
+      )}
+    </View>
+  );
+}
+
+function SettingsTab({
+  initials,
+  fullName,
+  username,
+  avatarUrl,
+  locked,
+}: {
+  initials: string;
+  fullName: string;
+  username: string;
+  avatarUrl: string | null;
+  locked: boolean;
+}) {
+  return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 24 }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingHorizontal: 20,
+          paddingTop: 6,
+          paddingBottom: 20,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: "Inter",
+            fontSize: 22,
+            fontWeight: "900",
+            color: colors.textPrimary,
+            letterSpacing: -22 * 0.03,
+          }}
+        >
+          Profile
+        </Text>
+      </View>
+
+      {/* Identity card */}
+      <View
+        style={{
+          marginHorizontal: 20,
+          marginBottom: 18,
+          backgroundColor: colors.surface2,
+          borderWidth: 1,
+          borderColor: colors.borderSubtle,
+          borderRadius: 18,
+          padding: 22,
+          alignItems: "center",
+          overflow: "hidden",
+        }}
+      >
+        <LinearGradient
+          colors={[`${PLAYER.accent}22`, "transparent"]}
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 80,
+          }}
+        />
+        <Avatar
+          role="player"
+          size={84}
+          initials={initials}
+          imageUrl={avatarUrl}
+        />
+        <Text
+          style={{
+            fontFamily: "Inter",
+            fontSize: 20,
+            fontWeight: "800",
+            color: colors.textPrimary,
+            letterSpacing: -20 * 0.02,
+            marginTop: 14,
+            marginBottom: 3,
+          }}
+        >
+          {fullName}
+        </Text>
+        {username ? (
+          <Text
+            style={{
+              fontFamily: "Inter",
+              fontSize: 12,
+              fontWeight: "600",
+              color: PLAYER.accent,
+              letterSpacing: 12 * 0.06,
+            }}
+          >
+            @{username}
+          </Text>
+        ) : null}
+        <View
+          style={{
+            marginTop: 14,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+            backgroundColor: `${PLAYER.accent}14`,
+            borderWidth: 1,
+            borderColor: `${PLAYER.accent}30`,
+            borderRadius: 999,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "Inter",
+              fontSize: 10,
+              fontWeight: "700",
+              color: PLAYER.accent,
+              letterSpacing: 10 * 0.1,
+              textTransform: "uppercase",
+            }}
+          >
+            {PLAYER.label}
+          </Text>
+        </View>
+      </View>
+
+      {locked ? <GuardianBanner kind="profile" /> : null}
+
+      <View style={{ paddingHorizontal: 20, gap: 8 }}>
+        <PreviewRow
+          icon={<SettingsIcon size={18} color={PLAYER.accent} />}
+          title="Profile settings"
+          sub={
+            locked ? "Managed by your guardian" : "Photo, name, username, bio"
+          }
+          locked={locked}
+        />
+        <PreviewRow
+          icon={<CreditIcon size={18} color={PLAYER.accent} />}
+          title="Subscription & billing"
+          sub="Managed by your guardian"
+          locked
+        />
+        <PreviewRow
+          icon={<BellIcon size={18} color={PLAYER.accent} />}
+          title="Notifications"
+          sub="Push, email, SMS"
+        />
+        <PreviewRow
+          icon={<HelpIcon size={18} color={PLAYER.accent} />}
+          title="Help & FAQs"
+        />
+      </View>
+    </ScrollView>
+  );
+}
+
+/* ─── Local bottom nav (switches preview tabs, no routing) ───── */
+function LocalNav({
+  active,
+  onChange,
+}: {
+  active: Tab;
+  onChange: (t: Tab) => void;
+}) {
+  const tabs: { id: Tab; label: string; Icon: typeof HomeIcon }[] = [
+    { id: "dashboard", label: "Dashboard", Icon: HomeIcon },
+    { id: "chat", label: "Chat", Icon: ChatIcon },
+    { id: "settings", label: "Settings", Icon: SettingsIcon },
+  ];
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        backgroundColor: "rgba(20,17,18,0.92)",
+        borderTopWidth: 1,
+        borderTopColor: colors.borderSubtle,
+        paddingBottom: 22,
+        paddingTop: 6,
+      }}
+    >
+      {tabs.map((t) => {
+        const isActive = t.id === active;
+        const color = isActive ? PLAYER.accent : colors.textTertiary;
+        return (
+          <Pressable
+            key={t.id}
+            accessibilityRole="button"
+            accessibilityLabel={t.label}
+            onPress={() => onChange(t.id)}
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
+              paddingTop: 6,
+              paddingBottom: 4,
+            }}
+          >
+            {isActive ? (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  width: 28,
+                  height: 2,
+                  borderRadius: 2,
+                  backgroundColor: PLAYER.accent,
+                }}
+              />
+            ) : null}
+            <t.Icon size={22} color={color} />
             <Text
               style={{
                 fontFamily: "Inter",
-                fontSize: 12,
-                fontWeight: "700",
-                color: "#3A1F12",
-                letterSpacing: -12 * 0.01,
+                fontSize: 10,
+                fontWeight: isActive ? "700" : "500",
+                letterSpacing: 10 * 0.05,
+                color,
+                textTransform: "uppercase",
               }}
             >
-              Viewing as{" "}
-              <Text style={{ fontWeight: "800" }}>
-                {firstName || "athlete"}
-              </Text>
+              {t.label}
             </Text>
-            <Pressable
-              onPress={() => router.back()}
-              accessibilityRole="button"
-              accessibilityLabel="Exit view as"
-              hitSlop={8}
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: 12,
-                backgroundColor: "#3A1F12",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <XIcon size={11} color="#FBD9C9" />
-            </Pressable>
-          </View>
-        </View>
-      </SafeAreaView>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

@@ -718,6 +718,192 @@ function ProfileTab({
 
 /* ─── Security tab ─────────────────────────────────────────── */
 
+function SecurityDoneCard({ childFirstName }: { childFirstName: string }) {
+  return (
+    <View style={{ marginTop: 8, backgroundColor: colors.surface2, borderWidth: 1, borderColor: "rgba(52,211,153,0.25)", borderRadius: 16, padding: 20, alignItems: "center", gap: 12 }}>
+      <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: "rgba(52,211,153,0.12)", borderWidth: 1.5, borderColor: "rgba(52,211,153,0.3)", alignItems: "center", justifyContent: "center" }}>
+        <Svg width={26} height={26} viewBox="0 0 26 26" fill="none">
+          <Path d="M5 13L11 19L21 8" stroke="#34D399" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      </View>
+      <View style={{ alignItems: "center", gap: 4 }}>
+        <Text style={{ fontFamily: "Inter", fontSize: 16, fontWeight: "700", color: colors.textPrimary }}>
+          Password reset
+        </Text>
+        <Text style={{ fontFamily: "Inter", fontSize: 13, color: colors.textSecondary, textAlign: "center", lineHeight: 19 }}>
+          {childFirstName}&apos;s password has been updated. Check your email for a copy of the new password.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function SecuritySuccessView({ childFirstName }: { childFirstName: string }) {
+  return (
+    <View style={{ paddingHorizontal: 20 }}>
+      <SecurityDoneCard childFirstName={childFirstName} />
+      <View
+        style={{
+          marginTop: 16,
+          backgroundColor: colors.surface2,
+          borderWidth: 1,
+          borderColor: colors.borderSubtle,
+          borderRadius: 12,
+          padding: 16,
+          flexDirection: "row",
+          gap: 12,
+          alignItems: "flex-start",
+        }}>
+        <View
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            backgroundColor: `${PARENT.accent}14`,
+            borderWidth: 1,
+            borderColor: `${PARENT.accent}30`,
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}>
+          <ShieldIcon size={14} color={PARENT.accent} />
+        </View>
+        <Text
+          style={{
+            flex: 1,
+            fontFamily: "Inter",
+            fontSize: 12.5,
+            color: colors.textSecondary,
+            lineHeight: 19,
+          }}>
+          Share the new password with {childFirstName} privately &mdash; not over text or social media.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function SecurityPasswordNote({ childFirstName }: { childFirstName: string }) {
+  return (
+    <View
+      style={{
+        marginTop: 16,
+        backgroundColor: colors.surface2,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+        borderRadius: 12,
+        padding: 14,
+        flexDirection: "row",
+        gap: 10,
+        alignItems: "flex-start",
+      }}>
+      <View
+        style={{
+          width: 26,
+          height: 26,
+          borderRadius: 7,
+          backgroundColor: `${PARENT.accent}14`,
+          borderWidth: 1,
+          borderColor: `${PARENT.accent}30`,
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}>
+        <LockIcon size={12} color={PARENT.accent} />
+      </View>
+      <Text
+        style={{
+          flex: 1,
+          fontFamily: "Inter",
+          fontSize: 12,
+          color: colors.textSecondary,
+          lineHeight: 18,
+        }}>
+        A confirmation email with the new password will be sent to you so you can share it with {childFirstName || "your child"}.
+      </Text>
+    </View>
+  );
+}
+
+type SecurityResetFormProps = {
+  confirmRef: RefObject<RNTextInput | null>;
+  newPassword: string;
+  confirmPassword: string;
+  newPasswordError: string;
+  confirmPasswordError: string;
+  submitError: string | null;
+  isSaving: boolean;
+  childFirstName: string;
+  onNewPassword: (v: string) => void;
+  onConfirmPassword: (v: string) => void;
+  onReset: () => void;
+};
+
+function SecurityResetForm({
+  confirmRef,
+  newPassword,
+  confirmPassword,
+  newPasswordError,
+  confirmPasswordError,
+  submitError,
+  isSaving,
+  childFirstName,
+  onNewPassword,
+  onConfirmPassword,
+  onReset,
+}: SecurityResetFormProps) {
+  return (
+    <View style={{ paddingHorizontal: 20 }}>
+      <SectionLabel>Reset password</SectionLabel>
+      {submitError ? (
+        <View style={{ marginBottom: 14 }}>
+          <ErrorBanner message={submitError} />
+        </View>
+      ) : null}
+      <View style={{ gap: 14 }}>
+        <PasswordInput
+          label="New password"
+          value={newPassword}
+          onChangeText={onNewPassword}
+          placeholder="8+ characters"
+          error={newPasswordError}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => confirmRef.current?.focus()}
+        />
+        <PasswordInput
+          ref={confirmRef}
+          label="Confirm password"
+          value={confirmPassword}
+          onChangeText={onConfirmPassword}
+          placeholder="Repeat password"
+          error={confirmPasswordError}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="done"
+          onSubmitEditing={onReset}
+        />
+      </View>
+      <SecurityPasswordNote childFirstName={childFirstName} />
+      <Pressable
+        onPress={onReset}
+        disabled={isSaving}
+        accessibilityRole="button"
+        style={{ marginTop: 20, height: 52, backgroundColor: isSaving ? `${PARENT.accent}80` : PARENT.accent, borderRadius: 9999, alignItems: "center", justifyContent: "center" }}>
+        {isSaving ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={{ fontFamily: "Inter", fontSize: 15, fontWeight: "700", color: "#fff" }}>
+            Reset password
+          </Text>
+        )}
+      </Pressable>
+    </View>
+  );
+}
+
 function SecurityTab({
   childProfileId,
   childFirstName,
@@ -737,21 +923,11 @@ function SecurityTab({
   function validate(): boolean {
     let valid = true;
     const pwErr = validatePassword(newPassword);
-    if (pwErr) {
-      setNewPasswordError(pwErr);
-      valid = false;
-    } else {
-      setNewPasswordError("");
-    }
-    if (!confirmPassword) {
-      setConfirmPasswordError("Required");
-      valid = false;
-    } else if (newPassword !== confirmPassword) {
-      setConfirmPasswordError("Passwords don't match");
-      valid = false;
-    } else {
-      setConfirmPasswordError("");
-    }
+    if (pwErr) { setNewPasswordError(pwErr); valid = false; }
+    else { setNewPasswordError(""); }
+    if (!confirmPassword) { setConfirmPasswordError("Required"); valid = false; }
+    else if (newPassword !== confirmPassword) { setConfirmPasswordError("Passwords don't match"); valid = false; }
+    else { setConfirmPasswordError(""); }
     return valid;
   }
 
@@ -759,231 +935,32 @@ function SecurityTab({
     if (!validate()) return;
     setIsSaving(true);
     setSubmitError(null);
-    const result = await resetChildPassword({
-      childProfileId,
-      newPassword,
-    });
+    const result = await resetChildPassword({ childProfileId, newPassword });
     setIsSaving(false);
     if (!result.ok) {
-      if (result.field === "password") {
-        setNewPasswordError(result.error);
-      } else {
-        setSubmitError(result.error);
-      }
+      if (result.field === "password") { setNewPasswordError(result.error); }
+      else { setSubmitError(result.error); }
       return;
     }
     setDone(true);
   }
 
-  if (done) {
-    return (
-      <View style={{ paddingHorizontal: 20 }}>
-        <View
-          style={{
-            marginTop: 8,
-            backgroundColor: colors.surface2,
-            borderWidth: 1,
-            borderColor: "rgba(52,211,153,0.25)",
-            borderRadius: 16,
-            padding: 20,
-            alignItems: "center",
-            gap: 12,
-          }}>
-          <View
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 16,
-              backgroundColor: "rgba(52,211,153,0.12)",
-              borderWidth: 1.5,
-              borderColor: "rgba(52,211,153,0.3)",
-              alignItems: "center",
-              justifyContent: "center",
-            }}>
-            <Svg width={26} height={26} viewBox="0 0 26 26" fill="none">
-              <Path
-                d="M5 13L11 19L21 8"
-                stroke="#34D399"
-                strokeWidth={2.2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          </View>
-          <View style={{ alignItems: "center", gap: 4 }}>
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 16,
-                fontWeight: "700",
-                color: colors.textPrimary,
-              }}>
-              Password reset
-            </Text>
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 13,
-                color: colors.textSecondary,
-                textAlign: "center",
-                lineHeight: 19,
-              }}>
-              {childFirstName}&apos;s password has been updated. Check your email for a copy of the new password.
-            </Text>
-          </View>
-        </View>
-
-        <View
-          style={{
-            marginTop: 16,
-            backgroundColor: colors.surface2,
-            borderWidth: 1,
-            borderColor: colors.borderSubtle,
-            borderRadius: 12,
-            padding: 16,
-            flexDirection: "row",
-            gap: 12,
-            alignItems: "flex-start",
-          }}>
-          <View
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              backgroundColor: `${PARENT.accent}14`,
-              borderWidth: 1,
-              borderColor: `${PARENT.accent}30`,
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}>
-            <ShieldIcon size={14} color={PARENT.accent} />
-          </View>
-          <Text
-            style={{
-              flex: 1,
-              fontFamily: "Inter",
-              fontSize: 12.5,
-              color: colors.textSecondary,
-              lineHeight: 19,
-            }}>
-            Share the new password with {childFirstName} privately &mdash; not over text or social media.
-          </Text>
-        </View>
-      </View>
-    );
-  }
+  if (done) return <SecuritySuccessView childFirstName={childFirstName} />;
 
   return (
-    <View style={{ paddingHorizontal: 20 }}>
-      <SectionLabel>Reset password</SectionLabel>
-
-      {submitError ? (
-        <View style={{ marginBottom: 14 }}>
-          <ErrorBanner message={submitError} />
-        </View>
-      ) : null}
-
-      <View style={{ gap: 14 }}>
-        <PasswordInput
-          label="New password"
-          value={newPassword}
-          onChangeText={(v) => {
-            setNewPassword(v);
-            setNewPasswordError("");
-            setSubmitError(null);
-          }}
-          placeholder="8+ characters"
-          error={newPasswordError}
-          autoComplete="new-password"
-          textContentType="newPassword"
-          returnKeyType="next"
-          blurOnSubmit={false}
-          onSubmitEditing={() => confirmRef.current?.focus()}
-        />
-
-        <PasswordInput
-          ref={confirmRef}
-          label="Confirm password"
-          value={confirmPassword}
-          onChangeText={(v) => {
-            setConfirmPassword(v);
-            setConfirmPasswordError("");
-          }}
-          placeholder="Repeat password"
-          error={confirmPasswordError}
-          autoComplete="new-password"
-          textContentType="newPassword"
-          returnKeyType="done"
-          onSubmitEditing={handleReset}
-        />
-      </View>
-
-      <View
-        style={{
-          marginTop: 16,
-          backgroundColor: colors.surface2,
-          borderWidth: 1,
-          borderColor: colors.borderSubtle,
-          borderRadius: 12,
-          padding: 14,
-          flexDirection: "row",
-          gap: 10,
-          alignItems: "flex-start",
-        }}>
-        <View
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 7,
-            backgroundColor: `${PARENT.accent}14`,
-            borderWidth: 1,
-            borderColor: `${PARENT.accent}30`,
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}>
-          <LockIcon size={12} color={PARENT.accent} />
-        </View>
-        <Text
-          style={{
-            flex: 1,
-            fontFamily: "Inter",
-            fontSize: 12,
-            color: colors.textSecondary,
-            lineHeight: 18,
-          }}>
-          A confirmation email with the new password will be sent to you so you can share it with {childFirstName || "your child"}.
-        </Text>
-      </View>
-
-      <Pressable
-        onPress={handleReset}
-        disabled={isSaving}
-        accessibilityRole="button"
-        style={{
-          marginTop: 20,
-          height: 52,
-          backgroundColor: isSaving ? `${PARENT.accent}80` : PARENT.accent,
-          borderRadius: 9999,
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
-        {isSaving ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 15,
-              fontWeight: "700",
-              color: "#fff",
-            }}>
-            Reset password
-          </Text>
-        )}
-      </Pressable>
-    </View>
+    <SecurityResetForm
+      confirmRef={confirmRef}
+      newPassword={newPassword}
+      confirmPassword={confirmPassword}
+      newPasswordError={newPasswordError}
+      confirmPasswordError={confirmPasswordError}
+      submitError={submitError}
+      isSaving={isSaving}
+      childFirstName={childFirstName}
+      onNewPassword={(v) => { setNewPassword(v); setNewPasswordError(""); setSubmitError(null); }}
+      onConfirmPassword={(v) => { setConfirmPassword(v); setConfirmPasswordError(""); }}
+      onReset={handleReset}
+    />
   );
 }
 
@@ -1161,20 +1138,11 @@ function SaveBar({
 
 /* ─── Screen ────────────────────────────────────────────────── */
 
-export default function ManageChildScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams<{
-    id: string;
-    firstName?: string;
-    lastName?: string;
-    username?: string;
-  }>();
-  const [tab, setTab] = useState<"profile" | "billing" | "security">("profile");
-  const form = useManageChildForm(params.id);
-  const regionOptions = useRegionOptions();
-  const lastNameRef = useRef<RNTextInput>(null);
-  const usernameRef = useRef<RNTextInput>(null);
-
+function useManageChildPhotoSave(
+  form: ManageChildForm,
+  id: string,
+  onSaved: () => void,
+) {
   const [pendingImage, setPendingImage] = useState<PickedImage | null>(null);
   const [photoSheetVisible, setPhotoSheetVisible] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -1194,33 +1162,81 @@ export default function ManageChildScreen() {
   async function handleSave() {
     setSaveError(null);
     let avatarUrl: string | undefined;
-    if (pendingImage && params.id) {
+    if (pendingImage && id) {
       try {
-        avatarUrl = await uploadAvatar(
-          params.id,
-          pendingImage.base64,
-          pendingImage.mimeType,
-        );
+        avatarUrl = await uploadAvatar(id, pendingImage.base64, pendingImage.mimeType);
       } catch {
         setSaveError("Failed to upload photo. Please try again.");
         return;
       }
     }
     const res = await form.save(avatarUrl);
-    if (res.ok) {
-      router.back();
-    } else if (res.alert) {
-      setSaveError(res.alert);
-    }
+    if (res.ok) { onSaved(); }
+    else if (res.alert) { setSaveError(res.alert); }
   }
 
-  const name =
-    `${form.firstName} ${form.lastName}`.trim() || (params.firstName ?? "");
-  const initials =
-    (form.firstName.charAt(0) + form.lastName.charAt(0)).toUpperCase() || "?";
+  return { pendingImage, photoSheetVisible, saveError, setPhotoSheetVisible, handlePickLibrary, handlePickCamera, handleSave };
+}
+
+function ChildTabContent({
+  tab,
+  form,
+  regionOptions,
+  displayAvatarUri,
+  initials,
+  childProfileId,
+  childFirstName,
+  onChangePhoto,
+}: {
+  tab: "profile" | "billing" | "security";
+  form: ManageChildForm;
+  regionOptions: { value: string; label: string }[];
+  displayAvatarUri: string | undefined;
+  initials: string;
+  childProfileId: string;
+  childFirstName: string;
+  onChangePhoto: () => void;
+}) {
+  const lastNameRef = useRef<RNTextInput>(null);
+  const usernameRef = useRef<RNTextInput>(null);
+  if (tab === "profile") {
+    return (
+      <ProfileTab
+        form={form}
+        regionOptions={regionOptions}
+        lastNameRef={lastNameRef}
+        usernameRef={usernameRef}
+        initials={initials}
+        displayAvatarUri={displayAvatarUri}
+        onChangePhoto={onChangePhoto}
+      />
+    );
+  }
+  if (tab === "security") {
+    return <SecurityTab childProfileId={childProfileId} childFirstName={childFirstName} />;
+  }
+  return <BillingTab firstName={form.firstName} />;
+}
+
+export default function ManageChildScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+  }>();
+  const [tab, setTab] = useState<"profile" | "billing" | "security">("profile");
+  const form = useManageChildForm(params.id);
+  const regionOptions = useRegionOptions();
+  const { pendingImage, photoSheetVisible, saveError, setPhotoSheetVisible, handlePickLibrary, handlePickCamera, handleSave } = useManageChildPhotoSave(form, params.id, () => router.back());
+
+  const name = `${form.firstName} ${form.lastName}`.trim() || (params.firstName ?? "");
+  const initials = (form.firstName.charAt(0) + form.lastName.charAt(0)).toUpperCase() || "?";
   const age = ageFromDob(form.dob);
   const subtitle = `${age != null ? `Age ${age} · ` : ""}@${form.username}`;
   const displayAvatarUri = pendingImage?.uri ?? form.avatarUrl;
+  const childFirstName = form.firstName || (params.firstName ?? "");
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface }}>
@@ -1238,37 +1254,21 @@ export default function ManageChildScreen() {
         style={{ flex: 1 }}>
         <ManageHeader onBack={() => router.back()} />
         {form.loading ? (
-          <ActivityIndicator
-            color={colors.textTertiary}
-            style={{ marginTop: 48 }}
-          />
+          <ActivityIndicator color={colors.textTertiary} style={{ marginTop: 48 }} />
         ) : (
           <>
-            <IdentityCard
-              initials={initials}
-              name={name}
-              subtitle={subtitle}
-              avatarUrl={form.avatarUrl}
-            />
+            <IdentityCard initials={initials} name={name} subtitle={subtitle} avatarUrl={form.avatarUrl} />
             <ChildSegment tab={tab} setTab={setTab} />
-            {tab === "profile" ? (
-              <ProfileTab
-                form={form}
-                regionOptions={regionOptions}
-                lastNameRef={lastNameRef}
-                usernameRef={usernameRef}
-                initials={initials}
-                displayAvatarUri={displayAvatarUri}
-                onChangePhoto={() => setPhotoSheetVisible(true)}
-              />
-            ) : tab === "security" ? (
-              <SecurityTab
-                childProfileId={params.id}
-                childFirstName={form.firstName || (params.firstName ?? "")}
-              />
-            ) : (
-              <BillingTab firstName={form.firstName} />
-            )}
+            <ChildTabContent
+              tab={tab}
+              form={form}
+              regionOptions={regionOptions}
+              displayAvatarUri={displayAvatarUri}
+              initials={initials}
+              childProfileId={params.id}
+              childFirstName={childFirstName}
+              onChangePhoto={() => setPhotoSheetVisible(true)}
+            />
           </>
         )}
       </ScrollView>

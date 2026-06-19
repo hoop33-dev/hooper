@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState, type RefObject } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -23,6 +22,7 @@ import {
   ShieldIcon,
 } from "@/src/components/dashboard/icons";
 import { PhotoSourceSheet } from "@/src/components/profile/PhotoSourceSheet";
+import { ErrorBanner } from "@/src/components/ui/ErrorBanner";
 import { SelectInput } from "@/src/components/ui/SelectInput";
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
@@ -375,20 +375,19 @@ function IdentityCard({
 
 type PickedImage = { uri: string; base64: string; mimeType: string };
 
-async function pickImageFromLibrary(): Promise<PickedImage | null> {
+async function pickImageFromLibrary(
+  onError: (msg: string) => void,
+): Promise<PickedImage | null> {
   let ImagePicker: typeof import("expo-image-picker");
   try {
     ImagePicker = require("expo-image-picker");
   } catch {
-    Alert.alert("Not available", "Photo upload requires an app update.");
+    onError("Photo upload requires an app update.");
     return null;
   }
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== "granted") {
-    Alert.alert(
-      "Permission needed",
-      "Please allow access to your photo library in Settings.",
-    );
+    onError("Please allow access to your photo library in Settings.");
     return null;
   }
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -409,17 +408,19 @@ async function pickImageFromLibrary(): Promise<PickedImage | null> {
   return null;
 }
 
-async function pickImageFromCamera(): Promise<PickedImage | null> {
+async function pickImageFromCamera(
+  onError: (msg: string) => void,
+): Promise<PickedImage | null> {
   let ImagePicker: typeof import("expo-image-picker");
   try {
     ImagePicker = require("expo-image-picker");
   } catch {
-    Alert.alert("Not available", "Photo upload requires an app update.");
+    onError("Photo upload requires an app update.");
     return null;
   }
   const { status } = await ImagePicker.requestCameraPermissionsAsync();
   if (status !== "granted") {
-    Alert.alert("Permission needed", "Please allow camera access in Settings.");
+    onError("Please allow camera access in Settings.");
     return null;
   }
   const result = await ImagePicker.launchCameraAsync({
@@ -838,9 +839,11 @@ function BillingTab({ firstName }: { firstName: string }) {
 function SaveBar({
   onPress,
   saving,
+  error,
 }: {
   onPress: () => void;
   saving: boolean;
+  error?: string | null;
 }) {
   return (
     <View
@@ -859,6 +862,11 @@ function SaveBar({
         style={{ position: "absolute", top: -20, left: 0, right: 0, bottom: 0 }}
         pointerEvents="none"
       />
+      {error ? (
+        <View style={{ marginBottom: 10 }}>
+          <ErrorBanner message={error} />
+        </View>
+      ) : null}
       <Pressable
         onPress={onPress}
         disabled={saving}
@@ -906,20 +914,22 @@ export default function ManageChildScreen() {
 
   const [pendingImage, setPendingImage] = useState<PickedImage | null>(null);
   const [photoSheetVisible, setPhotoSheetVisible] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   async function handlePickLibrary() {
     setPhotoSheetVisible(false);
-    const img = await pickImageFromLibrary();
+    const img = await pickImageFromLibrary(setSaveError);
     if (img) setPendingImage(img);
   }
 
   async function handlePickCamera() {
     setPhotoSheetVisible(false);
-    const img = await pickImageFromCamera();
+    const img = await pickImageFromCamera(setSaveError);
     if (img) setPendingImage(img);
   }
 
   async function handleSave() {
+    setSaveError(null);
     let avatarUrl: string | undefined;
     if (pendingImage && params.id) {
       try {
@@ -929,7 +939,7 @@ export default function ManageChildScreen() {
           pendingImage.mimeType,
         );
       } catch {
-        Alert.alert("Error", "Failed to upload photo. Please try again.");
+        setSaveError("Failed to upload photo. Please try again.");
         return;
       }
     }
@@ -937,7 +947,7 @@ export default function ManageChildScreen() {
     if (res.ok) {
       router.back();
     } else if (res.alert) {
-      Alert.alert("Error", res.alert);
+      setSaveError(res.alert);
     }
   }
 
@@ -995,7 +1005,7 @@ export default function ManageChildScreen() {
         )}
       </ScrollView>
       {!form.loading && tab === "profile" ? (
-        <SaveBar onPress={handleSave} saving={form.saving} />
+        <SaveBar onPress={handleSave} saving={form.saving} error={saveError} />
       ) : null}
       <PhotoSourceSheet
         visible={photoSheetVisible}

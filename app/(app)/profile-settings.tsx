@@ -9,7 +9,6 @@ import {
 } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -29,6 +28,7 @@ import {
 } from "@/src/components/dashboard/icons";
 import { DiscardChangesModal } from "@/src/components/profile/DiscardChangesModal";
 import { PhotoSourceSheet } from "@/src/components/profile/PhotoSourceSheet";
+import { ErrorBanner } from "@/src/components/ui/ErrorBanner";
 import type { SelectOption } from "@/src/components/ui/SelectInput";
 import { SelectInput } from "@/src/components/ui/SelectInput";
 import { roleConfig } from "@/src/constants/roles";
@@ -363,6 +363,7 @@ export default function ProfileSettingsScreen() {
     username?: string;
   }>({});
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [regionOptions, setRegionOptions] = useState<SelectOption[]>([]);
 
@@ -430,15 +431,12 @@ export default function ProfileSettingsScreen() {
     try {
       ImagePicker = require("expo-image-picker");
     } catch {
-      Alert.alert("Not available", "Photo upload requires an app update.");
+      setSaveError("Photo upload requires an app update.");
       return;
     }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        "Permission needed",
-        "Please allow access to your photo library in Settings.",
-      );
+      setSaveError("Please allow access to your photo library in Settings.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -463,15 +461,12 @@ export default function ProfileSettingsScreen() {
     try {
       ImagePicker = require("expo-image-picker");
     } catch {
-      Alert.alert("Not available", "Photo upload requires an app update.");
+      setSaveError("Photo upload requires an app update.");
       return;
     }
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        "Permission needed",
-        "Please allow camera access in Settings.",
-      );
+      setSaveError("Please allow camera access in Settings.");
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -506,6 +501,7 @@ export default function ProfileSettingsScreen() {
 
   async function handleSave() {
     if (!validate() || !profile) return;
+    setSaveError(null);
     setSaving(true);
     try {
       // Upload new photo if selected
@@ -535,7 +531,7 @@ export default function ProfileSettingsScreen() {
         if (result.field === "username") {
           setErrors({ username: result.error });
         } else {
-          Alert.alert("Error", result.error);
+          setSaveError(result.error);
         }
         return;
       }
@@ -546,7 +542,7 @@ export default function ProfileSettingsScreen() {
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Something went wrong.";
-      Alert.alert("Error", message);
+      setSaveError(message);
     } finally {
       setSaving(false);
       setUploadingPhoto(false);
@@ -882,6 +878,11 @@ export default function ProfileSettingsScreen() {
           }}
           pointerEvents="none"
         />
+        {saveError ? (
+          <View style={{ marginBottom: 10 }}>
+            <ErrorBanner message={saveError} />
+          </View>
+        ) : null}
         <Pressable
           onPress={locked ? () => setShowLock(true) : handleSave}
           disabled={saving}

@@ -155,8 +155,6 @@ export async function updatePassword(
   return { ok: true };
 }
 
-const EMAIL_ALREADY_EXISTS_ERROR = "An account with this email already exists.";
-
 // Sends the "account already exists" email to the address that owns the
 // account. signInWithOtp with shouldCreateUser:false only emails addresses that
 // already have an account, so it can't be used to probe for valid emails, and
@@ -213,7 +211,7 @@ export async function signUp(params: SignUpParams): Promise<SignUpResult> {
     const msg = error.message.toLowerCase();
     if (msg.includes("already registered") || msg.includes("already exists")) {
       await sendAccountAlreadyExistsEmail(params.email);
-      return { ok: false, field: "email", error: EMAIL_ALREADY_EXISTS_ERROR };
+      return { ok: true };
     }
     return { ok: false, error: error.message };
   }
@@ -223,7 +221,7 @@ export async function signUp(params: SignUpParams): Promise<SignUpResult> {
   // Treat that as "email already in use" and notify the real account owner.
   if (data?.user && (data.user.identities?.length ?? 0) === 0) {
     await sendAccountAlreadyExistsEmail(params.email);
-    return { ok: false, field: "email", error: EMAIL_ALREADY_EXISTS_ERROR };
+    return { ok: true };
   }
 
   // Supabase's signUp can persist a session for the not-yet-confirmed user,

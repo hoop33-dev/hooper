@@ -4,11 +4,6 @@
       "count": 2
     }
   },
-  "app/(app)/parent/manage-child.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "app/(app)/profile-settings.tsx": {
     "complexity": {
       "count": 1

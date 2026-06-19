@@ -1191,7 +1191,7 @@ function ChildTabContent({
   tab: "profile" | "billing" | "security";
   form: ManageChildForm;
   regionOptions: { value: string; label: string }[];
-  displayAvatarUri: string | undefined;
+  displayAvatarUri: string | null;
   initials: string;
   childProfileId: string;
   childFirstName: string;

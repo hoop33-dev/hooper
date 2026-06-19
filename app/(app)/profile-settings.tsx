@@ -1,9 +1,11 @@
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation, useRouter } from "expo-router";
 import {
-  type ReactNode,
-  type RefObject,
-  useState,
   useEffect,
   useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
 } from "react";
 import {
   ActivityIndicator,
@@ -16,27 +18,27 @@ import {
   View,
   type TextInput as RNTextInput,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 
-import { Avatar } from "@/src/components/dashboard/Avatar";
 import { GuardianBanner, GuardianLockPopup } from "@/src/components/dashboard";
-import { SelectInput } from "@/src/components/ui/SelectInput";
+import { Avatar } from "@/src/components/dashboard/Avatar";
 import {
   CameraIcon,
   CheckIcon,
   LockIcon,
   UserIcon,
 } from "@/src/components/dashboard/icons";
-import { colors } from "@/src/constants/theme";
+import { DiscardChangesModal } from "@/src/components/profile/DiscardChangesModal";
+import { PhotoSourceSheet } from "@/src/components/profile/PhotoSourceSheet";
+import type { SelectOption } from "@/src/components/ui/SelectInput";
+import { SelectInput } from "@/src/components/ui/SelectInput";
 import { roleConfig } from "@/src/constants/roles";
+import { colors } from "@/src/constants/theme";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 import { useGuardianControls } from "@/src/hooks/useGuardianControls";
-import { useAuthStore } from "@/src/stores/auth.store";
+import { supabase } from "@/src/lib/supabase";
 import { checkUsernameAvailable } from "@/src/services/auth.service";
 import { updateProfile, uploadAvatar } from "@/src/services/profile.service";
-import { supabase } from "@/src/lib/supabase";
-import type { SelectOption } from "@/src/components/ui/SelectInput";
+import { useAuthStore } from "@/src/stores/auth.store";
 import Svg, { Path } from "react-native-svg";
 
 /* ─── Sub-components ───────────────────────────────────────── */
@@ -53,8 +55,7 @@ function BackButton({ onPress }: { onPress: () => void }) {
         gap: 6,
         marginBottom: 16,
         alignSelf: "flex-start",
-      }}
-    >
+      }}>
       <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
         <Path
           d="M10 3L5 8L10 13"
@@ -70,8 +71,7 @@ function BackButton({ onPress }: { onPress: () => void }) {
           fontSize: 13,
           fontWeight: "500",
           color: colors.textTertiary,
-        }}
-      >
+        }}>
         Profile
       </Text>
     </Pressable>
@@ -90,8 +90,7 @@ function SectionLabel({ children }: { children: string }) {
         color: colors.textSecondary,
         marginTop: 12,
         marginBottom: 14,
-      }}
-    >
+      }}>
       {children}
     </Text>
   );
@@ -114,8 +113,7 @@ function FieldLabel({
         textTransform: "uppercase",
         color: error ? colors.danger : colors.textTertiary,
         marginBottom: 6,
-      }}
-    >
+      }}>
       {children}
     </Text>
   );
@@ -171,8 +169,7 @@ function TextField({
         borderRadius: 10,
         paddingHorizontal: 14,
         paddingVertical: multiline ? 12 : 0,
-      }}
-    >
+      }}>
       {prefix ? (
         <Text
           style={{
@@ -180,8 +177,7 @@ function TextField({
             fontSize: 15,
             color: colors.textTertiary,
             marginRight: 2,
-          }}
-        >
+          }}>
           {prefix}
         </Text>
       ) : null}
@@ -244,8 +240,7 @@ function ToggleRow({
         borderWidth: 1,
         borderColor: colors.borderSubtle,
         borderRadius: 14,
-      }}
-    >
+      }}>
       <View
         style={{
           width: 36,
@@ -257,8 +252,7 @@ function ToggleRow({
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-        }}
-      >
+        }}>
         {icon}
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -269,8 +263,7 @@ function ToggleRow({
             fontWeight: "600",
             color: colors.textPrimary,
             marginBottom: 2,
-          }}
-        >
+          }}>
           {title}
         </Text>
         <Text
@@ -279,8 +272,7 @@ function ToggleRow({
             fontSize: 12,
             color: colors.textTertiary,
             lineHeight: 17,
-          }}
-        >
+          }}>
           {sub}
         </Text>
       </View>
@@ -294,8 +286,7 @@ function ToggleRow({
           flexShrink: 0,
           justifyContent: "center",
           paddingHorizontal: 3,
-        }}
-      >
+        }}>
         <View
           style={{
             width: 20,
@@ -319,6 +310,7 @@ function ToggleRow({
 
 export default function ProfileSettingsScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const user = useDashboardUser();
   const { profile, refreshProfile } = useAuthStore();
   const role = user?.role ?? "player";
@@ -328,6 +320,14 @@ export default function ProfileSettingsScreen() {
   const guardian = useGuardianControls(role === "player");
   const locked = guardian.isManaged && guardian.profileSettingsLocked;
   const [showLock, setShowLock] = useState(false);
+
+  // Set true to bypass the unsaved-changes guard for an intentional leave
+  // (after saving, or after the user confirms "Discard changes").
+  const allowLeaveRef = useRef(false);
+  // The navigation action that was blocked, so we can replay it on discard.
+  const pendingActionRef = useRef<
+    Parameters<typeof navigation.dispatch>[0] | null
+  >(null);
 
   // Form state initialised from current profile data
   const [firstName, setFirstName] = useState(user?.firstName ?? "");
@@ -340,7 +340,14 @@ export default function ProfileSettingsScreen() {
   const [isPrivate, setIsPrivate] = useState(user?.isPrivate ?? false);
   const [showAge, setShowAge] = useState(user?.showAge ?? true);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  const [pendingImageBase64, setPendingImageBase64] = useState<string | null>(
+    null,
+  );
   const [pendingMimeType, setPendingMimeType] = useState<string>("image/jpeg");
+
+  // Photo-source sheet + unsaved-changes guard
+  const [photoSheetVisible, setPhotoSheetVisible] = useState(false);
+  const [discardVisible, setDiscardVisible] = useState(false);
 
   // Username async validation
   const [usernameStatus, setUsernameStatus] = useState<
@@ -411,23 +418,14 @@ export default function ProfileSettingsScreen() {
     }, 500);
   }
 
-  // Avatar: pick from library or camera
-  async function handleChangePhoto() {
-    Alert.alert("Change photo", "Choose a source", [
-      {
-        text: "Camera",
-        onPress: pickFromCamera,
-      },
-      {
-        text: "Photo library",
-        onPress: pickFromLibrary,
-      },
-      { text: "Cancel", style: "cancel" },
-    ]);
+  // Avatar: open our custom source picker
+  function handleChangePhoto() {
+    setPhotoSheetVisible(true);
   }
 
   async function pickFromLibrary() {
-     
+    setPhotoSheetVisible(false);
+
     let ImagePicker: typeof import("expo-image-picker");
     try {
       ImagePicker = require("expo-image-picker");
@@ -448,16 +446,19 @@ export default function ProfileSettingsScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.85,
+      base64: true,
     });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       setPendingImageUri(asset.uri);
+      setPendingImageBase64(asset.base64 ?? null);
       setPendingMimeType(asset.mimeType ?? "image/jpeg");
     }
   }
 
   async function pickFromCamera() {
-     
+    setPhotoSheetVisible(false);
+
     let ImagePicker: typeof import("expo-image-picker");
     try {
       ImagePicker = require("expo-image-picker");
@@ -477,10 +478,12 @@ export default function ProfileSettingsScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.85,
+      base64: true,
     });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       setPendingImageUri(asset.uri);
+      setPendingImageBase64(asset.base64 ?? null);
       setPendingMimeType(asset.mimeType ?? "image/jpeg");
     }
   }
@@ -507,11 +510,11 @@ export default function ProfileSettingsScreen() {
     try {
       // Upload new photo if selected
       let newAvatarUrl = profile.avatar_url ?? null;
-      if (pendingImageUri) {
+      if (pendingImageBase64) {
         setUploadingPhoto(true);
         newAvatarUrl = await uploadAvatar(
           profile.id,
-          pendingImageUri,
+          pendingImageBase64,
           pendingMimeType,
         );
         setUploadingPhoto(false);
@@ -538,6 +541,7 @@ export default function ProfileSettingsScreen() {
       }
 
       await refreshProfile();
+      allowLeaveRef.current = true;
       router.back();
     } catch (err: unknown) {
       const message =
@@ -548,6 +552,35 @@ export default function ProfileSettingsScreen() {
       setUploadingPhoto(false);
     }
   }
+
+  // Dirty detection — true when the form differs from the saved profile.
+  const isDirty =
+    firstName !== (user?.firstName ?? "") ||
+    lastName !== (user?.lastName ?? "") ||
+    username !== (user?.username ?? "") ||
+    regionId !== (user?.regionId ?? null) ||
+    bio !== (user?.bio ?? "") ||
+    isPrivate !== (user?.isPrivate ?? false) ||
+    showAge !== (user?.showAge ?? true) ||
+    pendingImageUri !== null;
+
+  // Disable the iOS swipe-back gesture while there are unsaved changes so the
+  // pop can't bypass the confirmation below.
+  useEffect(() => {
+    navigation.setOptions({ gestureEnabled: !isDirty });
+  }, [navigation, isDirty]);
+
+  // Guard every way off this screen — the custom back button, the Android
+  // hardware back button, and iOS edge-swipe all surface as `beforeRemove`.
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      if (allowLeaveRef.current || !isDirty || saving) return;
+      e.preventDefault();
+      pendingActionRef.current = e.data.action;
+      setDiscardVisible(true);
+    });
+    return unsubscribe;
+  }, [navigation, isDirty, saving]);
 
   // Username suffix indicator
   const usernameSuffix =
@@ -584,12 +617,10 @@ export default function ProfileSettingsScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 120 }}
-        style={{ flex: 1 }}
-      >
+        style={{ flex: 1 }}>
         {/* Header */}
         <View
-          style={{ paddingHorizontal: 20, paddingTop: 58, paddingBottom: 4 }}
-        >
+          style={{ paddingHorizontal: 20, paddingTop: 58, paddingBottom: 4 }}>
           <BackButton onPress={() => router.back()} />
           <Text
             style={{
@@ -598,8 +629,7 @@ export default function ProfileSettingsScreen() {
               fontWeight: "900",
               color: colors.textPrimary,
               letterSpacing: -26 * 0.03,
-            }}
-          >
+            }}>
             Profile settings
           </Text>
         </View>
@@ -609,8 +639,7 @@ export default function ProfileSettingsScreen() {
         <View style={{ position: "relative" }}>
           <View
             pointerEvents={locked ? "none" : "auto"}
-            style={{ opacity: locked ? 0.5 : 1 }}
-          >
+            style={{ opacity: locked ? 0.5 : 1 }}>
             {/* Avatar editor */}
             <View
               style={{
@@ -618,8 +647,7 @@ export default function ProfileSettingsScreen() {
                 paddingTop: 28,
                 paddingBottom: 28,
                 paddingHorizontal: 20,
-              }}
-            >
+              }}>
               <View style={{ position: "relative", marginBottom: 12 }}>
                 {displayAvatarUrl ? (
                   <View
@@ -628,8 +656,7 @@ export default function ProfileSettingsScreen() {
                       height: 92,
                       borderRadius: 46,
                       overflow: "hidden",
-                    }}
-                  >
+                    }}>
                     <Image
                       source={{ uri: displayAvatarUrl }}
                       style={{ width: 92, height: 92 }}
@@ -664,8 +691,7 @@ export default function ProfileSettingsScreen() {
                     shadowOpacity: 0.6,
                     shadowRadius: 12,
                     elevation: 4,
-                  }}
-                >
+                  }}>
                   {uploadingPhoto ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
@@ -686,8 +712,7 @@ export default function ProfileSettingsScreen() {
                     paddingVertical: 7,
                     borderRadius: 999,
                     letterSpacing: 12 * 0.02,
-                  }}
-                >
+                  }}>
                   Change photo
                 </Text>
               </Pressable>
@@ -703,8 +728,7 @@ export default function ProfileSettingsScreen() {
                   flexDirection: "row",
                   gap: 10,
                   marginBottom: 12,
-                }}
-              >
+                }}>
                 <View style={{ flex: 1 }}>
                   <FieldLabel error={!!errors.firstName}>First name</FieldLabel>
                   <TextField
@@ -759,8 +783,7 @@ export default function ProfileSettingsScreen() {
                       fontSize: 11,
                       color: colors.danger,
                       marginTop: 4,
-                    }}
-                  >
+                    }}>
                     {errors.username}
                   </Text>
                 ) : null}
@@ -847,8 +870,7 @@ export default function ProfileSettingsScreen() {
           paddingTop: 12,
           backgroundColor: "transparent",
         }}
-        pointerEvents="box-none"
-      >
+        pointerEvents="box-none">
         <LinearGradient
           colors={["transparent", colors.surface]}
           style={{
@@ -883,8 +905,7 @@ export default function ProfileSettingsScreen() {
             shadowOpacity: locked || saving ? 0 : 0.45,
             shadowRadius: 16,
             elevation: locked ? 0 : 6,
-          }}
-        >
+          }}>
           {locked ? (
             <>
               <LockIcon size={15} color={colors.textSecondary} />
@@ -894,8 +915,7 @@ export default function ProfileSettingsScreen() {
                   fontSize: 15,
                   fontWeight: "700",
                   color: colors.textSecondary,
-                }}
-              >
+                }}>
                 Locked by guardian
               </Text>
             </>
@@ -908,13 +928,40 @@ export default function ProfileSettingsScreen() {
                 fontSize: 15,
                 fontWeight: "700",
                 color: "#fff",
-              }}
-            >
+              }}>
               Save changes
             </Text>
           )}
         </Pressable>
       </View>
+
+      <PhotoSourceSheet
+        visible={photoSheetVisible}
+        accent={r.accent}
+        onCamera={pickFromCamera}
+        onLibrary={pickFromLibrary}
+        onCancel={() => setPhotoSheetVisible(false)}
+      />
+
+      <DiscardChangesModal
+        visible={discardVisible}
+        accent={r.accent}
+        onKeepEditing={() => {
+          pendingActionRef.current = null;
+          setDiscardVisible(false);
+        }}
+        onDiscard={() => {
+          setDiscardVisible(false);
+          allowLeaveRef.current = true;
+          // Replay the navigation we blocked (swipe/back/programmatic).
+          if (pendingActionRef.current) {
+            navigation.dispatch(pendingActionRef.current);
+          } else {
+            router.back();
+          }
+        }}
+      />
+
       <GuardianLockPopup
         visible={showLock}
         onClose={() => setShowLock(false)}

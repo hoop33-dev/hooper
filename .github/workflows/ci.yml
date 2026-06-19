@@ -24,12 +24,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so the migration validator can diff against the base branch.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
       - run: npm ci
+      # ESLint with the suppressions baseline (pre-existing violations don't
+      # block, but any new violation of a suppressed rule fails).
       - run: npm run lint
+      # Full dependency-cruiser graph: circular deps + layering.
+      - run: npm run lint:deps
+      # Append-only migration guard, diffed against the PR base branch.
+      - name: check db migrations
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          BASE_REF="origin/${{ github.base_ref }}" node scripts/check-db-migrations.mjs
+      # Dead-code scan — advisory only, never blocks merge.
+      - name: dead code (advisory)
+        continue-on-error: true
+        run: npm run lint:dead
 
   test:
     name: test

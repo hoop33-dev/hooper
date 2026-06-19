@@ -12,9 +12,13 @@
       "channel": "development",
       "distribution": "internal"
     },
-    "staging": {
+    "dev": {
       "channel": "development",
-      "distribution": "internal"
+      "distribution": "internal",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      }
     },
     "production": {
       "channel": "production",

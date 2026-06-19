@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
 import {
   getGuardianControls,
   type GuardianControls,
 } from "@/src/services/parent.service";
+import { useEffect, useState } from "react";
 
 const DEFAULT: GuardianControls = {
   isManaged: false,
@@ -28,12 +28,13 @@ export function useGuardianControls(enabled = true): GuardianControls & {
     }
     let cancelled = false;
     setIsLoading(true);
-    getGuardianControls().then((c) => {
+    void (async () => {
+      const c = await getGuardianControls();
       if (!cancelled) {
         setControls(c);
         setIsLoading(false);
       }
-    });
+    })();
     return () => {
       cancelled = true;
     };

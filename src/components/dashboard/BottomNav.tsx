@@ -1,10 +1,10 @@
-import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { Pressable, View } from "react-native";
 
-import { colors } from "@/src/constants/theme";
 import { roleConfig, type RoleId } from "@/src/constants/roles";
+import { colors } from "@/src/constants/theme";
 
-import { HomeIcon, ChatIcon, SettingsIcon } from "./icons";
+import { ChatIcon, HomeIcon, SettingsIcon } from "./icons";
 
 export type NavTabId = "dashboard" | "chat" | "settings";
 
@@ -47,10 +47,9 @@ export function BottomNav({ active, role }: BottomNavProps) {
         backgroundColor: "rgba(20,17,18,0.92)",
         borderTopWidth: 1,
         borderTopColor: colors.borderSubtle,
-        paddingBottom: 22,
+        paddingBottom: 14,
         paddingTop: 6,
-      }}
-    >
+      }}>
       {TABS.map((t) => {
         const isActive = t.id === active;
         const color = isActive ? r.accent : colors.textTertiary;
@@ -64,11 +63,9 @@ export function BottomNav({ active, role }: BottomNavProps) {
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              gap: 4,
-              paddingTop: 6,
-              paddingBottom: 4,
-            }}
-          >
+              paddingTop: 8,
+              paddingBottom: 6,
+            }}>
             {isActive && (
               <View
                 style={{
@@ -82,18 +79,6 @@ export function BottomNav({ active, role }: BottomNavProps) {
               />
             )}
             <t.Icon size={22} color={color} />
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 10,
-                fontWeight: isActive ? "700" : "500",
-                letterSpacing: 10 * 0.05,
-                color,
-                textTransform: "uppercase",
-              }}
-            >
-              {t.label}
-            </Text>
           </Pressable>
         );
       })}

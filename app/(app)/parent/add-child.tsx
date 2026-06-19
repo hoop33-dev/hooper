@@ -1,32 +1,34 @@
-import { useState, useRef } from "react";
+import { useRouter } from "expo-router";
+import { styled } from "nativewind";
+import { useRef, useState } from "react";
 import {
-  View,
-  Text,
   Pressable,
   type TextInput as RNTextInput,
+  Text,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 import Svg, { Path } from "react-native-svg";
 
 import {
-  Input,
+  AccountFormLayout,
   DateInput,
   type DateInputHandle,
+  ErrorMessage,
+  Input,
+  PasswordInput,
   PhoneInput,
   SelectInput,
   type SelectInputHandle,
-  PasswordInput,
-  ErrorMessage,
-  AccountFormLayout,
 } from "@/src/components/ui";
-import { colors, shadows } from "@/src/constants/theme";
 import { NZ_REGIONS } from "@/src/constants/regions";
+import { roleConfig } from "@/src/constants/roles";
+import { colors } from "@/src/constants/theme";
 import { validatePassword } from "@/src/lib/passwordRules";
 import { createChildAccount } from "@/src/services/parent.service";
 
 const StyledSafeAreaView = styled(SafeAreaView);
+const PARENT_ACCENT = roleConfig("parent").accent;
 
 type FormState = {
   firstName: string;
@@ -70,8 +72,7 @@ function SuccessView({
           justifyContent: "center",
           paddingHorizontal: 32,
           gap: 24,
-        }}
-      >
+        }}>
         <View
           style={{
             width: 80,
@@ -82,8 +83,7 @@ function SuccessView({
             borderColor: "rgba(52,211,153,0.3)",
             alignItems: "center",
             justifyContent: "center",
-          }}
-        >
+          }}>
           <Svg width={36} height={36} viewBox="0 0 36 36" fill="none">
             <Path
               d="M8 18L15 25L28 11"
@@ -102,8 +102,7 @@ function SuccessView({
               fontWeight: "700",
               fontSize: 22,
               color: colors.textPrimary,
-            }}
-          >
+            }}>
             Account created
           </Text>
           <Text
@@ -113,8 +112,7 @@ function SuccessView({
               color: colors.textSecondary,
               textAlign: "center",
               lineHeight: 14 * 1.5,
-            }}
-          >
+            }}>
             {childName}&apos;s player account is ready.
           </Text>
         </View>
@@ -125,14 +123,17 @@ function SuccessView({
             style={({ pressed }) => ({
               height: 56,
               borderRadius: 9999,
-              backgroundColor: colors.brandOrange,
+              backgroundColor: PARENT_ACCENT,
               alignItems: "center",
               justifyContent: "center",
               opacity: pressed ? 0.85 : 1,
               transform: [{ scale: pressed ? 0.97 : 1 }],
-              ...shadows.orangeGlow,
-            })}
-          >
+              shadowColor: PARENT_ACCENT,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.45,
+              shadowRadius: 16,
+              elevation: 8,
+            })}>
             <Text
               style={{
                 fontFamily: "Inter",
@@ -141,8 +142,7 @@ function SuccessView({
                 letterSpacing: 15 * 0.08,
                 textTransform: "uppercase",
                 color: colors.textPrimary,
-              }}
-            >
+              }}>
               Add another child
             </Text>
           </Pressable>
@@ -156,16 +156,14 @@ function SuccessView({
               alignItems: "center",
               justifyContent: "center",
               opacity: pressed ? 0.7 : 1,
-            })}
-          >
+            })}>
             <Text
               style={{
                 fontFamily: "Inter",
                 fontWeight: "600",
                 fontSize: 15,
                 color: colors.textSecondary,
-              }}
-            >
+              }}>
               Done
             </Text>
           </Pressable>
@@ -269,11 +267,11 @@ export default function AddChildScreen() {
       onBack={() => router.back()}
       title="Add a child"
       subtitle="Create a player account for your child"
+      accentColor={PARENT_ACCENT}
       submitLabel="Create account"
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
-      submitError={submitError}
-    >
+      submitError={submitError}>
       {/* Name row */}
       <View className="flex-row gap-3">
         <View className="flex-1">
@@ -317,7 +315,7 @@ export default function AddChildScreen() {
           onChange={(d) => setField("dateOfBirth", d)}
           maxDate={new Date()}
           placeholder="DD/MM/YYYY"
-          accentColor={colors.brandOrange}
+          accentColor={PARENT_ACCENT}
         />
         {errors.dateOfBirth && <ErrorMessage message={errors.dateOfBirth} />}
       </View>

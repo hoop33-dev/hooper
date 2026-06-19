@@ -26,8 +26,7 @@ export function GuardianBanner({ kind = "profile" }: { kind?: LockKind }) {
         borderWidth: 1,
         borderColor: "rgba(246,141,104,0.30)",
         borderRadius: 14,
-      }}
-    >
+      }}>
       <View
         style={{
           width: 34,
@@ -39,8 +38,7 @@ export function GuardianBanner({ kind = "profile" }: { kind?: LockKind }) {
           borderColor: "rgba(246,141,104,0.34)",
           alignItems: "center",
           justifyContent: "center",
-        }}
-      >
+        }}>
         <LockIcon size={16} color={PARENT_ACCENT} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -50,8 +48,7 @@ export function GuardianBanner({ kind = "profile" }: { kind?: LockKind }) {
             fontSize: 13.5,
             fontWeight: "700",
             color: colors.textPrimary,
-          }}
-        >
+          }}>
           Managed by your guardian
         </Text>
         <Text
@@ -60,13 +57,98 @@ export function GuardianBanner({ kind = "profile" }: { kind?: LockKind }) {
             fontSize: 12,
             color: colors.textSecondary,
             lineHeight: 17,
-          }}
-        >
+          }}>
           Your parent controls your{" "}
           {kind === "billing" ? "membership" : "profile settings"}.
         </Text>
       </View>
     </View>
+  );
+}
+
+function GotItButton({ onClose }: { onClose: () => void }) {
+  return (
+    <Pressable
+      onPress={onClose}
+      accessibilityRole="button"
+      style={{
+        width: "100%",
+        height: 46,
+        backgroundColor: PARENT_ACCENT,
+        borderRadius: 9999,
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 14.5,
+          fontWeight: "700",
+          color: "#fff",
+        }}>
+        Got it
+      </Text>
+    </Pressable>
+  );
+}
+
+function LockCard({ kind, onClose }: { kind: LockKind; onClose: () => void }) {
+  return (
+    <Pressable
+      onPress={(e) => e.stopPropagation()}
+      style={{
+        width: "100%",
+        maxWidth: 300,
+        backgroundColor: colors.surface2,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+        borderRadius: 22,
+        paddingTop: 26,
+        paddingHorizontal: 22,
+        paddingBottom: 20,
+        alignItems: "center",
+      }}>
+      <View
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          marginBottom: 16,
+          backgroundColor: "rgba(246,141,104,0.14)",
+          borderWidth: 1,
+          borderColor: "rgba(246,141,104,0.32)",
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+        <LockIcon size={24} color={PARENT_ACCENT} />
+      </View>
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 17,
+          fontWeight: "800",
+          color: colors.textPrimary,
+          letterSpacing: -17 * 0.02,
+          marginBottom: 8,
+          textAlign: "center",
+        }}>
+        {kind === "billing" ? "Membership is locked" : "Settings are locked"}
+      </Text>
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 13.5,
+          color: colors.textSecondary,
+          lineHeight: 20,
+          marginBottom: 22,
+          textAlign: "center",
+        }}>
+        Your guardian manages your{" "}
+        {kind === "billing" ? "membership and billing" : "profile settings"}.
+        Ask them to make changes for you.
+      </Text>
+      <GotItButton onClose={onClose} />
+    </Pressable>
   );
 }
 
@@ -89,8 +171,7 @@ export function GuardianLockPopup({
       transparent
       animationType="fade"
       onRequestClose={onClose}
-      statusBarTranslucent
-    >
+      statusBarTranslucent>
       <Pressable
         onPress={onClose}
         style={{
@@ -99,91 +180,8 @@ export function GuardianLockPopup({
           alignItems: "center",
           justifyContent: "center",
           paddingHorizontal: 32,
-        }}
-      >
-        <Pressable
-          onPress={(e) => e.stopPropagation()}
-          style={{
-            width: "100%",
-            maxWidth: 300,
-            backgroundColor: colors.surface2,
-            borderWidth: 1,
-            borderColor: colors.borderSubtle,
-            borderRadius: 22,
-            paddingTop: 26,
-            paddingHorizontal: 22,
-            paddingBottom: 20,
-            alignItems: "center",
-          }}
-        >
-          <View
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              marginBottom: 16,
-              backgroundColor: "rgba(246,141,104,0.14)",
-              borderWidth: 1,
-              borderColor: "rgba(246,141,104,0.32)",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <LockIcon size={24} color={PARENT_ACCENT} />
-          </View>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 17,
-              fontWeight: "800",
-              color: colors.textPrimary,
-              letterSpacing: -17 * 0.02,
-              marginBottom: 8,
-              textAlign: "center",
-            }}
-          >
-            {kind === "billing"
-              ? "Membership is locked"
-              : "Settings are locked"}
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 13.5,
-              color: colors.textSecondary,
-              lineHeight: 20,
-              marginBottom: 22,
-              textAlign: "center",
-            }}
-          >
-            Your guardian manages your{" "}
-            {kind === "billing" ? "membership and billing" : "profile settings"}
-            . Ask them to make changes for you.
-          </Text>
-          <Pressable
-            onPress={onClose}
-            accessibilityRole="button"
-            style={{
-              width: "100%",
-              height: 46,
-              backgroundColor: PARENT_ACCENT,
-              borderRadius: 9999,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 14.5,
-                fontWeight: "700",
-                color: "#fff",
-              }}
-            >
-              Got it
-            </Text>
-          </Pressable>
-        </Pressable>
+        }}>
+        <LockCard kind={kind} onClose={onClose} />
       </Pressable>
     </Modal>
   );

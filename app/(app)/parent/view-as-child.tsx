@@ -1,8 +1,8 @@
-import { type ReactNode, useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState, type ReactNode } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   Avatar,
@@ -21,8 +21,8 @@ import {
   SettingsIcon,
   XIcon,
 } from "@/src/components/dashboard/icons";
-import { colors } from "@/src/constants/theme";
 import { roleConfig } from "@/src/constants/roles";
+import { colors } from "@/src/constants/theme";
 import {
   getChildProfile,
   type ChildProfile,
@@ -31,6 +31,46 @@ import {
 const PLAYER = roleConfig("player");
 
 type Tab = "dashboard" | "chat" | "settings";
+type ResolvedChild = {
+  firstName: string;
+  lastName: string;
+  username: string;
+  initials: string;
+  avatarUrl: string | null;
+  locked: boolean;
+};
+
+type Params = {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+};
+
+function initialsOf(first: string, last: string): string {
+  return (
+    (first.charAt(0) + last.charAt(0)).toUpperCase() ||
+    first.charAt(0).toUpperCase() ||
+    "?"
+  );
+}
+
+function resolveChild(
+  child: ChildProfile | null,
+  params: Params,
+): ResolvedChild {
+  const firstName = child?.firstName ?? params.firstName ?? "";
+  const lastName = child?.lastName ?? params.lastName ?? "";
+  const username = child?.username ?? params.username ?? "";
+  return {
+    firstName,
+    lastName,
+    username,
+    initials: initialsOf(firstName, lastName),
+    avatarUrl: child?.avatarUrl ?? null,
+    locked: child?.profileSettingsLocked ?? false,
+  };
+}
 
 /**
  * Lets a parent step into their child's player experience. It renders the same
@@ -41,34 +81,23 @@ type Tab = "dashboard" | "chat" | "settings";
  */
 export default function ViewAsChildScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{
-    id: string;
-    firstName?: string;
-    lastName?: string;
-    username?: string;
-  }>();
-
+  const params = useLocalSearchParams<Params>();
   const [tab, setTab] = useState<Tab>("dashboard");
   const [child, setChild] = useState<ChildProfile | null>(null);
 
   useEffect(() => {
     if (!params.id) return;
     let cancelled = false;
-    getChildProfile(params.id).then((c) => {
+    void (async () => {
+      const c = await getChildProfile(params.id);
       if (!cancelled && c) setChild(c);
-    });
+    })();
     return () => {
       cancelled = true;
     };
   }, [params.id]);
 
-  const firstName = child?.firstName ?? params.firstName ?? "";
-  const lastName = child?.lastName ?? params.lastName ?? "";
-  const username = child?.username ?? params.username ?? "";
-  const initials =
-    (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() ||
-    firstName.charAt(0).toUpperCase() ||
-    "?";
+  const c = resolveChild(child, params);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface }}>
@@ -81,39 +110,51 @@ export default function ViewAsChildScreen() {
       />
 
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
-        <ViewAsBanner firstName={firstName} onExit={() => router.back()} />
-
-        {tab === "dashboard" ? (
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 24 }}
-          >
-            <DashboardHeader
-              role="player"
-              firstName={firstName}
-              initials={initials}
-            />
-          </ScrollView>
-        ) : tab === "chat" ? (
-          <ChatTab />
-        ) : (
-          <SettingsTab
-            initials={initials}
-            fullName={`${firstName} ${lastName}`.trim()}
-            username={username}
-            avatarUrl={child?.avatarUrl ?? null}
-            locked={child?.profileSettingsLocked ?? false}
-          />
-        )}
+        <ViewAsBanner firstName={c.firstName} onExit={() => router.back()} />
+        <TabContent tab={tab} child={c} />
       </SafeAreaView>
 
       <SafeAreaView
         edges={["bottom"]}
-        style={{ backgroundColor: "rgba(20,17,18,0.92)" }}
-      >
+        style={{ backgroundColor: "rgba(20,17,18,0.92)" }}>
         <LocalNav active={tab} onChange={setTab} />
       </SafeAreaView>
     </View>
+  );
+}
+
+function TabContent({ tab, child }: { tab: Tab; child: ResolvedChild }) {
+  if (tab === "chat") return <ChatTab />;
+  if (tab === "settings")
+    return (
+      <SettingsTab
+        initials={child.initials}
+        fullName={`${child.firstName} ${child.lastName}`.trim()}
+        username={child.username}
+        avatarUrl={child.avatarUrl}
+        locked={child.locked}
+      />
+    );
+  return <DashboardTab firstName={child.firstName} initials={child.initials} />;
+}
+
+function DashboardTab({
+  firstName,
+  initials,
+}: {
+  firstName: string;
+  initials: string;
+}) {
+  return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 24 }}>
+      <DashboardHeader
+        role="player"
+        firstName={firstName}
+        initials={initials}
+      />
+    </ScrollView>
   );
 }
 
@@ -141,8 +182,7 @@ function ViewAsBanner({
         paddingLeft: 14,
         paddingRight: 8,
         borderRadius: 999,
-      }}
-    >
+      }}>
       <EyeIcon size={14} color="#3A1F12" />
       <Text
         style={{
@@ -152,8 +192,7 @@ function ViewAsBanner({
           fontWeight: "700",
           color: "#3A1F12",
           letterSpacing: -12.5 * 0.01,
-        }}
-      >
+        }}>
         Viewing as{" "}
         <Text style={{ fontWeight: "800" }}>{firstName || "athlete"}</Text>
       </Text>
@@ -170,8 +209,7 @@ function ViewAsBanner({
           paddingHorizontal: 12,
           borderRadius: 999,
           backgroundColor: "#3A1F12",
-        }}
-      >
+        }}>
         <XIcon size={11} color="#FBD9C9" />
         <Text
           style={{
@@ -179,8 +217,7 @@ function ViewAsBanner({
             fontSize: 12,
             fontWeight: "700",
             color: "#FBD9C9",
-          }}
-        >
+          }}>
           Exit
         </Text>
       </Pressable>
@@ -197,8 +234,7 @@ function ChatTab() {
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: 32,
-      }}
-    >
+      }}>
       <Text
         style={{
           fontFamily: "Inter",
@@ -207,8 +243,7 @@ function ChatTab() {
           color: colors.textPrimary,
           letterSpacing: -22 * 0.02,
           marginBottom: 8,
-        }}
-      >
+        }}>
         Chat
       </Text>
       <Text
@@ -217,8 +252,7 @@ function ChatTab() {
           fontSize: 14,
           color: colors.textTertiary,
           textAlign: "center",
-        }}
-      >
+        }}>
         Coming soon.
       </Text>
     </View>
@@ -250,8 +284,7 @@ function PreviewRow({
         borderColor: colors.borderSubtle,
         borderRadius: 14,
         opacity: locked ? 0.55 : 1,
-      }}
-    >
+      }}>
       <View
         style={{
           width: 38,
@@ -262,8 +295,7 @@ function PreviewRow({
           borderColor: `${PLAYER.accent}30`,
           alignItems: "center",
           justifyContent: "center",
-        }}
-      >
+        }}>
         {icon}
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -274,8 +306,7 @@ function PreviewRow({
             fontWeight: "600",
             color: colors.textPrimary,
             marginBottom: sub ? 2 : 0,
-          }}
-        >
+          }}>
           {title}
         </Text>
         {sub ? (
@@ -284,8 +315,7 @@ function PreviewRow({
               fontFamily: "Inter",
               fontSize: 12,
               color: colors.textTertiary,
-            }}
-          >
+            }}>
             {sub}
           </Text>
         ) : null}
@@ -295,6 +325,69 @@ function PreviewRow({
       ) : (
         <ChevronIcon size={16} color={colors.textTertiary} />
       )}
+    </View>
+  );
+}
+
+function SettingsIdentity({
+  initials,
+  fullName,
+  username,
+  avatarUrl,
+}: {
+  initials: string;
+  fullName: string;
+  username: string;
+  avatarUrl: string | null;
+}) {
+  return (
+    <View
+      style={{
+        marginHorizontal: 20,
+        marginBottom: 18,
+        backgroundColor: colors.surface2,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+        borderRadius: 18,
+        padding: 22,
+        alignItems: "center",
+        overflow: "hidden",
+      }}>
+      <LinearGradient
+        colors={[`${PLAYER.accent}22`, "transparent"]}
+        pointerEvents="none"
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80 }}
+      />
+      <Avatar
+        role="player"
+        size={84}
+        initials={initials}
+        imageUrl={avatarUrl}
+      />
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 20,
+          fontWeight: "800",
+          color: colors.textPrimary,
+          letterSpacing: -20 * 0.02,
+          marginTop: 14,
+          marginBottom: 3,
+        }}>
+        {fullName}
+      </Text>
+      {username ? (
+        <Text
+          style={{
+            fontFamily: "Inter",
+            fontSize: 12,
+            fontWeight: "600",
+            color: PLAYER.accent,
+            letterSpacing: 12 * 0.06,
+          }}>
+          @{username}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -315,17 +408,8 @@ function SettingsTab({
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 24 }}
-    >
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 20,
-          paddingTop: 6,
-          paddingBottom: 20,
-        }}
-      >
+      contentContainerStyle={{ paddingBottom: 24 }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: 20 }}>
         <Text
           style={{
             fontFamily: "Inter",
@@ -333,94 +417,17 @@ function SettingsTab({
             fontWeight: "900",
             color: colors.textPrimary,
             letterSpacing: -22 * 0.03,
-          }}
-        >
+          }}>
           Profile
         </Text>
       </View>
 
-      {/* Identity card */}
-      <View
-        style={{
-          marginHorizontal: 20,
-          marginBottom: 18,
-          backgroundColor: colors.surface2,
-          borderWidth: 1,
-          borderColor: colors.borderSubtle,
-          borderRadius: 18,
-          padding: 22,
-          alignItems: "center",
-          overflow: "hidden",
-        }}
-      >
-        <LinearGradient
-          colors={[`${PLAYER.accent}22`, "transparent"]}
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 80,
-          }}
-        />
-        <Avatar
-          role="player"
-          size={84}
-          initials={initials}
-          imageUrl={avatarUrl}
-        />
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 20,
-            fontWeight: "800",
-            color: colors.textPrimary,
-            letterSpacing: -20 * 0.02,
-            marginTop: 14,
-            marginBottom: 3,
-          }}
-        >
-          {fullName}
-        </Text>
-        {username ? (
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 12,
-              fontWeight: "600",
-              color: PLAYER.accent,
-              letterSpacing: 12 * 0.06,
-            }}
-          >
-            @{username}
-          </Text>
-        ) : null}
-        <View
-          style={{
-            marginTop: 14,
-            paddingHorizontal: 10,
-            paddingVertical: 5,
-            backgroundColor: `${PLAYER.accent}14`,
-            borderWidth: 1,
-            borderColor: `${PLAYER.accent}30`,
-            borderRadius: 999,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 10,
-              fontWeight: "700",
-              color: PLAYER.accent,
-              letterSpacing: 10 * 0.1,
-              textTransform: "uppercase",
-            }}
-          >
-            {PLAYER.label}
-          </Text>
-        </View>
-      </View>
+      <SettingsIdentity
+        initials={initials}
+        fullName={fullName}
+        username={username}
+        avatarUrl={avatarUrl}
+      />
 
       {locked ? <GuardianBanner kind="profile" /> : null}
 
@@ -475,8 +482,7 @@ function LocalNav({
         borderTopColor: colors.borderSubtle,
         paddingBottom: 22,
         paddingTop: 6,
-      }}
-    >
+      }}>
       {tabs.map((t) => {
         const isActive = t.id === active;
         const color = isActive ? PLAYER.accent : colors.textTertiary;
@@ -493,8 +499,7 @@ function LocalNav({
               gap: 4,
               paddingTop: 6,
               paddingBottom: 4,
-            }}
-          >
+            }}>
             {isActive ? (
               <View
                 style={{
@@ -516,8 +521,7 @@ function LocalNav({
                 letterSpacing: 10 * 0.05,
                 color,
                 textTransform: "uppercase",
-              }}
-            >
+              }}>
               {t.label}
             </Text>
           </Pressable>

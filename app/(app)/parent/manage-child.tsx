@@ -1,10 +1,6 @@
-import {
-  type ReactNode,
-  type RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRef, useState, type RefObject } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,8 +11,6 @@ import {
   View,
   type TextInput as RNTextInput,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 
 import { Avatar } from "@/src/components/dashboard/Avatar";
@@ -26,66 +20,20 @@ import {
   SettingsIcon,
   ShieldIcon,
 } from "@/src/components/dashboard/icons";
-import { DateInput, type DateInputHandle } from "@/src/components/ui/DateInput";
-import {
-  SelectInput,
-  type SelectOption,
-} from "@/src/components/ui/SelectInput";
-import { colors } from "@/src/constants/theme";
+import { SelectInput } from "@/src/components/ui/SelectInput";
 import { roleConfig } from "@/src/constants/roles";
-import { ageFromDob } from "@/src/lib/age";
-import { supabase } from "@/src/lib/supabase";
+import { colors } from "@/src/constants/theme";
 import {
-  getChildProfile,
-  updateChildProfile,
-} from "@/src/services/parent.service";
+  useManageChildForm,
+  type ManageChildForm,
+} from "@/src/hooks/useManageChildForm";
+import { useRegionOptions } from "@/src/hooks/useRegionOptions";
+import { ageFromDob } from "@/src/lib/age";
 
 const PARENT = roleConfig("parent");
+type InputRef = RefObject<RNTextInput | null>;
 
-/* ─── Small primitives (kept local, mirroring profile-settings) ─ */
-
-function BackButton({
-  onPress,
-  label,
-}: {
-  onPress: () => void;
-  label: string;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel="Back"
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        marginBottom: 18,
-        alignSelf: "flex-start",
-      }}
-    >
-      <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-        <Path
-          d="M10 3L5 8L10 13"
-          stroke={colors.textTertiary}
-          strokeWidth={1.8}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </Svg>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 13,
-          fontWeight: "500",
-          color: colors.textTertiary,
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
+/* ─── Primitives ────────────────────────────────────────────── */
 
 function SectionLabel({ children }: { children: string }) {
   return (
@@ -99,8 +47,7 @@ function SectionLabel({ children }: { children: string }) {
         color: colors.textSecondary,
         marginTop: 12,
         marginBottom: 14,
-      }}
-    >
+      }}>
       {children}
     </Text>
   );
@@ -123,32 +70,37 @@ function FieldLabel({
         textTransform: "uppercase",
         color: error ? colors.danger : colors.textTertiary,
         marginBottom: 6,
-      }}
-    >
+      }}>
       {children}
     </Text>
   );
 }
 
-function TextField({
-  value,
-  onChange,
-  prefix,
-  error,
-  autoCapitalize = "sentences",
-  inputRef,
-  onSubmitEditing,
-  returnKeyType,
-}: {
+type FieldProps = {
+  label: string;
   value: string;
   onChange: (v: string) => void;
   prefix?: string;
   error?: boolean;
+  errorText?: string;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  inputRef?: RefObject<RNTextInput | null>;
-  onSubmitEditing?: () => void;
+  inputRef?: InputRef;
+  onSubmit?: () => void;
   returnKeyType?: "next" | "done";
-}) {
+};
+
+function Field({
+  label,
+  value,
+  onChange,
+  prefix,
+  error,
+  errorText,
+  autoCapitalize = "sentences",
+  inputRef,
+  onSubmit,
+  returnKeyType,
+}: FieldProps) {
   const [focused, setFocused] = useState(false);
   const borderColor = error
     ? colors.danger
@@ -156,146 +108,137 @@ function TextField({
       ? PARENT.accent
       : colors.borderSubtle;
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        height: 48,
-        backgroundColor: focused ? "rgba(255,255,255,0.06)" : colors.surface2,
-        borderWidth: 1.5,
-        borderColor,
-        borderRadius: 10,
-        paddingHorizontal: 14,
-      }}
-    >
-      {prefix ? (
+    <View>
+      <FieldLabel error={error}>{label}</FieldLabel>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          height: 48,
+          backgroundColor: focused ? "rgba(255,255,255,0.06)" : colors.surface2,
+          borderWidth: 1.5,
+          borderColor,
+          borderRadius: 10,
+          paddingHorizontal: 14,
+        }}>
+        {prefix ? (
+          <Text
+            style={{
+              fontFamily: "Inter",
+              fontSize: 15,
+              color: colors.textTertiary,
+            }}>
+            {prefix}
+          </Text>
+        ) : null}
+        <TextInput
+          ref={inputRef}
+          value={value}
+          onChangeText={onChange}
+          autoCapitalize={autoCapitalize}
+          autoCorrect={false}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onSubmitEditing={onSubmit}
+          returnKeyType={returnKeyType}
+          blurOnSubmit={false}
+          style={{
+            flex: 1,
+            fontFamily: "Inter",
+            fontSize: 15,
+            color: colors.textPrimary,
+          }}
+        />
+      </View>
+      {errorText ? (
         <Text
           style={{
             fontFamily: "Inter",
-            fontSize: 15,
-            color: colors.textTertiary,
-            marginRight: 2,
-          }}
-        >
-          {prefix}
+            fontSize: 11,
+            color: colors.danger,
+            marginTop: 4,
+          }}>
+          {errorText}
         </Text>
       ) : null}
-      <TextInput
-        ref={inputRef}
-        value={value}
-        onChangeText={onChange}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={false}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        onSubmitEditing={onSubmitEditing}
-        returnKeyType={returnKeyType}
-        blurOnSubmit={false}
+    </View>
+  );
+}
+
+function Switch({ on }: { on: boolean }) {
+  return (
+    <View
+      style={{
+        width: 42,
+        height: 26,
+        borderRadius: 999,
+        backgroundColor: on ? PARENT.accent : "rgba(255,255,255,0.10)",
+        justifyContent: "center",
+        paddingHorizontal: 3,
+      }}>
+      <View
         style={{
-          flex: 1,
-          fontFamily: "Inter",
-          fontSize: 15,
-          color: colors.textPrimary,
+          width: 20,
+          height: 20,
+          borderRadius: 10,
+          backgroundColor: "#fff",
+          alignSelf: on ? "flex-end" : "flex-start",
         }}
       />
     </View>
   );
 }
 
-function ToggleRow({
-  title,
-  sub,
-  value,
-  onChange,
-  icon,
-}: {
-  title: string;
-  sub: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
-  icon: ReactNode;
-}) {
+/* ─── Header + segment ──────────────────────────────────────── */
+
+function ManageHeader({ onBack }: { onBack: () => void }) {
   return (
-    <Pressable
-      onPress={() => onChange(!value)}
-      accessibilityRole="switch"
-      accessibilityState={{ checked: value }}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 14,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 14,
-      }}
-    >
-      <View
+    <View style={{ paddingHorizontal: 20, paddingTop: 58, paddingBottom: 4 }}>
+      <Pressable
+        onPress={onBack}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
         style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          backgroundColor: `${PARENT.accent}14`,
-          borderWidth: 1,
-          borderColor: `${PARENT.accent}30`,
+          flexDirection: "row",
           alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        {icon}
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
+          gap: 6,
+          marginBottom: 18,
+          alignSelf: "flex-start",
+        }}>
+        <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+          <Path
+            d="M10 3L5 8L10 13"
+            stroke={colors.textTertiary}
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
         <Text
           style={{
             fontFamily: "Inter",
-            fontSize: 14.5,
-            fontWeight: "600",
-            color: colors.textPrimary,
-            marginBottom: 2,
-          }}
-        >
-          {title}
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 12,
+            fontSize: 13,
+            fontWeight: "500",
             color: colors.textTertiary,
-            lineHeight: 17,
-          }}
-        >
-          {sub}
+          }}>
+          Children
         </Text>
-      </View>
-      <View
+      </Pressable>
+      <Text
         style={{
-          width: 42,
-          height: 26,
-          borderRadius: 999,
-          backgroundColor: value ? PARENT.accent : "rgba(255,255,255,0.10)",
-          flexShrink: 0,
-          justifyContent: "center",
-          paddingHorizontal: 3,
-        }}
-      >
-        <View
-          style={{
-            width: 20,
-            height: 20,
-            borderRadius: 10,
-            backgroundColor: "#fff",
-            alignSelf: value ? "flex-end" : "flex-start",
-          }}
-        />
-      </View>
-    </Pressable>
+          fontFamily: "Inter",
+          fontSize: 26,
+          fontWeight: "900",
+          color: colors.textPrimary,
+          letterSpacing: -26 * 0.03,
+        }}>
+        Manage child
+      </Text>
+    </View>
   );
 }
 
-function Segment({
+function ChildSegment({
   tab,
   setTab,
 }: {
@@ -317,38 +260,478 @@ function Segment({
         borderColor: colors.borderSubtle,
         borderRadius: 999,
         flexDirection: "row",
-      }}
-    >
-      {tabs.map((t) => {
-        const active = tab === t.id;
-        return (
-          <Pressable
-            key={t.id}
-            accessibilityRole="button"
-            onPress={() => setTab(t.id)}
+      }}>
+      {tabs.map((t) => (
+        <Pressable
+          key={t.id}
+          accessibilityRole="button"
+          onPress={() => setTab(t.id)}
+          style={{
+            flex: 1,
+            height: 38,
+            backgroundColor: tab === t.id ? PARENT.accent : "transparent",
+            borderRadius: 9999,
+            alignItems: "center",
+            justifyContent: "center",
+          }}>
+          <Text
             style={{
-              flex: 1,
-              height: 38,
-              backgroundColor: active ? PARENT.accent : "transparent",
-              borderRadius: 9999,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 13,
-                fontWeight: "700",
-                letterSpacing: 13 * 0.02,
-                color: active ? "#fff" : colors.textSecondary,
-              }}
-            >
-              {t.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+              fontFamily: "Inter",
+              fontSize: 13,
+              fontWeight: "700",
+              color: tab === t.id ? "#fff" : colors.textSecondary,
+            }}>
+            {t.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function IdentityCard({
+  initials,
+  name,
+  subtitle,
+  avatarUrl,
+}: {
+  initials: string;
+  name: string;
+  subtitle: string;
+  avatarUrl: string | null;
+}) {
+  return (
+    <View
+      style={{
+        marginHorizontal: 20,
+        marginTop: 18,
+        marginBottom: 20,
+        backgroundColor: colors.surface2,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+        borderRadius: 16,
+        padding: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 14,
+      }}>
+      <Avatar
+        role="player"
+        size={58}
+        initials={initials}
+        imageUrl={avatarUrl}
+      />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          style={{
+            fontFamily: "Inter",
+            fontSize: 17,
+            fontWeight: "800",
+            color: colors.textPrimary,
+            letterSpacing: -17 * 0.02,
+          }}>
+          {name}
+        </Text>
+        <Text
+          style={{
+            fontFamily: "Inter",
+            fontSize: 12,
+            color: colors.textSecondary,
+            marginTop: 2,
+          }}>
+          {subtitle}
+        </Text>
+      </View>
+      <View
+        style={{
+          paddingVertical: 3,
+          paddingHorizontal: 8,
+          borderRadius: 999,
+          backgroundColor: "rgba(56,161,105,0.14)",
+          borderWidth: 1,
+          borderColor: "rgba(56,161,105,0.3)",
+        }}>
+        <Text
+          style={{
+            fontFamily: "Inter",
+            fontSize: 9.5,
+            fontWeight: "700",
+            letterSpacing: 9.5 * 0.12,
+            color: colors.success,
+            textTransform: "uppercase",
+          }}>
+          Active
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/* ─── Profile tab ───────────────────────────────────────────── */
+
+function PersonalFields({
+  form,
+  regionOptions,
+  lastNameRef,
+  usernameRef,
+}: {
+  form: ManageChildForm;
+  regionOptions: { value: string; label: string }[];
+  lastNameRef: InputRef;
+  usernameRef: InputRef;
+}) {
+  return (
+    <>
+      <SectionLabel>Personal</SectionLabel>
+      <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
+        <View style={{ flex: 1 }}>
+          <Field
+            label="First name"
+            value={form.firstName}
+            onChange={form.setFirstName}
+            autoCapitalize="words"
+            returnKeyType="next"
+            onSubmit={() => lastNameRef.current?.focus()}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Field
+            label="Last name"
+            value={form.lastName}
+            onChange={form.setLastName}
+            autoCapitalize="words"
+            inputRef={lastNameRef}
+            returnKeyType="next"
+            onSubmit={() => usernameRef.current?.focus()}
+          />
+        </View>
+      </View>
+      <View style={{ marginBottom: 14 }}>
+        <Field
+          label="Username"
+          prefix="@"
+          value={form.username}
+          onChange={(v) => {
+            form.setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+            form.setUsernameError(undefined);
+          }}
+          autoCapitalize="none"
+          inputRef={usernameRef}
+          error={!!form.usernameError}
+          errorText={form.usernameError}
+        />
+      </View>
+      <View>
+        <FieldLabel>Region</FieldLabel>
+        <SelectInput
+          value={form.regionId}
+          options={regionOptions}
+          placeholder="Select region"
+          onChange={form.setRegionId}
+        />
+      </View>
+    </>
+  );
+}
+
+function GuardianSection({
+  value,
+  onChange,
+  childName,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+  childName: string;
+}) {
+  return (
+    <>
+      <SectionLabel>Guardian controls</SectionLabel>
+      <Pressable
+        onPress={() => onChange(!value)}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: value }}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 14,
+          paddingVertical: 14,
+          paddingHorizontal: 16,
+          backgroundColor: colors.surface2,
+          borderWidth: 1,
+          borderColor: colors.borderSubtle,
+          borderRadius: 14,
+        }}>
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            backgroundColor: `${PARENT.accent}14`,
+            borderWidth: 1,
+            borderColor: `${PARENT.accent}30`,
+            alignItems: "center",
+            justifyContent: "center",
+          }}>
+          <SettingsIcon size={18} color={PARENT.accent} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            style={{
+              fontFamily: "Inter",
+              fontSize: 14.5,
+              fontWeight: "600",
+              color: colors.textPrimary,
+              marginBottom: 2,
+            }}>
+            Lock profile settings
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Inter",
+              fontSize: 12,
+              color: colors.textTertiary,
+            }}>
+            Stop {childName || "your child"} from editing their own profile.
+          </Text>
+        </View>
+        <Switch on={value} />
+      </Pressable>
+      <ShieldNote childName={childName} />
+    </>
+  );
+}
+
+function ShieldNote({ childName }: { childName: string }) {
+  return (
+    <View
+      style={{
+        marginTop: 16,
+        backgroundColor: colors.surface2,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+        borderRadius: 12,
+        padding: 16,
+        flexDirection: "row",
+        gap: 12,
+        alignItems: "flex-start",
+      }}>
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 8,
+          backgroundColor: `${PARENT.accent}14`,
+          borderWidth: 1,
+          borderColor: `${PARENT.accent}30`,
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+        <ShieldIcon size={14} color={PARENT.accent} />
+      </View>
+      <Text
+        style={{
+          flex: 1,
+          fontFamily: "Inter",
+          fontSize: 12.5,
+          color: colors.textSecondary,
+          lineHeight: 19,
+        }}>
+        You manage {childName || "your child"}&apos;s account until they turn
+        16.
+      </Text>
+    </View>
+  );
+}
+
+function ProfileTab({
+  form,
+  regionOptions,
+  lastNameRef,
+  usernameRef,
+}: {
+  form: ManageChildForm;
+  regionOptions: { value: string; label: string }[];
+  lastNameRef: InputRef;
+  usernameRef: InputRef;
+}) {
+  return (
+    <View style={{ paddingHorizontal: 20 }}>
+      <PersonalFields
+        form={form}
+        regionOptions={regionOptions}
+        lastNameRef={lastNameRef}
+        usernameRef={usernameRef}
+      />
+      <GuardianSection
+        value={form.lock}
+        onChange={form.setLock}
+        childName={form.firstName}
+      />
+    </View>
+  );
+}
+
+/* ─── Billing tab (placeholder — full billing ships later) ───── */
+
+function BillingPlanCard() {
+  const player = roleConfig("player");
+  return (
+    <View
+      style={{
+        backgroundColor: colors.surface2,
+        borderWidth: 1.5,
+        borderColor: `${PARENT.accent}55`,
+        borderRadius: 18,
+        padding: 18,
+      }}>
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 9.5,
+          fontWeight: "700",
+          letterSpacing: 9.5 * 0.14,
+          color: PARENT.accent,
+          textTransform: "uppercase",
+          marginBottom: 4,
+        }}>
+        {player.planName}
+      </Text>
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 22,
+          fontWeight: "900",
+          color: colors.textPrimary,
+          letterSpacing: -22 * 0.03,
+          marginBottom: 4,
+        }}>
+        Standard
+      </Text>
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 13,
+          color: colors.textSecondary,
+        }}>
+        {player.planSub}
+      </Text>
+    </View>
+  );
+}
+
+function BillingComingSoon({ firstName }: { firstName: string }) {
+  return (
+    <View
+      style={{
+        marginTop: 16,
+        backgroundColor: colors.surface2,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+        borderRadius: 14,
+        padding: 16,
+        flexDirection: "row",
+        gap: 12,
+        alignItems: "flex-start",
+      }}>
+      <View
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 10,
+          backgroundColor: "rgba(255,255,255,0.04)",
+          borderWidth: 1,
+          borderColor: colors.borderSubtle,
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+        <CreditIcon size={18} color={colors.textSecondary} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          style={{
+            fontFamily: "Inter",
+            fontSize: 13.5,
+            fontWeight: "600",
+            color: colors.textPrimary,
+            marginBottom: 2,
+          }}>
+          Billing is coming soon
+        </Text>
+        <Text
+          style={{
+            fontFamily: "Inter",
+            fontSize: 12,
+            color: colors.textTertiary,
+            lineHeight: 18,
+          }}>
+          You&apos;ll be able to manage {firstName || "your child"}&apos;s plan,
+          payment method, and renewals here.
+        </Text>
+      </View>
+      <ChevronIcon size={16} color={colors.textDisabled} />
+    </View>
+  );
+}
+
+function BillingTab({ firstName }: { firstName: string }) {
+  return (
+    <View style={{ paddingHorizontal: 20 }}>
+      <SectionLabel>Current plan</SectionLabel>
+      <BillingPlanCard />
+      <BillingComingSoon firstName={firstName} />
+    </View>
+  );
+}
+
+function SaveBar({
+  onPress,
+  saving,
+}: {
+  onPress: () => void;
+  saving: boolean;
+}) {
+  return (
+    <View
+      style={{
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingHorizontal: 20,
+        paddingBottom: 36,
+        paddingTop: 12,
+      }}
+      pointerEvents="box-none">
+      <LinearGradient
+        colors={["transparent", colors.surface]}
+        style={{ position: "absolute", top: -20, left: 0, right: 0, bottom: 0 }}
+        pointerEvents="none"
+      />
+      <Pressable
+        onPress={onPress}
+        disabled={saving}
+        accessibilityRole="button"
+        style={{
+          height: 52,
+          backgroundColor: saving ? `${PARENT.accent}80` : PARENT.accent,
+          borderRadius: 9999,
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+        {saving ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text
+            style={{
+              fontFamily: "Inter",
+              fontSize: 15,
+              fontWeight: "700",
+              color: "#fff",
+            }}>
+            Save changes
+          </Text>
+        )}
+      </Pressable>
     </View>
   );
 }
@@ -363,93 +746,27 @@ export default function ManageChildScreen() {
     lastName?: string;
     username?: string;
   }>();
-  const childId = params.id;
-
   const [tab, setTab] = useState<"profile" | "billing">("profile");
-  const [loading, setLoading] = useState(true);
-
-  const [firstName, setFirstName] = useState(params.firstName ?? "");
-  const [lastName, setLastName] = useState(params.lastName ?? "");
-  const [username, setUsername] = useState(params.username ?? "");
-  const [dob, setDob] = useState<Date | null>(null);
-  const [regionId, setRegionId] = useState<string | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [lockSettings, setLockSettings] = useState(false);
-
-  const [regionOptions, setRegionOptions] = useState<SelectOption[]>([]);
-  const [errors, setErrors] = useState<{ username?: string }>({});
-  const [saving, setSaving] = useState(false);
-
+  const form = useManageChildForm(params.id);
+  const regionOptions = useRegionOptions();
   const lastNameRef = useRef<RNTextInput>(null);
   const usernameRef = useRef<RNTextInput>(null);
-  const dobRef = useRef<DateInputHandle>(null);
-
-  useEffect(() => {
-    supabase
-      .from("regions")
-      .select("id, name")
-      .order("name")
-      .then(({ data }) => {
-        if (data)
-          setRegionOptions(data.map((r) => ({ label: r.name, value: r.id })));
-      });
-  }, []);
-
-  useEffect(() => {
-    if (!childId) return;
-    let cancelled = false;
-    getChildProfile(childId).then((c) => {
-      if (cancelled || !c) {
-        if (!cancelled) setLoading(false);
-        return;
-      }
-      setFirstName(c.firstName);
-      setLastName(c.lastName);
-      setUsername(c.username);
-      setDob(c.dateOfBirth ? new Date(c.dateOfBirth) : null);
-      setRegionId(c.regionId);
-      setAvatarUrl(c.avatarUrl);
-      setLockSettings(c.profileSettingsLocked);
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [childId]);
-
-  const initials =
-    (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || "?";
-  const age = ageFromDob(dob ? dob.toISOString().slice(0, 10) : null);
 
   async function handleSave() {
-    if (!childId) return;
-    if (!firstName.trim() || !lastName.trim() || !username.trim()) {
-      setErrors({ username: !username.trim() ? "Required" : undefined });
-      return;
+    const res = await form.save();
+    if (res.ok) {
+      router.back();
+    } else if (res.alert) {
+      Alert.alert("Error", res.alert);
     }
-    setSaving(true);
-    setErrors({});
-    const result = await updateChildProfile({
-      childProfileId: childId,
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      username: username.trim(),
-      dateOfBirth: dob,
-      regionId,
-      profileSettingsLocked: lockSettings,
-    });
-    setSaving(false);
-
-    if (!result.ok) {
-      if (result.field === "username") {
-        setErrors({ username: result.error });
-      } else {
-        Alert.alert("Error", result.error);
-      }
-      return;
-    }
-    router.back();
   }
+
+  const name =
+    `${form.firstName} ${form.lastName}`.trim() || (params.firstName ?? "");
+  const initials =
+    (form.firstName.charAt(0) + form.lastName.charAt(0)).toUpperCase() || "?";
+  const age = ageFromDob(form.dob);
+  const subtitle = `${age != null ? `Age ${age} · ` : ""}@${form.username}`;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface }}>
@@ -460,443 +777,42 @@ export default function ManageChildScreen() {
         pointerEvents="none"
         style={{ position: "absolute", top: 0, left: 0, right: 0, height: 320 }}
       />
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: tab === "profile" ? 120 : 32 }}
-        style={{ flex: 1 }}
-      >
-        {/* Header */}
-        <View
-          style={{ paddingHorizontal: 20, paddingTop: 58, paddingBottom: 4 }}
-        >
-          <BackButton onPress={() => router.back()} label="Children" />
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 26,
-              fontWeight: "900",
-              color: colors.textPrimary,
-              letterSpacing: -26 * 0.03,
-            }}
-          >
-            Manage child
-          </Text>
-        </View>
-
-        {loading ? (
+        style={{ flex: 1 }}>
+        <ManageHeader onBack={() => router.back()} />
+        {form.loading ? (
           <ActivityIndicator
             color={colors.textTertiary}
             style={{ marginTop: 48 }}
           />
         ) : (
           <>
-            {/* Identity card */}
-            <View
-              style={{
-                marginHorizontal: 20,
-                marginTop: 18,
-                marginBottom: 20,
-                backgroundColor: colors.surface2,
-                borderWidth: 1,
-                borderColor: colors.borderSubtle,
-                borderRadius: 16,
-                padding: 16,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 14,
-                overflow: "hidden",
-              }}
-            >
-              <Avatar
-                role="player"
-                size={58}
-                initials={initials}
-                imageUrl={avatarUrl}
-              />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 17,
-                    fontWeight: "800",
-                    color: colors.textPrimary,
-                    letterSpacing: -17 * 0.02,
-                  }}
-                >
-                  {firstName} {lastName}
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 12,
-                    color: colors.textSecondary,
-                    marginTop: 2,
-                  }}
-                >
-                  {age != null ? `Age ${age} · ` : ""}@{username}
-                </Text>
-              </View>
-              <View
-                style={{
-                  paddingVertical: 3,
-                  paddingHorizontal: 8,
-                  borderRadius: 999,
-                  backgroundColor: "rgba(56,161,105,0.14)",
-                  borderWidth: 1,
-                  borderColor: "rgba(56,161,105,0.3)",
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 9.5,
-                    fontWeight: "700",
-                    letterSpacing: 9.5 * 0.12,
-                    color: colors.success,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Active
-                </Text>
-              </View>
-            </View>
-
-            <Segment tab={tab} setTab={setTab} />
-
+            <IdentityCard
+              initials={initials}
+              name={name}
+              subtitle={subtitle}
+              avatarUrl={form.avatarUrl}
+            />
+            <ChildSegment tab={tab} setTab={setTab} />
             {tab === "profile" ? (
-              <View style={{ paddingHorizontal: 20 }}>
-                <SectionLabel>Personal</SectionLabel>
-                <View
-                  style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <FieldLabel>First name</FieldLabel>
-                    <TextField
-                      value={firstName}
-                      onChange={setFirstName}
-                      autoCapitalize="words"
-                      returnKeyType="next"
-                      onSubmitEditing={() => lastNameRef.current?.focus()}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <FieldLabel>Last name</FieldLabel>
-                    <TextField
-                      value={lastName}
-                      onChange={setLastName}
-                      autoCapitalize="words"
-                      inputRef={lastNameRef}
-                      returnKeyType="next"
-                      onSubmitEditing={() => usernameRef.current?.focus()}
-                    />
-                  </View>
-                </View>
-
-                <View style={{ marginBottom: 14 }}>
-                  <FieldLabel error={!!errors.username}>Username</FieldLabel>
-                  <TextField
-                    value={username}
-                    onChange={(v) => {
-                      setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ""));
-                      setErrors({});
-                    }}
-                    prefix="@"
-                    autoCapitalize="none"
-                    inputRef={usernameRef}
-                    error={!!errors.username}
-                  />
-                  {errors.username ? (
-                    <Text
-                      style={{
-                        fontFamily: "Inter",
-                        fontSize: 11,
-                        color: colors.danger,
-                        marginTop: 4,
-                      }}
-                    >
-                      {errors.username}
-                    </Text>
-                  ) : null}
-                </View>
-
-                <View style={{ marginBottom: 14 }}>
-                  <FieldLabel>Date of birth</FieldLabel>
-                  <DateInput
-                    ref={dobRef}
-                    value={dob}
-                    onChange={setDob}
-                    maxDate={new Date()}
-                    placeholder="DD/MM/YYYY"
-                    accentColor={PARENT.accent}
-                  />
-                </View>
-
-                <View style={{ marginBottom: 4 }}>
-                  <FieldLabel>Region</FieldLabel>
-                  <SelectInput
-                    value={regionId}
-                    options={regionOptions}
-                    placeholder="Select region"
-                    onChange={setRegionId}
-                  />
-                </View>
-
-                <SectionLabel>Guardian controls</SectionLabel>
-                <ToggleRow
-                  title="Lock profile settings"
-                  sub={`Stop ${firstName || "your child"} from editing their own profile.`}
-                  value={lockSettings}
-                  onChange={setLockSettings}
-                  icon={<SettingsIcon size={18} color={PARENT.accent} />}
-                />
-
-                <View
-                  style={{
-                    marginTop: 16,
-                    backgroundColor: colors.surface2,
-                    borderWidth: 1,
-                    borderColor: colors.borderSubtle,
-                    borderRadius: 12,
-                    padding: 16,
-                    flexDirection: "row",
-                    gap: 12,
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 8,
-                      backgroundColor: `${PARENT.accent}14`,
-                      borderWidth: 1,
-                      borderColor: `${PARENT.accent}30`,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <ShieldIcon size={14} color={PARENT.accent} />
-                  </View>
-                  <Text
-                    style={{
-                      flex: 1,
-                      fontFamily: "Inter",
-                      fontSize: 12.5,
-                      color: colors.textSecondary,
-                      lineHeight: 19,
-                    }}
-                  >
-                    You manage {firstName || "your child"}&apos;s account until
-                    they turn 16. They&apos;ll be able to take it over with
-                    their own login then.
-                  </Text>
-                </View>
-              </View>
+              <ProfileTab
+                form={form}
+                regionOptions={regionOptions}
+                lastNameRef={lastNameRef}
+                usernameRef={usernameRef}
+              />
             ) : (
-              <BillingPlaceholder firstName={firstName} />
+              <BillingTab firstName={form.firstName} />
             )}
           </>
         )}
       </ScrollView>
-
-      {/* Sticky save — profile tab only */}
-      {!loading && tab === "profile" ? (
-        <View
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            paddingHorizontal: 20,
-            paddingBottom: 36,
-            paddingTop: 12,
-          }}
-          pointerEvents="box-none"
-        >
-          <LinearGradient
-            colors={["transparent", colors.surface]}
-            style={{
-              position: "absolute",
-              top: -20,
-              left: 0,
-              right: 0,
-              bottom: 0,
-            }}
-            pointerEvents="none"
-          />
-          <Pressable
-            onPress={handleSave}
-            disabled={saving}
-            accessibilityRole="button"
-            style={{
-              height: 52,
-              backgroundColor: saving ? `${PARENT.accent}80` : PARENT.accent,
-              borderRadius: 9999,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontSize: 15,
-                  fontWeight: "700",
-                  color: "#fff",
-                }}
-              >
-                Save changes
-              </Text>
-            )}
-          </Pressable>
-        </View>
+      {!form.loading && tab === "profile" ? (
+        <SaveBar onPress={handleSave} saving={form.saving} />
       ) : null}
-    </View>
-  );
-}
-
-/* ─── Billing tab (placeholder — full billing ships later) ───── */
-function BillingPlaceholder({ firstName }: { firstName: string }) {
-  const player = roleConfig("player");
-  return (
-    <View style={{ paddingHorizontal: 20 }}>
-      <SectionLabel>Current plan</SectionLabel>
-      <View
-        style={{
-          backgroundColor: colors.surface2,
-          borderWidth: 1.5,
-          borderColor: `${PARENT.accent}55`,
-          borderRadius: 18,
-          padding: 18,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 4,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 9.5,
-              fontWeight: "700",
-              letterSpacing: 9.5 * 0.14,
-              color: PARENT.accent,
-              textTransform: "uppercase",
-            }}
-          >
-            {player.planName}
-          </Text>
-          <View
-            style={{
-              paddingVertical: 2,
-              paddingHorizontal: 7,
-              borderRadius: 999,
-              backgroundColor: "rgba(56,161,105,0.14)",
-              borderWidth: 1,
-              borderColor: "rgba(56,161,105,0.3)",
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 9,
-                fontWeight: "700",
-                letterSpacing: 9 * 0.12,
-                color: colors.success,
-                textTransform: "uppercase",
-              }}
-            >
-              Current
-            </Text>
-          </View>
-        </View>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 22,
-            fontWeight: "900",
-            color: colors.textPrimary,
-            letterSpacing: -22 * 0.03,
-            marginBottom: 4,
-          }}
-        >
-          Standard
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 13,
-            color: colors.textSecondary,
-          }}
-        >
-          {player.planSub}
-        </Text>
-      </View>
-
-      {/* Coming-soon note */}
-      <View
-        style={{
-          marginTop: 16,
-          backgroundColor: colors.surface2,
-          borderWidth: 1,
-          borderColor: colors.borderSubtle,
-          borderRadius: 14,
-          padding: 16,
-          flexDirection: "row",
-          gap: 12,
-          alignItems: "flex-start",
-        }}
-      >
-        <View
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 10,
-            backgroundColor: "rgba(255,255,255,0.04)",
-            borderWidth: 1,
-            borderColor: colors.borderSubtle,
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <CreditIcon size={18} color={colors.textSecondary} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 13.5,
-              fontWeight: "600",
-              color: colors.textPrimary,
-              marginBottom: 2,
-            }}
-          >
-            Billing is coming soon
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 12,
-              color: colors.textTertiary,
-              lineHeight: 18,
-            }}
-          >
-            You&apos;ll be able to manage {firstName || "your child"}&apos;s
-            plan, payment method, and renewals here.
-          </Text>
-        </View>
-        <ChevronIcon size={16} color={colors.textDisabled} />
-      </View>
     </View>
   );
 }

@@ -1,11 +1,11 @@
 import "../global.css";
 
-import { useEffect } from "react";
+import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useFonts } from "expo-font";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useEffect } from "react";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useAuthStore } from "@/src/stores/auth.store";
 
@@ -82,6 +82,7 @@ export default function RootLayout() {
         "settings",
         "parent",
         "profile-settings",
+        "security",
       ]);
       if (inApp && segments[1] !== role && !SHARED_ROUTES.has(segments[1])) {
         router.replace(`/(app)/${role}` as `/(app)/${typeof role}`);

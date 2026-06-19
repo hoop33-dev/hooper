@@ -41,6 +41,8 @@ module.exports = defineConfig([
       "sonarjs/no-identical-conditions": "error",
       "sonarjs/no-nested-switch": "error",
 
+      "@typescript-eslint/no-require-imports": "error",
+
       // Semantic guardrails encoded as syntax restrictions.
       "no-restricted-syntax": [
         "error",

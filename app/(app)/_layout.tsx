@@ -14,6 +14,10 @@ export default function AppLayout() {
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen
+        name="security"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
         name="parent/manage-child"
         options={{ animation: "slide_from_right" }}
       />

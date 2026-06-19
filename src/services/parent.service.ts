@@ -201,6 +201,47 @@ export async function updateChildProfile(
   return { ok: true };
 }
 
+export type ResetChildPasswordInput = {
+  childProfileId: string;
+  newPassword: string;
+};
+
+export type ResetChildPasswordResult =
+  | { ok: true }
+  | { ok: false; field?: "password"; error: string };
+
+export async function resetChildPassword(
+  input: ResetChildPasswordInput,
+): Promise<ResetChildPasswordResult> {
+  const { data, error } = await supabase.functions.invoke(
+    "reset-child-password",
+    {
+      body: {
+        childProfileId: input.childProfileId,
+        newPassword: input.newPassword,
+      },
+    },
+  );
+
+  if (error) {
+    return {
+      ok: false,
+      error: "Unable to reset password. Please try again.",
+    };
+  }
+
+  if (!data.ok) {
+    const field = data.field as "password" | undefined;
+    return {
+      ok: false,
+      field,
+      error: data.error ?? "Unable to reset password.",
+    };
+  }
+
+  return { ok: true };
+}
+
 // Read the guardian controls that apply to the signed-in player. RLS
 // (parent_player_links_select_player) limits results to the caller's own link,
 // so a child sees exactly one row and an unmanaged player sees none.

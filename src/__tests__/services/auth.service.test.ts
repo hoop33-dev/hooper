@@ -349,7 +349,7 @@ describe("signUp", () => {
     expect(mockAuthSignOut).not.toHaveBeenCalled();
   });
 
-  it("returns ok: false with field='email' when the email is already registered", async () => {
+  it("returns ok: true when the email is already registered (no enumeration)", async () => {
     mockRpc.mockResolvedValue({ data: true, error: null });
     mockAuthSignUp.mockResolvedValue({
       data: { user: null, session: null },
@@ -358,14 +358,10 @@ describe("signUp", () => {
 
     const result = await signUp(validParams);
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.field).toBe("email");
-      expect(result.error).toMatch(/email already exists/i);
-    }
+    expect(result.ok).toBe(true);
   });
 
-  it("also catches 'already exists' phrasing for duplicate email errors", async () => {
+  it("also catches 'already exists' phrasing and returns ok: true", async () => {
     mockRpc.mockResolvedValue({ data: true, error: null });
     mockAuthSignUp.mockResolvedValue({
       data: { user: null, session: null },
@@ -374,8 +370,7 @@ describe("signUp", () => {
 
     const result = await signUp(validParams);
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.field).toBe("email");
+    expect(result.ok).toBe(true);
   });
 
   it("detects a duplicate email when GoTrue returns an obfuscated user", async () => {
@@ -389,11 +384,7 @@ describe("signUp", () => {
 
     const result = await signUp(validParams);
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.field).toBe("email");
-      expect(result.error).toMatch(/email already exists/i);
-    }
+    expect(result.ok).toBe(true);
   });
 
   it("sends the 'account already exists' email when a duplicate is detected", async () => {
@@ -426,7 +417,7 @@ describe("signUp", () => {
     });
   });
 
-  it("still reports the duplicate when the notification email fails to send", async () => {
+  it("returns ok: true even when the notification email fails to send", async () => {
     mockRpc.mockResolvedValue({ data: true, error: null });
     mockAuthSignUp.mockResolvedValue({
       data: { user: { id: "obfuscated", identities: [] }, session: null },
@@ -436,8 +427,7 @@ describe("signUp", () => {
 
     const result = await signUp(validParams);
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.field).toBe("email");
+    expect(result.ok).toBe(true);
   });
 
   it("does not send the 'account already exists' email for other sign-up errors", async () => {

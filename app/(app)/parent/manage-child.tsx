@@ -4,6 +4,7 @@ import { useRef, useState, type RefObject } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   ScrollView,
   Text,
@@ -15,11 +16,13 @@ import Svg, { Path } from "react-native-svg";
 
 import { Avatar } from "@/src/components/dashboard/Avatar";
 import {
+  CameraIcon,
   ChevronIcon,
   CreditIcon,
   SettingsIcon,
   ShieldIcon,
 } from "@/src/components/dashboard/icons";
+import { PhotoSourceSheet } from "@/src/components/profile/PhotoSourceSheet";
 import { SelectInput } from "@/src/components/ui/SelectInput";
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
@@ -29,6 +32,7 @@ import {
 } from "@/src/hooks/useManageChildForm";
 import { useRegionOptions } from "@/src/hooks/useRegionOptions";
 import { ageFromDob } from "@/src/lib/age";
+import { uploadAvatar } from "@/src/services/profile.service";
 
 const PARENT = roleConfig("parent");
 type InputRef = RefObject<RNTextInput | null>;
@@ -367,6 +371,143 @@ function IdentityCard({
   );
 }
 
+/* ─── Avatar picker helpers (module-level, not component fns) ── */
+
+type PickedImage = { uri: string; base64: string; mimeType: string };
+
+async function pickImageFromLibrary(): Promise<PickedImage | null> {
+  let ImagePicker: typeof import("expo-image-picker");
+  try {
+    ImagePicker = require("expo-image-picker");
+  } catch {
+    Alert.alert("Not available", "Photo upload requires an app update.");
+    return null;
+  }
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== "granted") {
+    Alert.alert(
+      "Permission needed",
+      "Please allow access to your photo library in Settings.",
+    );
+    return null;
+  }
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 0.85,
+    base64: true,
+  });
+  if (!result.canceled && result.assets[0]) {
+    const a = result.assets[0];
+    return {
+      uri: a.uri,
+      base64: a.base64 ?? "",
+      mimeType: a.mimeType ?? "image/jpeg",
+    };
+  }
+  return null;
+}
+
+async function pickImageFromCamera(): Promise<PickedImage | null> {
+  let ImagePicker: typeof import("expo-image-picker");
+  try {
+    ImagePicker = require("expo-image-picker");
+  } catch {
+    Alert.alert("Not available", "Photo upload requires an app update.");
+    return null;
+  }
+  const { status } = await ImagePicker.requestCameraPermissionsAsync();
+  if (status !== "granted") {
+    Alert.alert("Permission needed", "Please allow camera access in Settings.");
+    return null;
+  }
+  const result = await ImagePicker.launchCameraAsync({
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 0.85,
+    base64: true,
+  });
+  if (!result.canceled && result.assets[0]) {
+    const a = result.assets[0];
+    return {
+      uri: a.uri,
+      base64: a.base64 ?? "",
+      mimeType: a.mimeType ?? "image/jpeg",
+    };
+  }
+  return null;
+}
+
+function AvatarEditor({
+  initials,
+  displayUri,
+  onPress,
+}: {
+  initials: string;
+  displayUri: string | null;
+  onPress: () => void;
+}) {
+  return (
+    <View style={{ alignItems: "center", paddingTop: 4, paddingBottom: 20 }}>
+      <View style={{ position: "relative", marginBottom: 12 }}>
+        {displayUri ? (
+          <View
+            style={{
+              width: 84,
+              height: 84,
+              borderRadius: 42,
+              overflow: "hidden",
+            }}>
+            <Image
+              source={{ uri: displayUri }}
+              style={{ width: 84, height: 84 }}
+              resizeMode="cover"
+            />
+          </View>
+        ) : (
+          <Avatar role="player" size={84} initials={initials} />
+        )}
+        <Pressable
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel="Change photo"
+          style={{
+            position: "absolute",
+            bottom: -4,
+            right: -4,
+            width: 30,
+            height: 30,
+            borderRadius: 15,
+            backgroundColor: PARENT.accent,
+            borderWidth: 3,
+            borderColor: colors.surface,
+            alignItems: "center",
+            justifyContent: "center",
+          }}>
+          <CameraIcon size={14} color="#fff" />
+        </Pressable>
+      </View>
+      <Pressable onPress={onPress} accessibilityRole="button">
+        <Text
+          style={{
+            fontFamily: "Inter",
+            fontSize: 12,
+            fontWeight: "700",
+            color: PARENT.accent,
+            borderWidth: 1,
+            borderColor: `${PARENT.accent}40`,
+            paddingHorizontal: 14,
+            paddingVertical: 7,
+            borderRadius: 999,
+          }}>
+          Change photo
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
 /* ─── Profile tab ───────────────────────────────────────────── */
 
 function PersonalFields({
@@ -548,14 +689,25 @@ function ProfileTab({
   regionOptions,
   lastNameRef,
   usernameRef,
+  initials,
+  displayAvatarUri,
+  onChangePhoto,
 }: {
   form: ManageChildForm;
   regionOptions: { value: string; label: string }[];
   lastNameRef: InputRef;
   usernameRef: InputRef;
+  initials: string;
+  displayAvatarUri: string | null;
+  onChangePhoto: () => void;
 }) {
   return (
     <View style={{ paddingHorizontal: 20 }}>
+      <AvatarEditor
+        initials={initials}
+        displayUri={displayAvatarUri}
+        onPress={onChangePhoto}
+      />
       <PersonalFields
         form={form}
         regionOptions={regionOptions}
@@ -752,8 +904,36 @@ export default function ManageChildScreen() {
   const lastNameRef = useRef<RNTextInput>(null);
   const usernameRef = useRef<RNTextInput>(null);
 
+  const [pendingImage, setPendingImage] = useState<PickedImage | null>(null);
+  const [photoSheetVisible, setPhotoSheetVisible] = useState(false);
+
+  async function handlePickLibrary() {
+    setPhotoSheetVisible(false);
+    const img = await pickImageFromLibrary();
+    if (img) setPendingImage(img);
+  }
+
+  async function handlePickCamera() {
+    setPhotoSheetVisible(false);
+    const img = await pickImageFromCamera();
+    if (img) setPendingImage(img);
+  }
+
   async function handleSave() {
-    const res = await form.save();
+    let avatarUrl: string | undefined;
+    if (pendingImage && params.id) {
+      try {
+        avatarUrl = await uploadAvatar(
+          params.id,
+          pendingImage.base64,
+          pendingImage.mimeType,
+        );
+      } catch {
+        Alert.alert("Error", "Failed to upload photo. Please try again.");
+        return;
+      }
+    }
+    const res = await form.save(avatarUrl);
     if (res.ok) {
       router.back();
     } else if (res.alert) {
@@ -767,6 +947,7 @@ export default function ManageChildScreen() {
     (form.firstName.charAt(0) + form.lastName.charAt(0)).toUpperCase() || "?";
   const age = ageFromDob(form.dob);
   const subtitle = `${age != null ? `Age ${age} · ` : ""}@${form.username}`;
+  const displayAvatarUri = pendingImage?.uri ?? form.avatarUrl;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface }}>
@@ -803,6 +984,9 @@ export default function ManageChildScreen() {
                 regionOptions={regionOptions}
                 lastNameRef={lastNameRef}
                 usernameRef={usernameRef}
+                initials={initials}
+                displayAvatarUri={displayAvatarUri}
+                onChangePhoto={() => setPhotoSheetVisible(true)}
               />
             ) : (
               <BillingTab firstName={form.firstName} />
@@ -813,6 +997,13 @@ export default function ManageChildScreen() {
       {!form.loading && tab === "profile" ? (
         <SaveBar onPress={handleSave} saving={form.saving} />
       ) : null}
+      <PhotoSourceSheet
+        visible={photoSheetVisible}
+        accent={PARENT.accent}
+        onCamera={handlePickCamera}
+        onLibrary={handlePickLibrary}
+        onCancel={() => setPhotoSheetVisible(false)}
+      />
     </View>
   );
 }

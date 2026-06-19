@@ -54,6 +54,7 @@ serve(async (req: Request) => {
     dateOfBirth,
     regionId,
     profileSettingsLocked,
+    avatarUrl,
   } = body as {
     childProfileId?: unknown;
     firstName?: unknown;
@@ -62,6 +63,7 @@ serve(async (req: Request) => {
     dateOfBirth?: unknown;
     regionId?: unknown;
     profileSettingsLocked?: unknown;
+    avatarUrl?: unknown;
   };
 
   if (
@@ -139,6 +141,9 @@ serve(async (req: Request) => {
       date_of_birth:
         typeof dateOfBirth === "string" && dateOfBirth ? dateOfBirth : null,
       region_id: typeof regionId === "string" && regionId ? regionId : null,
+      ...(typeof avatarUrl === "string" && avatarUrl
+        ? { avatar_url: avatarUrl }
+        : {}),
     })
     .eq("id", childProfileId);
 

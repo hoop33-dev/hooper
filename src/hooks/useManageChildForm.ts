@@ -46,7 +46,7 @@ export function useManageChildForm(childId: string | undefined) {
     };
   }, [childId]);
 
-  async function save(): Promise<SaveOutcome> {
+  async function save(avatarUrl?: string): Promise<SaveOutcome> {
     if (!childId) return { ok: false };
     if (!firstName.trim() || !lastName.trim() || !username.trim()) {
       setUsernameError(username.trim() ? undefined : "Required");
@@ -62,6 +62,7 @@ export function useManageChildForm(childId: string | undefined) {
       dateOfBirth: dob ? new Date(dob) : null,
       regionId,
       profileSettingsLocked: lock,
+      avatarUrl,
     });
     setSaving(false);
     if (result.ok) return { ok: true };

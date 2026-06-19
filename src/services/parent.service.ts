@@ -92,6 +92,7 @@ export type UpdateChildInput = {
   dateOfBirth: Date | null;
   regionId: string | null;
   profileSettingsLocked: boolean;
+  avatarUrl?: string;
 };
 
 export type UpdateChildResult =
@@ -183,6 +184,7 @@ export async function updateChildProfile(
           : null,
         regionId: input.regionId,
         profileSettingsLocked: input.profileSettingsLocked,
+        ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
       },
     },
   );

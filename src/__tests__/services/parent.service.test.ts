@@ -1,7 +1,10 @@
 import { supabase } from "@/src/lib/supabase";
 import {
   createChildAccount,
+  getChildProfile,
+  getGuardianControls,
   listChildren,
+  updateChildProfile,
 } from "@/src/services/parent.service";
 
 jest.mock("@/src/lib/supabase", () => ({
@@ -31,6 +34,23 @@ function makeTerminalEqBuilder(resolveValue: unknown) {
 function makeTerminalInBuilder(resolveValue: unknown) {
   const inFn = jest.fn().mockResolvedValue(resolveValue);
   const select = jest.fn().mockReturnValue({ in: inFn });
+  return { select };
+}
+
+/** `.select(...).eq(...).maybeSingle()` */
+function makeMaybeSingleEqBuilder(resolveValue: unknown) {
+  const maybeSingle = jest.fn().mockResolvedValue(resolveValue);
+  const eq = jest.fn().mockReturnValue({ maybeSingle });
+  const select = jest.fn().mockReturnValue({ eq });
+  return { select };
+}
+
+/** `.select(...).eq(...).eq(...).maybeSingle()` */
+function makeMaybeSingleEqEqBuilder(resolveValue: unknown) {
+  const maybeSingle = jest.fn().mockResolvedValue(resolveValue);
+  const eq2 = jest.fn().mockReturnValue({ maybeSingle });
+  const eq1 = jest.fn().mockReturnValue({ eq: eq2 });
+  const select = jest.fn().mockReturnValue({ eq: eq1 });
   return { select };
 }
 
@@ -279,5 +299,192 @@ describe("listChildren", () => {
       lastName: "Jones",
       username: "bob",
     });
+  });
+});
+
+// ─── getGuardianControls ──────────────────────────────────────────────────────
+
+describe("getGuardianControls", () => {
+  it("reports unmanaged when the player has no link", async () => {
+    mockFrom.mockReturnValue(
+      makeMaybeSingleEqBuilder({ data: null, error: null }),
+    );
+
+    expect(await getGuardianControls()).toEqual({
+      isManaged: false,
+      profileSettingsLocked: false,
+    });
+  });
+
+  it("reports managed and the lock state when a link exists", async () => {
+    mockFrom.mockReturnValue(
+      makeMaybeSingleEqBuilder({
+        data: { profile_settings_locked: true },
+        error: null,
+      }),
+    );
+
+    expect(await getGuardianControls()).toEqual({
+      isManaged: true,
+      profileSettingsLocked: true,
+    });
+  });
+
+  it("reports unmanaged on query error", async () => {
+    mockFrom.mockReturnValue(
+      makeMaybeSingleEqBuilder({ data: null, error: new Error("db") }),
+    );
+
+    expect(await getGuardianControls()).toEqual({
+      isManaged: false,
+      profileSettingsLocked: false,
+    });
+  });
+});
+
+// ─── getChildProfile ──────────────────────────────────────────────────────────
+
+describe("getChildProfile", () => {
+  it("maps the profile and lock flag", async () => {
+    mockFrom
+      .mockReturnValueOnce(
+        makeMaybeSingleEqBuilder({
+          data: {
+            id: "p1",
+            first_name: "Alice",
+            last_name: "Smith",
+            username: "alice",
+            date_of_birth: "2012-01-05",
+            region_id: "r1",
+            avatar_url: null,
+          },
+          error: null,
+        }),
+      )
+      .mockReturnValueOnce(
+        makeMaybeSingleEqEqBuilder({
+          data: { profile_settings_locked: true },
+          error: null,
+        }),
+      );
+
+    expect(await getChildProfile("p1")).toEqual({
+      id: "p1",
+      firstName: "Alice",
+      lastName: "Smith",
+      username: "alice",
+      dateOfBirth: "2012-01-05",
+      regionId: "r1",
+      avatarUrl: null,
+      profileSettingsLocked: true,
+    });
+  });
+
+  it("returns null when the profile can't be read", async () => {
+    mockFrom.mockReturnValueOnce(
+      makeMaybeSingleEqBuilder({ data: null, error: null }),
+    );
+
+    expect(await getChildProfile("p1")).toBeNull();
+  });
+
+  it("defaults the lock flag to false when there's no link row", async () => {
+    mockFrom
+      .mockReturnValueOnce(
+        makeMaybeSingleEqBuilder({
+          data: {
+            id: "p1",
+            first_name: "Alice",
+            last_name: "Smith",
+            username: "alice",
+            date_of_birth: null,
+            region_id: null,
+            avatar_url: null,
+          },
+          error: null,
+        }),
+      )
+      .mockReturnValueOnce(
+        makeMaybeSingleEqEqBuilder({ data: null, error: null }),
+      );
+
+    const result = await getChildProfile("p1");
+    expect(result?.profileSettingsLocked).toBe(false);
+  });
+});
+
+// ─── updateChildProfile ───────────────────────────────────────────────────────
+
+describe("updateChildProfile", () => {
+  const baseInput = {
+    childProfileId: "p1",
+    firstName: "Alice",
+    lastName: "Smith",
+    username: "alice",
+    regionId: "r1",
+    profileSettingsLocked: true,
+  };
+
+  it("returns ok and formats the date of birth", async () => {
+    mockInvoke.mockResolvedValue({ data: { ok: true }, error: null });
+
+    const result = await updateChildProfile({
+      ...baseInput,
+      dateOfBirth: new Date(2012, 0, 5),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(mockInvoke).toHaveBeenCalledWith(
+      "update-child-profile",
+      expect.objectContaining({
+        body: expect.objectContaining({
+          dateOfBirth: "2012-01-05",
+          profileSettingsLocked: true,
+        }),
+      }),
+    );
+  });
+
+  it("sends null dateOfBirth when omitted", async () => {
+    mockInvoke.mockResolvedValue({ data: { ok: true }, error: null });
+
+    await updateChildProfile({ ...baseInput, dateOfBirth: null });
+
+    expect(mockInvoke).toHaveBeenCalledWith(
+      "update-child-profile",
+      expect.objectContaining({
+        body: expect.objectContaining({ dateOfBirth: null }),
+      }),
+    );
+  });
+
+  it("surfaces a username field error", async () => {
+    mockInvoke.mockResolvedValue({
+      data: { ok: false, field: "username", error: "Username taken" },
+      error: null,
+    });
+
+    const result = await updateChildProfile({
+      ...baseInput,
+      dateOfBirth: null,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.field).toBe("username");
+      expect(result.error).toBe("Username taken");
+    }
+  });
+
+  it("returns a generic error when the function transport fails", async () => {
+    mockInvoke.mockResolvedValue({ data: null, error: new Error("network") });
+
+    const result = await updateChildProfile({
+      ...baseInput,
+      dateOfBirth: null,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/unable to save/i);
   });
 });

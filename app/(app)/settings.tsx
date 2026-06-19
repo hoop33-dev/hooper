@@ -1,3 +1,5 @@
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { type ReactNode, useState } from "react";
 import {
   ActivityIndicator,
@@ -6,10 +8,12 @@ import {
   Text,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 
-import { Avatar, DashboardLayout } from "@/src/components/dashboard";
+import {
+  Avatar,
+  DashboardLayout,
+  GuardianLockPopup,
+} from "@/src/components/dashboard";
 import {
   BellIcon,
   CameraIcon,
@@ -22,9 +26,10 @@ import {
   SettingsIcon as SettingsGearIcon,
   ShieldIcon,
 } from "@/src/components/dashboard/icons";
-import { colors } from "@/src/constants/theme";
 import { roleConfig } from "@/src/constants/roles";
+import { colors } from "@/src/constants/theme";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
+import { useGuardianControls } from "@/src/hooks/useGuardianControls";
 import { useAuthStore } from "@/src/stores/auth.store";
 
 type MenuRowProps = {
@@ -33,10 +38,19 @@ type MenuRowProps = {
   sub?: string;
   accent: string;
   danger?: boolean;
+  locked?: boolean;
   onPress?: () => void;
 };
 
-function MenuRow({ icon, title, sub, accent, danger, onPress }: MenuRowProps) {
+function MenuRow({
+  icon,
+  title,
+  sub,
+  accent,
+  danger,
+  locked,
+  onPress,
+}: MenuRowProps) {
   const [pressed, setPressed] = useState(false);
   return (
     <Pressable
@@ -54,9 +68,9 @@ function MenuRow({ icon, title, sub, accent, danger, onPress }: MenuRowProps) {
         borderWidth: 1,
         borderColor: colors.borderSubtle,
         borderRadius: 14,
+        opacity: locked ? 0.55 : 1,
         transform: [{ scale: pressed ? 0.99 : 1 }],
-      }}
-    >
+      }}>
       <View
         style={{
           width: 38,
@@ -67,8 +81,7 @@ function MenuRow({ icon, title, sub, accent, danger, onPress }: MenuRowProps) {
           borderColor: danger ? "rgba(229,62,62,0.25)" : `${accent}30`,
           alignItems: "center",
           justifyContent: "center",
-        }}
-      >
+        }}>
         {icon}
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -79,8 +92,7 @@ function MenuRow({ icon, title, sub, accent, danger, onPress }: MenuRowProps) {
             fontWeight: "600",
             color: danger ? colors.danger : colors.textPrimary,
             marginBottom: sub ? 2 : 0,
-          }}
-        >
+          }}>
           {title}
         </Text>
         {sub ? (
@@ -89,13 +101,16 @@ function MenuRow({ icon, title, sub, accent, danger, onPress }: MenuRowProps) {
               fontFamily: "Inter",
               fontSize: 12,
               color: colors.textTertiary,
-            }}
-          >
+            }}>
             {sub}
           </Text>
         ) : null}
       </View>
-      <ChevronIcon size={16} color={colors.textTertiary} />
+      {locked ? (
+        <LockIcon size={16} color={colors.textTertiary} />
+      ) : (
+        <ChevronIcon size={16} color={colors.textTertiary} />
+      )}
     </Pressable>
   );
 }
@@ -111,8 +126,7 @@ function SectionHead({ title }: { title: string }) {
           letterSpacing: 11 * 0.13,
           color: colors.textSecondary,
           textTransform: "uppercase",
-        }}
-      >
+        }}>
         {title}
       </Text>
     </View>
@@ -128,6 +142,12 @@ export default function SettingsScreen() {
   const role = user?.role ?? "player";
   const r = roleConfig(role);
 
+  // Children (players managed by a guardian) have profile/billing locked.
+  const guardian = useGuardianControls(role === "player");
+  const isChild = guardian.isManaged;
+  const profileLocked = isChild && guardian.profileSettingsLocked;
+  const [billingLockOpen, setBillingLockOpen] = useState(false);
+
   async function handleSignOut() {
     setSigningOut(true);
     try {
@@ -142,8 +162,7 @@ export default function SettingsScreen() {
     <DashboardLayout role={role} activeTab="settings">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 24 }}
-      >
+        contentContainerStyle={{ paddingBottom: 24 }}>
         {/* Title bar */}
         <View
           style={{
@@ -153,8 +172,7 @@ export default function SettingsScreen() {
             paddingHorizontal: 20,
             paddingTop: 6,
             paddingBottom: 28,
-          }}
-        >
+          }}>
           <Text
             style={{
               fontFamily: "Inter",
@@ -162,8 +180,7 @@ export default function SettingsScreen() {
               fontWeight: "900",
               color: colors.textPrimary,
               letterSpacing: -22 * 0.03,
-            }}
-          >
+            }}>
             Profile
           </Text>
         </View>
@@ -182,8 +199,7 @@ export default function SettingsScreen() {
                 padding: 22,
                 alignItems: "center",
                 overflow: "hidden",
-              }}
-            >
+              }}>
               <LinearGradient
                 colors={[`${r.accent}22`, "transparent"]}
                 pointerEvents="none"
@@ -218,8 +234,7 @@ export default function SettingsScreen() {
                     borderColor: colors.surface2,
                     alignItems: "center",
                     justifyContent: "center",
-                  }}
-                >
+                  }}>
                   <CameraIcon size={13} color="#fff" />
                 </Pressable>
               </View>
@@ -232,8 +247,7 @@ export default function SettingsScreen() {
                   letterSpacing: -20 * 0.02,
                   marginTop: 14,
                   marginBottom: 3,
-                }}
-              >
+                }}>
                 {user.fullName}
               </Text>
               {user.username ? (
@@ -244,8 +258,7 @@ export default function SettingsScreen() {
                     fontWeight: "600",
                     color: r.accent,
                     letterSpacing: 12 * 0.06,
-                  }}
-                >
+                  }}>
                   @{user.username}
                 </Text>
               ) : null}
@@ -263,8 +276,7 @@ export default function SettingsScreen() {
                       borderWidth: 1,
                       borderColor: colors.borderSubtle,
                       borderRadius: 999,
-                    }}
-                  >
+                    }}>
                     <PinIcon size={10} color={colors.textTertiary} />
                     <Text
                       style={{
@@ -272,8 +284,7 @@ export default function SettingsScreen() {
                         fontSize: 11,
                         fontWeight: "600",
                         color: colors.textSecondary,
-                      }}
-                    >
+                      }}>
                       {user.regionName}
                     </Text>
                   </View>
@@ -286,8 +297,7 @@ export default function SettingsScreen() {
                     borderWidth: 1,
                     borderColor: `${r.accent}30`,
                     borderRadius: 999,
-                  }}
-                >
+                  }}>
                   <Text
                     style={{
                       fontFamily: "Inter",
@@ -296,8 +306,7 @@ export default function SettingsScreen() {
                       color: r.accent,
                       letterSpacing: 10 * 0.1,
                       textTransform: "uppercase",
-                    }}
-                  >
+                    }}>
                     {r.shortLabel}
                   </Text>
                 </View>
@@ -307,6 +316,7 @@ export default function SettingsScreen() {
             {/* Subscription card */}
             <Pressable
               accessibilityRole="button"
+              onPress={isChild ? () => setBillingLockOpen(true) : undefined}
               style={{
                 marginHorizontal: 20,
                 marginBottom: 8,
@@ -314,8 +324,8 @@ export default function SettingsScreen() {
                 borderColor: `${r.accent}30`,
                 borderRadius: 14,
                 overflow: "hidden",
-              }}
-            >
+                opacity: isChild ? 0.55 : 1,
+              }}>
               <LinearGradient
                 colors={[`${r.accent}12`, colors.surface2]}
                 start={{ x: 0, y: 0 }}
@@ -326,8 +336,7 @@ export default function SettingsScreen() {
                   gap: 14,
                   paddingVertical: 14,
                   paddingHorizontal: 16,
-                }}
-              >
+                }}>
                 <View
                   style={{
                     width: 40,
@@ -338,8 +347,7 @@ export default function SettingsScreen() {
                     borderColor: `${r.accent}40`,
                     alignItems: "center",
                     justifyContent: "center",
-                  }}
-                >
+                  }}>
                   <ShieldIcon size={18} color={r.accent} />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
@@ -352,8 +360,7 @@ export default function SettingsScreen() {
                       color: r.accent,
                       textTransform: "uppercase",
                       marginBottom: 2,
-                    }}
-                  >
+                    }}>
                     Current plan
                   </Text>
                   <Text
@@ -362,8 +369,7 @@ export default function SettingsScreen() {
                       fontSize: 15,
                       fontWeight: "800",
                       color: colors.textPrimary,
-                    }}
-                  >
+                    }}>
                     {r.planName}
                   </Text>
                   <Text
@@ -372,8 +378,7 @@ export default function SettingsScreen() {
                       fontSize: 11.5,
                       color: colors.textSecondary,
                       marginTop: 1,
-                    }}
-                  >
+                    }}>
                     {r.planSub}
                   </Text>
                 </View>
@@ -389,13 +394,20 @@ export default function SettingsScreen() {
                 title="Profile settings"
                 sub="Photo, name, username, bio, privacy"
                 accent={r.accent}
+                locked={profileLocked}
                 onPress={() => router.push("/(app)/profile-settings")}
               />
               <MenuRow
                 icon={<CreditIcon size={18} color={r.accent} />}
                 title="Subscription & billing"
-                sub={`${r.planName} · Manage plan`}
+                sub={
+                  isChild
+                    ? "Managed by your guardian"
+                    : `${r.planName} · Manage plan`
+                }
                 accent={r.accent}
+                locked={isChild}
+                onPress={isChild ? () => setBillingLockOpen(true) : undefined}
               />
               <MenuRow
                 icon={<LockIcon size={18} color={r.accent} />}
@@ -448,8 +460,7 @@ export default function SettingsScreen() {
                 fontSize: 11,
                 color: "rgba(255,255,255,0.22)",
                 letterSpacing: 11 * 0.04,
-              }}
-            >
+              }}>
               Hooper · v1.0.0
             </Text>
           </>
@@ -460,6 +471,11 @@ export default function SettingsScreen() {
           />
         )}
       </ScrollView>
+      <GuardianLockPopup
+        visible={billingLockOpen}
+        onClose={() => setBillingLockOpen(false)}
+        kind="billing"
+      />
     </DashboardLayout>
   );
 }

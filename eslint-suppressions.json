@@ -1,12 +1,12 @@
 {
-  "app/(app)/parent.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "app/(app)/parent/add-child.tsx": {
     "max-lines-per-function": {
       "count": 2
+    }
+  },
+  "app/(app)/parent/manage-child.tsx": {
+    "max-lines-per-function": {
+      "count": 1
     }
   },
   "app/(app)/profile-settings.tsx": {
@@ -21,10 +21,16 @@
     },
     "no-restricted-syntax": {
       "count": 1
+    },
+    "sonarjs/cognitive-complexity": {
+      "count": 1
     }
   },
   "app/(app)/settings.tsx": {
     "max-lines-per-function": {
+      "count": 1
+    },
+    "sonarjs/cognitive-complexity": {
       "count": 1
     }
   },

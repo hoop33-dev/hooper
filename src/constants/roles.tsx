@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
 import {
-  PlayerIcon,
-  ParentIcon,
   CoachIcon,
+  ParentIcon,
+  PlayerIcon,
 } from "@/src/components/auth/RoleIcons";
+import type { ReactNode } from "react";
 
 export type RoleId = "player" | "parent" | "coach";
 

@@ -38,6 +38,7 @@ export type ParentPlayerLink = {
   parent_profile_id: string;
   player_profile_id: string;
   status: LinkStatus;
+  profile_settings_locked: boolean;
   created_at: string;
   updated_at: string;
 };

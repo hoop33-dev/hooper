@@ -19,6 +19,7 @@ import {
   type TextInput as RNTextInput,
 } from "react-native";
 
+import { GuardianBanner, GuardianLockPopup } from "@/src/components/dashboard";
 import { Avatar } from "@/src/components/dashboard/Avatar";
 import {
   CameraIcon,
@@ -33,6 +34,7 @@ import { SelectInput } from "@/src/components/ui/SelectInput";
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
+import { useGuardianControls } from "@/src/hooks/useGuardianControls";
 import { supabase } from "@/src/lib/supabase";
 import { checkUsernameAvailable } from "@/src/services/auth.service";
 import { updateProfile, uploadAvatar } from "@/src/services/profile.service";
@@ -313,6 +315,11 @@ export default function ProfileSettingsScreen() {
   const { profile, refreshProfile } = useAuthStore();
   const role = user?.role ?? "player";
   const r = roleConfig(role);
+
+  // A guardian-managed child can't edit their own profile when locked.
+  const guardian = useGuardianControls(role === "player");
+  const locked = guardian.isManaged && guardian.profileSettingsLocked;
+  const [showLock, setShowLock] = useState(false);
 
   // Set true to bypass the unsaved-changes guard for an intentional leave
   // (after saving, or after the user confirms "Discard changes").
@@ -627,201 +634,227 @@ export default function ProfileSettingsScreen() {
           </Text>
         </View>
 
-        {/* Avatar editor */}
-        <View
-          style={{
-            alignItems: "center",
-            paddingTop: 28,
-            paddingBottom: 28,
-            paddingHorizontal: 20,
-          }}>
-          <View style={{ position: "relative", marginBottom: 12 }}>
-            {displayAvatarUrl ? (
+        {locked ? <GuardianBanner kind="profile" /> : null}
+
+        <View style={{ position: "relative" }}>
+          <View
+            pointerEvents={locked ? "none" : "auto"}
+            style={{ opacity: locked ? 0.5 : 1 }}>
+            {/* Avatar editor */}
+            <View
+              style={{
+                alignItems: "center",
+                paddingTop: 28,
+                paddingBottom: 28,
+                paddingHorizontal: 20,
+              }}>
+              <View style={{ position: "relative", marginBottom: 12 }}>
+                {displayAvatarUrl ? (
+                  <View
+                    style={{
+                      width: 92,
+                      height: 92,
+                      borderRadius: 46,
+                      overflow: "hidden",
+                    }}>
+                    <Image
+                      source={{ uri: displayAvatarUrl }}
+                      style={{ width: 92, height: 92 }}
+                      resizeMode="cover"
+                    />
+                  </View>
+                ) : (
+                  <Avatar
+                    role={role}
+                    size={92}
+                    initials={user?.initials ?? "?"}
+                  />
+                )}
+                <Pressable
+                  onPress={handleChangePhoto}
+                  accessibilityRole="button"
+                  accessibilityLabel="Change photo"
+                  style={{
+                    position: "absolute",
+                    bottom: -4,
+                    right: -4,
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: r.accent,
+                    borderWidth: 3,
+                    borderColor: colors.surface,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    shadowColor: r.accent,
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: 0.6,
+                    shadowRadius: 12,
+                    elevation: 4,
+                  }}>
+                  {uploadingPhoto ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <CameraIcon size={15} color="#fff" />
+                  )}
+                </Pressable>
+              </View>
+              <Pressable onPress={handleChangePhoto} accessibilityRole="button">
+                <Text
+                  style={{
+                    fontFamily: "Inter",
+                    fontSize: 12,
+                    fontWeight: "700",
+                    color: r.accent,
+                    borderWidth: 1,
+                    borderColor: `${r.accent}40`,
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderRadius: 999,
+                    letterSpacing: 12 * 0.02,
+                  }}>
+                  Change photo
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* Form */}
+            <View style={{ paddingHorizontal: 20 }}>
+              <SectionLabel>Personal</SectionLabel>
+
+              {/* First / Last name row */}
               <View
                 style={{
-                  width: 92,
-                  height: 92,
-                  borderRadius: 46,
-                  overflow: "hidden",
+                  flexDirection: "row",
+                  gap: 10,
+                  marginBottom: 12,
                 }}>
-                <Image
-                  source={{ uri: displayAvatarUrl }}
-                  style={{ width: 92, height: 92 }}
-                  resizeMode="cover"
+                <View style={{ flex: 1 }}>
+                  <FieldLabel error={!!errors.firstName}>First name</FieldLabel>
+                  <TextField
+                    value={firstName}
+                    onChange={(v) => {
+                      setFirstName(v);
+                      setErrors((e) => ({ ...e, firstName: undefined }));
+                    }}
+                    accent={r.accent}
+                    error={!!errors.firstName}
+                    autoCapitalize="words"
+                    returnKeyType="next"
+                    onSubmitEditing={() => lastNameRef.current?.focus()}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <FieldLabel error={!!errors.lastName}>Last name</FieldLabel>
+                  <TextField
+                    value={lastName}
+                    onChange={(v) => {
+                      setLastName(v);
+                      setErrors((e) => ({ ...e, lastName: undefined }));
+                    }}
+                    accent={r.accent}
+                    error={!!errors.lastName}
+                    autoCapitalize="words"
+                    inputRef={lastNameRef}
+                    returnKeyType="next"
+                    onSubmitEditing={() => usernameRef.current?.focus()}
+                  />
+                </View>
+              </View>
+
+              {/* Username */}
+              <View style={{ marginBottom: 12 }}>
+                <FieldLabel error={!!errors.username}>Username</FieldLabel>
+                <TextField
+                  value={username}
+                  onChange={handleUsernameChange}
+                  prefix="@"
+                  suffix={usernameSuffix}
+                  accent={r.accent}
+                  error={!!errors.username}
+                  autoCapitalize="none"
+                  inputRef={usernameRef}
+                  returnKeyType="next"
+                />
+                {errors.username ? (
+                  <Text
+                    style={{
+                      fontFamily: "Inter",
+                      fontSize: 11,
+                      color: colors.danger,
+                      marginTop: 4,
+                    }}>
+                    {errors.username}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* Region */}
+              <View style={{ marginBottom: 12 }}>
+                <FieldLabel>Region</FieldLabel>
+                <SelectInput
+                  value={regionId}
+                  options={regionOptions}
+                  placeholder="Select region"
+                  onChange={setRegionId}
                 />
               </View>
-            ) : (
-              <Avatar role={role} size={92} initials={user?.initials ?? "?"} />
-            )}
+
+              {/* Bio */}
+              <View style={{ marginBottom: 4 }}>
+                <FieldLabel>Bio</FieldLabel>
+                <TextField
+                  value={bio}
+                  onChange={setBio}
+                  placeholder="Tell people about yourself…"
+                  accent={r.accent}
+                  multiline
+                  numberOfLines={3}
+                  autoCapitalize="sentences"
+                />
+              </View>
+
+              {/* Privacy section */}
+              <SectionLabel>Privacy</SectionLabel>
+
+              <View style={{ gap: 8 }}>
+                <ToggleRow
+                  title="Private profile"
+                  sub={
+                    isPrivate
+                      ? "Only approved followers can see your activity."
+                      : "Anyone on Hooper can see your activity."
+                  }
+                  value={isPrivate}
+                  onChange={setIsPrivate}
+                  accent={r.accent}
+                  icon={<LockIcon size={18} color={r.accent} />}
+                />
+                <ToggleRow
+                  title="Show age"
+                  sub="Display your age on your public profile."
+                  value={showAge}
+                  onChange={setShowAge}
+                  accent={r.accent}
+                  icon={<UserIcon size={18} color={r.accent} />}
+                />
+              </View>
+            </View>
+          </View>
+          {locked ? (
             <Pressable
-              onPress={handleChangePhoto}
+              onPress={() => setShowLock(true)}
               accessibilityRole="button"
-              accessibilityLabel="Change photo"
+              accessibilityLabel="Settings locked by guardian"
               style={{
                 position: "absolute",
-                bottom: -4,
-                right: -4,
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: r.accent,
-                borderWidth: 3,
-                borderColor: colors.surface,
-                alignItems: "center",
-                justifyContent: "center",
-                shadowColor: r.accent,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.6,
-                shadowRadius: 12,
-                elevation: 4,
-              }}>
-              {uploadingPhoto ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <CameraIcon size={15} color="#fff" />
-              )}
-            </Pressable>
-          </View>
-          <Pressable onPress={handleChangePhoto} accessibilityRole="button">
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 12,
-                fontWeight: "700",
-                color: r.accent,
-                borderWidth: 1,
-                borderColor: `${r.accent}40`,
-                paddingHorizontal: 14,
-                paddingVertical: 7,
-                borderRadius: 999,
-                letterSpacing: 12 * 0.02,
-              }}>
-              Change photo
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Form */}
-        <View style={{ paddingHorizontal: 20 }}>
-          <SectionLabel>Personal</SectionLabel>
-
-          {/* First / Last name row */}
-          <View
-            style={{
-              flexDirection: "row",
-              gap: 10,
-              marginBottom: 12,
-            }}>
-            <View style={{ flex: 1 }}>
-              <FieldLabel error={!!errors.firstName}>First name</FieldLabel>
-              <TextField
-                value={firstName}
-                onChange={(v) => {
-                  setFirstName(v);
-                  setErrors((e) => ({ ...e, firstName: undefined }));
-                }}
-                accent={r.accent}
-                error={!!errors.firstName}
-                autoCapitalize="words"
-                returnKeyType="next"
-                onSubmitEditing={() => lastNameRef.current?.focus()}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <FieldLabel error={!!errors.lastName}>Last name</FieldLabel>
-              <TextField
-                value={lastName}
-                onChange={(v) => {
-                  setLastName(v);
-                  setErrors((e) => ({ ...e, lastName: undefined }));
-                }}
-                accent={r.accent}
-                error={!!errors.lastName}
-                autoCapitalize="words"
-                inputRef={lastNameRef}
-                returnKeyType="next"
-                onSubmitEditing={() => usernameRef.current?.focus()}
-              />
-            </View>
-          </View>
-
-          {/* Username */}
-          <View style={{ marginBottom: 12 }}>
-            <FieldLabel error={!!errors.username}>Username</FieldLabel>
-            <TextField
-              value={username}
-              onChange={handleUsernameChange}
-              prefix="@"
-              suffix={usernameSuffix}
-              accent={r.accent}
-              error={!!errors.username}
-              autoCapitalize="none"
-              inputRef={usernameRef}
-              returnKeyType="next"
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
             />
-            {errors.username ? (
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontSize: 11,
-                  color: colors.danger,
-                  marginTop: 4,
-                }}>
-                {errors.username}
-              </Text>
-            ) : null}
-          </View>
-
-          {/* Region */}
-          <View style={{ marginBottom: 12 }}>
-            <FieldLabel>Region</FieldLabel>
-            <SelectInput
-              value={regionId}
-              options={regionOptions}
-              placeholder="Select region"
-              onChange={setRegionId}
-            />
-          </View>
-
-          {/* Bio */}
-          <View style={{ marginBottom: 4 }}>
-            <FieldLabel>Bio</FieldLabel>
-            <TextField
-              value={bio}
-              onChange={setBio}
-              placeholder="Tell people about yourself…"
-              accent={r.accent}
-              multiline
-              numberOfLines={3}
-              autoCapitalize="sentences"
-            />
-          </View>
-
-          {/* Privacy section */}
-          <SectionLabel>Privacy</SectionLabel>
-
-          <View style={{ gap: 8 }}>
-            <ToggleRow
-              title="Private profile"
-              sub={
-                isPrivate
-                  ? "Only approved followers can see your activity."
-                  : "Anyone on Hooper can see your activity."
-              }
-              value={isPrivate}
-              onChange={setIsPrivate}
-              accent={r.accent}
-              icon={<LockIcon size={18} color={r.accent} />}
-            />
-            <ToggleRow
-              title="Show age"
-              sub="Display your age on your public profile."
-              value={showAge}
-              onChange={setShowAge}
-              accent={r.accent}
-              icon={<UserIcon size={18} color={r.accent} />}
-            />
-          </View>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -850,22 +883,43 @@ export default function ProfileSettingsScreen() {
           pointerEvents="none"
         />
         <Pressable
-          onPress={handleSave}
+          onPress={locked ? () => setShowLock(true) : handleSave}
           disabled={saving}
           accessibilityRole="button"
           style={{
             height: 52,
-            backgroundColor: saving ? `${r.accent}80` : r.accent,
+            flexDirection: "row",
+            gap: 8,
+            backgroundColor: locked
+              ? colors.surface2
+              : saving
+                ? `${r.accent}80`
+                : r.accent,
+            borderWidth: locked ? 1 : 0,
+            borderColor: colors.borderSubtle,
             borderRadius: 9999,
             alignItems: "center",
             justifyContent: "center",
             shadowColor: r.accent,
             shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: saving ? 0 : 0.45,
+            shadowOpacity: locked || saving ? 0 : 0.45,
             shadowRadius: 16,
-            elevation: 6,
+            elevation: locked ? 0 : 6,
           }}>
-          {saving ? (
+          {locked ? (
+            <>
+              <LockIcon size={15} color={colors.textSecondary} />
+              <Text
+                style={{
+                  fontFamily: "Inter",
+                  fontSize: 15,
+                  fontWeight: "700",
+                  color: colors.textSecondary,
+                }}>
+                Locked by guardian
+              </Text>
+            </>
+          ) : saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text
@@ -906,6 +960,12 @@ export default function ProfileSettingsScreen() {
             router.back();
           }
         }}
+      />
+
+      <GuardianLockPopup
+        visible={showLock}
+        onClose={() => setShowLock(false)}
+        kind="profile"
       />
     </View>
   );

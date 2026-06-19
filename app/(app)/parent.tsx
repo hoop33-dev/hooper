@@ -1,3 +1,4 @@
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
 import {
   ActivityIndicator,
@@ -6,77 +7,226 @@ import {
   Text,
   View,
 } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
 
-import { DashboardHeader, DashboardLayout } from "@/src/components/dashboard";
-import { useDashboardUser } from "@/src/hooks/useDashboardUser";
-import { useChildren } from "@/src/hooks/useChildren";
-import type { ChildSummary } from "@/src/services/parent.service";
-import { colors } from "@/src/constants/theme";
+import {
+  Avatar,
+  DashboardHeader,
+  DashboardLayout,
+} from "@/src/components/dashboard";
+import { EyeIcon, PlusIcon } from "@/src/components/dashboard/icons";
 import { roleConfig } from "@/src/constants/roles";
+import { colors } from "@/src/constants/theme";
+import { useChildren } from "@/src/hooks/useChildren";
+import { useDashboardUser } from "@/src/hooks/useDashboardUser";
+import type { ChildSummary } from "@/src/services/parent.service";
 
 const PARENT_ACCENT = roleConfig("parent").accent;
 
-function ChildRow({ child }: { child: ChildSummary }) {
+function ViewAsButton({
+  firstName,
+  onPress,
+}: {
+  firstName: string;
+  onPress: (e: { stopPropagation: () => void }) => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`View as ${firstName}`}
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        backgroundColor: `${PARENT_ACCENT}18`,
+        borderWidth: 1,
+        borderColor: `${PARENT_ACCENT}40`,
+        borderRadius: 999,
+        flexShrink: 0,
+        opacity: pressed ? 0.7 : 1,
+      })}>
+      <EyeIcon size={12} color={PARENT_ACCENT} />
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 11.5,
+          fontWeight: "700",
+          color: PARENT_ACCENT,
+        }}>
+        View as
+      </Text>
+    </Pressable>
+  );
+}
+
+function ChildCard({
+  child,
+  onManage,
+  onViewAs,
+}: {
+  child: ChildSummary;
+  onManage: () => void;
+  onViewAs: () => void;
+}) {
   const initials =
     (child.firstName.charAt(0) + child.lastName.charAt(0)).toUpperCase() || "?";
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Manage ${child.firstName}`}
+      onPress={onManage}
+      style={({ pressed }) => ({
         backgroundColor: colors.surface2,
         borderWidth: 1,
         borderColor: colors.borderSubtle,
-        borderRadius: 14,
+        borderRadius: 16,
         padding: 14,
-      }}
-    >
+        transform: [{ scale: pressed ? 0.99 : 1 }],
+      })}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Avatar role="player" size={50} initials={initials} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 7,
+              marginBottom: 3,
+            }}>
+            <Text
+              style={{
+                fontFamily: "Inter",
+                fontSize: 15,
+                fontWeight: "800",
+                color: colors.textPrimary,
+                letterSpacing: -15 * 0.02,
+              }}>
+              {child.firstName}
+            </Text>
+            <View
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: 4,
+                backgroundColor: colors.success,
+              }}
+            />
+          </View>
+          <Text
+            style={{
+              fontFamily: "Inter",
+              fontSize: 11.5,
+              color: colors.textSecondary,
+            }}>
+            @{child.username}
+          </Text>
+        </View>
+        <ViewAsButton
+          firstName={child.firstName}
+          onPress={(e) => {
+            e.stopPropagation();
+            onViewAs();
+          }}
+        />
+      </View>
+    </Pressable>
+  );
+}
+
+function AddChildButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+        backgroundColor: "transparent",
+        borderWidth: 1.5,
+        borderColor: `${PARENT_ACCENT}55`,
+        borderStyle: "dashed",
+        borderRadius: 14,
+        paddingVertical: 16,
+        marginTop: 6,
+        opacity: pressed ? 0.7 : 1,
+      })}>
       <View
         style={{
-          width: 38,
-          height: 38,
-          borderRadius: 19,
-          backgroundColor: `${PARENT_ACCENT}18`,
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          backgroundColor: `${PARENT_ACCENT}20`,
           borderWidth: 1,
-          borderColor: `${PARENT_ACCENT}30`,
+          borderColor: `${PARENT_ACCENT}45`,
           alignItems: "center",
           justifyContent: "center",
-        }}
-      >
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "800",
-            fontSize: 14,
-            color: PARENT_ACCENT,
-          }}
-        >
-          {initials}
-        </Text>
+        }}>
+        <PlusIcon size={16} color={PARENT_ACCENT} />
       </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "600",
-            fontSize: 14,
-            color: colors.textPrimary,
-          }}
-        >
-          {child.firstName} {child.lastName}
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 12,
-            color: colors.textTertiary,
-          }}
-        >
-          @{child.username}
-        </Text>
-      </View>
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 14,
+          fontWeight: "700",
+          color: PARENT_ACCENT,
+        }}>
+        Add another child
+      </Text>
+    </Pressable>
+  );
+}
+
+function ChildrenSection({
+  items,
+  isLoading,
+  onManage,
+  onViewAs,
+  onAdd,
+}: {
+  items: ChildSummary[];
+  isLoading: boolean;
+  onManage: (child: ChildSummary) => void;
+  onViewAs: (child: ChildSummary) => void;
+  onAdd: () => void;
+}) {
+  return (
+    <View style={{ paddingHorizontal: 20, gap: 10 }}>
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 11,
+          fontWeight: "700",
+          letterSpacing: 11 * 0.13,
+          color: colors.textSecondary,
+          textTransform: "uppercase",
+          marginBottom: 2,
+        }}>
+        Your children
+      </Text>
+
+      {isLoading ? (
+        <ActivityIndicator
+          color={colors.textTertiary}
+          style={{ marginTop: 8 }}
+        />
+      ) : (
+        <>
+          {items.map((child) => (
+            <ChildCard
+              key={child.id}
+              child={child}
+              onManage={() => onManage(child)}
+              onViewAs={() => onViewAs(child)}
+            />
+          ))}
+          <AddChildButton onPress={onAdd} />
+        </>
+      )}
     </View>
   );
 }
@@ -92,84 +242,48 @@ export default function ParentDashboard() {
     }, [refresh]),
   );
 
+  function manageChild(child: ChildSummary) {
+    router.push({
+      pathname: "/(app)/parent/manage-child",
+      params: {
+        id: child.id,
+        firstName: child.firstName,
+        lastName: child.lastName,
+        username: child.username,
+      },
+    });
+  }
+
+  function viewAsChild(child: ChildSummary) {
+    router.push({
+      pathname: "/(app)/parent/view-as-child",
+      params: {
+        id: child.id,
+        firstName: child.firstName,
+        lastName: child.lastName,
+        username: child.username,
+      },
+    });
+  }
+
   return (
     <DashboardLayout role="parent" activeTab="dashboard">
       {user ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 24 }}
-        >
+          contentContainerStyle={{ paddingBottom: 24 }}>
           <DashboardHeader
             role="parent"
             firstName={user.firstName}
             initials={user.initials}
           />
-
-          {/* Children section */}
-          <View style={{ paddingHorizontal: 20, gap: 10 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 2,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontSize: 11,
-                  fontWeight: "700",
-                  letterSpacing: 11 * 0.13,
-                  color: colors.textSecondary,
-                  textTransform: "uppercase",
-                }}
-              >
-                My athletes
-              </Text>
-            </View>
-
-            {isLoading ? (
-              <ActivityIndicator
-                color={colors.textTertiary}
-                style={{ marginTop: 8 }}
-              />
-            ) : (
-              <>
-                {children.map((child) => (
-                  <ChildRow key={child.id} child={child} />
-                ))}
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => router.push("/(app)/parent/add-child")}
-                  style={({ pressed }) => ({
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    backgroundColor: `${PARENT_ACCENT}14`,
-                    borderWidth: 1.5,
-                    borderColor: `${PARENT_ACCENT}40`,
-                    borderStyle: "dashed",
-                    borderRadius: 14,
-                    paddingVertical: 14,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Inter",
-                      fontSize: 14,
-                      fontWeight: "700",
-                      color: PARENT_ACCENT,
-                    }}
-                  >
-                    + Add athlete
-                  </Text>
-                </Pressable>
-              </>
-            )}
-          </View>
+          <ChildrenSection
+            items={children}
+            isLoading={isLoading}
+            onManage={manageChild}
+            onViewAs={viewAsChild}
+            onAdd={() => router.push("/(app)/parent/add-child")}
+          />
         </ScrollView>
       ) : (
         <View style={{ flex: 1 }} />

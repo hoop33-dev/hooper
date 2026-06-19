@@ -1,10 +1,10 @@
-import { Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
+import { Pressable, View } from "react-native";
 
-import { colors } from "@/src/constants/theme";
 import { roleConfig, type RoleId } from "@/src/constants/roles";
+import { colors } from "@/src/constants/theme";
 
-import { HomeIcon, ChatIcon, SettingsIcon } from "./icons";
+import { ChatIcon, HomeIcon, SettingsIcon } from "./icons";
 
 export type NavTabId = "dashboard" | "chat" | "settings";
 
@@ -49,8 +49,7 @@ export function BottomNav({ active, role }: BottomNavProps) {
         borderTopColor: colors.borderSubtle,
         paddingBottom: 14,
         paddingTop: 6,
-      }}
-    >
+      }}>
       {TABS.map((t) => {
         const isActive = t.id === active;
         const color = isActive ? r.accent : colors.textTertiary;
@@ -66,8 +65,7 @@ export function BottomNav({ active, role }: BottomNavProps) {
               justifyContent: "center",
               paddingTop: 8,
               paddingBottom: 6,
-            }}
-          >
+            }}>
             {isActive && (
               <View
                 style={{

@@ -298,7 +298,7 @@ export default function SettingsScreen() {
                       textTransform: "uppercase",
                     }}
                   >
-                    {r.label}
+                    {r.shortLabel}
                   </Text>
                 </View>
               </View>

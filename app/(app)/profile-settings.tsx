@@ -1,8 +1,17 @@
-import { type ReactNode, type RefObject, useState, useEffect, useRef } from "react";
+import {
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -10,8 +19,9 @@ import {
   View,
   type TextInput as RNTextInput,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 
 import { Avatar } from "@/src/components/dashboard/Avatar";
 import { SelectInput } from "@/src/components/ui/SelectInput";
@@ -198,12 +208,10 @@ function TextField({
           fontSize: 15,
           color: colors.textPrimary,
           textAlignVertical: multiline ? "top" : "center",
-          minHeight: multiline ? numberOfLines ? numberOfLines * 22 : 66 : 48,
+          minHeight: multiline ? (numberOfLines ? numberOfLines * 22 : 66) : 48,
         }}
       />
-      {suffix ? (
-        <View style={{ marginLeft: 8 }}>{suffix}</View>
-      ) : null}
+      {suffix ? <View style={{ marginLeft: 8 }}>{suffix}</View> : null}
     </View>
   );
 }
@@ -309,6 +317,331 @@ function ToggleRow({
   );
 }
 
+function ImageIcon({ size = 20, color }: { size?: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 5.5A2.5 2.5 0 015.5 3h13A2.5 2.5 0 0121 5.5v13A2.5 2.5 0 0118.5 21h-13A2.5 2.5 0 013 18.5z"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M8.5 11a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
+        stroke={color}
+        strokeWidth={1.8}
+      />
+      <Path
+        d="M21 15l-4.5-4.5L6 21"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** A single tappable row inside a bottom-sheet modal. */
+function SheetOption({
+  icon,
+  label,
+  accent,
+  onPress,
+}: {
+  icon: ReactNode;
+  label: string;
+  accent: string;
+  onPress: () => void;
+}) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      accessibilityRole="button"
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 14,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        backgroundColor: pressed ? "rgba(255,255,255,0.06)" : colors.surface2,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+        borderRadius: 14,
+      }}
+    >
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          backgroundColor: `${accent}14`,
+          borderWidth: 1,
+          borderColor: `${accent}30`,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {icon}
+      </View>
+      <Text
+        style={{
+          fontFamily: "Inter",
+          fontSize: 15,
+          fontWeight: "600",
+          color: colors.textPrimary,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** Bottom-sheet asking the user where to source their photo from. */
+function PhotoSourceSheet({
+  visible,
+  accent,
+  onCamera,
+  onLibrary,
+  onCancel,
+}: {
+  visible: boolean;
+  accent: string;
+  onCamera: () => void;
+  onLibrary: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
+      <Pressable
+        onPress={onCancel}
+        style={{
+          flex: 1,
+          justifyContent: "flex-end",
+          backgroundColor: "rgba(0,0,0,0.72)",
+        }}
+      >
+        <Pressable
+          // Swallow taps inside the sheet so they don't dismiss it.
+          onPress={() => {}}
+        >
+          <SafeAreaView
+            edges={["bottom"]}
+            style={{
+              backgroundColor: colors.surface,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              borderTopWidth: 1,
+              borderColor: colors.borderSubtle,
+              paddingHorizontal: 20,
+              paddingTop: 20,
+              paddingBottom: 12,
+            }}
+          >
+            <View
+              style={{
+                alignSelf: "center",
+                width: 36,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: "rgba(255,255,255,0.18)",
+                marginBottom: 18,
+              }}
+            />
+            <Text
+              style={{
+                fontFamily: "Inter",
+                fontSize: 18,
+                fontWeight: "800",
+                color: colors.textPrimary,
+                marginBottom: 4,
+              }}
+            >
+              Change photo
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Inter",
+                fontSize: 13,
+                color: colors.textTertiary,
+                marginBottom: 18,
+              }}
+            >
+              Choose where to get your new profile photo.
+            </Text>
+
+            <View style={{ gap: 8 }}>
+              <SheetOption
+                icon={<CameraIcon size={18} color={accent} />}
+                label="Take photo"
+                accent={accent}
+                onPress={onCamera}
+              />
+              <SheetOption
+                icon={<ImageIcon size={18} color={accent} />}
+                label="Choose from library"
+                accent={accent}
+                onPress={onLibrary}
+              />
+            </View>
+
+            <Pressable
+              onPress={onCancel}
+              accessibilityRole="button"
+              style={{
+                height: 50,
+                marginTop: 14,
+                borderRadius: 999,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: colors.surface2,
+                borderWidth: 1,
+                borderColor: colors.borderSubtle,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: "Inter",
+                  fontSize: 15,
+                  fontWeight: "700",
+                  color: colors.textSecondary,
+                }}
+              >
+                Cancel
+              </Text>
+            </Pressable>
+          </SafeAreaView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+/** Confirmation shown when leaving the screen with unsaved edits. */
+function DiscardChangesModal({
+  visible,
+  accent,
+  onDiscard,
+  onKeepEditing,
+}: {
+  visible: boolean;
+  accent: string;
+  onDiscard: () => void;
+  onKeepEditing: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onKeepEditing}
+    >
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 28,
+          backgroundColor: "rgba(0,0,0,0.72)",
+        }}
+      >
+        <View
+          style={{
+            width: "100%",
+            maxWidth: 360,
+            backgroundColor: colors.surface,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: colors.borderSubtle,
+            padding: 24,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "Inter",
+              fontSize: 19,
+              fontWeight: "800",
+              color: colors.textPrimary,
+              marginBottom: 8,
+            }}
+          >
+            Discard changes?
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Inter",
+              fontSize: 14,
+              lineHeight: 14 * 1.5,
+              color: colors.textSecondary,
+              marginBottom: 22,
+            }}
+          >
+            You have unsaved changes. If you leave now, they&apos;ll be lost.
+          </Text>
+
+          <Pressable
+            onPress={onDiscard}
+            accessibilityRole="button"
+            style={{
+              height: 50,
+              borderRadius: 999,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.danger,
+              marginBottom: 10,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Inter",
+                fontSize: 15,
+                fontWeight: "700",
+                color: "#fff",
+              }}
+            >
+              Discard changes
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={onKeepEditing}
+            accessibilityRole="button"
+            style={{
+              height: 50,
+              borderRadius: 999,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.surface2,
+              borderWidth: 1,
+              borderColor: `${accent}40`,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Inter",
+                fontSize: 15,
+                fontWeight: "700",
+                color: colors.textPrimary,
+              }}
+            >
+              Keep editing
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 /* ─── Main screen ──────────────────────────────────────────── */
 
 export default function ProfileSettingsScreen() {
@@ -322,18 +655,29 @@ export default function ProfileSettingsScreen() {
   const [firstName, setFirstName] = useState(user?.firstName ?? "");
   const [lastName, setLastName] = useState(user?.lastName ?? "");
   const [username, setUsername] = useState(user?.username ?? "");
-  const [regionId, setRegionId] = useState<string | null>(user?.regionId ?? null);
+  const [regionId, setRegionId] = useState<string | null>(
+    user?.regionId ?? null,
+  );
   const [bio, setBio] = useState(user?.bio ?? "");
   const [isPrivate, setIsPrivate] = useState(user?.isPrivate ?? false);
   const [showAge, setShowAge] = useState(user?.showAge ?? true);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  const [pendingImageBase64, setPendingImageBase64] = useState<string | null>(
+    null,
+  );
   const [pendingMimeType, setPendingMimeType] = useState<string>("image/jpeg");
+
+  // Photo-source sheet + unsaved-changes guard
+  const [photoSheetVisible, setPhotoSheetVisible] = useState(false);
+  const [discardVisible, setDiscardVisible] = useState(false);
 
   // Username async validation
   const [usernameStatus, setUsernameStatus] = useState<
     "idle" | "checking" | "available" | "taken" | "error"
   >("idle");
-  const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const [errors, setErrors] = useState<{
     firstName?: string;
@@ -396,23 +740,14 @@ export default function ProfileSettingsScreen() {
     }, 500);
   }
 
-  // Avatar: pick from library or camera
-  async function handleChangePhoto() {
-    Alert.alert("Change photo", "Choose a source", [
-      {
-        text: "Camera",
-        onPress: pickFromCamera,
-      },
-      {
-        text: "Photo library",
-        onPress: pickFromLibrary,
-      },
-      { text: "Cancel", style: "cancel" },
-    ]);
+  // Avatar: open our custom source picker
+  function handleChangePhoto() {
+    setPhotoSheetVisible(true);
   }
 
   async function pickFromLibrary() {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    setPhotoSheetVisible(false);
+     
     let ImagePicker: typeof import("expo-image-picker");
     try {
       ImagePicker = require("expo-image-picker");
@@ -420,8 +755,7 @@ export default function ProfileSettingsScreen() {
       Alert.alert("Not available", "Photo upload requires an app update.");
       return;
     }
-    const { status } =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
         "Permission needed",
@@ -434,16 +768,19 @@ export default function ProfileSettingsScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.85,
+      base64: true,
     });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       setPendingImageUri(asset.uri);
+      setPendingImageBase64(asset.base64 ?? null);
       setPendingMimeType(asset.mimeType ?? "image/jpeg");
     }
   }
 
   async function pickFromCamera() {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    setPhotoSheetVisible(false);
+     
     let ImagePicker: typeof import("expo-image-picker");
     try {
       ImagePicker = require("expo-image-picker");
@@ -463,10 +800,12 @@ export default function ProfileSettingsScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.85,
+      base64: true,
     });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       setPendingImageUri(asset.uri);
+      setPendingImageBase64(asset.base64 ?? null);
       setPendingMimeType(asset.mimeType ?? "image/jpeg");
     }
   }
@@ -493,11 +832,11 @@ export default function ProfileSettingsScreen() {
     try {
       // Upload new photo if selected
       let newAvatarUrl = profile.avatar_url ?? null;
-      if (pendingImageUri) {
+      if (pendingImageBase64) {
         setUploadingPhoto(true);
         newAvatarUrl = await uploadAvatar(
           profile.id,
-          pendingImageUri,
+          pendingImageBase64,
           pendingMimeType,
         );
         setUploadingPhoto(false);
@@ -535,6 +874,40 @@ export default function ProfileSettingsScreen() {
     }
   }
 
+  // Dirty detection — true when the form differs from the saved profile.
+  const isDirty =
+    firstName !== (user?.firstName ?? "") ||
+    lastName !== (user?.lastName ?? "") ||
+    username !== (user?.username ?? "") ||
+    regionId !== (user?.regionId ?? null) ||
+    bio !== (user?.bio ?? "") ||
+    isPrivate !== (user?.isPrivate ?? false) ||
+    showAge !== (user?.showAge ?? true) ||
+    pendingImageUri !== null;
+
+  // Guarded navigation: prompt before discarding unsaved edits.
+  const handleBack = useCallback(() => {
+    if (isDirty && !saving) {
+      setDiscardVisible(true);
+    } else {
+      router.back();
+    }
+  }, [isDirty, saving, router]);
+
+  // Intercept the Android hardware back button while editing.
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        if (isDirty && !saving) {
+          setDiscardVisible(true);
+          return true;
+        }
+        return false;
+      });
+      return () => sub.remove();
+    }, [isDirty, saving]),
+  );
+
   // Username suffix indicator
   const usernameSuffix =
     usernameStatus === "checking" ? (
@@ -542,9 +915,7 @@ export default function ProfileSettingsScreen() {
     ) : usernameStatus === "available" ? (
       <CheckIcon size={14} color={colors.success} />
     ) : usernameStatus === "taken" ? (
-      <Text
-        style={{ fontFamily: "Inter", fontSize: 11, color: colors.danger }}
-      >
+      <Text style={{ fontFamily: "Inter", fontSize: 11, color: colors.danger }}>
         Taken
       </Text>
     ) : null;
@@ -575,8 +946,10 @@ export default function ProfileSettingsScreen() {
         style={{ flex: 1 }}
       >
         {/* Header */}
-        <View style={{ paddingHorizontal: 20, paddingTop: 58, paddingBottom: 4 }}>
-          <BackButton onPress={() => router.back()} />
+        <View
+          style={{ paddingHorizontal: 20, paddingTop: 58, paddingBottom: 4 }}
+        >
+          <BackButton onPress={handleBack} />
           <Text
             style={{
               fontFamily: "Inter",
@@ -616,11 +989,7 @@ export default function ProfileSettingsScreen() {
                 />
               </View>
             ) : (
-              <Avatar
-                role={role}
-                size={92}
-                initials={user?.initials ?? "?"}
-              />
+              <Avatar role={role} size={92} initials={user?.initials ?? "?"} />
             )}
             <Pressable
               onPress={handleChangePhoto}
@@ -652,10 +1021,7 @@ export default function ProfileSettingsScreen() {
               )}
             </Pressable>
           </View>
-          <Pressable
-            onPress={handleChangePhoto}
-            accessibilityRole="button"
-          >
+          <Pressable onPress={handleChangePhoto} accessibilityRole="button">
             <Text
               style={{
                 fontFamily: "Inter",
@@ -859,6 +1225,24 @@ export default function ProfileSettingsScreen() {
           )}
         </Pressable>
       </View>
+
+      <PhotoSourceSheet
+        visible={photoSheetVisible}
+        accent={r.accent}
+        onCamera={pickFromCamera}
+        onLibrary={pickFromLibrary}
+        onCancel={() => setPhotoSheetVisible(false)}
+      />
+
+      <DiscardChangesModal
+        visible={discardVisible}
+        accent={r.accent}
+        onKeepEditing={() => setDiscardVisible(false)}
+        onDiscard={() => {
+          setDiscardVisible(false);
+          router.back();
+        }}
+      />
     </View>
   );
 }

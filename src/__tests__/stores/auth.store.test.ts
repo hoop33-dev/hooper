@@ -1,6 +1,6 @@
-import { useAuthStore } from "@/src/stores/auth.store";
 import { supabase } from "@/src/lib/supabase";
 import { signOut as authSignOut } from "@/src/services/auth.service";
+import { useAuthStore } from "@/src/stores/auth.store";
 
 jest.mock("@/src/lib/supabase", () => ({
   supabase: {
@@ -79,9 +79,20 @@ describe("setVerificationPending", () => {
   it("transitions to needs_verification and stores the email", () => {
     useAuthStore.getState().setVerificationPending("verify@example.com");
 
-    const { status, pendingVerificationEmail } = useAuthStore.getState();
+    const { status, pendingVerificationEmail, pendingVerificationRole } =
+      useAuthStore.getState();
     expect(status).toBe("needs_verification");
     expect(pendingVerificationEmail).toBe("verify@example.com");
+    expect(pendingVerificationRole).toBeNull();
+  });
+
+  it("stores the role when provided", () => {
+    useAuthStore
+      .getState()
+      .setVerificationPending("verify@example.com", "coach");
+
+    const { pendingVerificationRole } = useAuthStore.getState();
+    expect(pendingVerificationRole).toBe("coach");
   });
 });
 

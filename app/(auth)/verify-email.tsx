@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 
 import { BackButton } from "@/src/components/ui";
-import { roleConfig, type RoleId } from "@/src/constants/roles";
+import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import {
   resendVerificationOtp,
@@ -243,12 +243,17 @@ function SuccessView({
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { role } = useLocalSearchParams<{ role?: RoleId }>();
-  // Step indicator accent follows the chosen role (orange/pale orange/blue);
-  // defaults to the player orange when no role param is present.
-  const accent = roleConfig(role).accent;
-  const { pendingVerificationEmail, status, profile, signInComplete, signOut } =
-    useAuthStore();
+  const {
+    pendingVerificationEmail,
+    pendingVerificationRole,
+    status,
+    profile,
+    signInComplete,
+    signOut,
+  } = useAuthStore();
+  // Step indicator and button accent follow the chosen role (orange/pale orange/blue);
+  // defaults to player orange when role is not set (e.g. the sign-in path).
+  const accent = roleConfig(pendingVerificationRole).accent;
   // profile is set by signInComplete (sign-in path) but null during sign-up
   // (profile not loaded yet because email isn't confirmed). Use this to adapt the UI.
   const fromSignIn = profile !== null;

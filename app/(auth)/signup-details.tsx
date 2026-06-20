@@ -153,11 +153,8 @@ export default function SignupDetailsScreen() {
       return;
     }
 
-    setVerificationPending(form.email);
-    router.push({
-      pathname: "/(auth)/verify-email",
-      params: { role: roleId },
-    });
+    setVerificationPending(form.email, roleId);
+    router.push("/(auth)/verify-email");
   }
 
   return (

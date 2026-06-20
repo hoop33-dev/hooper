@@ -53,7 +53,9 @@ serve(async (req: Request) => {
 
     if (exists) {
       // Fire-and-forget — we don't await or check the result so the response
-      // time doesn't leak whether the send succeeded.
+      // time doesn't leak whether the send succeeded. We do attach a
+      // non-blocking handler purely to log Resend failures (e.g. an
+      // unverified sender domain), which would otherwise vanish silently.
       fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -66,7 +68,19 @@ serve(async (req: Request) => {
           subject: "You already have a Hooper account",
           html: accountExistsHtml(email),
         }),
-      });
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const body = await res.text().catch(() => "");
+            console.error(
+              `send-account-exists-email: Resend returned ${res.status}`,
+              body,
+            );
+          }
+        })
+        .catch((err) => {
+          console.error("send-account-exists-email: send failed", err);
+        });
     }
   }
 

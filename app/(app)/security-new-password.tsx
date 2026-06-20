@@ -166,7 +166,7 @@ type NewPasswordFieldsProps = {
   passwordError: string;
   confirmPasswordError: string;
   submitError: string;
-  confirmRef: RefObject<RNTextInput>;
+  confirmRef: RefObject<RNTextInput | null>;
   onPasswordChange: (v: string) => void;
   onConfirmChange: (v: string) => void;
   onSubmit: () => void;

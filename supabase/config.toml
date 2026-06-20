@@ -25,10 +25,8 @@ content_path = "./supabase/templates/confirmation.html"
 subject = "Reset your Hooper password"
 content_path = "./supabase/templates/recovery.html"
 
-# The magic-link template is repurposed for the "account already exists" email.
-# It is the template GoTrue sends from signInWithOtp({ shouldCreateUser: false }),
-# which auth.service.ts triggers when a sign-up is attempted with an email that
-# already has an account. Hooper does not otherwise use magic-link sign-in.
+# The magic-link template is used by signInWithOtp, which the send-security-code
+# edge function calls to send a 6-digit code before an in-app password change.
 [auth.email.template.magic_link]
-subject = "You already have a Hooper account"
-content_path = "./supabase/templates/account_exists.html"
+subject = "Your Hooper security code"
+content_path = "./supabase/templates/security_code.html"

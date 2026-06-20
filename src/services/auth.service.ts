@@ -1,6 +1,6 @@
+import type { RoleId } from "@/src/constants/roles";
 import { supabase } from "@/src/lib/supabase";
 import type { Session } from "@supabase/supabase-js";
-import type { RoleId } from "@/src/constants/roles";
 
 export type SignUpParams = {
   firstName: string;
@@ -168,7 +168,10 @@ export async function sendSecurityCode(): Promise<SendSecurityCodeResult> {
     };
   }
   if (!data?.ok) {
-    return { ok: false, error: data?.error ?? "Unable to send verification code." };
+    return {
+      ok: false,
+      error: data?.error ?? "Unable to send verification code.",
+    };
   }
   return { ok: true, maskedEmail: data.maskedEmail };
 }
@@ -196,18 +199,15 @@ export async function verifySecurityCode(
   return { ok: true };
 }
 
-// Sends the "account already exists" email to the address that owns the
-// account. signInWithOtp with shouldCreateUser:false only emails addresses that
-// already have an account, so it can't be used to probe for valid emails, and
-// GoTrue serves it from the magic-link template (see config.toml). The template
-// links to the login screen rather than exposing the magic link, since Hooper
-// signs in with username + password. Failures (e.g. rate limiting) are
-// swallowed: they must not change the sign-up result.
+// Notifies an existing account owner when a sign-up is attempted with their
+// email. Uses resetPasswordForEmail so the recipient gets a "reset your
+// password" email — which both confirms they have an account and gives them a
+// recovery path. The magic-link template is reserved for the in-app security
+// code flow (send-security-code edge function). Failures are swallowed.
 async function sendAccountAlreadyExistsEmail(email: string): Promise<void> {
   try {
-    await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false },
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "hooper://reset-password",
     });
   } catch {
     // best-effort notification

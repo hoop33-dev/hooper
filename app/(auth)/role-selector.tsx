@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { View, ScrollView, Pressable, Text } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
+import { useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { RadioTile, BackButton } from "@/src/components/ui";
-import { colors } from "@/src/constants/theme";
+import { BackButton, RadioTile } from "@/src/components/ui";
 import { ROLES, type RoleId } from "@/src/constants/roles";
+import { colors } from "@/src/constants/theme";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -32,9 +32,8 @@ export default function RoleSelectorScreen() {
 
         <Text
           className="text-brand-orange mb-2 text-[10px] font-medium uppercase"
-          style={{ fontFamily: "Inter", letterSpacing: 10 * 0.14 }}
-        >
-          Step 2 of 3
+          style={{ fontFamily: "Inter", letterSpacing: 10 * 0.14 }}>
+          Step 2 of 4
         </Text>
 
         <Text
@@ -44,15 +43,13 @@ export default function RoleSelectorScreen() {
             fontSize: 28,
             letterSpacing: 28 * -0.03,
             lineHeight: 28 * 1.12,
-          }}
-        >
+          }}>
           Who are you?
         </Text>
 
         <Text
           className="text-text-secondary text-sm"
-          style={{ fontFamily: "Inter", lineHeight: 14 * 1.5 }}
-        >
+          style={{ fontFamily: "Inter", lineHeight: 14 * 1.5 }}>
           Pick your role. You can add more later.
         </Text>
       </View>
@@ -67,8 +64,7 @@ export default function RoleSelectorScreen() {
           gap: 12,
         }}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+        keyboardShouldPersistTaps="handled">
         {ROLES.map((role) => (
           <RadioTile
             key={role.id}
@@ -94,7 +90,9 @@ export default function RoleSelectorScreen() {
           style={({ pressed }) => ({
             height: 56,
             borderRadius: 9999,
-            backgroundColor: selectedRole ? selectedRole.accent : colors.surface3,
+            backgroundColor: selectedRole
+              ? selectedRole.accent
+              : colors.surface3,
             alignItems: "center",
             justifyContent: "center",
             opacity: pressed && selectedId ? 0.85 : 1,
@@ -104,12 +102,10 @@ export default function RoleSelectorScreen() {
             shadowOpacity: selectedRole ? 0.4 : 0,
             shadowRadius: 16,
             elevation: selectedRole ? 8 : 0,
-          })}
-        >
+          })}>
           <Text
             className={`text-[15px] font-bold ${selectedId ? "text-text-primary" : "text-text-tertiary"}`}
-            style={{ fontFamily: "Inter", letterSpacing: 15 * 0.01 }}
-          >
+            style={{ fontFamily: "Inter", letterSpacing: 15 * 0.01 }}>
             {selectedRole ? selectedRole.cta : "Select a role to continue"}
           </Text>
         </Pressable>

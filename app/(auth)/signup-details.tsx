@@ -1,25 +1,25 @@
-import { useState, useRef } from "react";
-import { View, Text, type TextInput as RNTextInput } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRef, useState } from "react";
+import { Text, View, type TextInput as RNTextInput } from "react-native";
 import { type KeyboardAwareScrollViewRef } from "react-native-keyboard-controller";
-import { useRouter, useLocalSearchParams } from "expo-router";
 
-import { validatePassword } from "@/src/lib/passwordRules";
-import {
-  Input,
-  SelectInput,
-  type SelectInputHandle,
-  DateInput,
-  type DateInputHandle,
-  PhoneInput,
-  Checkbox,
-  PasswordInput,
-  ErrorMessage,
-  AccountFormLayout,
-} from "@/src/components/ui";
 import { AgeGateModal } from "@/src/components/auth/AgeGateModal";
 import { DisclosureLabel } from "@/src/components/auth/DisclosureLabel";
-import { ROLES, type RoleId } from "@/src/constants/roles";
+import {
+  AccountFormLayout,
+  Checkbox,
+  DateInput,
+  ErrorMessage,
+  Input,
+  PasswordInput,
+  PhoneInput,
+  SelectInput,
+  type DateInputHandle,
+  type SelectInputHandle,
+} from "@/src/components/ui";
 import { NZ_REGIONS } from "@/src/constants/regions";
+import { ROLES, type RoleId } from "@/src/constants/roles";
+import { validatePassword } from "@/src/lib/passwordRules";
 import { signUp } from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
 
@@ -154,14 +154,17 @@ export default function SignupDetailsScreen() {
     }
 
     setVerificationPending(form.email);
-    router.push("/(auth)/verify-email");
+    router.push({
+      pathname: "/(auth)/verify-email",
+      params: { role: roleId },
+    });
   }
 
   return (
     <AccountFormLayout
       onBack={() => router.back()}
       backLabel="Choose your role"
-      stepLabel="Step 3 of 3"
+      stepLabel="Step 3 of 4"
       accentColor={accent}
       title="Your details"
       subtitle={
@@ -186,8 +189,7 @@ export default function SignupDetailsScreen() {
             setField("dob", null);
           }}
         />
-      }
-    >
+      }>
       {/* Name row */}
       <View className="flex-row gap-3">
         <View className="flex-1">

@@ -180,6 +180,7 @@ export default function ResetPasswordScreen() {
                 }}
                 placeholder="Min 8 chars, uppercase & number"
                 error={passwordError}
+                showStrength
                 autoComplete="new-password"
                 textContentType="newPassword"
                 returnKeyType="next"

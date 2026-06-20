@@ -155,6 +155,47 @@ export async function updatePassword(
   return { ok: true };
 }
 
+export type SendSecurityCodeResult =
+  | { ok: true; maskedEmail: string }
+  | { ok: false; error: string };
+
+export async function sendSecurityCode(): Promise<SendSecurityCodeResult> {
+  const { data, error } = await supabase.functions.invoke("send-security-code");
+  if (error) {
+    return {
+      ok: false,
+      error: "Unable to send verification code. Please try again.",
+    };
+  }
+  if (!data?.ok) {
+    return { ok: false, error: data?.error ?? "Unable to send verification code." };
+  }
+  return { ok: true, maskedEmail: data.maskedEmail };
+}
+
+export type VerifySecurityCodeResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function verifySecurityCode(
+  email: string,
+  token: string,
+): Promise<VerifySecurityCodeResult> {
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "email",
+  });
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("expired")) {
+      return { ok: false, error: "Code expired. Request a new one." };
+    }
+    return { ok: false, error: "Invalid code. Please try again." };
+  }
+  return { ok: true };
+}
+
 // Sends the "account already exists" email to the address that owns the
 // account. signInWithOtp with shouldCreateUser:false only emails addresses that
 // already have an account, so it can't be used to probe for valid emails, and

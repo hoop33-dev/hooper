@@ -303,6 +303,7 @@ export default function SignupDetailsScreen() {
         onChangeText={(v) => setField("password", v)}
         placeholder="8+ characters"
         error={errors.password}
+        showStrength
         autoComplete="new-password"
         textContentType="newPassword"
         returnKeyType="next"

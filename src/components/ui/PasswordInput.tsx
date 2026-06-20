@@ -9,11 +9,13 @@ import {
 import Svg, { Path, Circle } from "react-native-svg";
 import { Input } from "./Input";
 import { ErrorMessage } from "./ErrorMessage";
+import { PasswordStrengthBar } from "./PasswordStrengthBar";
 
 type PasswordInputProps = Omit<TextInputProps, "style" | "secureTextEntry"> & {
   label?: string;
   error?: string;
   hasError?: boolean;
+  showStrength?: boolean;
 };
 
 function EyeIcon({ visible }: { visible: boolean }) {
@@ -50,9 +52,10 @@ function EyeIcon({ visible }: { visible: boolean }) {
 }
 
 export const PasswordInput = forwardRef<RNTextInput, PasswordInputProps>(
-  function PasswordInput({ label, error, hasError, ...rest }, ref) {
+  function PasswordInput({ label, error, hasError, showStrength, ...rest }, ref) {
     const [show, setShow] = useState(false);
     const isError = !!error || !!hasError;
+    const valueStr = typeof rest.value === "string" ? rest.value : "";
 
     return (
       <View className="gap-1.5">
@@ -95,6 +98,7 @@ export const PasswordInput = forwardRef<RNTextInput, PasswordInputProps>(
             <EyeIcon visible={show} />
           </Pressable>
         </View>
+        {showStrength && <PasswordStrengthBar value={valueStr} />}
         {error && <ErrorMessage message={error} />}
       </View>
     );

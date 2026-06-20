@@ -3,6 +3,12 @@ name: PR Preview
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to build and publish a preview for"
+        required: true
+        type: string
 
 jobs:
   preview:
@@ -16,15 +22,55 @@ jobs:
       pull-requests: write
 
     steps:
+      - name: Resolve PR context
+        id: pr
+        uses: actions/github-script@v7
+        env:
+          INPUT_PR_NUMBER: ${{ github.event.inputs.pr_number }}
+        with:
+          script: |
+            let number, title, body, headRef, headSha;
+            if (context.eventName === 'pull_request') {
+              const pr = context.payload.pull_request;
+              number = pr.number;
+              title = pr.title || '';
+              body = pr.body || '';
+              headRef = pr.head.ref;
+              headSha = pr.head.sha;
+            } else {
+              number = Number(process.env.INPUT_PR_NUMBER);
+              if (!number) {
+                core.setFailed('pr_number input is required for manual runs.');
+                return;
+              }
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: number,
+              });
+              title = pr.title || '';
+              body = pr.body || '';
+              headRef = pr.head.ref;
+              headSha = pr.head.sha;
+            }
+            core.setOutput('number', String(number));
+            core.setOutput('title', title);
+            core.setOutput('body', body);
+            core.setOutput('head_ref', headRef);
+            core.setOutput('head_sha', headSha);
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.head_sha }}
 
       - name: Build preview metadata
         id: preview_meta
         shell: bash
         env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          PR_TITLE: ${{ steps.pr.outputs.title }}
+          PR_BODY: ${{ steps.pr.outputs.body }}
         run: |
           TITLE_SLUG=$(printf '%s' "$PR_TITLE" \
             | tr '[:upper:]' '[:lower:]' \
@@ -35,7 +81,7 @@ jobs:
             TITLE_SLUG="update"
           fi
 
-          BRANCH="pr-${{ github.event.number }}-$TITLE_SLUG"
+          BRANCH="pr-${PR_NUMBER}-$TITLE_SLUG"
 
           BODY_SUMMARY=$(printf '%s' "$PR_BODY" \
             | tr '\n' ' ' \
@@ -43,9 +89,9 @@ jobs:
             | cut -c1-140)
 
           if [ -n "$BODY_SUMMARY" ]; then
-            MESSAGE="PR #${{ github.event.number }}: $PR_TITLE | $BODY_SUMMARY"
+            MESSAGE="PR #${PR_NUMBER}: $PR_TITLE | $BODY_SUMMARY"
           else
-            MESSAGE="PR #${{ github.event.number }}: $PR_TITLE"
+            MESSAGE="PR #${PR_NUMBER}: $PR_TITLE"
           fi
 
           {
@@ -59,17 +105,19 @@ jobs:
         id: preview_comment
         uses: actions/github-script@v7
         env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
           PREVIEW_BRANCH: ${{ steps.preview_meta.outputs.branch }}
           PREVIEW_MESSAGE: ${{ steps.preview_meta.outputs.message }}
         with:
           script: |
             const marker = '<!-- eas-preview-comment -->';
+            const issueNumber = Number(process.env.PR_NUMBER);
             const branch = process.env.PREVIEW_BRANCH;
             const message = process.env.PREVIEW_MESSAGE;
             const body = `${marker}\n### 🟠 Preview Building\n\nPreparing EAS Update for branch \`${branch}\`.\n\nPlanned message: \`${message}\``;
 
             const { data: comments } = await github.rest.issues.listComments({
-              issue_number: context.issue.number,
+              issue_number: issueNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
               per_page: 100,
@@ -90,7 +138,7 @@ jobs:
               commentId = existing.id;
             } else {
               const { data: created } = await github.rest.issues.createComment({
-                issue_number: context.issue.number,
+                issue_number: issueNumber,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 body,
@@ -154,6 +202,7 @@ jobs:
         if: success()
         uses: actions/github-script@v7
         env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
           PREVIEW_BRANCH: ${{ steps.preview_meta.outputs.branch }}
           PREVIEW_COMMENT_ID: ${{ steps.preview_comment.outputs.comment_id }}
           PUBLISH_GROUP_ID: ${{ steps.publish.outputs.group_id }}
@@ -164,6 +213,7 @@ jobs:
         with:
           script: |
             const marker = '<!-- eas-preview-comment -->';
+            const issueNumber = Number(process.env.PR_NUMBER);
             const branch = process.env.PREVIEW_BRANCH;
             const groupId = process.env.PUBLISH_GROUP_ID;
             const updateMessage = process.env.PUBLISH_UPDATE_MESSAGE;
@@ -185,7 +235,7 @@ jobs:
               });
             } else {
               const { data: comments } = await github.rest.issues.listComments({
-                issue_number: context.issue.number,
+                issue_number: issueNumber,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 per_page: 100,
@@ -200,7 +250,7 @@ jobs:
                 });
               } else {
                 await github.rest.issues.createComment({
-                  issue_number: context.issue.number,
+                  issue_number: issueNumber,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   body,
@@ -212,15 +262,22 @@ jobs:
         if: failure()
         uses: actions/github-script@v7
         env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
           PREVIEW_BRANCH: ${{ steps.preview_meta.outputs.branch }}
           PREVIEW_MESSAGE: ${{ steps.preview_meta.outputs.message }}
           PREVIEW_COMMENT_ID: ${{ steps.preview_comment.outputs.comment_id }}
         with:
           script: |
             const marker = '<!-- eas-preview-comment -->';
+            const issueNumber = Number(process.env.PR_NUMBER);
             const branch = process.env.PREVIEW_BRANCH;
             const message = process.env.PREVIEW_MESSAGE;
             const body = `${marker}\n### 🔴 Preview Failed\n\nFailed to publish EAS Update for branch \`${branch}\`.\n\nPlanned message: \`${message}\`\n\nCheck the workflow logs for details.`;
+
+            if (!issueNumber) {
+              core.warning('No PR number available; skipping failure comment.');
+              return;
+            }
 
             const commentId = Number(process.env.PREVIEW_COMMENT_ID);
             if (commentId) {
@@ -232,7 +289,7 @@ jobs:
               });
             } else {
               const { data: comments } = await github.rest.issues.listComments({
-                issue_number: context.issue.number,
+                issue_number: issueNumber,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 per_page: 100,
@@ -247,7 +304,7 @@ jobs:
                 });
               } else {
                 await github.rest.issues.createComment({
-                  issue_number: context.issue.number,
+                  issue_number: issueNumber,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   body,

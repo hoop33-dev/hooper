@@ -1,5 +1,5 @@
-// Authenticated endpoint: generates a 6-digit OTP via Supabase admin
-// (no email sent by Supabase) and delivers it through Resend so the
+// Authenticated endpoint: generates a 6-digit OTP via Supabase admin.
+// No email is sent by Supabase; delivery is handled via Resend so the
 // template and sender domain are fully under our control.
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

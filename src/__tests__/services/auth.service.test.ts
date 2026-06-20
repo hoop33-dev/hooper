@@ -41,6 +41,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockSignInWithOtp.mockResolvedValue({ data: {}, error: null });
   mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
+  mockInvoke.mockResolvedValue({ data: { ok: true }, error: null });
 });
 
 // ─── checkUsernameAvailable ───────────────────────────────────────────────────
@@ -400,8 +401,8 @@ describe("signUp", () => {
 
     await signUp(validParams);
 
-    expect(mockResetPasswordForEmail).toHaveBeenCalledWith(validParams.email, {
-      redirectTo: "hooper://reset-password",
+    expect(mockInvoke).toHaveBeenCalledWith("send-account-exists-email", {
+      body: { email: validParams.email },
     });
   });
 
@@ -414,8 +415,8 @@ describe("signUp", () => {
 
     await signUp(validParams);
 
-    expect(mockResetPasswordForEmail).toHaveBeenCalledWith(validParams.email, {
-      redirectTo: "hooper://reset-password",
+    expect(mockInvoke).toHaveBeenCalledWith("send-account-exists-email", {
+      body: { email: validParams.email },
     });
   });
 
@@ -425,7 +426,7 @@ describe("signUp", () => {
       data: { user: { id: "obfuscated", identities: [] }, session: null },
       error: null,
     });
-    mockResetPasswordForEmail.mockRejectedValue(new Error("rate limited"));
+    mockInvoke.mockRejectedValue(new Error("rate limited"));
 
     const result = await signUp(validParams);
 
@@ -441,7 +442,10 @@ describe("signUp", () => {
 
     await signUp(validParams);
 
-    expect(mockResetPasswordForEmail).not.toHaveBeenCalled();
+    expect(mockInvoke).not.toHaveBeenCalledWith(
+      "send-account-exists-email",
+      expect.anything(),
+    );
   });
 
   it("returns ok: false with the raw error message for other sign-up errors", async () => {

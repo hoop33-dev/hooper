@@ -25,8 +25,12 @@ content_path = "./supabase/templates/confirmation.html"
 subject = "Reset your Hooper password"
 content_path = "./supabase/templates/recovery.html"
 
-# The magic-link template is used by signInWithOtp, which the send-security-code
-# edge function calls to send a 6-digit code before an in-app password change.
+[functions.send-account-exists-email]
+verify_jwt = false
+
+# magic_link is retained as a fallback but is no longer triggered by any
+# Hooper code path — send-security-code uses admin.generateLink (no email sent
+# by Supabase) and send-account-exists-email uses Resend directly.
 [auth.email.template.magic_link]
-subject = "Your Hooper security code"
-content_path = "./supabase/templates/security_code.html"
+subject = "You already have a Hooper account"
+content_path = "./supabase/templates/account_exists.html"

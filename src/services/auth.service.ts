@@ -200,14 +200,13 @@ export async function verifySecurityCode(
 }
 
 // Notifies an existing account owner when a sign-up is attempted with their
-// email. Uses resetPasswordForEmail so the recipient gets a "reset your
-// password" email — which both confirms they have an account and gives them a
-// recovery path. The magic-link template is reserved for the in-app security
-// code flow (send-security-code edge function). Failures are swallowed.
+// email. Delegates to an edge function that checks existence server-side and
+// sends via Resend, so neither the check nor the email leaks through the client.
+// Failures are swallowed — this must not change the sign-up result.
 async function sendAccountAlreadyExistsEmail(email: string): Promise<void> {
   try {
-    await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "hooper://reset-password",
+    await supabase.functions.invoke("send-account-exists-email", {
+      body: { email },
     });
   } catch {
     // best-effort notification

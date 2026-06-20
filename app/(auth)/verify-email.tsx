@@ -124,9 +124,11 @@ function EmailIllustration({ shake }: { shake: boolean }) {
 function SuccessView({
   onContinue,
   isLoading,
+  accent,
 }: {
   onContinue: () => void;
   isLoading: boolean;
+  accent: string;
 }) {
   const scaleAnim = useRef(new Animated.Value(0.7)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -209,13 +211,13 @@ function SuccessView({
           width: "100%",
           height: 56,
           borderRadius: 14,
-          backgroundColor: colors.brandOrange,
+          backgroundColor: accent,
           alignItems: "center",
           justifyContent: "center",
           marginTop: 16,
           opacity: isLoading ? 0.7 : pressed ? 0.85 : 1,
           transform: [{ scale: pressed && !isLoading ? 0.97 : 1 }],
-          shadowColor: colors.brandOrange,
+          shadowColor: accent,
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.4,
           shadowRadius: 20,
@@ -443,7 +445,11 @@ export default function VerifyEmailScreen() {
           paddingBottom: 40,
         }}>
         {isSuccess ? (
-          <SuccessView onContinue={handleContinue} isLoading={isContinuing} />
+          <SuccessView
+            onContinue={handleContinue}
+            isLoading={isContinuing}
+            accent={accent}
+          />
         ) : (
           <>
             {/* Icon + heading */}
@@ -552,16 +558,14 @@ export default function VerifyEmailScreen() {
                 width: "100%",
                 height: 56,
                 borderRadius: 14,
-                backgroundColor: isComplete
-                  ? colors.brandOrange
-                  : colors.surface2,
+                backgroundColor: isComplete ? accent : colors.surface2,
                 alignItems: "center",
                 justifyContent: "center",
                 opacity: isVerifying ? 0.7 : pressed && isComplete ? 0.85 : 1,
                 transform: [
                   { scale: pressed && isComplete && !isVerifying ? 0.97 : 1 },
                 ],
-                shadowColor: colors.brandOrange,
+                shadowColor: accent,
                 shadowOffset: { width: 0, height: 0 },
                 shadowOpacity: isComplete ? 0.35 : 0,
                 shadowRadius: 20,

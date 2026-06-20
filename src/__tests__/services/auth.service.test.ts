@@ -1,11 +1,11 @@
 import { supabase } from "@/src/lib/supabase";
 import {
   checkUsernameAvailable,
+  resendVerificationOtp,
   signInWithUsername,
   signOut,
-  verifyEmailOtp,
-  resendVerificationOtp,
   signUp,
+  verifyEmailOtp,
 } from "@/src/services/auth.service";
 
 jest.mock("@/src/lib/supabase", () => ({
@@ -19,6 +19,7 @@ jest.mock("@/src/lib/supabase", () => ({
       resend: jest.fn(),
       signUp: jest.fn(),
       signInWithOtp: jest.fn(),
+      resetPasswordForEmail: jest.fn(),
     },
   },
 }));
@@ -31,12 +32,15 @@ const mockVerifyOtp = supabase.auth.verifyOtp as jest.Mock;
 const mockResend = supabase.auth.resend as jest.Mock;
 const mockAuthSignUp = supabase.auth.signUp as jest.Mock;
 const mockSignInWithOtp = supabase.auth.signInWithOtp as jest.Mock;
+const mockResetPasswordForEmail = supabase.auth
+  .resetPasswordForEmail as jest.Mock;
 
 const fakeSession = { user: { id: "u1", email: "test@example.com" } } as any;
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockSignInWithOtp.mockResolvedValue({ data: {}, error: null });
+  mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
 });
 
 // ─── checkUsernameAvailable ───────────────────────────────────────────────────
@@ -396,9 +400,8 @@ describe("signUp", () => {
 
     await signUp(validParams);
 
-    expect(mockSignInWithOtp).toHaveBeenCalledWith({
-      email: validParams.email,
-      options: { shouldCreateUser: false },
+    expect(mockResetPasswordForEmail).toHaveBeenCalledWith(validParams.email, {
+      redirectTo: "hooper://reset-password",
     });
   });
 
@@ -411,9 +414,8 @@ describe("signUp", () => {
 
     await signUp(validParams);
 
-    expect(mockSignInWithOtp).toHaveBeenCalledWith({
-      email: validParams.email,
-      options: { shouldCreateUser: false },
+    expect(mockResetPasswordForEmail).toHaveBeenCalledWith(validParams.email, {
+      redirectTo: "hooper://reset-password",
     });
   });
 
@@ -423,7 +425,7 @@ describe("signUp", () => {
       data: { user: { id: "obfuscated", identities: [] }, session: null },
       error: null,
     });
-    mockSignInWithOtp.mockRejectedValue(new Error("rate limited"));
+    mockResetPasswordForEmail.mockRejectedValue(new Error("rate limited"));
 
     const result = await signUp(validParams);
 
@@ -439,7 +441,7 @@ describe("signUp", () => {
 
     await signUp(validParams);
 
-    expect(mockSignInWithOtp).not.toHaveBeenCalled();
+    expect(mockResetPasswordForEmail).not.toHaveBeenCalled();
   });
 
   it("returns ok: false with the raw error message for other sign-up errors", async () => {

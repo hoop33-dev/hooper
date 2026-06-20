@@ -21,84 +21,109 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return json(401, { ok: false, error: "Unauthorized" });
-  }
-  const callerToken = authHeader.slice(7);
-
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
-  const {
-    data: { user },
-    error: userError,
-  } = await admin.auth.getUser(callerToken);
-
-  if (userError || !user?.email) {
-    return json(401, { ok: false, error: "Unauthorized" });
-  }
-
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("has_real_email")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (!profile?.has_real_email) {
-    return json(403, {
-      ok: false,
-      error: "Password changes for this account are managed by a guardian.",
-    });
-  }
-
-  // Generate the OTP token without triggering any Supabase-sent email.
-  const { data: linkData, error: linkError } =
-    await admin.auth.admin.generateLink({
-      type: "magiclink",
-      email: user.email,
-    });
-
-  if (linkError || !linkData?.properties?.email_otp) {
-    return json(500, {
-      ok: false,
-      error: "Failed to generate verification code.",
-    });
-  }
-
-  const otp = linkData.properties.email_otp;
-
-  const emailRes = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: FROM_EMAIL,
-      to: user.email,
-      subject: "Your Hooper security code",
-      html: securityCodeHtml(otp, user.email),
-    }),
-  });
-
-  if (!emailRes.ok) {
-    if (emailRes.status === 429) {
-      return json(429, {
+  try {
+    if (!RESEND_API_KEY) {
+      console.error("send-security-code: RESEND_API_KEY is not configured");
+      return json(500, {
         ok: false,
-        error: "Too many requests. Please wait before trying again.",
+        error: "Verification email is not configured.",
       });
     }
-    return json(500, { ok: false, error: "Failed to send verification code." });
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return json(401, { ok: false, error: "Unauthorized" });
+    }
+    const callerToken = authHeader.slice(7);
+
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const {
+      data: { user },
+      error: userError,
+    } = await admin.auth.getUser(callerToken);
+
+    if (userError || !user?.email) {
+      return json(401, { ok: false, error: "Unauthorized" });
+    }
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("has_real_email")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+
+    if (!profile?.has_real_email) {
+      return json(403, {
+        ok: false,
+        error: "Password changes for this account are managed by a guardian.",
+      });
+    }
+
+    // Generate the OTP token without triggering any Supabase-sent email.
+    const { data: linkData, error: linkError } =
+      await admin.auth.admin.generateLink({
+        type: "magiclink",
+        email: user.email,
+      });
+
+    if (linkError || !linkData?.properties?.email_otp) {
+      console.error(
+        "send-security-code: generateLink failed",
+        linkError?.message ?? "no email_otp in response",
+      );
+      return json(500, {
+        ok: false,
+        error: "Failed to generate verification code.",
+      });
+    }
+
+    const otp = linkData.properties.email_otp;
+
+    const emailRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: user.email,
+        subject: "Your Hooper security code",
+        html: securityCodeHtml(otp, user.email),
+      }),
+    });
+
+    if (!emailRes.ok) {
+      const resendBody = await emailRes.text().catch(() => "");
+      console.error(
+        `send-security-code: Resend returned ${emailRes.status}`,
+        resendBody,
+      );
+      if (emailRes.status === 429) {
+        return json(429, {
+          ok: false,
+          error: "Too many requests. Please wait before trying again.",
+        });
+      }
+      return json(500, {
+        ok: false,
+        error: "Failed to send verification code.",
+      });
+    }
+
+    const maskedEmail = user.email.replace(
+      /(.{2})(.*)(@.*)/,
+      (_m: string, a: string, _b: string, c: string) => `${a}···${c}`,
+    );
+
+    return json(200, { ok: true, maskedEmail });
+  } catch (err) {
+    console.error("send-security-code: unhandled error", err);
+    return json(500, { ok: false, error: "Unexpected server error." });
   }
-
-  const maskedEmail = user.email.replace(
-    /(.{2})(.*)(@.*)/,
-    (_m: string, a: string, _b: string, c: string) => `${a}···${c}`,
-  );
-
-  return json(200, { ok: true, maskedEmail });
 });
 
 function securityCodeHtml(otp: string, email: string): string {

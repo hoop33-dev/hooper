@@ -16,12 +16,6 @@
     "max-lines-per-function": {
       "count": 2
     },
-    "no-restricted-imports": {
-      "count": 1
-    },
-    "no-restricted-syntax": {
-      "count": 1
-    },
     "sonarjs/cognitive-complexity": {
       "count": 1
     }
@@ -84,22 +78,6 @@
       "count": 1
     },
     "sonarjs/cognitive-complexity": {
-      "count": 1
-    }
-  },
-  "app/dashboard.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "no-restricted-imports": {
-      "count": 1
-    },
-    "no-restricted-syntax": {
-      "count": 1
-    }
-  },
-  "app/design-system.tsx": {
-    "max-lines-per-function": {
       "count": 1
     }
   },

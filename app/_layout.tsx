@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ErrorBoundary } from "@/src/components/common/ErrorBoundary";
 import { useAuthStore } from "@/src/stores/auth.store";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -102,16 +103,18 @@ export default function RootLayout() {
   }
 
   return (
-    <KeyboardProvider>
-      <SafeAreaProvider style={{ backgroundColor: "#1A1718" }}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            animation: "fade",
-            contentStyle: { backgroundColor: "#1A1718" },
-          }}
-        />
-      </SafeAreaProvider>
-    </KeyboardProvider>
+    <ErrorBoundary>
+      <KeyboardProvider>
+        <SafeAreaProvider style={{ backgroundColor: "#1A1718" }}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              animation: "fade",
+              contentStyle: { backgroundColor: "#1A1718" },
+            }}
+          />
+        </SafeAreaProvider>
+      </KeyboardProvider>
+    </ErrorBoundary>
   );
 }

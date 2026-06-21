@@ -326,7 +326,7 @@ export default function SettingsScreen() {
                 borderColor: `${r.accent}30`,
                 borderRadius: 14,
                 overflow: "hidden",
-                opacity: isChild ? 0.55 : 1,
+                opacity: 0.55,
               }}>
               <LinearGradient
                 colors={[`${r.accent}12`, colors.surface2]}
@@ -381,10 +381,12 @@ export default function SettingsScreen() {
                       color: colors.textSecondary,
                       marginTop: 1,
                     }}>
-                    {r.planSub}
+                    {isChild ? r.planSub : "Coming soon"}
                   </Text>
                 </View>
-                <ChevronIcon size={16} color={colors.textTertiary} />
+                {isChild ? (
+                  <ChevronIcon size={16} color={colors.textTertiary} />
+                ) : null}
               </LinearGradient>
             </Pressable>
 

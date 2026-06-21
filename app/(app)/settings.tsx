@@ -414,6 +414,7 @@ export default function SettingsScreen() {
                 title="Security"
                 sub="Password, two-factor"
                 accent={r.accent}
+                onPress={() => router.push("/(app)/security")}
               />
             </View>
 

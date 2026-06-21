@@ -1,27 +1,28 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  TextInput,
-  type TextInput as RNTextInput,
-  Animated,
-  Easing,
-  ActivityIndicator,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
-import Svg, { Path, Rect, Circle } from "react-native-svg";
-
-import type { Session } from "@supabase/supabase-js";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  verifyEmailOtp,
+  ActivityIndicator,
+  Animated,
+  Easing,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+  type TextInput as RNTextInput,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle, Path, Rect } from "react-native-svg";
+
+import { BackButton } from "@/src/components/ui";
+import { roleConfig } from "@/src/constants/roles";
+import { colors } from "@/src/constants/theme";
+import {
   resendVerificationOtp,
+  verifyEmailOtp,
 } from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
-import { BackButton } from "@/src/components/ui";
-import { colors } from "@/src/constants/theme";
+import type { Session } from "@supabase/supabase-js";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -88,8 +89,7 @@ function EmailIllustration({ shake }: { shake: boolean }) {
           borderColor: colors.orangeTint20,
           alignItems: "center",
           justifyContent: "center",
-        }}
-      >
+        }}>
         <Svg width={34} height={34} viewBox="0 0 34 34" fill="none">
           <Rect
             x={3}
@@ -124,9 +124,11 @@ function EmailIllustration({ shake }: { shake: boolean }) {
 function SuccessView({
   onContinue,
   isLoading,
+  accent,
 }: {
   onContinue: () => void;
   isLoading: boolean;
+  accent: string;
 }) {
   const scaleAnim = useRef(new Animated.Value(0.7)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -155,8 +157,7 @@ function SuccessView({
         justifyContent: "center",
         gap: 20,
         opacity: opacityAnim,
-      }}
-    >
+      }}>
       <Animated.View
         style={{
           width: 80,
@@ -168,8 +169,7 @@ function SuccessView({
           alignItems: "center",
           justifyContent: "center",
           transform: [{ scale: scaleAnim }],
-        }}
-      >
+        }}>
         <Svg width={36} height={36} viewBox="0 0 36 36" fill="none">
           <Path
             d="M8 18L15 25L28 11"
@@ -189,8 +189,7 @@ function SuccessView({
             fontSize: 22,
             color: colors.textPrimary,
             marginBottom: 8,
-          }}
-        >
+          }}>
           Email verified
         </Text>
         <Text
@@ -200,8 +199,7 @@ function SuccessView({
             color: colors.textSecondary,
             lineHeight: 14 * 1.5,
             textAlign: "center",
-          }}
-        >
+          }}>
           Your account is ready.{"\n"}Let&apos;s get started.
         </Text>
       </View>
@@ -213,19 +211,18 @@ function SuccessView({
           width: "100%",
           height: 56,
           borderRadius: 14,
-          backgroundColor: colors.brandOrange,
+          backgroundColor: accent,
           alignItems: "center",
           justifyContent: "center",
           marginTop: 16,
           opacity: isLoading ? 0.7 : pressed ? 0.85 : 1,
           transform: [{ scale: pressed && !isLoading ? 0.97 : 1 }],
-          shadowColor: colors.brandOrange,
+          shadowColor: accent,
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.4,
           shadowRadius: 20,
           elevation: 8,
-        })}
-      >
+        })}>
         {isLoading ? (
           <ActivityIndicator color={colors.textPrimary} />
         ) : (
@@ -235,8 +232,7 @@ function SuccessView({
               fontWeight: "600",
               fontSize: 15,
               color: colors.textPrimary,
-            }}
-          >
+            }}>
             Continue to Hooper
           </Text>
         )}
@@ -247,8 +243,17 @@ function SuccessView({
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { pendingVerificationEmail, status, profile, signInComplete, signOut } =
-    useAuthStore();
+  const {
+    pendingVerificationEmail,
+    pendingVerificationRole,
+    status,
+    profile,
+    signInComplete,
+    signOut,
+  } = useAuthStore();
+  // Step indicator and button accent follow the chosen role (orange/pale orange/blue);
+  // defaults to player orange when role is not set (e.g. the sign-in path).
+  const accent = roleConfig(pendingVerificationRole).accent;
   // profile is set by signInComplete (sign-in path) but null during sign-up
   // (profile not loaded yet because email isn't confirmed). Use this to adapt the UI.
   const fromSignIn = profile !== null;
@@ -410,10 +415,9 @@ export default function VerifyEmailScreen() {
                 fontWeight: "500",
                 letterSpacing: 10 * 0.14,
                 textTransform: "uppercase",
-                color: colors.brandOrange,
+                color: accent,
                 marginBottom: 10,
-              }}
-            >
+              }}>
               Step 4 of 4
             </Text>
           )}
@@ -444,10 +448,13 @@ export default function VerifyEmailScreen() {
           paddingHorizontal: 24,
           paddingTop: 32,
           paddingBottom: 40,
-        }}
-      >
+        }}>
         {isSuccess ? (
-          <SuccessView onContinue={handleContinue} isLoading={isContinuing} />
+          <SuccessView
+            onContinue={handleContinue}
+            isLoading={isContinuing}
+            accent={accent}
+          />
         ) : (
           <>
             {/* Icon + heading */}
@@ -461,8 +468,7 @@ export default function VerifyEmailScreen() {
                     fontSize: 22,
                     color: colors.textPrimary,
                     marginBottom: 8,
-                  }}
-                >
+                  }}>
                   Check your email
                 </Text>
                 <Text
@@ -472,12 +478,10 @@ export default function VerifyEmailScreen() {
                     color: colors.textSecondary,
                     lineHeight: 14 * 1.6,
                     textAlign: "center",
-                  }}
-                >
+                  }}>
                   We sent a 6-digit code to{"\n"}
                   <Text
-                    style={{ color: colors.textPrimary, fontWeight: "500" }}
-                  >
+                    style={{ color: colors.textPrimary, fontWeight: "500" }}>
                     {maskedEmail}
                   </Text>
                 </Text>
@@ -491,8 +495,7 @@ export default function VerifyEmailScreen() {
                 gap: 10,
                 justifyContent: "center",
                 marginBottom: 12,
-              }}
-            >
+              }}>
               {Array.from({ length: CODE_LENGTH }).map((_, i) => {
                 const filled = !!code[i];
                 return (
@@ -538,8 +541,7 @@ export default function VerifyEmailScreen() {
 
             {/* Error / spacer */}
             <View
-              style={{ height: 20, alignItems: "center", marginBottom: 32 }}
-            >
+              style={{ height: 20, alignItems: "center", marginBottom: 32 }}>
               {errorMsg ? (
                 <Text
                   style={{
@@ -547,8 +549,7 @@ export default function VerifyEmailScreen() {
                     fontSize: 12,
                     color: colors.danger,
                     textAlign: "center",
-                  }}
-                >
+                  }}>
                   Incorrect code — please try again
                 </Text>
               ) : null}
@@ -562,23 +563,20 @@ export default function VerifyEmailScreen() {
                 width: "100%",
                 height: 56,
                 borderRadius: 14,
-                backgroundColor: isComplete
-                  ? colors.brandOrange
-                  : colors.surface2,
+                backgroundColor: isComplete ? accent : colors.surface2,
                 alignItems: "center",
                 justifyContent: "center",
                 opacity: isVerifying ? 0.7 : pressed && isComplete ? 0.85 : 1,
                 transform: [
                   { scale: pressed && isComplete && !isVerifying ? 0.97 : 1 },
                 ],
-                shadowColor: colors.brandOrange,
+                shadowColor: accent,
                 shadowOffset: { width: 0, height: 0 },
                 shadowOpacity: isComplete ? 0.35 : 0,
                 shadowRadius: 20,
                 elevation: isComplete ? 8 : 0,
                 marginBottom: 24,
-              })}
-            >
+              })}>
               {isVerifying ? (
                 <ActivityIndicator
                   color={isComplete ? colors.textPrimary : colors.textTertiary}
@@ -592,8 +590,7 @@ export default function VerifyEmailScreen() {
                     color: isComplete
                       ? colors.textPrimary
                       : colors.textTertiary,
-                  }}
-                >
+                  }}>
                   Verify email
                 </Text>
               )}
@@ -607,8 +604,7 @@ export default function VerifyEmailScreen() {
                     fontFamily: "Inter",
                     fontSize: 13,
                     color: successColor,
-                  }}
-                >
+                  }}>
                   Code resent — check your inbox
                 </Text>
               ) : (
@@ -617,8 +613,7 @@ export default function VerifyEmailScreen() {
                     fontFamily: "Inter",
                     fontSize: 13,
                     color: colors.textTertiary,
-                  }}
-                >
+                  }}>
                   Didn&apos;t get it?{" "}
                   <Text
                     onPress={
@@ -634,8 +629,7 @@ export default function VerifyEmailScreen() {
                         resendCooldown > 0
                           ? colors.textTertiary
                           : colors.brandOrange,
-                    }}
-                  >
+                    }}>
                     {isResending
                       ? "Sending…"
                       : resendCooldown > 0

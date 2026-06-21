@@ -3,7 +3,6 @@
 // Requires a valid JWT (parent must be authenticated). Uses the service-role
 // client to update a child's profile and guardian controls. A parent may only
 // edit a child they are actively linked to. Mirrors create-child-account.
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -15,7 +14,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

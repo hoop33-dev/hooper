@@ -3,7 +3,6 @@
 // Requires a valid JWT (parent must be authenticated). Uses the service-role
 // client to create a child account with email_confirm: true so the child
 // never needs email verification (fake email, subdomain we control).
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -17,7 +16,7 @@ const corsHeaders = {
 
 const PASSWORD_RULE = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -89,8 +88,7 @@ serve(async (req: Request) => {
     return json(400, {
       ok: false,
       field: "password",
-      error:
-        "Password must be ≥8 chars with an uppercase letter and a number",
+      error: "Password must be ≥8 chars with an uppercase letter and a number",
     });
   }
 
@@ -193,12 +191,10 @@ serve(async (req: Request) => {
   }
 
   // Insert parent-player link
-  const { error: linkError } = await admin
-    .from("parent_player_links")
-    .insert({
-      parent_profile_id: callerProfile.id,
-      player_profile_id: newProfile.id,
-    });
+  const { error: linkError } = await admin.from("parent_player_links").insert({
+    parent_profile_id: callerProfile.id,
+    player_profile_id: newProfile.id,
+  });
 
   if (linkError) {
     await admin.auth.admin.deleteUser(newAuthUserId);

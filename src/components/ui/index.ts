@@ -39,3 +39,5 @@ export { Checkbox } from "./Checkbox";
 export { ErrorMessage } from "./ErrorMessage";
 
 export { PasswordInput } from "./PasswordInput";
+
+export { PasswordStrengthBar } from "./PasswordStrengthBar";

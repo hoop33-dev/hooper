@@ -1,15 +1,25 @@
 import "../global.css";
 
-import { useEffect } from "react";
+import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useFonts } from "expo-font";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useEffect } from "react";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useAuthStore } from "@/src/stores/auth.store";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const SHARED_ROUTES = new Set([
+  "chat",
+  "settings",
+  "parent",
+  "profile-settings",
+  "security",
+  "security-verify",
+  "security-new-password",
+]);
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -77,12 +87,6 @@ export default function RootLayout() {
       }
       // Prevent a user from staying on another role's dashboard.
       // Shared screens (chat, settings) and parent-only nested routes are allowed.
-      const SHARED_ROUTES = new Set([
-        "chat",
-        "settings",
-        "parent",
-        "profile-settings",
-      ]);
       if (inApp && segments[1] !== role && !SHARED_ROUTES.has(segments[1])) {
         router.replace(`/(app)/${role}` as `/(app)/${typeof role}`);
       }

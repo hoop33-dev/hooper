@@ -1,6 +1,6 @@
+import type { RoleId } from "@/src/constants/roles";
 import { supabase } from "@/src/lib/supabase";
 import type { Session } from "@supabase/supabase-js";
-import type { RoleId } from "@/src/constants/roles";
 
 export type SignUpParams = {
   firstName: string;
@@ -155,18 +155,58 @@ export async function updatePassword(
   return { ok: true };
 }
 
-// Sends the "account already exists" email to the address that owns the
-// account. signInWithOtp with shouldCreateUser:false only emails addresses that
-// already have an account, so it can't be used to probe for valid emails, and
-// GoTrue serves it from the magic-link template (see config.toml). The template
-// links to the login screen rather than exposing the magic link, since Hooper
-// signs in with username + password. Failures (e.g. rate limiting) are
-// swallowed: they must not change the sign-up result.
+export type SendSecurityCodeResult =
+  | { ok: true; maskedEmail: string }
+  | { ok: false; error: string };
+
+export async function sendSecurityCode(): Promise<SendSecurityCodeResult> {
+  const { data, error } = await supabase.functions.invoke("send-security-code");
+  if (error) {
+    return {
+      ok: false,
+      error: "Unable to send verification code. Please try again.",
+    };
+  }
+  if (!data?.ok) {
+    return {
+      ok: false,
+      error: data?.error ?? "Unable to send verification code.",
+    };
+  }
+  return { ok: true, maskedEmail: data.maskedEmail };
+}
+
+export type VerifySecurityCodeResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function verifySecurityCode(
+  email: string,
+  token: string,
+): Promise<VerifySecurityCodeResult> {
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "email",
+  });
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("expired")) {
+      return { ok: false, error: "Code expired. Request a new one." };
+    }
+    return { ok: false, error: "Invalid code. Please try again." };
+  }
+  return { ok: true };
+}
+
+// Notifies an existing account owner when a sign-up is attempted with their
+// email. Delegates to an edge function that checks existence server-side and
+// sends via Resend, so neither the check nor the email leaks through the client.
+// Failures are swallowed — this must not change the sign-up result.
 async function sendAccountAlreadyExistsEmail(email: string): Promise<void> {
   try {
-    await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false },
+    await supabase.functions.invoke("send-account-exists-email", {
+      body: { email },
     });
   } catch {
     // best-effort notification

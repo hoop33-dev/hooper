@@ -39,6 +39,7 @@ type MenuRowProps = {
   accent: string;
   danger?: boolean;
   locked?: boolean;
+  comingSoon?: boolean;
   onPress?: () => void;
 };
 
@@ -49,6 +50,7 @@ function MenuRow({
   accent,
   danger,
   locked,
+  comingSoon,
   onPress,
 }: MenuRowProps) {
   const [pressed, setPressed] = useState(false);
@@ -68,7 +70,7 @@ function MenuRow({
         borderWidth: 1,
         borderColor: colors.borderSubtle,
         borderRadius: 14,
-        opacity: locked ? 0.55 : 1,
+        opacity: locked || comingSoon ? 0.55 : 1,
         transform: [{ scale: pressed ? 0.99 : 1 }],
       }}>
       <View
@@ -108,7 +110,7 @@ function MenuRow({
       </View>
       {locked ? (
         <LockIcon size={16} color={colors.textTertiary} />
-      ) : (
+      ) : comingSoon ? null : (
         <ChevronIcon size={16} color={colors.textTertiary} />
       )}
     </Pressable>
@@ -324,7 +326,7 @@ export default function SettingsScreen() {
                 borderColor: `${r.accent}30`,
                 borderRadius: 14,
                 overflow: "hidden",
-                opacity: isChild ? 0.55 : 1,
+                opacity: 0.55,
               }}>
               <LinearGradient
                 colors={[`${r.accent}12`, colors.surface2]}
@@ -379,10 +381,12 @@ export default function SettingsScreen() {
                       color: colors.textSecondary,
                       marginTop: 1,
                     }}>
-                    {r.planSub}
+                    {isChild ? r.planSub : "Coming soon"}
                   </Text>
                 </View>
-                <ChevronIcon size={16} color={colors.textTertiary} />
+                {isChild ? (
+                  <ChevronIcon size={16} color={colors.textTertiary} />
+                ) : null}
               </LinearGradient>
             </Pressable>
 
@@ -401,12 +405,11 @@ export default function SettingsScreen() {
                 icon={<CreditIcon size={18} color={r.accent} />}
                 title="Subscription & billing"
                 sub={
-                  isChild
-                    ? "Managed by your guardian"
-                    : `${r.planName} · Manage plan`
+                  isChild ? "Managed by your guardian" : "Coming soon"
                 }
                 accent={r.accent}
                 locked={isChild}
+                comingSoon={!isChild}
                 onPress={isChild ? () => setBillingLockOpen(true) : undefined}
               />
               <MenuRow
@@ -424,8 +427,9 @@ export default function SettingsScreen() {
               <MenuRow
                 icon={<BellIcon size={18} color={r.accent} />}
                 title="Notifications"
-                sub="Push, email, SMS"
+                sub="Coming soon"
                 accent={r.accent}
+                comingSoon
               />
             </View>
 
@@ -435,7 +439,9 @@ export default function SettingsScreen() {
               <MenuRow
                 icon={<HelpIcon size={18} color={r.accent} />}
                 title="Help & FAQs"
+                sub="Coming soon"
                 accent={r.accent}
+                comingSoon
               />
               <MenuRow
                 icon={

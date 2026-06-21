@@ -88,6 +88,7 @@ describe("createChildAccount", () => {
         firstName: "Alice",
         lastName: "Smith",
         username: "alicesmith",
+        avatarUrl: null,
       });
     }
     expect(mockInvoke).toHaveBeenCalledWith(
@@ -226,6 +227,7 @@ describe("listChildren", () => {
               first_name: "Alice",
               last_name: "Smith",
               username: "alice",
+              avatar_url: null,
             },
           ],
           error: null,
@@ -235,7 +237,7 @@ describe("listChildren", () => {
     const result = await listChildren();
 
     expect(result).toEqual([
-      { id: "p1", firstName: "Alice", lastName: "Smith", username: "alice" },
+      { id: "p1", firstName: "Alice", lastName: "Smith", username: "alice", avatarUrl: null },
     ]);
   });
 
@@ -272,12 +274,14 @@ describe("listChildren", () => {
               first_name: "Alice",
               last_name: "Smith",
               username: "alice",
+              avatar_url: null,
             },
             {
               id: "p2",
               first_name: "Bob",
               last_name: "Jones",
               username: "bob",
+              avatar_url: "https://example.com/bob.jpg",
             },
           ],
           error: null,
@@ -292,12 +296,14 @@ describe("listChildren", () => {
       firstName: "Alice",
       lastName: "Smith",
       username: "alice",
+      avatarUrl: null,
     });
     expect(result[1]).toEqual({
       id: "p2",
       firstName: "Bob",
       lastName: "Jones",
       username: "bob",
+      avatarUrl: "https://example.com/bob.jpg",
     });
   });
 });

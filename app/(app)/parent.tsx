@@ -87,7 +87,7 @@ function ChildCard({
         transform: [{ scale: pressed ? 0.99 : 1 }],
       })}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Avatar role="player" size={50} initials={initials} />
+        <Avatar role="player" size={50} initials={initials} imageUrl={child.avatarUrl} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <View
             style={{
@@ -276,6 +276,7 @@ export default function ParentDashboard() {
             role="parent"
             firstName={user.firstName}
             initials={user.initials}
+            imageUrl={user.avatarUrl}
           />
           <ChildrenSection
             items={children}

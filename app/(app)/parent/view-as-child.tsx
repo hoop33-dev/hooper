@@ -135,15 +135,17 @@ function TabContent({ tab, child }: { tab: Tab; child: ResolvedChild }) {
         locked={child.locked}
       />
     );
-  return <DashboardTab firstName={child.firstName} initials={child.initials} />;
+  return <DashboardTab firstName={child.firstName} initials={child.initials} avatarUrl={child.avatarUrl} />;
 }
 
 function DashboardTab({
   firstName,
   initials,
+  avatarUrl,
 }: {
   firstName: string;
   initials: string;
+  avatarUrl: string | null;
 }) {
   return (
     <ScrollView
@@ -153,6 +155,7 @@ function DashboardTab({
         role="player"
         firstName={firstName}
         initials={initials}
+        imageUrl={avatarUrl}
       />
     </ScrollView>
   );

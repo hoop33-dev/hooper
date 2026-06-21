@@ -17,6 +17,7 @@ export default function PlayerDashboard() {
             role="player"
             firstName={user.firstName}
             initials={user.initials}
+            imageUrl={user.avatarUrl}
           />
         </ScrollView>
       ) : (

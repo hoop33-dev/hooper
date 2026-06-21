@@ -41,7 +41,7 @@ describe("useChildren", () => {
 
   it("populates children after a successful fetch", async () => {
     const children = [
-      { id: "c1", firstName: "Alice", lastName: "Smith", username: "alice" },
+      { id: "c1", firstName: "Alice", lastName: "Smith", username: "alice", avatarUrl: null },
     ];
     mockListChildren.mockResolvedValue(children);
 
@@ -66,7 +66,7 @@ describe("useChildren", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     const updatedChildren = [
-      { id: "c2", firstName: "Bob", lastName: "Jones", username: "bob" },
+      { id: "c2", firstName: "Bob", lastName: "Jones", username: "bob", avatarUrl: null },
     ];
     mockListChildren.mockResolvedValue(updatedChildren);
 

@@ -1,5 +1,5 @@
-import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRouter } from "expo-router";
 import {
   useEffect,
@@ -30,13 +30,12 @@ import {
 import { DiscardChangesModal } from "@/src/components/profile/DiscardChangesModal";
 import { PhotoSourceSheet } from "@/src/components/profile/PhotoSourceSheet";
 import { ErrorBanner } from "@/src/components/ui/ErrorBanner";
-import type { SelectOption } from "@/src/components/ui/SelectInput";
 import { SelectInput } from "@/src/components/ui/SelectInput";
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 import { useGuardianControls } from "@/src/hooks/useGuardianControls";
-import { supabase } from "@/src/lib/supabase";
+import { useRegionOptions } from "@/src/hooks/useRegionOptions";
 import { checkUsernameAvailable } from "@/src/services/auth.service";
 import { updateProfile, uploadAvatar } from "@/src/services/profile.service";
 import { useAuthStore } from "@/src/stores/auth.store";
@@ -366,23 +365,11 @@ export default function ProfileSettingsScreen() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [regionOptions, setRegionOptions] = useState<SelectOption[]>([]);
+  // Region options (UUID value + display label) for the select input.
+  const regionOptions = useRegionOptions();
 
   const lastNameRef = useRef<RNTextInput>(null);
   const usernameRef = useRef<RNTextInput>(null);
-
-  // Fetch regions from DB so option values are UUIDs matching profiles.region_id
-  useEffect(() => {
-    supabase
-      .from("regions")
-      .select("id, name")
-      .order("name")
-      .then(({ data }) => {
-        if (data) {
-          setRegionOptions(data.map((r) => ({ label: r.name, value: r.id })));
-        }
-      });
-  }, []);
 
   // Re-init if profile loads after mount
   useEffect(() => {

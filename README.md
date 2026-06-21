@@ -1,8 +1,12 @@
 # Hooper
 
-A mobile coaching app for coaches to assign structured training programs and athletes to log workouts and track progress.
+A mobile app connecting basketball players, their guardians, and coaches.
+Players manage a profile, guardians create and manage child accounts (with
+controls like locking profile editing), and coaches connect to athletes.
 
-Built with React Native (Expo), Supabase, and Node.js.
+Built with React Native (Expo) and Supabase (Postgres, Auth, Storage, and
+Deno edge functions). There is no separate Node.js backend — server-side logic
+runs in Supabase edge functions.
 
 ---
 
@@ -51,14 +55,16 @@ npx expo start
 
 ## Tech Stack
 
-| Layer    | Technology              |
-| -------- | ----------------------- |
-| Mobile   | React Native (Expo)     |
-| Backend  | Node.js                 |
-| Database | PostgreSQL via Supabase |
-| Auth     | Supabase Auth           |
-| Storage  | Supabase Storage        |
-| CI/CD    | GitHub Actions + EAS    |
+| Layer       | Technology                           |
+| ----------- | ------------------------------------ |
+| Mobile      | React Native (Expo, expo-router)     |
+| Styling     | NativeWind (Tailwind) + theme tokens |
+| State       | Zustand                              |
+| Server-side | Supabase Edge Functions (Deno)       |
+| Database    | PostgreSQL via Supabase (RLS)        |
+| Auth        | Supabase Auth                        |
+| Storage     | Supabase Storage                     |
+| CI/CD       | GitHub Actions + EAS                 |
 
 ---
 
@@ -67,75 +73,42 @@ npx expo start
 ```
 hooper/
 │
-├── app/                          # Expo Router — file-based navigation
-│   ├── (auth)/                   # Public routes (no session required)
-│   │   ├── login.tsx
-│   │   ├── register.tsx
-│   │   └── _layout.tsx
-│   ├── (athlete)/                # Athlete-only routes
-│   │   ├── _layout.tsx           # Athlete tab bar
-│   │   ├── dashboard.tsx
-│   │   ├── workout/
-│   │   │   ├── today.tsx         # Today's session
-│   │   │   └── [trainingDayId].tsx
-│   │   └── progress/
-│   │       └── index.tsx
-│   └── _layout.tsx               # Root layout — handles auth redirect
+├── app/                          # expo-router — file-based navigation only
+│   ├── _layout.tsx               # Root: fonts, auth hydration, route guard, ErrorBoundary
+│   ├── index.tsx                 # Unauthenticated splash / intro
+│   ├── (auth)/                   # Public routes (no session): login, signup, verify, reset
+│   └── (app)/                    # Authenticated routes, gated by role
+│       ├── player.tsx | coach.tsx | parent.tsx   # Role dashboards
+│       ├── chat.tsx | settings.tsx | profile-settings.tsx
+│       ├── security*.tsx         # Password-change flow
+│       └── parent/               # Guardian-only: add-child, manage-child, view-as-child
 │
 ├── src/
-│   │
-│   ├── components/               # Shared UI components (role-agnostic)
-│   │   ├── ui/                   # Primitives — Button, Card, Input, Badge
-│   │   │   ├── Button.tsx
-│   │   │   └── Typography.tsx
-│   │   ├── workout/              # Domain components
-│   │   │   └── WorkoutSummary.tsx
-│   │   ├── programs/
-│   │   │   └── PhaseBlock.tsx
-│   │   └── common/
-│   │       ├── LoadingScreen.tsx
-│   │       ├── EmptyState.tsx
-│   │       └── ErrorBoundary.tsx
-│   │
-│   ├── hooks/                    # Custom React hooks
-│   │   └── useAthleteProgress.ts
-│   │
-│   ├── lib/                      # Utilities and service wrappers
-│   │   ├── supabase.ts           # Supabase client (single instance)
-│   │   ├── storage.ts            # Supabase Storage helpers
-│   │   └── sentry.ts             # Sentry init + helpers
-│   │
-│   ├── services/                 # Data access layer — all Supabase queries live here
-│   │   ├── auth.service.ts
-│   │   └── setLog.service.ts
-│   │
-│   ├── stores/                   # Global state (Zustand recommended)
-│   │   ├── auth.store.ts
-│   │   └── workoutSession.store.ts   # Active workout in-progress state
-│   │
-│   ├── types/                    # TypeScript types — mirrors your data model
-│   │   ├── database.types.ts     # Auto-generated from Supabase (never edit manually)
-│   │   ├── app.types.ts          # App-specific types + enums
-│   │   └── index.ts              # Re-exports
-│   │
-│   └── constants/
-│       ├── theme.ts              # Design system tokens (colors, spacing, typography)
-│       └── config.ts             # App-wide constants
+│   ├── components/               # UI only — no data fetching (enforced by depcruise)
+│   │   ├── ui/                   # Primitives — Button, Card, Input, Typography…
+│   │   ├── common/               # ErrorBoundary
+│   │   ├── dashboard/            # DashboardLayout, DashboardHeader, BottomNav, Avatar…
+│   │   ├── auth/ | profile/ | splash/
+│   ├── hooks/                    # useChildren, useDashboardUser, useGuardianControls…
+│   ├── lib/                      # supabase.ts (client) + pure helpers (age, password…)
+│   ├── services/                 # ALL Supabase access (auth, parent, profile, region)
+│   ├── stores/                   # Zustand — auth.store.ts
+│   ├── types/                    # database.types.ts (generated; never edit by hand)
+│   └── constants/                # theme.ts, roles.tsx, regions.ts
 │
-├── supabase/                     # Supabase local dev config
-│   ├── migrations/               # SQL migration files
-│   └── functions/                # Edge Functions (if needed)
+├── supabase/
+│   ├── migrations/               # Append-only SQL (guarded by scripts/check-db-migrations.mjs)
+│   ├── functions/                # Deno edge functions (service-role logic)
+│   └── templates/                # Transactional email HTML
 │
-├── assets/                       # Static assets
-│   ├── fonts/                    # DM Sans files
-│   └── images/
-│
-├── .cursorrules                  # Cursor context — paste design system + conventions here
+├── assets/fonts/                 # Inter.ttf
 ├── app.json                      # Expo config
 ├── eas.json                      # EAS build profiles
 ├── tsconfig.json
 └── package.json
 ```
+
+See `ai/structure.md` for the full conventions and layering rules.
 
 ---
 

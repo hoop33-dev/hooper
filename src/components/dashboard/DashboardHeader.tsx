@@ -10,6 +10,7 @@ type DashboardHeaderProps = {
   role: RoleId;
   firstName: string;
   initials: string;
+  imageUrl?: string | null;
   onPressBell?: () => void;
 };
 
@@ -24,6 +25,7 @@ export function DashboardHeader({
   role,
   firstName,
   initials,
+  imageUrl,
   onPressBell,
 }: DashboardHeaderProps) {
   const r = roleConfig(role);
@@ -38,7 +40,7 @@ export function DashboardHeader({
         gap: 12,
       }}
     >
-      <Avatar role={role} size={42} initials={initials} />
+      <Avatar role={role} size={42} initials={initials} imageUrl={imageUrl} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{

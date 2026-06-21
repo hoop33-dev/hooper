@@ -5,6 +5,7 @@ export type ChildSummary = {
   firstName: string;
   lastName: string;
   username: string;
+  avatarUrl: string | null;
 };
 
 export type CreateChildInput = {
@@ -69,6 +70,7 @@ export async function createChildAccount(
       firstName: data.child.firstName,
       lastName: data.child.lastName,
       username: data.child.username,
+      avatarUrl: null,
     },
   };
 }
@@ -120,7 +122,7 @@ export async function listChildren(): Promise<ChildSummary[]> {
   // profiles_select_children RLS allows the parent to read their children's profiles.
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
-    .select("id, first_name, last_name, username")
+    .select("id, first_name, last_name, username, avatar_url")
     .in("id", ids);
 
   if (profilesError || !profiles) return [];
@@ -130,6 +132,7 @@ export async function listChildren(): Promise<ChildSummary[]> {
     firstName: p.first_name,
     lastName: p.last_name,
     username: p.username,
+    avatarUrl: p.avatar_url,
   }));
 }
 

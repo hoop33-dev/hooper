@@ -17,6 +17,7 @@ export default function CoachDashboard() {
             role="coach"
             firstName={user.firstName}
             initials={user.initials}
+            imageUrl={user.avatarUrl}
           />
         </ScrollView>
       ) : (

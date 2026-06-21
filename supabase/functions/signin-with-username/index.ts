@@ -41,6 +41,41 @@ Deno.serve(async (req: Request) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  // Throttle: keyed per-username (targeted brute-force) and per-IP (spray).
+  // Counted up-front so failures accumulate; cleared on a successful sign-in.
+  const clientIp =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const userKey = `signin:user:${username.trim().toLowerCase()}`;
+  const ipKey = `signin:ip:${clientIp}`;
+
+  const [userAttempt, ipAttempt] = await Promise.all([
+    admin.rpc("register_signin_attempt", {
+      p_key: userKey,
+      p_max: 10,
+      p_window_seconds: 900,
+    }),
+    admin.rpc("register_signin_attempt", {
+      p_key: ipKey,
+      p_max: 30,
+      p_window_seconds: 900,
+    }),
+  ]);
+
+  // Fail open if the throttle infra errors — never lock everyone out.
+  if (userAttempt.data === false || ipAttempt.data === false) {
+    return json(200, {
+      ok: false,
+      error:
+        "Too many sign-in attempts. Please wait a few minutes and try again.",
+    });
+  }
+
+  const clearThrottle = () =>
+    Promise.all([
+      admin.rpc("clear_signin_throttle", { p_key: userKey }),
+      admin.rpc("clear_signin_throttle", { p_key: ipKey }),
+    ]);
+
   // Step 1: resolve username → profile (service role bypasses RLS)
   const { data: profile, error: profileError } = await admin
     .from("profiles")
@@ -81,6 +116,7 @@ Deno.serve(async (req: Request) => {
       // Password was valid but the email is unconfirmed. Issue no session —
       // the client completes verifyOtp (which needs none) on the verify-email
       // screen, and an unverified user must never hold a session.
+      await clearThrottle();
       return json(200, {
         ok: true,
         session: null,
@@ -95,6 +131,8 @@ Deno.serve(async (req: Request) => {
   if (!signInData?.session) {
     return json(200, { ok: false, error: "Invalid username or password" });
   }
+
+  await clearThrottle();
 
   const isVerified =
     !profile.has_real_email || authUser.email_confirmed_at != null;

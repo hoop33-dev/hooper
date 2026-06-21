@@ -1,7 +1,6 @@
 // Public endpoint (verify_jwt = false): notifies an existing account owner
 // when a sign-up is attempted with their email. Returns 200 regardless to
 // prevent email enumeration. Only sends if the email belongs to a real account.
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -15,7 +14,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

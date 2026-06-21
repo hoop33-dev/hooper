@@ -5,7 +5,6 @@
 // for the "email not confirmed" case tells the client to go to the
 // verify-email screen WITHOUT issuing a session — an unverified user must
 // not hold one, and verifyOtp needs no session.
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -17,7 +16,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

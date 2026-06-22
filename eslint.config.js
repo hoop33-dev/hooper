@@ -93,6 +93,12 @@ module.exports = defineConfig([
     },
   },
 
+  // Jest setup file runs in the Jest environment (jest global, CommonJS).
+  {
+    files: ["jest.setup.js"],
+    languageOptions: { globals: { jest: "readonly" } },
+  },
+
   // ── Tests are exempt from complexity/semantic rules ──
   {
     files: TEST_GLOBS,

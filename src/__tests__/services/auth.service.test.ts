@@ -1,10 +1,13 @@
 import { supabase } from "@/src/lib/supabase";
 import {
   checkUsernameAvailable,
+  exchangeResetCode,
   resendVerificationOtp,
+  sendPasswordResetEmail,
   signInWithUsername,
   signOut,
   signUp,
+  updatePassword,
   verifyEmailOtp,
 } from "@/src/services/auth.service";
 
@@ -20,6 +23,8 @@ jest.mock("@/src/lib/supabase", () => ({
       signUp: jest.fn(),
       signInWithOtp: jest.fn(),
       resetPasswordForEmail: jest.fn(),
+      exchangeCodeForSession: jest.fn(),
+      updateUser: jest.fn(),
     },
   },
 }));
@@ -34,6 +39,9 @@ const mockAuthSignUp = supabase.auth.signUp as jest.Mock;
 const mockSignInWithOtp = supabase.auth.signInWithOtp as jest.Mock;
 const mockResetPasswordForEmail = supabase.auth
   .resetPasswordForEmail as jest.Mock;
+const mockExchangeCodeForSession = supabase.auth
+  .exchangeCodeForSession as jest.Mock;
+const mockUpdateUser = supabase.auth.updateUser as jest.Mock;
 
 const fakeSession = { user: { id: "u1", email: "test@example.com" } } as any;
 
@@ -504,5 +512,85 @@ describe("signUp", () => {
         }),
       }),
     );
+  });
+});
+
+// ─── sendPasswordResetEmail ───────────────────────────────────────────────────
+
+describe("sendPasswordResetEmail", () => {
+  it("returns ok: true and targets the reset-password deep link", async () => {
+    mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
+
+    const result = await sendPasswordResetEmail("user@example.com");
+
+    expect(result.ok).toBe(true);
+    expect(mockResetPasswordForEmail).toHaveBeenCalledWith("user@example.com", {
+      redirectTo: "hooper://reset-password",
+    });
+  });
+
+  it("returns ok: false with the supabase error message", async () => {
+    mockResetPasswordForEmail.mockResolvedValue({
+      data: null,
+      error: { message: "Email rate limit exceeded" },
+    });
+
+    const result = await sendPasswordResetEmail("user@example.com");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe("Email rate limit exceeded");
+  });
+});
+
+// ─── exchangeResetCode ────────────────────────────────────────────────────────
+
+describe("exchangeResetCode", () => {
+  it("returns ok: true when the code is exchanged for a session", async () => {
+    mockExchangeCodeForSession.mockResolvedValue({ error: null });
+
+    const result = await exchangeResetCode("valid-code");
+
+    expect(result.ok).toBe(true);
+    expect(mockExchangeCodeForSession).toHaveBeenCalledWith("valid-code");
+  });
+
+  it("returns a generic invalid/expired message on error (no leakage)", async () => {
+    mockExchangeCodeForSession.mockResolvedValue({
+      error: { message: "PKCE verifier mismatch" },
+    });
+
+    const result = await exchangeResetCode("bad-code");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok)
+      expect(result.error).toBe("Reset link is invalid or expired.");
+  });
+});
+
+// ─── updatePassword ───────────────────────────────────────────────────────────
+
+describe("updatePassword", () => {
+  it("returns ok: true when the password is updated", async () => {
+    mockUpdateUser.mockResolvedValue({ data: {}, error: null });
+
+    const result = await updatePassword("NewPassword1");
+
+    expect(result.ok).toBe(true);
+    expect(mockUpdateUser).toHaveBeenCalledWith({ password: "NewPassword1" });
+  });
+
+  it("returns ok: false with the supabase error message", async () => {
+    mockUpdateUser.mockResolvedValue({
+      data: null,
+      error: { message: "New password should be different from the old one" },
+    });
+
+    const result = await updatePassword("NewPassword1");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok)
+      expect(result.error).toBe(
+        "New password should be different from the old one",
+      );
   });
 });

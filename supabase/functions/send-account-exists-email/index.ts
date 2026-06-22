@@ -86,7 +86,17 @@ Deno.serve(async (req: Request) => {
   return json(200, { ok: true });
 });
 
-function accountExistsHtml(email: string): string {
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function accountExistsHtml(rawEmail: string): string {
+  const email = escapeHtml(rawEmail);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>

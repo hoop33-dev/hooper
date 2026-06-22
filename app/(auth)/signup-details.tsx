@@ -191,6 +191,7 @@ export default function SignupDetailsScreen() {
       <View className="flex-row gap-3">
         <View className="flex-1">
           <Input
+            testID="input-firstName"
             label="First name"
             value={form.firstName}
             onChangeText={(v) => setField("firstName", v)}
@@ -207,6 +208,7 @@ export default function SignupDetailsScreen() {
         <View className="flex-1">
           <Input
             ref={lastNameRef}
+            testID="input-lastName"
             label="Last name"
             value={form.lastName}
             onChangeText={(v) => setField("lastName", v)}
@@ -242,6 +244,7 @@ export default function SignupDetailsScreen() {
       <View>
         <Input
           ref={emailRef}
+          testID="input-email"
           label="Email address"
           value={form.email}
           onChangeText={(v) => setField("email", v)}
@@ -281,6 +284,7 @@ export default function SignupDetailsScreen() {
       <View>
         <Input
           ref={usernameRef}
+          testID="input-username"
           label="Username"
           value={form.username}
           onChangeText={(v) => setField("username", v)}

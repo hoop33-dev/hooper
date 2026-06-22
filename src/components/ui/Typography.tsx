@@ -13,11 +13,10 @@ export function H1({ className = "", style, ...rest }: TypographyProps) {
       className={`${base} ${className}`}
       style={[
         {
-          fontFamily: "Inter",
-          fontWeight: "900",
+          fontFamily: "BarlowCondensed-Black",
           fontSize: 64,
           lineHeight: 64 * 1.15,
-          letterSpacing: -64 * 0.04,
+          letterSpacing: 64 * 0.015,
         },
         style,
       ]}
@@ -33,11 +32,10 @@ export function H2({ className = "", style, ...rest }: TypographyProps) {
       className={`${base} ${className}`}
       style={[
         {
-          fontFamily: "Inter",
-          fontWeight: "700",
+          fontFamily: "BarlowCondensed-Bold",
           fontSize: 36,
           lineHeight: 36 * 1.15,
-          letterSpacing: -36 * 0.02,
+          letterSpacing: 36 * 0.015,
         },
         style,
       ]}
@@ -53,11 +51,10 @@ export function H3({ className = "", style, ...rest }: TypographyProps) {
       className={`${base} ${className}`}
       style={[
         {
-          fontFamily: "Inter",
-          fontWeight: "700",
+          fontFamily: "BarlowCondensed-Bold",
           fontSize: 28,
           lineHeight: 28 * 1.3,
-          letterSpacing: -28 * 0.02,
+          letterSpacing: 28 * 0.015,
         },
         style,
       ]}
@@ -73,10 +70,10 @@ export function H4({ className = "", style, ...rest }: TypographyProps) {
       className={`${base} ${className}`}
       style={[
         {
-          fontFamily: "Inter",
-          fontWeight: "600",
+          fontFamily: "BarlowCondensed-SemiBold",
           fontSize: 22,
           lineHeight: 22 * 1.3,
+          letterSpacing: 22 * 0.015,
         },
         style,
       ]}
@@ -92,7 +89,7 @@ export function Body({ className = "", style, ...rest }: TypographyProps) {
       className={`text-text-secondary ${className}`}
       style={[
         {
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontWeight: "400",
           fontSize: 16,
           lineHeight: 16 * 1.5,
@@ -111,7 +108,7 @@ export function BodySm({ className = "", style, ...rest }: TypographyProps) {
       className={`text-text-secondary ${className}`}
       style={[
         {
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontWeight: "400",
           fontSize: 13,
           lineHeight: 13 * 1.5,
@@ -130,7 +127,7 @@ export function Label({ className = "", style, ...rest }: TypographyProps) {
       className={`text-text-tertiary ${className}`}
       style={[
         {
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontWeight: "500",
           fontSize: 11,
           lineHeight: 11,
@@ -151,11 +148,10 @@ export function Stat({ className = "", style, ...rest }: TypographyProps) {
       className={`text-brand-orange ${className}`}
       style={[
         {
-          fontFamily: "Inter",
-          fontWeight: "900",
+          fontFamily: "BarlowCondensed-Black",
           fontSize: 48,
           lineHeight: 48,
-          letterSpacing: -48 * 0.04,
+          letterSpacing: 48 * 0.015,
         },
         style,
       ]}

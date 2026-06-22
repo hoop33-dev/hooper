@@ -24,7 +24,11 @@ const SHARED_ROUTES = new Set([
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Inter: require("../assets/fonts/Inter.ttf"),
+    "BarlowCondensed-Medium": require("../assets/fonts/BarlowCondensed-Medium.ttf"),
+    "BarlowCondensed-SemiBold": require("../assets/fonts/BarlowCondensed-SemiBold.ttf"),
+    "BarlowCondensed-Bold": require("../assets/fonts/BarlowCondensed-Bold.ttf"),
+    "BarlowCondensed-Black": require("../assets/fonts/BarlowCondensed-Black.ttf"),
+    Outfit: require("../assets/fonts/Outfit.ttf"),
   });
 
   const { status, primaryRole, session, hydrate } = useAuthStore();

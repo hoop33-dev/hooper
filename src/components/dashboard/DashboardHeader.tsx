@@ -44,7 +44,7 @@ export function DashboardHeader({
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 11.5,
             color: colors.textTertiary,
             fontWeight: "500",
@@ -57,7 +57,7 @@ export function DashboardHeader({
         <Text
           numberOfLines={1}
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 18,
             fontWeight: "800",
             color: colors.textPrimary,

@@ -32,14 +32,14 @@ export default function RoleSelectorScreen() {
 
         <Text
           className="text-brand-orange mb-2 text-[10px] font-medium uppercase"
-          style={{ fontFamily: "Inter", letterSpacing: 10 * 0.14 }}>
+          style={{ fontFamily: "Outfit", letterSpacing: 10 * 0.14 }}>
           Step 2 of 4
         </Text>
 
         <Text
           className="text-text-primary mb-1.5 font-black"
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 28,
             letterSpacing: 28 * -0.03,
             lineHeight: 28 * 1.12,
@@ -49,7 +49,7 @@ export default function RoleSelectorScreen() {
 
         <Text
           className="text-text-secondary text-sm"
-          style={{ fontFamily: "Inter", lineHeight: 14 * 1.5 }}>
+          style={{ fontFamily: "Outfit", lineHeight: 14 * 1.5 }}>
           Pick your role. You can add more later.
         </Text>
       </View>
@@ -105,7 +105,7 @@ export default function RoleSelectorScreen() {
           })}>
           <Text
             className={`text-[15px] font-bold ${selectedId ? "text-text-primary" : "text-text-tertiary"}`}
-            style={{ fontFamily: "Inter", letterSpacing: 15 * 0.01 }}>
+            style={{ fontFamily: "Outfit", letterSpacing: 15 * 0.01 }}>
             {selectedRole ? selectedRole.cta : "Select a role to continue"}
           </Text>
         </Pressable>

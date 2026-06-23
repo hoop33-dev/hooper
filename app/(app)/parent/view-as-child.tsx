@@ -190,7 +190,7 @@ function ViewAsBanner({
       <Text
         style={{
           flex: 1,
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 12.5,
           fontWeight: "700",
           color: "#3A1F12",
@@ -216,7 +216,7 @@ function ViewAsBanner({
         <XIcon size={11} color="#FBD9C9" />
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 12,
             fontWeight: "700",
             color: "#FBD9C9",
@@ -240,7 +240,7 @@ function ChatTab() {
       }}>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 22,
           fontWeight: "800",
           color: colors.textPrimary,
@@ -251,7 +251,7 @@ function ChatTab() {
       </Text>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 14,
           color: colors.textTertiary,
           textAlign: "center",
@@ -304,7 +304,7 @@ function PreviewRow({
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 14.5,
             fontWeight: "600",
             color: colors.textPrimary,
@@ -315,7 +315,7 @@ function PreviewRow({
         {sub ? (
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontSize: 12,
               color: colors.textTertiary,
             }}>
@@ -369,7 +369,7 @@ function SettingsIdentity({
       />
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 20,
           fontWeight: "800",
           color: colors.textPrimary,
@@ -382,7 +382,7 @@ function SettingsIdentity({
       {username ? (
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 12,
             fontWeight: "600",
             color: PLAYER.accent,
@@ -415,7 +415,7 @@ function SettingsTab({
       <View style={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: 20 }}>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 22,
             fontWeight: "900",
             color: colors.textPrimary,
@@ -518,7 +518,7 @@ function LocalNav({
             <t.Icon size={22} color={color} />
             <Text
               style={{
-                fontFamily: "Inter",
+                fontFamily: "Outfit",
                 fontSize: 10,
                 fontWeight: isActive ? "700" : "500",
                 letterSpacing: 10 * 0.05,

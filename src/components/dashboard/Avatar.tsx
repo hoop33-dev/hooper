@@ -50,7 +50,7 @@ export function Avatar({ role, size = 42, initials, imageUrl }: AvatarProps) {
         >
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontWeight: "800",
               fontSize: size * 0.36,
               letterSpacing: -size * 0.36 * 0.02,

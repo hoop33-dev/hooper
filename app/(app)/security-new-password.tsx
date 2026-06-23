@@ -136,7 +136,7 @@ function PasswordUpdatedView() {
       </Animated.View>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontWeight: "800",
           fontSize: 24,
           color: colors.textPrimary,
@@ -148,7 +148,7 @@ function PasswordUpdatedView() {
       </Text>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 14,
           color: colors.textSecondary,
           textAlign: "center",
@@ -198,7 +198,7 @@ function NewPasswordFields({
       <View>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontWeight: "800",
             fontSize: 22,
             color: colors.textPrimary,
@@ -209,7 +209,7 @@ function NewPasswordFields({
         </Text>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 14,
             color: colors.textSecondary,
             lineHeight: 14 * 1.55,
@@ -316,7 +316,7 @@ function NewPasswordHeader({ onBack }: { onBack: () => void }) {
       <BackButton label="Verify" onPress={onBack} className="mb-4" />
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontWeight: "900",
           fontSize: 28,
           color: colors.textPrimary,

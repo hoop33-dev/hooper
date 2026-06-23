@@ -119,7 +119,7 @@ export function Button({
       {typeof children === "string" ? (
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontWeight: "700",
             fontSize: sizeText[size],
             letterSpacing: sizeText[size] * 0.08,

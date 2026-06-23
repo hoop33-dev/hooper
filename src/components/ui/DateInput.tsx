@@ -130,7 +130,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
                 error ? "text-danger uppercase" : "text-text-tertiary uppercase"
               }
               style={{
-                fontFamily: "Inter",
+                fontFamily: "Outfit",
                 fontWeight: "500",
                 fontSize: 10,
                 letterSpacing: 10 * 0.12,
@@ -147,7 +147,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
           >
             <Text
               className={`text-[15px] ${value ? "text-text-primary" : "text-text-disabled"}`}
-              style={{ fontFamily: "Inter" }}
+              style={{ fontFamily: "Outfit" }}
             >
               {value ? formatDate(value) : placeholder}
             </Text>
@@ -190,7 +190,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
                 <TouchableOpacity onPress={handleCancel} activeOpacity={0.7}>
                   <Text
                     className="text-[15px] text-white/50"
-                    style={{ fontFamily: "Inter" }}
+                    style={{ fontFamily: "Outfit" }}
                   >
                     Cancel
                   </Text>
@@ -201,7 +201,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
                 <TouchableOpacity onPress={handleDone} activeOpacity={0.7}>
                   <Text
                     className="text-brand-orange text-[15px] font-semibold"
-                    style={{ fontFamily: "Inter" }}
+                    style={{ fontFamily: "Outfit" }}
                   >
                     Done
                   </Text>

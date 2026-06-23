@@ -152,14 +152,14 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   title: {
-    fontFamily: "Inter",
+    fontFamily: "Outfit",
     fontSize: 18,
     fontWeight: "800",
     color: colors.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
-    fontFamily: "Inter",
+    fontFamily: "Outfit",
     fontSize: 13,
     color: colors.textTertiary,
     marginBottom: 18,
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   optionLabel: {
-    fontFamily: "Inter",
+    fontFamily: "Outfit",
     fontSize: 15,
     fontWeight: "600",
     color: colors.textPrimary,
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
   },
   cancelLabel: {
-    fontFamily: "Inter",
+    fontFamily: "Outfit",
     fontSize: 15,
     fontWeight: "700",
     color: colors.textSecondary,

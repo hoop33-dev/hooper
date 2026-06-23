@@ -44,7 +44,7 @@ function SectionLabel({ children }: { children: string }) {
   return (
     <Text
       style={{
-        fontFamily: "Inter",
+        fontFamily: "Outfit",
         fontSize: 11,
         fontWeight: "700",
         letterSpacing: 11 * 0.14,
@@ -68,7 +68,7 @@ function FieldLabel({
   return (
     <Text
       style={{
-        fontFamily: "Inter",
+        fontFamily: "Outfit",
         fontSize: 10,
         fontWeight: "500",
         letterSpacing: 10 * 0.12,
@@ -129,7 +129,7 @@ function Field({
         {prefix ? (
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontSize: 15,
               color: colors.textTertiary,
             }}>
@@ -149,7 +149,7 @@ function Field({
           blurOnSubmit={false}
           style={{
             flex: 1,
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 15,
             color: colors.textPrimary,
           }}
@@ -158,7 +158,7 @@ function Field({
       {errorText ? (
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 11,
             color: colors.danger,
             marginTop: 4,
@@ -221,7 +221,7 @@ function ManageHeader({ onBack }: { onBack: () => void }) {
         </Svg>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 13,
             fontWeight: "500",
             color: colors.textTertiary,
@@ -231,7 +231,7 @@ function ManageHeader({ onBack }: { onBack: () => void }) {
       </Pressable>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 26,
           fontWeight: "900",
           color: colors.textPrimary,
@@ -281,7 +281,7 @@ function ChildSegment({
           }}>
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontSize: 13,
               fontWeight: "700",
               color: tab === t.id ? "#fff" : colors.textSecondary,
@@ -329,7 +329,7 @@ function IdentityCard({
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 17,
             fontWeight: "800",
             color: colors.textPrimary,
@@ -339,7 +339,7 @@ function IdentityCard({
         </Text>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 12,
             color: colors.textSecondary,
             marginTop: 2,
@@ -358,7 +358,7 @@ function IdentityCard({
         }}>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 9.5,
             fontWeight: "700",
             letterSpacing: 9.5 * 0.12,
@@ -479,7 +479,7 @@ function AvatarEditor({
       <Pressable onPress={onPress} accessibilityRole="button">
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 12,
             fontWeight: "700",
             color: PARENT.accent,
@@ -606,7 +606,7 @@ function GuardianSection({
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontSize: 14.5,
               fontWeight: "600",
               color: colors.textPrimary,
@@ -616,7 +616,7 @@ function GuardianSection({
           </Text>
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontSize: 12,
               color: colors.textTertiary,
             }}>
@@ -660,7 +660,7 @@ function ShieldNote({ childName }: { childName: string }) {
       <Text
         style={{
           flex: 1,
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 12.5,
           color: colors.textSecondary,
           lineHeight: 19,
@@ -726,7 +726,7 @@ function BillingPlanCard() {
       }}>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 9.5,
           fontWeight: "700",
           letterSpacing: 9.5 * 0.14,
@@ -738,7 +738,7 @@ function BillingPlanCard() {
       </Text>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 22,
           fontWeight: "900",
           color: colors.textPrimary,
@@ -749,7 +749,7 @@ function BillingPlanCard() {
       </Text>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 13,
           color: colors.textSecondary,
         }}>
@@ -789,7 +789,7 @@ function BillingComingSoon({ firstName }: { firstName: string }) {
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 13.5,
             fontWeight: "600",
             color: colors.textPrimary,
@@ -799,7 +799,7 @@ function BillingComingSoon({ firstName }: { firstName: string }) {
         </Text>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 12,
             color: colors.textTertiary,
             lineHeight: 18,
@@ -870,7 +870,7 @@ function SaveBar({
         ) : (
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontSize: 15,
               fontWeight: "700",
               color: "#fff",

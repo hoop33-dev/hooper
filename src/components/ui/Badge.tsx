@@ -70,7 +70,7 @@ export function Badge({
       <Text
         className={s.text}
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontWeight: "600",
           fontSize: 11,
           letterSpacing: 11 * 0.04,
@@ -96,7 +96,7 @@ export function Tag({
       <Text
         className="text-text-secondary"
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontWeight: "500",
           fontSize: 11,
         }}
@@ -113,7 +113,7 @@ export function NumberBadge({ count }: { count: number | string }) {
     <View className="bg-brand-orange h-5 w-5 items-center justify-center rounded-full">
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontWeight: "700",
           fontSize: 11,
           color: colors.textPrimary,

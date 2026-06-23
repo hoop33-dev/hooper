@@ -72,7 +72,7 @@ function SectionHead({ title }: { title: string }) {
   return (
     <Text
       style={{
-        fontFamily: "Inter",
+        fontFamily: "Outfit",
         fontSize: 10,
         fontWeight: "700",
         letterSpacing: 10 * 0.14,
@@ -135,7 +135,7 @@ function SendEmailButton({
           </Svg>
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontWeight: "600",
               fontSize: 15,
               color: "#fff",
@@ -188,7 +188,7 @@ function PasswordCard({
         <View style={{ flex: 1 }}>
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontWeight: "700",
               fontSize: 15,
               color: colors.textPrimary,
@@ -199,7 +199,7 @@ function PasswordCard({
           {maskedEmail ? (
             <Text
               style={{
-                fontFamily: "Inter",
+                fontFamily: "Outfit",
                 fontSize: 13,
                 color: colors.textSecondary,
                 lineHeight: 13 * 1.55,
@@ -215,7 +215,7 @@ function PasswordCard({
       </View>
       {sendError ? (
         <Text
-          style={{ fontFamily: "Inter", fontSize: 12, color: colors.danger }}>
+          style={{ fontFamily: "Outfit", fontSize: 12, color: colors.danger }}>
           {sendError}
         </Text>
       ) : null}
@@ -255,7 +255,7 @@ function TwoFactorSection() {
       <View style={{ flex: 1 }}>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 14.5,
             fontWeight: "600",
             color: colors.textPrimary,
@@ -265,7 +265,7 @@ function TwoFactorSection() {
         </Text>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 12,
             color: colors.textTertiary,
           }}>
@@ -282,7 +282,7 @@ function TwoFactorSection() {
         }}>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 9,
             fontWeight: "700",
             letterSpacing: 9 * 0.12,
@@ -335,7 +335,7 @@ export default function SecurityScreen() {
           />
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontWeight: "900",
               fontSize: 28,
               color: colors.textPrimary,

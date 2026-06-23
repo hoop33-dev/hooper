@@ -293,7 +293,7 @@ export function ProgressIllustration() {
           textAnchor="middle"
           fill="rgba(255,255,255,0.3)"
           fontSize="10"
-          fontFamily="Inter"
+          fontFamily="Outfit"
         >
           {d}
         </SvgText>
@@ -316,7 +316,7 @@ export function ProgressIllustration() {
         fill="#F15825"
         fontSize="13"
         fontWeight="800"
-        fontFamily="Inter"
+        fontFamily="Outfit"
       >
         +24%
       </SvgText>

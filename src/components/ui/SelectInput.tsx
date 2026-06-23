@@ -63,7 +63,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
                 error ? "text-danger uppercase" : "text-text-tertiary uppercase"
               }
               style={{
-                fontFamily: "Inter",
+                fontFamily: "Outfit",
                 fontWeight: "500",
                 fontSize: 10,
                 letterSpacing: 10 * 0.12,
@@ -80,7 +80,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
           >
             <Text
               className={`flex-1 text-[15px] ${selected ? "text-text-primary" : "text-text-disabled"}`}
-              style={{ fontFamily: "Inter" }}
+              style={{ fontFamily: "Outfit" }}
               numberOfLines={1}
             >
               {selected ? selected.label : placeholder}
@@ -120,7 +120,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
               {label && (
                 <Text
                   className="text-text-primary mb-2 text-[15px] font-semibold"
-                  style={{ fontFamily: "Inter" }}
+                  style={{ fontFamily: "Outfit" }}
                 >
                   {label}
                 </Text>
@@ -148,7 +148,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
                   >
                     <Text
                       className={`text-[15px] ${isSelected ? "text-brand-orange font-semibold" : "text-text-primary"}`}
-                      style={{ fontFamily: "Inter" }}
+                      style={{ fontFamily: "Outfit" }}
                     >
                       {item.label}
                     </Text>

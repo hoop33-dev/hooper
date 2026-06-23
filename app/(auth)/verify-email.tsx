@@ -184,7 +184,7 @@ function SuccessView({
       <View style={{ alignItems: "center" }}>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontWeight: "700",
             fontSize: 22,
             color: colors.textPrimary,
@@ -194,7 +194,7 @@ function SuccessView({
         </Text>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 14,
             color: colors.textSecondary,
             lineHeight: 14 * 1.5,
@@ -228,7 +228,7 @@ function SuccessView({
         ) : (
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontWeight: "600",
               fontSize: 15,
               color: colors.textPrimary,
@@ -410,7 +410,7 @@ export default function VerifyEmailScreen() {
           {!fromSignIn && (
             <Text
               style={{
-                fontFamily: "Inter",
+                fontFamily: "Outfit",
                 fontSize: 10,
                 fontWeight: "500",
                 letterSpacing: 10 * 0.14,
@@ -463,7 +463,7 @@ export default function VerifyEmailScreen() {
               <View style={{ alignItems: "center" }}>
                 <Text
                   style={{
-                    fontFamily: "Inter",
+                    fontFamily: "Outfit",
                     fontWeight: "700",
                     fontSize: 22,
                     color: colors.textPrimary,
@@ -473,7 +473,7 @@ export default function VerifyEmailScreen() {
                 </Text>
                 <Text
                   style={{
-                    fontFamily: "Inter",
+                    fontFamily: "Outfit",
                     fontSize: 14,
                     color: colors.textSecondary,
                     lineHeight: 14 * 1.6,
@@ -530,7 +530,7 @@ export default function VerifyEmailScreen() {
                           : colors.surface2,
                       color: errorMsg ? colors.danger : colors.textPrimary,
                       fontSize: 24,
-                      fontFamily: "Inter",
+                      fontFamily: "Outfit",
                       fontWeight: "600",
                       textAlign: "center",
                     }}
@@ -545,7 +545,7 @@ export default function VerifyEmailScreen() {
               {errorMsg ? (
                 <Text
                   style={{
-                    fontFamily: "Inter",
+                    fontFamily: "Outfit",
                     fontSize: 12,
                     color: colors.danger,
                     textAlign: "center",
@@ -584,7 +584,7 @@ export default function VerifyEmailScreen() {
               ) : (
                 <Text
                   style={{
-                    fontFamily: "Inter",
+                    fontFamily: "Outfit",
                     fontWeight: "600",
                     fontSize: 15,
                     color: isComplete
@@ -601,7 +601,7 @@ export default function VerifyEmailScreen() {
               {resendSent ? (
                 <Text
                   style={{
-                    fontFamily: "Inter",
+                    fontFamily: "Outfit",
                     fontSize: 13,
                     color: successColor,
                   }}>
@@ -610,7 +610,7 @@ export default function VerifyEmailScreen() {
               ) : (
                 <Text
                   style={{
-                    fontFamily: "Inter",
+                    fontFamily: "Outfit",
                     fontSize: 13,
                     color: colors.textTertiary,
                   }}>
@@ -622,7 +622,7 @@ export default function VerifyEmailScreen() {
                         : handleResend
                     }
                     style={{
-                      fontFamily: "Inter",
+                      fontFamily: "Outfit",
                       fontWeight: "600",
                       fontSize: 13,
                       color:

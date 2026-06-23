@@ -42,7 +42,7 @@ export function ErrorBanner({
       {title ? (
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontWeight: "600",
             fontSize: 14,
             color: s.titleColor,
@@ -53,7 +53,7 @@ export function ErrorBanner({
       ) : null}
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 13,
           color: s.messageColor,
           lineHeight: 18,

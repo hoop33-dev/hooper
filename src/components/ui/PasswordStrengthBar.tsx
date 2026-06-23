@@ -29,7 +29,7 @@ export function PasswordStrengthBar({ value }: Props) {
       </View>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 11,
           fontWeight: "600",
           color: strength.color,

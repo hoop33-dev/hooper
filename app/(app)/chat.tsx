@@ -20,7 +20,7 @@ export default function ChatScreen() {
       >
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 22,
             fontWeight: "800",
             color: colors.textPrimary,
@@ -32,7 +32,7 @@ export default function ChatScreen() {
         </Text>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: "Outfit",
             fontSize: 14,
             color: colors.textTertiary,
             textAlign: "center",

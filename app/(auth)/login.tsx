@@ -103,7 +103,7 @@ export default function LoginScreen() {
           <Text
             className="mb-1 font-black text-white"
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontSize: 28,
               letterSpacing: 28 * -0.03,
               lineHeight: 28 * 1.1,
@@ -113,7 +113,7 @@ export default function LoginScreen() {
           </Text>
           <Text
             className="text-text-secondary text-[14px]"
-            style={{ fontFamily: "Inter", lineHeight: 14 * 1.5 }}
+            style={{ fontFamily: "Outfit", lineHeight: 14 * 1.5 }}
           >
             Sign in to your account
           </Text>
@@ -158,7 +158,7 @@ export default function LoginScreen() {
             <View className="mb-1.5 flex-row items-center justify-between">
               <Text
                 style={{
-                  fontFamily: "Inter",
+                  fontFamily: "Outfit",
                   fontWeight: "500",
                   fontSize: 10,
                   letterSpacing: 10 * 0.12,
@@ -213,7 +213,7 @@ export default function LoginScreen() {
               <View className="flex-row items-center justify-center gap-1.5">
                 <Text
                   className="text-text-tertiary"
-                  style={{ fontFamily: "Inter", fontSize: 13 }}
+                  style={{ fontFamily: "Outfit", fontSize: 13 }}
                 >
                   No account?
                 </Text>

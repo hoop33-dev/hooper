@@ -65,7 +65,7 @@ export const PasswordInput = forwardRef<RNTextInput, PasswordInputProps>(
               isError ? "text-danger uppercase" : "text-text-tertiary uppercase"
             }
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.12,

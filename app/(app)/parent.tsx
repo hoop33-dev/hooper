@@ -51,7 +51,7 @@ function ViewAsButton({
       <EyeIcon size={12} color={PARENT_ACCENT} />
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 11.5,
           fontWeight: "700",
           color: PARENT_ACCENT,
@@ -98,7 +98,7 @@ function ChildCard({
             }}>
             <Text
               style={{
-                fontFamily: "Inter",
+                fontFamily: "Outfit",
                 fontSize: 15,
                 fontWeight: "800",
                 color: colors.textPrimary,
@@ -117,7 +117,7 @@ function ChildCard({
           </View>
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontSize: 11.5,
               color: colors.textSecondary,
             }}>
@@ -170,7 +170,7 @@ function AddChildButton({ onPress }: { onPress: () => void }) {
       </View>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 14,
           fontWeight: "700",
           color: PARENT_ACCENT,
@@ -198,7 +198,7 @@ function ChildrenSection({
     <View style={{ paddingHorizontal: 20, gap: 10 }}>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: "Outfit",
           fontSize: 11,
           fontWeight: "700",
           letterSpacing: 11 * 0.13,

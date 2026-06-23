@@ -38,7 +38,7 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
               error ? "text-danger uppercase" : "text-text-tertiary uppercase"
             }
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.12,
@@ -55,7 +55,7 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
           >
             <Text
               className="text-text-secondary text-[15px] font-medium"
-              style={{ fontFamily: "Inter" }}
+              style={{ fontFamily: "Outfit" }}
             >
               {countryCode}
             </Text>

@@ -30,7 +30,7 @@ export function BackButton({
       </Svg>
       <Text
         className="text-text-tertiary text-[13px]"
-        style={{ fontFamily: "Inter" }}
+        style={{ fontFamily: "Outfit" }}
       >
         {label}
       </Text>

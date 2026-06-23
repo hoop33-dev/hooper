@@ -65,7 +65,7 @@ export function AccountFormLayout({
             <Text
               className="mb-2 text-[10px] font-medium uppercase"
               style={{
-                fontFamily: "Inter",
+                fontFamily: "Outfit",
                 letterSpacing: 10 * 0.14,
                 color: accentColor,
               }}
@@ -77,7 +77,7 @@ export function AccountFormLayout({
           <Text
             className="text-text-primary mb-1 font-black"
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontSize: 26,
               letterSpacing: 26 * -0.03,
               lineHeight: 26 * 1.12,
@@ -88,7 +88,7 @@ export function AccountFormLayout({
 
           <Text
             className="text-text-secondary text-[13px]"
-            style={{ fontFamily: "Inter", lineHeight: 13 * 1.5 }}
+            style={{ fontFamily: "Outfit", lineHeight: 13 * 1.5 }}
           >
             {subtitle}
           </Text>
@@ -139,7 +139,7 @@ export function AccountFormLayout({
                 ) : (
                   <Text
                     style={{
-                      fontFamily: "Inter",
+                      fontFamily: "Outfit",
                       fontWeight: "700",
                       fontSize: 15,
                       letterSpacing: 15 * 0.08,

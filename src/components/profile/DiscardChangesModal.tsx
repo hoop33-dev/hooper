@@ -65,14 +65,14 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
-    fontFamily: "Inter",
+    fontFamily: "Outfit",
     fontSize: 19,
     fontWeight: "800",
     color: colors.textPrimary,
     marginBottom: 8,
   },
   body: {
-    fontFamily: "Inter",
+    fontFamily: "Outfit",
     fontSize: 14,
     lineHeight: 14 * 1.5,
     color: colors.textSecondary,
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   discardLabel: {
-    fontFamily: "Inter",
+    fontFamily: "Outfit",
     fontSize: 15,
     fontWeight: "700",
     color: "#fff",
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   keepLabel: {
-    fontFamily: "Inter",
+    fontFamily: "Outfit",
     fontSize: 15,
     fontWeight: "700",
     color: colors.textPrimary,

@@ -98,7 +98,7 @@ function SuccessView({
         <View style={{ alignItems: "center", gap: 8 }}>
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontWeight: "700",
               fontSize: 22,
               color: colors.textPrimary,
@@ -107,7 +107,7 @@ function SuccessView({
           </Text>
           <Text
             style={{
-              fontFamily: "Inter",
+              fontFamily: "Outfit",
               fontSize: 14,
               color: colors.textSecondary,
               textAlign: "center",
@@ -136,7 +136,7 @@ function SuccessView({
             })}>
             <Text
               style={{
-                fontFamily: "Inter",
+                fontFamily: "Outfit",
                 fontWeight: "700",
                 fontSize: 15,
                 letterSpacing: 15 * 0.08,
@@ -159,7 +159,7 @@ function SuccessView({
             })}>
             <Text
               style={{
-                fontFamily: "Inter",
+                fontFamily: "Outfit",
                 fontWeight: "600",
                 fontSize: 15,
                 color: colors.textSecondary,

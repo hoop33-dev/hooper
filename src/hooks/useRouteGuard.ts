@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useAuthStore } from "@/src/stores/auth.store";
 import type { RoleType } from "@/src/types/database.types";
 
+type AppRouter = ReturnType<typeof useRouter>;
+
 const SHARED_ROUTES = new Set([
   "chat",
   "settings",
@@ -13,6 +15,42 @@ const SHARED_ROUTES = new Set([
   "security-verify",
   "security-new-password",
 ]);
+
+function toRolePath(role: RoleType) {
+  return `/(app)/${role}` as `/(app)/${RoleType}`;
+}
+
+function guardUnauthenticated(
+  router: AppRouter,
+  inRoot: boolean,
+  inAuth: boolean,
+) {
+  if (!inRoot && !inAuth) {
+    router.replace("/");
+  }
+}
+
+function guardNeedsVerification(router: AppRouter, inVerify: boolean) {
+  if (!inVerify) {
+    router.replace("/(auth)/verify-email");
+  }
+}
+
+function guardAuthenticated(
+  router: AppRouter,
+  segments: string[],
+  role: RoleType,
+  inResetPassword: boolean,
+  inRoot: boolean,
+  inAuth: boolean,
+  inApp: boolean,
+) {
+  if (inResetPassword) return;
+  if (inRoot || inAuth) { router.replace(toRolePath(role)); return; }
+  if (inApp && segments[1] !== role && !SHARED_ROUTES.has(segments[1])) {
+    router.replace(toRolePath(role));
+  }
+}
 
 export function useRouteGuard() {
   const { status, primaryRole, session } = useAuthStore();
@@ -29,41 +67,22 @@ export function useRouteGuard() {
     const inResetPassword = inAuth && segments[1] === "reset-password";
 
     if (status === "unauthenticated") {
-      if (!inRoot && !inAuth) {
-        router.replace("/");
-      }
+      guardUnauthenticated(router, inRoot, inAuth);
       return;
     }
-
     if (status === "needs_verification") {
-      if (!inVerify) {
-        router.replace("/(auth)/verify-email");
-      }
+      guardNeedsVerification(router, inVerify);
       return;
     }
-
     if (status === "authenticated") {
-      if (inResetPassword) return;
-
       // Fall back to session user_metadata when profile hasn't loaded yet.
-      // This prevents defaulting to "player" while primaryRole is still null.
       const role =
         primaryRole ??
         (session?.user?.user_metadata?.role as RoleType | undefined) ??
         null;
-
-      // Don't redirect until we know the role — avoids landing on the wrong dashboard.
-      if (!role) return;
-
-      if (inRoot || inAuth) {
-        router.replace(`/(app)/${role}` as `/(app)/${typeof role}`);
-        return;
-      }
-      // Prevent a user from staying on another role's dashboard.
-      // Shared screens (chat, settings) and parent-only nested routes are allowed.
-      if (inApp && segments[1] !== role && !SHARED_ROUTES.has(segments[1])) {
-        router.replace(`/(app)/${role}` as `/(app)/${typeof role}`);
+      if (role) {
+        guardAuthenticated(router, segments, role, inResetPassword, inRoot, inAuth, inApp);
       }
     }
-  }, [status, segments, primaryRole, session]);
+  }, [status, segments, primaryRole, session, router]);
 }

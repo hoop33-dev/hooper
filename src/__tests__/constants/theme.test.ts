@@ -74,8 +74,19 @@ describe("theme", () => {
   });
 
   describe("fonts", () => {
-    it("exports the Inter font family name", () => {
-      expect(fonts.inter).toBe("Inter");
+    it("exports heading font variants using BarlowCondensed", () => {
+      expect(fonts.headingBlack).toContain("BarlowCondensed");
+      expect(fonts.heading).toContain("BarlowCondensed");
+      expect(fonts.headingSemi).toContain("BarlowCondensed");
+      expect(fonts.headingMed).toContain("BarlowCondensed");
+    });
+
+    it("exports body font variants using Outfit", () => {
+      expect(fonts.body).toContain("Outfit");
+      expect(fonts.bodyMedium).toContain("Outfit");
+      expect(fonts.bodySemi).toContain("Outfit");
+      expect(fonts.bodyBold).toContain("Outfit");
+      expect(fonts.bodyExtraBold).toContain("Outfit");
     });
   });
 

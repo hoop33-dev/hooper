@@ -101,9 +101,27 @@ export const shadows = {
   },
 } as const;
 
+// ── TYPOGRAPHY ────────────────────────────────────────────────────────────────
+// Change these two strings to retheme every font in the app.
+const _heading = "BarlowCondensed";
+const _body = "Outfit";
+
 export const fonts = {
-  inter: "Inter",
+  // Headings (Barlow Condensed)
+  headingBlack: `${_heading}-Black`,   // H1, Stat, hero titles
+  heading: `${_heading}-Bold`,         // H2, H3, section titles
+  headingSemi: `${_heading}-SemiBold`, // H4
+  headingMed: `${_heading}-Medium`,    // uppercase heading labels
+  // Body (Outfit — static weights, one file per weight)
+  body: `${_body}-Regular`,
+  bodyMedium: `${_body}-Medium`,
+  bodySemi: `${_body}-SemiBold`,
+  bodyBold: `${_body}-Bold`,
+  bodyExtraBold: `${_body}-ExtraBold`,
 } as const;
+
+/** 0.015 em letter-spacing for headings */
+export const headingTracking = (size: number) => size * 0.015;
 
 export const easing = {
   fast: 180,

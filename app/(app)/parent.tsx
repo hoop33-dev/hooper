@@ -15,7 +15,7 @@ import {
 } from "@/src/components/dashboard";
 import { EyeIcon, PlusIcon } from "@/src/components/dashboard/icons";
 import { roleConfig } from "@/src/constants/roles";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 import { useChildren } from "@/src/hooks/useChildren";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 import type { ChildSummary } from "@/src/services/parent.service";
@@ -51,7 +51,7 @@ function ViewAsButton({
       <EyeIcon size={12} color={PARENT_ACCENT} />
       <Text
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.bodyBold,
           fontSize: 11.5,
           fontWeight: "700",
           color: PARENT_ACCENT,
@@ -98,7 +98,7 @@ function ChildCard({
             }}>
             <Text
               style={{
-                fontFamily: "Outfit",
+                fontFamily: fonts.bodyExtraBold,
                 fontSize: 15,
                 fontWeight: "800",
                 color: colors.textPrimary,
@@ -117,7 +117,7 @@ function ChildCard({
           </View>
           <Text
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.body,
               fontSize: 11.5,
               color: colors.textSecondary,
             }}>
@@ -170,7 +170,7 @@ function AddChildButton({ onPress }: { onPress: () => void }) {
       </View>
       <Text
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.bodyBold,
           fontSize: 14,
           fontWeight: "700",
           color: PARENT_ACCENT,
@@ -198,7 +198,7 @@ function ChildrenSection({
     <View style={{ paddingHorizontal: 20, gap: 10 }}>
       <Text
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.bodyBold,
           fontSize: 11,
           fontWeight: "700",
           letterSpacing: 11 * 0.13,

@@ -1,22 +1,24 @@
 import { Text, type TextProps } from "react-native";
 
+import { fonts, headingTracking } from "@/src/constants/theme";
+
 type TypographyProps = TextProps & {
   className?: string;
 };
 
 const base = "text-text-primary";
 
-/** Display / Hero — 64px, black weight, tight tracking */
+/** Display / Hero — 64px */
 export function H1({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
       className={`${base} ${className}`}
       style={[
         {
-          fontFamily: "BarlowCondensed-Black",
+          fontFamily: fonts.headingBlack,
           fontSize: 64,
           lineHeight: 64 * 1.15,
-          letterSpacing: 64 * 0.015,
+          letterSpacing: headingTracking(64),
         },
         style,
       ]}
@@ -25,17 +27,17 @@ export function H1({ className = "", style, ...rest }: TypographyProps) {
   );
 }
 
-/** Section heading — 36px, bold */
+/** Section heading — 36px */
 export function H2({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
       className={`${base} ${className}`}
       style={[
         {
-          fontFamily: "BarlowCondensed-Bold",
+          fontFamily: fonts.heading,
           fontSize: 36,
           lineHeight: 36 * 1.15,
-          letterSpacing: 36 * 0.015,
+          letterSpacing: headingTracking(36),
         },
         style,
       ]}
@@ -44,17 +46,17 @@ export function H2({ className = "", style, ...rest }: TypographyProps) {
   );
 }
 
-/** Card title — 28px, bold */
+/** Card title — 28px */
 export function H3({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
       className={`${base} ${className}`}
       style={[
         {
-          fontFamily: "BarlowCondensed-Bold",
+          fontFamily: fonts.heading,
           fontSize: 28,
           lineHeight: 28 * 1.3,
-          letterSpacing: 28 * 0.015,
+          letterSpacing: headingTracking(28),
         },
         style,
       ]}
@@ -63,17 +65,17 @@ export function H3({ className = "", style, ...rest }: TypographyProps) {
   );
 }
 
-/** Sub-heading — 22px, semibold */
+/** Sub-heading — 22px */
 export function H4({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
       className={`${base} ${className}`}
       style={[
         {
-          fontFamily: "BarlowCondensed-SemiBold",
+          fontFamily: fonts.headingSemi,
           fontSize: 22,
           lineHeight: 22 * 1.3,
-          letterSpacing: 22 * 0.015,
+          letterSpacing: headingTracking(22),
         },
         style,
       ]}
@@ -82,15 +84,14 @@ export function H4({ className = "", style, ...rest }: TypographyProps) {
   );
 }
 
-/** Body — 16px regular, secondary text color */
+/** Body — 16px regular */
 export function Body({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
       className={`text-text-secondary ${className}`}
       style={[
         {
-          fontFamily: "Outfit",
-          fontWeight: "400",
+          fontFamily: fonts.body,
           fontSize: 16,
           lineHeight: 16 * 1.5,
         },
@@ -101,15 +102,14 @@ export function Body({ className = "", style, ...rest }: TypographyProps) {
   );
 }
 
-/** Body small — 13px regular */
+/** Body small — 13px */
 export function BodySm({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
       className={`text-text-secondary ${className}`}
       style={[
         {
-          fontFamily: "Outfit",
-          fontWeight: "400",
+          fontFamily: fonts.body,
           fontSize: 13,
           lineHeight: 13 * 1.5,
         },
@@ -120,15 +120,14 @@ export function BodySm({ className = "", style, ...rest }: TypographyProps) {
   );
 }
 
-/** Label / caps — 11px medium, uppercase, wide tracking */
+/** Label / caps — 11px medium, uppercase */
 export function Label({ className = "", style, ...rest }: TypographyProps) {
   return (
     <Text
       className={`text-text-tertiary ${className}`}
       style={[
         {
-          fontFamily: "Outfit",
-          fontWeight: "500",
+          fontFamily: fonts.bodyMedium,
           fontSize: 11,
           lineHeight: 11,
           letterSpacing: 11 * 0.15,
@@ -148,10 +147,10 @@ export function Stat({ className = "", style, ...rest }: TypographyProps) {
       className={`text-brand-orange ${className}`}
       style={[
         {
-          fontFamily: "BarlowCondensed-Black",
+          fontFamily: fonts.headingBlack,
           fontSize: 48,
           lineHeight: 48,
-          letterSpacing: 48 * 0.015,
+          letterSpacing: headingTracking(48),
         },
         style,
       ]}

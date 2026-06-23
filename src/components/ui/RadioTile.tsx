@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Pressable, View, Text, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 
 export type RadioTileProps = {
   id: string;
@@ -127,7 +127,7 @@ export function RadioTile({
           {/* Role label — uppercase caps */}
           <Text
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.bodyMedium,
               fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.14,
@@ -142,10 +142,10 @@ export function RadioTile({
           {/* Title */}
           <Text
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.headingBlack,
               fontWeight: "800",
               fontSize: 22,
-              letterSpacing: 22 * -0.03,
+              letterSpacing: 22 * 0.015,
               color: colors.textPrimary,
               marginBottom: 8,
               lineHeight: 22 * 1.1,
@@ -157,7 +157,7 @@ export function RadioTile({
           {/* Body */}
           <Text
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.body,
               fontWeight: "400",
               fontSize: 13,
               lineHeight: 13 * 1.55,

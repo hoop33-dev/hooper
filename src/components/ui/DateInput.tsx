@@ -14,6 +14,7 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import Svg, { Path, Rect } from "react-native-svg";
 import { ErrorMessage } from "./ErrorMessage";
+import { fonts } from "@/src/constants/theme";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -130,7 +131,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
                 error ? "text-danger uppercase" : "text-text-tertiary uppercase"
               }
               style={{
-                fontFamily: "Outfit",
+                fontFamily: fonts.bodyMedium,
                 fontWeight: "500",
                 fontSize: 10,
                 letterSpacing: 10 * 0.12,
@@ -147,7 +148,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
           >
             <Text
               className={`text-[15px] ${value ? "text-text-primary" : "text-text-disabled"}`}
-              style={{ fontFamily: "Outfit" }}
+              style={{ fontFamily: fonts.body }}
             >
               {value ? formatDate(value) : placeholder}
             </Text>
@@ -190,7 +191,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
                 <TouchableOpacity onPress={handleCancel} activeOpacity={0.7}>
                   <Text
                     className="text-[15px] text-white/50"
-                    style={{ fontFamily: "Outfit" }}
+                    style={{ fontFamily: fonts.body }}
                   >
                     Cancel
                   </Text>
@@ -201,7 +202,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
                 <TouchableOpacity onPress={handleDone} activeOpacity={0.7}>
                   <Text
                     className="text-brand-orange text-[15px] font-semibold"
-                    style={{ fontFamily: "Outfit" }}
+                    style={{ fontFamily: fonts.body }}
                   >
                     Done
                   </Text>

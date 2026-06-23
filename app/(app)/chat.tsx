@@ -2,7 +2,7 @@ import { Text, View } from "react-native";
 
 import { DashboardLayout } from "@/src/components/dashboard";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 
 export default function ChatScreen() {
   const user = useDashboardUser();
@@ -20,7 +20,7 @@ export default function ChatScreen() {
       >
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.headingBlack,
             fontSize: 22,
             fontWeight: "800",
             color: colors.textPrimary,
@@ -32,7 +32,7 @@ export default function ChatScreen() {
         </Text>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.body,
             fontSize: 14,
             color: colors.textTertiary,
             textAlign: "center",

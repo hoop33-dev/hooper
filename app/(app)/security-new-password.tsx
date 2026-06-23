@@ -21,7 +21,7 @@ import {
   ErrorBanner,
   PasswordInput,
 } from "@/src/components/ui";
-import { colors, shadows } from "@/src/constants/theme";
+import { colors, shadows, fonts} from "@/src/constants/theme";
 import { validatePassword } from "@/src/lib/passwordRules";
 import { updatePassword } from "@/src/services/auth.service";
 
@@ -136,19 +136,19 @@ function PasswordUpdatedView() {
       </Animated.View>
       <Text
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.headingBlack,
           fontWeight: "800",
           fontSize: 24,
           color: colors.textPrimary,
           textAlign: "center",
           marginBottom: 10,
-          letterSpacing: 24 * -0.02,
+          letterSpacing: 24 * 0.015,
         }}>
         Password updated.
       </Text>
       <Text
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.body,
           fontSize: 14,
           color: colors.textSecondary,
           textAlign: "center",
@@ -198,18 +198,18 @@ function NewPasswordFields({
       <View>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.headingBlack,
             fontWeight: "800",
             fontSize: 22,
             color: colors.textPrimary,
-            letterSpacing: 22 * -0.02,
+            letterSpacing: 22 * 0.015,
             marginBottom: 6,
           }}>
           New password
         </Text>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.body,
             fontSize: 14,
             color: colors.textSecondary,
             lineHeight: 14 * 1.55,
@@ -316,11 +316,11 @@ function NewPasswordHeader({ onBack }: { onBack: () => void }) {
       <BackButton label="Verify" onPress={onBack} className="mb-4" />
       <Text
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.headingBlack,
           fontWeight: "900",
           fontSize: 28,
           color: colors.textPrimary,
-          letterSpacing: 28 * -0.03,
+          letterSpacing: 28 * 0.015,
           lineHeight: 28 * 1.1,
           marginBottom: 2,
         }}>

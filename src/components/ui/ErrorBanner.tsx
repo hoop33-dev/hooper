@@ -1,5 +1,5 @@
 import { View, Text } from "react-native";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 
 type ErrorBannerProps = {
   variant?: "error" | "success";
@@ -42,7 +42,7 @@ export function ErrorBanner({
       {title ? (
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodySemi,
             fontWeight: "600",
             fontSize: 14,
             color: s.titleColor,
@@ -53,7 +53,7 @@ export function ErrorBanner({
       ) : null}
       <Text
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.body,
           fontSize: 13,
           color: s.messageColor,
           lineHeight: 18,

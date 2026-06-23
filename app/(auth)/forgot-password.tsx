@@ -15,7 +15,7 @@ import {
   BackButton,
   ErrorBanner,
 } from "@/src/components/ui";
-import { shadows } from "@/src/constants/theme";
+import { shadows, fonts} from "@/src/constants/theme";
 import { sendPasswordResetEmail } from "@/src/services/auth.service";
 
 const StyledSafeAreaView = styled(SafeAreaView);
@@ -69,9 +69,9 @@ export default function ForgotPasswordScreen() {
           <Text
             className="mb-1 font-black text-white"
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.headingBlack,
               fontSize: 28,
-              letterSpacing: 28 * -0.03,
+              letterSpacing: 28 * 0.015,
               lineHeight: 28 * 1.1,
             }}
           >
@@ -79,7 +79,7 @@ export default function ForgotPasswordScreen() {
           </Text>
           <Text
             className="text-text-secondary text-[14px]"
-            style={{ fontFamily: "Outfit", lineHeight: 14 * 1.5 }}
+            style={{ fontFamily: fonts.body, lineHeight: 14 * 1.5 }}
           >
             {sent
               ? "Check your inbox — we've sent a reset link."
@@ -140,9 +140,9 @@ export default function ForgotPasswordScreen() {
               >
                 <Text
                   className="text-text-secondary text-[13px]"
-                  style={{ fontFamily: "Outfit", lineHeight: 13 * 1.5 }}
+                  style={{ fontFamily: fonts.body, lineHeight: 13 * 1.5 }}
                 >
-                  <Text className="text-white" style={{ fontFamily: "Outfit" }}>
+                  <Text className="text-white" style={{ fontFamily: fonts.body }}>
                     Child account?{" "}
                   </Text>
                   A parent can change your password from within the app — no

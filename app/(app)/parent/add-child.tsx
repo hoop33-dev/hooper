@@ -23,7 +23,7 @@ import {
 } from "@/src/components/ui";
 import { NZ_REGIONS } from "@/src/constants/regions";
 import { roleConfig } from "@/src/constants/roles";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 import { validatePassword } from "@/src/lib/passwordRules";
 import { createChildAccount } from "@/src/services/parent.service";
 
@@ -98,7 +98,7 @@ function SuccessView({
         <View style={{ alignItems: "center", gap: 8 }}>
           <Text
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.heading,
               fontWeight: "700",
               fontSize: 22,
               color: colors.textPrimary,
@@ -107,7 +107,7 @@ function SuccessView({
           </Text>
           <Text
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.heading,
               fontSize: 14,
               color: colors.textSecondary,
               textAlign: "center",
@@ -136,7 +136,7 @@ function SuccessView({
             })}>
             <Text
               style={{
-                fontFamily: "Outfit",
+                fontFamily: fonts.bodyBold,
                 fontWeight: "700",
                 fontSize: 15,
                 letterSpacing: 15 * 0.08,
@@ -159,7 +159,7 @@ function SuccessView({
             })}>
             <Text
               style={{
-                fontFamily: "Outfit",
+                fontFamily: fonts.bodySemi,
                 fontWeight: "600",
                 fontSize: 15,
                 color: colors.textSecondary,

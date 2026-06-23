@@ -1,10 +1,11 @@
 import { Text, Linking } from "react-native";
+import { fonts } from "@/src/constants/theme";
 
 export function DisclosureLabel() {
   return (
     <Text
       className="text-text-secondary"
-      style={{ fontFamily: "Outfit", fontSize: 12.5, lineHeight: 12.5 * 1.55 }}
+      style={{ fontFamily: fonts.body, fontSize: 12.5, lineHeight: 12.5 * 1.55 }}
     >
       {"I agree to Hooper's "}
       <Text

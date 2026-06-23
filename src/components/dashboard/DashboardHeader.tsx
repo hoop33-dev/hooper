@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 import { roleConfig, type RoleId } from "@/src/constants/roles";
 
 import { Avatar } from "./Avatar";
@@ -44,7 +44,7 @@ export function DashboardHeader({
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodyMedium,
             fontSize: 11.5,
             color: colors.textTertiary,
             fontWeight: "500",
@@ -57,7 +57,7 @@ export function DashboardHeader({
         <Text
           numberOfLines={1}
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodyExtraBold,
             fontSize: 18,
             fontWeight: "800",
             color: colors.textPrimary,

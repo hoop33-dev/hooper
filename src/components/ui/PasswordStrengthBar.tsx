@@ -1,6 +1,6 @@
 import { View, Text } from "react-native";
 import { getPasswordStrength } from "@/src/lib/passwordStrength";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 
 type Props = {
   value: string;
@@ -29,7 +29,7 @@ export function PasswordStrengthBar({ value }: Props) {
       </View>
       <Text
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.bodySemi,
           fontSize: 11,
           fontWeight: "600",
           color: strength.color,

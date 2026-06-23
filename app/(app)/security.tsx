@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path, Rect } from "react-native-svg";
 
 import { BackButton } from "@/src/components/ui";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 import { sendSecurityCode } from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
 
@@ -72,7 +72,7 @@ function SectionHead({ title }: { title: string }) {
   return (
     <Text
       style={{
-        fontFamily: "Outfit",
+        fontFamily: fonts.bodyBold,
         fontSize: 10,
         fontWeight: "700",
         letterSpacing: 10 * 0.14,
@@ -135,7 +135,7 @@ function SendEmailButton({
           </Svg>
           <Text
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.bodySemi,
               fontWeight: "600",
               fontSize: 15,
               color: "#fff",
@@ -188,7 +188,7 @@ function PasswordCard({
         <View style={{ flex: 1 }}>
           <Text
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.bodyBold,
               fontWeight: "700",
               fontSize: 15,
               color: colors.textPrimary,
@@ -199,7 +199,7 @@ function PasswordCard({
           {maskedEmail ? (
             <Text
               style={{
-                fontFamily: "Outfit",
+                fontFamily: fonts.bodySemi,
                 fontSize: 13,
                 color: colors.textSecondary,
                 lineHeight: 13 * 1.55,
@@ -215,7 +215,7 @@ function PasswordCard({
       </View>
       {sendError ? (
         <Text
-          style={{ fontFamily: "Outfit", fontSize: 12, color: colors.danger }}>
+          style={{ fontFamily: fonts.body, fontSize: 12, color: colors.danger }}>
           {sendError}
         </Text>
       ) : null}
@@ -255,7 +255,7 @@ function TwoFactorSection() {
       <View style={{ flex: 1 }}>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodySemi,
             fontSize: 14.5,
             fontWeight: "600",
             color: colors.textPrimary,
@@ -265,7 +265,7 @@ function TwoFactorSection() {
         </Text>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodySemi,
             fontSize: 12,
             color: colors.textTertiary,
           }}>
@@ -282,7 +282,7 @@ function TwoFactorSection() {
         }}>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodyBold,
             fontSize: 9,
             fontWeight: "700",
             letterSpacing: 9 * 0.12,
@@ -335,11 +335,11 @@ export default function SecurityScreen() {
           />
           <Text
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.headingBlack,
               fontWeight: "900",
               fontSize: 28,
               color: colors.textPrimary,
-              letterSpacing: 28 * -0.03,
+              letterSpacing: 28 * 0.015,
               lineHeight: 28 * 1.1,
             }}>
             Security

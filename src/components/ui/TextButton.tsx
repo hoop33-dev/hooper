@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, Text, type PressableProps } from "react-native";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 
 type TextButtonProps = Omit<PressableProps, "children" | "style"> & {
   /** Text shown inside the clickable region */
@@ -54,7 +54,7 @@ export function TextButton({
     >
       <Text
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.body,
           fontWeight: weightMap[weight] as "400" | "500" | "600" | "700",
           fontSize: size,
           color,

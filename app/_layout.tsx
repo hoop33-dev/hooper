@@ -9,6 +9,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/src/components/common/ErrorBoundary";
 import { useAuthStore } from "@/src/stores/auth.store";
+import { fonts } from "@/src/constants/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -24,11 +25,15 @@ const SHARED_ROUTES = new Set([
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    "BarlowCondensed-Medium": require("../assets/fonts/BarlowCondensed-Medium.ttf"),
-    "BarlowCondensed-SemiBold": require("../assets/fonts/BarlowCondensed-SemiBold.ttf"),
-    "BarlowCondensed-Bold": require("../assets/fonts/BarlowCondensed-Bold.ttf"),
-    "BarlowCondensed-Black": require("../assets/fonts/BarlowCondensed-Black.ttf"),
-    Outfit: require("../assets/fonts/Outfit.ttf"),
+    [fonts.headingMed]: require("../assets/fonts/BarlowCondensed-Medium.ttf"),
+    [fonts.headingSemi]: require("../assets/fonts/BarlowCondensed-SemiBold.ttf"),
+    [fonts.heading]: require("../assets/fonts/BarlowCondensed-Bold.ttf"),
+    [fonts.headingBlack]: require("../assets/fonts/BarlowCondensed-Black.ttf"),
+    [fonts.body]: require("../assets/fonts/Outfit-Regular.ttf"),
+    [fonts.bodyMedium]: require("../assets/fonts/Outfit-Medium.ttf"),
+    [fonts.bodySemi]: require("../assets/fonts/Outfit-SemiBold.ttf"),
+    [fonts.bodyBold]: require("../assets/fonts/Outfit-Bold.ttf"),
+    [fonts.bodyExtraBold]: require("../assets/fonts/Outfit-ExtraBold.ttf"),
   });
 
   const { status, primaryRole, session, hydrate } = useAuthStore();

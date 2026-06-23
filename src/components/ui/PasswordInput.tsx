@@ -10,6 +10,7 @@ import Svg, { Path, Circle } from "react-native-svg";
 import { Input } from "./Input";
 import { ErrorMessage } from "./ErrorMessage";
 import { PasswordStrengthBar } from "./PasswordStrengthBar";
+import { fonts } from "@/src/constants/theme";
 
 type PasswordInputProps = Omit<TextInputProps, "style" | "secureTextEntry"> & {
   label?: string;
@@ -65,7 +66,7 @@ export const PasswordInput = forwardRef<RNTextInput, PasswordInputProps>(
               isError ? "text-danger uppercase" : "text-text-tertiary uppercase"
             }
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.bodyMedium,
               fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.12,

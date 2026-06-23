@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BackButton, RadioTile } from "@/src/components/ui";
 import { ROLES, type RoleId } from "@/src/constants/roles";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -32,16 +32,16 @@ export default function RoleSelectorScreen() {
 
         <Text
           className="text-brand-orange mb-2 text-[10px] font-medium uppercase"
-          style={{ fontFamily: "Outfit", letterSpacing: 10 * 0.14 }}>
+          style={{ fontFamily: fonts.body, letterSpacing: 10 * 0.14 }}>
           Step 2 of 4
         </Text>
 
         <Text
           className="text-text-primary mb-1.5 font-black"
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.headingBlack,
             fontSize: 28,
-            letterSpacing: 28 * -0.03,
+            letterSpacing: 28 * 0.015,
             lineHeight: 28 * 1.12,
           }}>
           Who are you?
@@ -49,7 +49,7 @@ export default function RoleSelectorScreen() {
 
         <Text
           className="text-text-secondary text-sm"
-          style={{ fontFamily: "Outfit", lineHeight: 14 * 1.5 }}>
+          style={{ fontFamily: fonts.body, lineHeight: 14 * 1.5 }}>
           Pick your role. You can add more later.
         </Text>
       </View>
@@ -105,7 +105,7 @@ export default function RoleSelectorScreen() {
           })}>
           <Text
             className={`text-[15px] font-bold ${selectedId ? "text-text-primary" : "text-text-tertiary"}`}
-            style={{ fontFamily: "Outfit", letterSpacing: 15 * 0.01 }}>
+            style={{ fontFamily: fonts.body, letterSpacing: 15 * 0.01 }}>
             {selectedRole ? selectedRole.cta : "Select a role to continue"}
           </Text>
         </Pressable>

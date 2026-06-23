@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 
 import { BackButton } from "@/src/components/ui";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 import {
   sendSecurityCode,
   verifySecurityCode,
@@ -234,7 +234,7 @@ function OtpInputRow({
                   : colors.surface2,
               color: errorMsg ? colors.danger : colors.textPrimary,
               fontSize: 24,
-              fontFamily: "Outfit",
+              fontFamily: fonts.bodySemi,
               fontWeight: "600",
               textAlign: "center",
             }}
@@ -283,7 +283,7 @@ function ExpiryNotice() {
       </Svg>
       <Text
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.body,
           fontSize: 12,
           color: colors.textTertiary,
           lineHeight: 12 * 1.6,
@@ -313,13 +313,13 @@ function ResendRow({
   return (
     <View style={{ alignItems: "center", marginBottom: 28 }}>
       {resendSent ? (
-        <Text style={{ fontFamily: "Outfit", fontSize: 13, color: "#34D399" }}>
+        <Text style={{ fontFamily: fonts.body, fontSize: 13, color: "#34D399" }}>
           Code resent — check your inbox
         </Text>
       ) : (
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodySemi,
             fontSize: 13,
             color: colors.textTertiary,
           }}>
@@ -377,7 +377,7 @@ function VerifyButton({ isComplete, isVerifying, onPress }: VerifyButtonProps) {
       ) : (
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodySemi,
             fontWeight: "600",
             fontSize: 15,
             color: isComplete ? colors.textPrimary : colors.textTertiary,
@@ -398,11 +398,11 @@ function VerifyPageHeader({ onBack }: { onBack: () => void }) {
       <View style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8 }}>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.headingBlack,
             fontWeight: "900",
             fontSize: 28,
             color: colors.textPrimary,
-            letterSpacing: 28 * -0.03,
+            letterSpacing: 28 * 0.015,
             lineHeight: 28 * 1.1,
           }}>
           Security
@@ -419,7 +419,7 @@ function EmailPromptSection({ maskedEmail }: { maskedEmail: string }) {
       <View style={{ alignItems: "center" }}>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.heading,
             fontWeight: "700",
             fontSize: 22,
             color: colors.textPrimary,
@@ -429,7 +429,7 @@ function EmailPromptSection({ maskedEmail }: { maskedEmail: string }) {
         </Text>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodySemi,
             fontSize: 14,
             color: colors.textSecondary,
             lineHeight: 14 * 1.6,
@@ -489,7 +489,7 @@ export default function SecurityVerifyScreen() {
           {errorMsg ? (
             <Text
               style={{
-                fontFamily: "Outfit",
+                fontFamily: fonts.body,
                 fontSize: 12,
                 color: colors.danger,
                 textAlign: "center",

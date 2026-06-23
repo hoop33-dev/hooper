@@ -6,7 +6,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 
 export type ButtonVariant = "primary" | "secondary" | "navy" | "ghost" | "icon";
 export type ButtonSize = "sm" | "md" | "lg";
@@ -119,7 +119,7 @@ export function Button({
       {typeof children === "string" ? (
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodyBold,
             fontWeight: "700",
             fontSize: sizeText[size],
             letterSpacing: sizeText[size] * 0.08,

@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import Svg, { Path, Circle } from "react-native-svg";
 import type { RoleId } from "@/src/constants/roles";
+import { fonts } from "@/src/constants/theme";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -52,9 +53,9 @@ export function AgeGateModal({
           <Text
             className="text-text-primary mb-3 text-center font-black"
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.headingBlack,
               fontSize: 22,
-              letterSpacing: 22 * -0.03,
+              letterSpacing: 22 * 0.015,
             }}
           >
             You must be 16 or over
@@ -62,7 +63,7 @@ export function AgeGateModal({
 
           <Text
             className="text-text-secondary mb-7 text-center text-sm"
-            style={{ fontFamily: "Outfit", lineHeight: 14 * 1.6 }}
+            style={{ fontFamily: fonts.body, lineHeight: 14 * 1.6 }}
           >
             {isPlayer
               ? "Players must be at least 16 to create their own account. Ask a parent or guardian to sign up and add you as an athlete."
@@ -76,7 +77,7 @@ export function AgeGateModal({
           >
             <Text
               className="text-text-primary text-[15px] font-bold"
-              style={{ fontFamily: "Outfit" }}
+              style={{ fontFamily: fonts.body }}
             >
               {isPlayer ? "Got it" : "Update date of birth"}
             </Text>

@@ -24,7 +24,7 @@ import {
 } from "@/src/components/ui";
 import { signInWithUsername } from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
-import { shadows } from "@/src/constants/theme";
+import { shadows, fonts} from "@/src/constants/theme";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -103,9 +103,9 @@ export default function LoginScreen() {
           <Text
             className="mb-1 font-black text-white"
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.headingBlack,
               fontSize: 28,
-              letterSpacing: 28 * -0.03,
+              letterSpacing: 28 * 0.015,
               lineHeight: 28 * 1.1,
             }}
           >
@@ -113,7 +113,7 @@ export default function LoginScreen() {
           </Text>
           <Text
             className="text-text-secondary text-[14px]"
-            style={{ fontFamily: "Outfit", lineHeight: 14 * 1.5 }}
+            style={{ fontFamily: fonts.body, lineHeight: 14 * 1.5 }}
           >
             Sign in to your account
           </Text>
@@ -158,7 +158,7 @@ export default function LoginScreen() {
             <View className="mb-1.5 flex-row items-center justify-between">
               <Text
                 style={{
-                  fontFamily: "Outfit",
+                  fontFamily: fonts.bodyMedium,
                   fontWeight: "500",
                   fontSize: 10,
                   letterSpacing: 10 * 0.12,
@@ -213,7 +213,7 @@ export default function LoginScreen() {
               <View className="flex-row items-center justify-center gap-1.5">
                 <Text
                   className="text-text-tertiary"
-                  style={{ fontFamily: "Outfit", fontSize: 13 }}
+                  style={{ fontFamily: fonts.body, fontSize: 13 }}
                 >
                   No account?
                 </Text>

@@ -27,7 +27,7 @@ import {
   ShieldIcon,
 } from "@/src/components/dashboard/icons";
 import { roleConfig } from "@/src/constants/roles";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 import { useGuardianControls } from "@/src/hooks/useGuardianControls";
 import { useAuthStore } from "@/src/stores/auth.store";
@@ -89,7 +89,7 @@ function MenuRow({
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodySemi,
             fontSize: 14.5,
             fontWeight: "600",
             color: danger ? colors.danger : colors.textPrimary,
@@ -100,7 +100,7 @@ function MenuRow({
         {sub ? (
           <Text
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.body,
               fontSize: 12,
               color: colors.textTertiary,
             }}>
@@ -122,7 +122,7 @@ function SectionHead({ title }: { title: string }) {
     <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: 12 }}>
       <Text
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.bodyBold,
           fontSize: 11,
           fontWeight: "700",
           letterSpacing: 11 * 0.13,
@@ -177,7 +177,7 @@ export default function SettingsScreen() {
           }}>
           <Text
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.headingBlack,
               fontSize: 22,
               fontWeight: "900",
               color: colors.textPrimary,
@@ -242,7 +242,7 @@ export default function SettingsScreen() {
               </View>
               <Text
                 style={{
-                  fontFamily: "Outfit",
+                  fontFamily: fonts.bodyExtraBold,
                   fontSize: 20,
                   fontWeight: "800",
                   color: colors.textPrimary,
@@ -255,7 +255,7 @@ export default function SettingsScreen() {
               {user.username ? (
                 <Text
                   style={{
-                    fontFamily: "Outfit",
+                    fontFamily: fonts.bodySemi,
                     fontSize: 12,
                     fontWeight: "600",
                     color: r.accent,
@@ -282,7 +282,7 @@ export default function SettingsScreen() {
                     <PinIcon size={10} color={colors.textTertiary} />
                     <Text
                       style={{
-                        fontFamily: "Outfit",
+                        fontFamily: fonts.bodySemi,
                         fontSize: 11,
                         fontWeight: "600",
                         color: colors.textSecondary,
@@ -302,7 +302,7 @@ export default function SettingsScreen() {
                   }}>
                   <Text
                     style={{
-                      fontFamily: "Outfit",
+                      fontFamily: fonts.bodyBold,
                       fontSize: 10,
                       fontWeight: "700",
                       color: r.accent,
@@ -355,7 +355,7 @@ export default function SettingsScreen() {
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text
                     style={{
-                      fontFamily: "Outfit",
+                      fontFamily: fonts.bodyBold,
                       fontSize: 9.5,
                       fontWeight: "700",
                       letterSpacing: 9.5 * 0.13,
@@ -367,7 +367,7 @@ export default function SettingsScreen() {
                   </Text>
                   <Text
                     style={{
-                      fontFamily: "Outfit",
+                      fontFamily: fonts.bodyExtraBold,
                       fontSize: 15,
                       fontWeight: "800",
                       color: colors.textPrimary,
@@ -376,7 +376,7 @@ export default function SettingsScreen() {
                   </Text>
                   <Text
                     style={{
-                      fontFamily: "Outfit",
+                      fontFamily: fonts.bodyExtraBold,
                       fontSize: 11.5,
                       color: colors.textSecondary,
                       marginTop: 1,
@@ -463,7 +463,7 @@ export default function SettingsScreen() {
                 paddingTop: 24,
                 paddingHorizontal: 20,
                 textAlign: "center",
-                fontFamily: "Outfit",
+                fontFamily: fonts.body,
                 fontSize: 11,
                 color: "rgba(255,255,255,0.22)",
                 letterSpacing: 11 * 0.04,

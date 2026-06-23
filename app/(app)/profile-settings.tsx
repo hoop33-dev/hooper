@@ -32,7 +32,7 @@ import { PhotoSourceSheet } from "@/src/components/profile/PhotoSourceSheet";
 import { ErrorBanner } from "@/src/components/ui/ErrorBanner";
 import { SelectInput } from "@/src/components/ui/SelectInput";
 import { roleConfig } from "@/src/constants/roles";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 import { useGuardianControls } from "@/src/hooks/useGuardianControls";
 import { useRegionOptions } from "@/src/hooks/useRegionOptions";
@@ -67,7 +67,7 @@ function BackButton({ onPress }: { onPress: () => void }) {
       </Svg>
       <Text
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.bodyMedium,
           fontSize: 13,
           fontWeight: "500",
           color: colors.textTertiary,
@@ -82,7 +82,7 @@ function SectionLabel({ children }: { children: string }) {
   return (
     <Text
       style={{
-        fontFamily: "Outfit",
+        fontFamily: fonts.bodyBold,
         fontSize: 11,
         fontWeight: "700",
         letterSpacing: 11 * 0.14,
@@ -106,7 +106,7 @@ function FieldLabel({
   return (
     <Text
       style={{
-        fontFamily: "Outfit",
+        fontFamily: fonts.bodyMedium,
         fontSize: 10,
         fontWeight: "500",
         letterSpacing: 10 * 0.12,
@@ -173,7 +173,7 @@ function TextField({
       {prefix ? (
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.body,
             fontSize: 15,
             color: colors.textTertiary,
             marginRight: 2,
@@ -198,7 +198,7 @@ function TextField({
         blurOnSubmit={!multiline}
         style={{
           flex: 1,
-          fontFamily: "Outfit",
+          fontFamily: fonts.body,
           fontSize: 15,
           color: colors.textPrimary,
           textAlignVertical: multiline ? "top" : "center",
@@ -258,7 +258,7 @@ function ToggleRow({
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodySemi,
             fontSize: 14.5,
             fontWeight: "600",
             color: colors.textPrimary,
@@ -268,7 +268,7 @@ function ToggleRow({
         </Text>
         <Text
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodySemi,
             fontSize: 12,
             color: colors.textTertiary,
             lineHeight: 17,
@@ -559,7 +559,7 @@ export default function ProfileSettingsScreen() {
     ) : usernameStatus === "available" ? (
       <CheckIcon size={14} color={colors.success} />
     ) : usernameStatus === "taken" ? (
-      <Text style={{ fontFamily: "Outfit", fontSize: 11, color: colors.danger }}>
+      <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.danger }}>
         Taken
       </Text>
     ) : null;
@@ -594,7 +594,7 @@ export default function ProfileSettingsScreen() {
           <BackButton onPress={() => router.back()} />
           <Text
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.headingBlack,
               fontSize: 26,
               fontWeight: "900",
               color: colors.textPrimary,
@@ -672,7 +672,7 @@ export default function ProfileSettingsScreen() {
               <Pressable onPress={handleChangePhoto} accessibilityRole="button">
                 <Text
                   style={{
-                    fontFamily: "Outfit",
+                    fontFamily: fonts.bodyBold,
                     fontSize: 12,
                     fontWeight: "700",
                     color: r.accent,
@@ -749,7 +749,7 @@ export default function ProfileSettingsScreen() {
                 {errors.username ? (
                   <Text
                     style={{
-                      fontFamily: "Outfit",
+                      fontFamily: fonts.body,
                       fontSize: 11,
                       color: colors.danger,
                       marginTop: 4,
@@ -886,7 +886,7 @@ export default function ProfileSettingsScreen() {
               <LockIcon size={15} color={colors.textSecondary} />
               <Text
                 style={{
-                  fontFamily: "Outfit",
+                  fontFamily: fonts.bodyBold,
                   fontSize: 15,
                   fontWeight: "700",
                   color: colors.textSecondary,
@@ -899,7 +899,7 @@ export default function ProfileSettingsScreen() {
           ) : (
             <Text
               style={{
-                fontFamily: "Outfit",
+                fontFamily: fonts.bodyBold,
                 fontSize: 15,
                 fontWeight: "700",
                 color: "#fff",

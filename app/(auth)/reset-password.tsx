@@ -19,7 +19,7 @@ import {
   BackButton,
   ErrorBanner,
 } from "@/src/components/ui";
-import { shadows } from "@/src/constants/theme";
+import { shadows, fonts} from "@/src/constants/theme";
 import { validatePassword } from "@/src/lib/passwordRules";
 import {
   exchangeResetCode,
@@ -108,9 +108,9 @@ export default function ResetPasswordScreen() {
           <Text
             className="mb-1 font-black text-white"
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.headingBlack,
               fontSize: 28,
-              letterSpacing: 28 * -0.03,
+              letterSpacing: 28 * 0.015,
               lineHeight: 28 * 1.1,
             }}
           >
@@ -118,7 +118,7 @@ export default function ResetPasswordScreen() {
           </Text>
           <Text
             className="text-text-secondary text-[14px]"
-            style={{ fontFamily: "Outfit", lineHeight: 14 * 1.5 }}
+            style={{ fontFamily: fonts.body, lineHeight: 14 * 1.5 }}
           >
             {done
               ? "Your password has been updated."
@@ -150,7 +150,7 @@ export default function ResetPasswordScreen() {
               <ActivityIndicator color="#fff" />
               <Text
                 className="text-text-secondary mt-3 text-[14px]"
-                style={{ fontFamily: "Outfit" }}
+                style={{ fontFamily: fonts.body }}
               >
                 Verifying reset link…
               </Text>

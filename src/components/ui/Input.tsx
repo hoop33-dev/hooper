@@ -6,7 +6,7 @@ import {
   type TextInputProps,
   type TextInput as RNTextInput,
 } from "react-native";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 
 type InputProps = Omit<TextInputProps, "style"> & {
   label?: string;
@@ -46,7 +46,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
         <Text
           className={error || hasError ? "text-danger" : "text-text-tertiary"}
           style={{
-            fontFamily: "Outfit",
+            fontFamily: fonts.bodyMedium,
             fontWeight: "500",
             fontSize: 10,
             letterSpacing: 10 * 0.12,
@@ -62,7 +62,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
         underlineColorAndroid="transparent"
         className={`bg-surface-2 rounded-lg border ${borderClass} ${inputClassName}`}
         style={{
-          fontFamily: "Outfit",
+          fontFamily: fonts.body,
           fontSize: 15,
           color: "rgba(255,255,255,0.85)",
           paddingHorizontal: 20,
@@ -83,14 +83,14 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
       {error ? (
         <Text
           className="text-danger"
-          style={{ fontFamily: "Outfit", fontSize: 11 }}
+          style={{ fontFamily: fonts.body, fontSize: 11 }}
         >
           {error}
         </Text>
       ) : hint ? (
         <Text
           className="text-text-tertiary"
-          style={{ fontFamily: "Outfit", fontSize: 11 }}
+          style={{ fontFamily: fonts.body, fontSize: 11 }}
         >
           {hint}
         </Text>

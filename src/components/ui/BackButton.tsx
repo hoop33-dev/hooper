@@ -1,6 +1,6 @@
 import { Pressable, Text } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 
 type BackButtonProps = {
   label?: string;
@@ -30,7 +30,7 @@ export function BackButton({
       </Svg>
       <Text
         className="text-text-tertiary text-[13px]"
-        style={{ fontFamily: "Outfit" }}
+        style={{ fontFamily: fonts.body }}
       >
         {label}
       </Text>

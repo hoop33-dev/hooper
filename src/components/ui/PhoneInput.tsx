@@ -2,6 +2,7 @@ import { forwardRef } from "react";
 import { View, Text, type TextInput as RNTextInput } from "react-native";
 import { Input } from "./Input";
 import { ErrorMessage } from "./ErrorMessage";
+import { fonts } from "@/src/constants/theme";
 
 type PhoneInputProps = {
   label?: string;
@@ -38,7 +39,7 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
               error ? "text-danger uppercase" : "text-text-tertiary uppercase"
             }
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.bodyMedium,
               fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.12,
@@ -55,7 +56,7 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
           >
             <Text
               className="text-text-secondary text-[15px] font-medium"
-              style={{ fontFamily: "Outfit" }}
+              style={{ fontFamily: fonts.body }}
             >
               {countryCode}
             </Text>

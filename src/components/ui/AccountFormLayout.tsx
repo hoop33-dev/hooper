@@ -10,7 +10,7 @@ import { styled } from "nativewind";
 
 import { BackButton } from "./BackButton";
 import { ErrorBanner } from "./ErrorBanner";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts} from "@/src/constants/theme";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -65,7 +65,7 @@ export function AccountFormLayout({
             <Text
               className="mb-2 text-[10px] font-medium uppercase"
               style={{
-                fontFamily: "Outfit",
+                fontFamily: fonts.body,
                 letterSpacing: 10 * 0.14,
                 color: accentColor,
               }}
@@ -77,9 +77,9 @@ export function AccountFormLayout({
           <Text
             className="text-text-primary mb-1 font-black"
             style={{
-              fontFamily: "Outfit",
+              fontFamily: fonts.headingBlack,
               fontSize: 26,
-              letterSpacing: 26 * -0.03,
+              letterSpacing: 26 * 0.015,
               lineHeight: 26 * 1.12,
             }}
           >
@@ -88,7 +88,7 @@ export function AccountFormLayout({
 
           <Text
             className="text-text-secondary text-[13px]"
-            style={{ fontFamily: "Outfit", lineHeight: 13 * 1.5 }}
+            style={{ fontFamily: fonts.body, lineHeight: 13 * 1.5 }}
           >
             {subtitle}
           </Text>
@@ -139,7 +139,7 @@ export function AccountFormLayout({
                 ) : (
                   <Text
                     style={{
-                      fontFamily: "Outfit",
+                      fontFamily: fonts.bodyBold,
                       fontWeight: "700",
                       fontSize: 15,
                       letterSpacing: 15 * 0.08,

@@ -132,7 +132,6 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
               }
               style={{
                 fontFamily: fonts.bodyMedium,
-                fontWeight: "500",
                 fontSize: 10,
                 letterSpacing: 10 * 0.12,
               }}

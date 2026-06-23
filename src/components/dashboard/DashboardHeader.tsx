@@ -47,7 +47,6 @@ export function DashboardHeader({
             fontFamily: fonts.bodyMedium,
             fontSize: 11.5,
             color: colors.textTertiary,
-            fontWeight: "500",
             letterSpacing: 11.5 * 0.04,
             marginBottom: 2,
           }}
@@ -59,7 +58,6 @@ export function DashboardHeader({
           style={{
             fontFamily: fonts.bodyExtraBold,
             fontSize: 18,
-            fontWeight: "800",
             color: colors.textPrimary,
             letterSpacing: -18 * 0.02,
             lineHeight: 18 * 1.1,

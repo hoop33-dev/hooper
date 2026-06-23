@@ -40,7 +40,6 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
             }
             style={{
               fontFamily: fonts.bodyMedium,
-              fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.12,
             }}

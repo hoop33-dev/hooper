@@ -69,7 +69,6 @@ function BackButton({ onPress }: { onPress: () => void }) {
         style={{
           fontFamily: fonts.bodyMedium,
           fontSize: 13,
-          fontWeight: "500",
           color: colors.textTertiary,
         }}>
         Profile
@@ -84,7 +83,6 @@ function SectionLabel({ children }: { children: string }) {
       style={{
         fontFamily: fonts.bodyBold,
         fontSize: 11,
-        fontWeight: "700",
         letterSpacing: 11 * 0.14,
         textTransform: "uppercase",
         color: colors.textSecondary,
@@ -108,7 +106,6 @@ function FieldLabel({
       style={{
         fontFamily: fonts.bodyMedium,
         fontSize: 10,
-        fontWeight: "500",
         letterSpacing: 10 * 0.12,
         textTransform: "uppercase",
         color: error ? colors.danger : colors.textTertiary,
@@ -260,7 +257,6 @@ function ToggleRow({
           style={{
             fontFamily: fonts.bodySemi,
             fontSize: 14.5,
-            fontWeight: "600",
             color: colors.textPrimary,
             marginBottom: 2,
           }}>
@@ -596,7 +592,6 @@ export default function ProfileSettingsScreen() {
             style={{
               fontFamily: fonts.headingBlack,
               fontSize: 26,
-              fontWeight: "900",
               color: colors.textPrimary,
               letterSpacing: -26 * 0.03,
             }}>
@@ -674,7 +669,6 @@ export default function ProfileSettingsScreen() {
                   style={{
                     fontFamily: fonts.bodyBold,
                     fontSize: 12,
-                    fontWeight: "700",
                     color: r.accent,
                     borderWidth: 1,
                     borderColor: `${r.accent}40`,
@@ -888,7 +882,6 @@ export default function ProfileSettingsScreen() {
                 style={{
                   fontFamily: fonts.bodyBold,
                   fontSize: 15,
-                  fontWeight: "700",
                   color: colors.textSecondary,
                 }}>
                 Locked by guardian
@@ -901,7 +894,6 @@ export default function ProfileSettingsScreen() {
               style={{
                 fontFamily: fonts.bodyBold,
                 fontSize: 15,
-                fontWeight: "700",
                 color: "#fff",
               }}>
               Save changes

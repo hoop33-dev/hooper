@@ -65,7 +65,6 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
               }
               style={{
                 fontFamily: fonts.bodyMedium,
-                fontWeight: "500",
                 fontSize: 10,
                 letterSpacing: 10 * 0.12,
               }}

@@ -185,7 +185,6 @@ function SuccessView({
         <Text
           style={{
             fontFamily: fonts.heading,
-            fontWeight: "700",
             fontSize: 22,
             color: colors.textPrimary,
             marginBottom: 8,
@@ -229,7 +228,6 @@ function SuccessView({
           <Text
             style={{
               fontFamily: fonts.bodySemi,
-              fontWeight: "600",
               fontSize: 15,
               color: colors.textPrimary,
             }}>
@@ -412,7 +410,6 @@ export default function VerifyEmailScreen() {
               style={{
                 fontFamily: fonts.bodyMedium,
                 fontSize: 10,
-                fontWeight: "500",
                 letterSpacing: 10 * 0.14,
                 textTransform: "uppercase",
                 color: accent,
@@ -464,7 +461,6 @@ export default function VerifyEmailScreen() {
                 <Text
                   style={{
                     fontFamily: fonts.heading,
-                    fontWeight: "700",
                     fontSize: 22,
                     color: colors.textPrimary,
                     marginBottom: 8,
@@ -481,7 +477,7 @@ export default function VerifyEmailScreen() {
                   }}>
                   We sent a 6-digit code to{"\n"}
                   <Text
-                    style={{ color: colors.textPrimary, fontWeight: "500" }}>
+                    style={{ fontFamily: fonts.bodyMedium, color: colors.textPrimary }}>
                     {maskedEmail}
                   </Text>
                 </Text>
@@ -531,7 +527,6 @@ export default function VerifyEmailScreen() {
                       color: errorMsg ? colors.danger : colors.textPrimary,
                       fontSize: 24,
                       fontFamily: fonts.bodySemi,
-                      fontWeight: "600",
                       textAlign: "center",
                     }}
                   />
@@ -585,7 +580,6 @@ export default function VerifyEmailScreen() {
                 <Text
                   style={{
                     fontFamily: fonts.bodySemi,
-                    fontWeight: "600",
                     fontSize: 15,
                     color: isComplete
                       ? colors.textPrimary
@@ -623,7 +617,6 @@ export default function VerifyEmailScreen() {
                     }
                     style={{
                       fontFamily: fonts.bodySemi,
-                      fontWeight: "600",
                       fontSize: 13,
                       color:
                         resendCooldown > 0

@@ -128,7 +128,6 @@ export function RadioTile({
           <Text
             style={{
               fontFamily: fonts.bodyMedium,
-              fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.14,
               textTransform: "uppercase",
@@ -143,7 +142,6 @@ export function RadioTile({
           <Text
             style={{
               fontFamily: fonts.headingBlack,
-              fontWeight: "800",
               fontSize: 22,
               letterSpacing: 22 * 0.015,
               color: colors.textPrimary,
@@ -158,7 +156,6 @@ export function RadioTile({
           <Text
             style={{
               fontFamily: fonts.body,
-              fontWeight: "400",
               fontSize: 13,
               lineHeight: 13 * 1.55,
               color: colors.textSecondary,

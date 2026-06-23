@@ -99,7 +99,6 @@ function SuccessView({
           <Text
             style={{
               fontFamily: fonts.heading,
-              fontWeight: "700",
               fontSize: 22,
               color: colors.textPrimary,
             }}>
@@ -137,7 +136,6 @@ function SuccessView({
             <Text
               style={{
                 fontFamily: fonts.bodyBold,
-                fontWeight: "700",
                 fontSize: 15,
                 letterSpacing: 15 * 0.08,
                 textTransform: "uppercase",
@@ -160,7 +158,6 @@ function SuccessView({
             <Text
               style={{
                 fontFamily: fonts.bodySemi,
-                fontWeight: "600",
                 fontSize: 15,
                 color: colors.textSecondary,
               }}>

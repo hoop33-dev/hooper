@@ -46,7 +46,6 @@ function SectionLabel({ children }: { children: string }) {
       style={{
         fontFamily: fonts.bodyBold,
         fontSize: 11,
-        fontWeight: "700",
         letterSpacing: 11 * 0.14,
         textTransform: "uppercase",
         color: colors.textSecondary,
@@ -70,7 +69,6 @@ function FieldLabel({
       style={{
         fontFamily: fonts.bodyMedium,
         fontSize: 10,
-        fontWeight: "500",
         letterSpacing: 10 * 0.12,
         textTransform: "uppercase",
         color: error ? colors.danger : colors.textTertiary,
@@ -223,7 +221,6 @@ function ManageHeader({ onBack }: { onBack: () => void }) {
           style={{
             fontFamily: fonts.bodyMedium,
             fontSize: 13,
-            fontWeight: "500",
             color: colors.textTertiary,
           }}>
           Children
@@ -233,7 +230,6 @@ function ManageHeader({ onBack }: { onBack: () => void }) {
         style={{
           fontFamily: fonts.bodyMedium,
           fontSize: 26,
-          fontWeight: "900",
           color: colors.textPrimary,
           letterSpacing: -26 * 0.03,
         }}>
@@ -283,7 +279,6 @@ function ChildSegment({
             style={{
               fontFamily: fonts.bodyBold,
               fontSize: 13,
-              fontWeight: "700",
               color: tab === t.id ? "#fff" : colors.textSecondary,
             }}>
             {t.label}
@@ -331,7 +326,6 @@ function IdentityCard({
           style={{
             fontFamily: fonts.bodyExtraBold,
             fontSize: 17,
-            fontWeight: "800",
             color: colors.textPrimary,
             letterSpacing: -17 * 0.02,
           }}>
@@ -360,7 +354,6 @@ function IdentityCard({
           style={{
             fontFamily: fonts.bodyBold,
             fontSize: 9.5,
-            fontWeight: "700",
             letterSpacing: 9.5 * 0.12,
             color: colors.success,
             textTransform: "uppercase",
@@ -481,7 +474,6 @@ function AvatarEditor({
           style={{
             fontFamily: fonts.bodyBold,
             fontSize: 12,
-            fontWeight: "700",
             color: PARENT.accent,
             borderWidth: 1,
             borderColor: `${PARENT.accent}40`,
@@ -608,7 +600,6 @@ function GuardianSection({
             style={{
               fontFamily: fonts.bodySemi,
               fontSize: 14.5,
-              fontWeight: "600",
               color: colors.textPrimary,
               marginBottom: 2,
             }}>
@@ -728,7 +719,6 @@ function BillingPlanCard() {
         style={{
           fontFamily: fonts.bodyBold,
           fontSize: 9.5,
-          fontWeight: "700",
           letterSpacing: 9.5 * 0.14,
           color: PARENT.accent,
           textTransform: "uppercase",
@@ -740,7 +730,6 @@ function BillingPlanCard() {
         style={{
           fontFamily: fonts.headingBlack,
           fontSize: 22,
-          fontWeight: "900",
           color: colors.textPrimary,
           letterSpacing: -22 * 0.03,
           marginBottom: 4,
@@ -791,7 +780,6 @@ function BillingComingSoon({ firstName }: { firstName: string }) {
           style={{
             fontFamily: fonts.bodySemi,
             fontSize: 13.5,
-            fontWeight: "600",
             color: colors.textPrimary,
             marginBottom: 2,
           }}>
@@ -872,7 +860,6 @@ function SaveBar({
             style={{
               fontFamily: fonts.bodyBold,
               fontSize: 15,
-              fontWeight: "700",
               color: "#fff",
             }}>
             Save changes

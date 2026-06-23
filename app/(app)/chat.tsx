@@ -22,7 +22,6 @@ export default function ChatScreen() {
           style={{
             fontFamily: fonts.headingBlack,
             fontSize: 22,
-            fontWeight: "800",
             color: colors.textPrimary,
             letterSpacing: -22 * 0.02,
             marginBottom: 8,

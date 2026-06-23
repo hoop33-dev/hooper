@@ -55,7 +55,6 @@ export function TextButton({
       <Text
         style={{
           fontFamily: fonts.body,
-          fontWeight: weightMap[weight] as "400" | "500" | "600" | "700",
           fontSize: size,
           color,
           textDecorationLine: underline ? "underline" : "none",

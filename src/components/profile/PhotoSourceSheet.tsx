@@ -154,7 +154,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.bodyExtraBold,
     fontSize: 18,
-    fontWeight: "800",
     color: colors.textPrimary,
     marginBottom: 4,
   },
@@ -186,7 +185,6 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontFamily: fonts.bodySemi,
     fontSize: 15,
-    fontWeight: "600",
     color: colors.textPrimary,
   },
   cancel: {
@@ -202,7 +200,6 @@ const styles = StyleSheet.create({
   cancelLabel: {
     fontFamily: fonts.bodyBold,
     fontSize: 15,
-    fontWeight: "700",
     color: colors.textSecondary,
   },
 });

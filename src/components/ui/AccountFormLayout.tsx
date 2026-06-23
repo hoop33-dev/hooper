@@ -140,7 +140,6 @@ export function AccountFormLayout({
                   <Text
                     style={{
                       fontFamily: fonts.bodyBold,
-                      fontWeight: "700",
                       fontSize: 15,
                       letterSpacing: 15 * 0.08,
                       textTransform: "uppercase",

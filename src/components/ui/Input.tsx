@@ -47,7 +47,6 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
           className={error || hasError ? "text-danger" : "text-text-tertiary"}
           style={{
             fontFamily: fonts.bodyMedium,
-            fontWeight: "500",
             fontSize: 10,
             letterSpacing: 10 * 0.12,
             textTransform: "uppercase",

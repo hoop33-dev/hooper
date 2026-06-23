@@ -53,7 +53,6 @@ function ViewAsButton({
         style={{
           fontFamily: fonts.bodyBold,
           fontSize: 11.5,
-          fontWeight: "700",
           color: PARENT_ACCENT,
         }}>
         View as
@@ -100,7 +99,6 @@ function ChildCard({
               style={{
                 fontFamily: fonts.bodyExtraBold,
                 fontSize: 15,
-                fontWeight: "800",
                 color: colors.textPrimary,
                 letterSpacing: -15 * 0.02,
               }}>
@@ -172,7 +170,6 @@ function AddChildButton({ onPress }: { onPress: () => void }) {
         style={{
           fontFamily: fonts.bodyBold,
           fontSize: 14,
-          fontWeight: "700",
           color: PARENT_ACCENT,
         }}>
         Add another child
@@ -200,7 +197,6 @@ function ChildrenSection({
         style={{
           fontFamily: fonts.bodyBold,
           fontSize: 11,
-          fontWeight: "700",
           letterSpacing: 11 * 0.13,
           color: colors.textSecondary,
           textTransform: "uppercase",

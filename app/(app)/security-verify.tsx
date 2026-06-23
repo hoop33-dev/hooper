@@ -235,7 +235,6 @@ function OtpInputRow({
               color: errorMsg ? colors.danger : colors.textPrimary,
               fontSize: 24,
               fontFamily: fonts.bodySemi,
-              fontWeight: "600",
               textAlign: "center",
             }}
           />
@@ -327,7 +326,7 @@ function ResendRow({
           <Text
             onPress={cooldown > 0 || isResending ? undefined : onResend}
             style={{
-              fontWeight: "600",
+              fontFamily: fonts.bodySemi,
               fontSize: 13,
               color: cooldown > 0 ? colors.textTertiary : colors.brandOrange,
             }}>
@@ -378,7 +377,6 @@ function VerifyButton({ isComplete, isVerifying, onPress }: VerifyButtonProps) {
         <Text
           style={{
             fontFamily: fonts.bodySemi,
-            fontWeight: "600",
             fontSize: 15,
             color: isComplete ? colors.textPrimary : colors.textTertiary,
           }}>
@@ -399,7 +397,6 @@ function VerifyPageHeader({ onBack }: { onBack: () => void }) {
         <Text
           style={{
             fontFamily: fonts.headingBlack,
-            fontWeight: "900",
             fontSize: 28,
             color: colors.textPrimary,
             letterSpacing: 28 * 0.015,
@@ -420,7 +417,6 @@ function EmailPromptSection({ maskedEmail }: { maskedEmail: string }) {
         <Text
           style={{
             fontFamily: fonts.heading,
-            fontWeight: "700",
             fontSize: 22,
             color: colors.textPrimary,
             marginBottom: 8,
@@ -436,7 +432,7 @@ function EmailPromptSection({ maskedEmail }: { maskedEmail: string }) {
             textAlign: "center",
           }}>
           {"We sent a 6-digit code to "}
-          <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>
+          <Text style={{ fontFamily: fonts.bodySemi, color: colors.textPrimary }}>
             {maskedEmail || "your email"}
           </Text>
           {". Enter it below."}

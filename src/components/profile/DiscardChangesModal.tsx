@@ -67,7 +67,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.bodyExtraBold,
     fontSize: 19,
-    fontWeight: "800",
     color: colors.textPrimary,
     marginBottom: 8,
   },
@@ -89,7 +88,6 @@ const styles = StyleSheet.create({
   discardLabel: {
     fontFamily: fonts.bodyBold,
     fontSize: 15,
-    fontWeight: "700",
     color: "#fff",
   },
   keep: {
@@ -103,7 +101,6 @@ const styles = StyleSheet.create({
   keepLabel: {
     fontFamily: fonts.bodyBold,
     fontSize: 15,
-    fontWeight: "700",
     color: colors.textPrimary,
   },
 });

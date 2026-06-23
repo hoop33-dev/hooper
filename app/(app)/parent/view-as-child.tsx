@@ -192,12 +192,11 @@ function ViewAsBanner({
           flex: 1,
           fontFamily: fonts.bodyBold,
           fontSize: 12.5,
-          fontWeight: "700",
           color: "#3A1F12",
           letterSpacing: -12.5 * 0.01,
         }}>
         Viewing as{" "}
-        <Text style={{ fontWeight: "800" }}>{firstName || "athlete"}</Text>
+        <Text style={{ fontFamily: fonts.bodyExtraBold }}>{firstName || "athlete"}</Text>
       </Text>
       <Pressable
         onPress={onExit}
@@ -218,7 +217,6 @@ function ViewAsBanner({
           style={{
             fontFamily: fonts.bodyBold,
             fontSize: 12,
-            fontWeight: "700",
             color: "#FBD9C9",
           }}>
           Exit
@@ -242,7 +240,6 @@ function ChatTab() {
         style={{
           fontFamily: fonts.headingBlack,
           fontSize: 22,
-          fontWeight: "800",
           color: colors.textPrimary,
           letterSpacing: -22 * 0.02,
           marginBottom: 8,
@@ -306,7 +303,6 @@ function PreviewRow({
           style={{
             fontFamily: fonts.bodySemi,
             fontSize: 14.5,
-            fontWeight: "600",
             color: colors.textPrimary,
             marginBottom: sub ? 2 : 0,
           }}>
@@ -371,7 +367,6 @@ function SettingsIdentity({
         style={{
           fontFamily: fonts.bodyExtraBold,
           fontSize: 20,
-          fontWeight: "800",
           color: colors.textPrimary,
           letterSpacing: -20 * 0.02,
           marginTop: 14,
@@ -384,7 +379,6 @@ function SettingsIdentity({
           style={{
             fontFamily: fonts.bodySemi,
             fontSize: 12,
-            fontWeight: "600",
             color: PLAYER.accent,
             letterSpacing: 12 * 0.06,
           }}>
@@ -417,7 +411,6 @@ function SettingsTab({
           style={{
             fontFamily: fonts.headingBlack,
             fontSize: 22,
-            fontWeight: "900",
             color: colors.textPrimary,
             letterSpacing: -22 * 0.03,
           }}>
@@ -520,7 +513,6 @@ function LocalNav({
               style={{
                 fontFamily: fonts.body,
                 fontSize: 10,
-                fontWeight: isActive ? "700" : "500",
                 letterSpacing: 10 * 0.05,
                 color,
                 textTransform: "uppercase",

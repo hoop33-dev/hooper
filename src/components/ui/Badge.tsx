@@ -71,7 +71,6 @@ export function Badge({
         className={s.text}
         style={{
           fontFamily: fonts.bodySemi,
-          fontWeight: "600",
           fontSize: 11,
           letterSpacing: 11 * 0.04,
         }}
@@ -97,7 +96,6 @@ export function Tag({
         className="text-text-secondary"
         style={{
           fontFamily: fonts.bodyMedium,
-          fontWeight: "500",
           fontSize: 11,
         }}
       >
@@ -114,7 +112,6 @@ export function NumberBadge({ count }: { count: number | string }) {
       <Text
         style={{
           fontFamily: fonts.bodyBold,
-          fontWeight: "700",
           fontSize: 11,
           color: colors.textPrimary,
         }}

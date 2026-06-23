@@ -43,7 +43,6 @@ export function ErrorBanner({
         <Text
           style={{
             fontFamily: fonts.bodySemi,
-            fontWeight: "600",
             fontSize: 14,
             color: s.titleColor,
           }}

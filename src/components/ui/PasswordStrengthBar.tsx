@@ -31,7 +31,6 @@ export function PasswordStrengthBar({ value }: Props) {
         style={{
           fontFamily: fonts.bodySemi,
           fontSize: 11,
-          fontWeight: "600",
           color: strength.color,
         }}
       >

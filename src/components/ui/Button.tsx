@@ -120,7 +120,6 @@ export function Button({
         <Text
           style={{
             fontFamily: fonts.bodyBold,
-            fontWeight: "700",
             fontSize: sizeText[size],
             letterSpacing: sizeText[size] * 0.08,
             textTransform: "uppercase",

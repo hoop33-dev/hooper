@@ -18,6 +18,7 @@ import {
   type SelectInputHandle,
 } from "@/src/components/ui";
 import { NZ_REGIONS } from "@/src/constants/regions";
+import { fonts } from "@/src/constants/theme";
 import { ROLES, type RoleId } from "@/src/constants/roles";
 import { validatePassword } from "@/src/lib/passwordRules";
 import { signUp } from "@/src/services/auth.service";
@@ -167,7 +168,7 @@ export default function SignupDetailsScreen() {
       subtitle={
         <>
           {"Signing up as a "}
-          <Text style={{ color: accent, fontWeight: "600" }}>
+          <Text style={{ fontFamily: fonts.bodySemi, color: accent }}>
             {roleConfig.title}
           </Text>
         </>

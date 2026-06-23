@@ -91,7 +91,6 @@ function MenuRow({
           style={{
             fontFamily: fonts.bodySemi,
             fontSize: 14.5,
-            fontWeight: "600",
             color: danger ? colors.danger : colors.textPrimary,
             marginBottom: sub ? 2 : 0,
           }}>
@@ -124,7 +123,6 @@ function SectionHead({ title }: { title: string }) {
         style={{
           fontFamily: fonts.bodyBold,
           fontSize: 11,
-          fontWeight: "700",
           letterSpacing: 11 * 0.13,
           color: colors.textSecondary,
           textTransform: "uppercase",
@@ -179,7 +177,6 @@ export default function SettingsScreen() {
             style={{
               fontFamily: fonts.headingBlack,
               fontSize: 22,
-              fontWeight: "900",
               color: colors.textPrimary,
               letterSpacing: -22 * 0.03,
             }}>
@@ -244,7 +241,6 @@ export default function SettingsScreen() {
                 style={{
                   fontFamily: fonts.bodyExtraBold,
                   fontSize: 20,
-                  fontWeight: "800",
                   color: colors.textPrimary,
                   letterSpacing: -20 * 0.02,
                   marginTop: 14,
@@ -257,7 +253,6 @@ export default function SettingsScreen() {
                   style={{
                     fontFamily: fonts.bodySemi,
                     fontSize: 12,
-                    fontWeight: "600",
                     color: r.accent,
                     letterSpacing: 12 * 0.06,
                   }}>
@@ -284,7 +279,6 @@ export default function SettingsScreen() {
                       style={{
                         fontFamily: fonts.bodySemi,
                         fontSize: 11,
-                        fontWeight: "600",
                         color: colors.textSecondary,
                       }}>
                       {user.regionName}
@@ -304,7 +298,6 @@ export default function SettingsScreen() {
                     style={{
                       fontFamily: fonts.bodyBold,
                       fontSize: 10,
-                      fontWeight: "700",
                       color: r.accent,
                       letterSpacing: 10 * 0.1,
                       textTransform: "uppercase",
@@ -357,7 +350,6 @@ export default function SettingsScreen() {
                     style={{
                       fontFamily: fonts.bodyBold,
                       fontSize: 9.5,
-                      fontWeight: "700",
                       letterSpacing: 9.5 * 0.13,
                       color: r.accent,
                       textTransform: "uppercase",
@@ -369,7 +361,6 @@ export default function SettingsScreen() {
                     style={{
                       fontFamily: fonts.bodyExtraBold,
                       fontSize: 15,
-                      fontWeight: "800",
                       color: colors.textPrimary,
                     }}>
                     {r.planName}

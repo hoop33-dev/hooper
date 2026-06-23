@@ -74,7 +74,6 @@ function SectionHead({ title }: { title: string }) {
       style={{
         fontFamily: fonts.bodyBold,
         fontSize: 10,
-        fontWeight: "700",
         letterSpacing: 10 * 0.14,
         textTransform: "uppercase",
         color: colors.textTertiary,
@@ -136,7 +135,6 @@ function SendEmailButton({
           <Text
             style={{
               fontFamily: fonts.bodySemi,
-              fontWeight: "600",
               fontSize: 15,
               color: "#fff",
             }}>
@@ -189,7 +187,6 @@ function PasswordCard({
           <Text
             style={{
               fontFamily: fonts.bodyBold,
-              fontWeight: "700",
               fontSize: 15,
               color: colors.textPrimary,
               marginBottom: 4,
@@ -205,7 +202,7 @@ function PasswordCard({
                 lineHeight: 13 * 1.55,
               }}>
               {"We'll send a verification code to "}
-              <Text style={{ fontWeight: "600", color: colors.textPrimary }}>
+              <Text style={{ fontFamily: fonts.bodySemi, color: colors.textPrimary }}>
                 {maskedEmail}
               </Text>
               {" to confirm it's you."}
@@ -257,7 +254,6 @@ function TwoFactorSection() {
           style={{
             fontFamily: fonts.bodySemi,
             fontSize: 14.5,
-            fontWeight: "600",
             color: colors.textPrimary,
             marginBottom: 2,
           }}>
@@ -284,7 +280,6 @@ function TwoFactorSection() {
           style={{
             fontFamily: fonts.bodyBold,
             fontSize: 9,
-            fontWeight: "700",
             letterSpacing: 9 * 0.12,
             textTransform: "uppercase",
             color: colors.textTertiary,
@@ -336,7 +331,6 @@ export default function SecurityScreen() {
           <Text
             style={{
               fontFamily: fonts.headingBlack,
-              fontWeight: "900",
               fontSize: 28,
               color: colors.textPrimary,
               letterSpacing: 28 * 0.015,

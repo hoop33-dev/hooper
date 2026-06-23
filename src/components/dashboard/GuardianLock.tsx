@@ -46,7 +46,6 @@ export function GuardianBanner({ kind = "profile" }: { kind?: LockKind }) {
           style={{
             fontFamily: fonts.bodyBold,
             fontSize: 13.5,
-            fontWeight: "700",
             color: colors.textPrimary,
           }}>
           Managed by your guardian
@@ -83,7 +82,6 @@ function GotItButton({ onClose }: { onClose: () => void }) {
         style={{
           fontFamily: fonts.bodyBold,
           fontSize: 14.5,
-          fontWeight: "700",
           color: "#fff",
         }}>
         Got it
@@ -126,7 +124,6 @@ function LockCard({ kind, onClose }: { kind: LockKind; onClose: () => void }) {
         style={{
           fontFamily: fonts.bodyExtraBold,
           fontSize: 17,
-          fontWeight: "800",
           color: colors.textPrimary,
           letterSpacing: -17 * 0.02,
           marginBottom: 8,

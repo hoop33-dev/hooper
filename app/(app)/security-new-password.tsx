@@ -137,7 +137,6 @@ function PasswordUpdatedView() {
       <Text
         style={{
           fontFamily: fonts.headingBlack,
-          fontWeight: "800",
           fontSize: 24,
           color: colors.textPrimary,
           textAlign: "center",
@@ -199,7 +198,6 @@ function NewPasswordFields({
         <Text
           style={{
             fontFamily: fonts.headingBlack,
-            fontWeight: "800",
             fontSize: 22,
             color: colors.textPrimary,
             letterSpacing: 22 * 0.015,
@@ -317,7 +315,6 @@ function NewPasswordHeader({ onBack }: { onBack: () => void }) {
       <Text
         style={{
           fontFamily: fonts.headingBlack,
-          fontWeight: "900",
           fontSize: 28,
           color: colors.textPrimary,
           letterSpacing: 28 * 0.015,

@@ -1,7 +1,7 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { type ReactNode } from "react";
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { roleConfig, type RoleId } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
@@ -40,8 +40,7 @@ export function DashboardLayout({
       </SafeAreaView>
       <SafeAreaView
         edges={["bottom"]}
-        style={{ backgroundColor: "rgba(20,17,18,0.92)" }}
-      >
+        style={{ backgroundColor: "rgba(20,17,18,0.92)" }}>
         <BottomNav active={activeTab} role={role} />
       </SafeAreaView>
     </View>

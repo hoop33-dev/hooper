@@ -1,4 +1,4 @@
-import { colors } from "@/src/constants/theme";
+import { colors, fonts } from "@/src/constants/theme";
 import { useState } from "react";
 import { Pressable, Text, type PressableProps } from "react-native";
 
@@ -53,7 +53,7 @@ export function TextButton({
       {...rest}>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: fonts.body,
           fontWeight: weightMap[weight] as "400" | "500" | "600" | "700",
           fontSize: size,
           color,

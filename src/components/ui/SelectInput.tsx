@@ -1,3 +1,4 @@
+import { fonts } from "@/src/constants/theme";
 import { styled } from "nativewind";
 import { forwardRef, useImperativeHandle, useState } from "react";
 import {
@@ -63,7 +64,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
                 error ? "text-danger uppercase" : "text-text-tertiary uppercase"
               }
               style={{
-                fontFamily: "Inter",
+                fontFamily: fonts.body,
                 fontWeight: "500",
                 fontSize: 10,
                 letterSpacing: 10 * 0.12,
@@ -78,7 +79,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
             style={{ height: 48 }}>
             <Text
               className={`flex-1 text-[15px] ${selected ? "text-text-primary" : "text-text-disabled"}`}
-              style={{ fontFamily: "Inter" }}
+              style={{ fontFamily: fonts.body }}
               numberOfLines={1}>
               {selected ? selected.label : placeholder}
             </Text>
@@ -115,7 +116,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
               {label && (
                 <Text
                   className="text-text-primary mb-2 text-[15px] font-semibold"
-                  style={{ fontFamily: "Inter" }}>
+                  style={{ fontFamily: fonts.body }}>
                   {label}
                 </Text>
               )}
@@ -141,7 +142,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
                     activeOpacity={0.7}>
                     <Text
                       className={`text-[15px] ${isSelected ? "text-brand-orange font-semibold" : "text-text-primary"}`}
-                      style={{ fontFamily: "Inter" }}>
+                      style={{ fontFamily: fonts.body }}>
                       {item.label}
                     </Text>
 

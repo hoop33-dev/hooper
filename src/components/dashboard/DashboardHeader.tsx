@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from "react-native";
 
-import { colors } from "@/src/constants/theme";
 import { roleConfig, type RoleId } from "@/src/constants/roles";
+import { colors, fonts } from "@/src/constants/theme";
 
 import { Avatar } from "./Avatar";
 import { BellIcon } from "./icons";
@@ -38,33 +38,30 @@ export function DashboardHeader({
         paddingTop: 6,
         paddingBottom: 22,
         gap: 12,
-      }}
-    >
+      }}>
       <Avatar role={role} size={42} initials={initials} imageUrl={imageUrl} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: fonts.body,
             fontSize: 11.5,
             color: colors.textTertiary,
             fontWeight: "500",
             letterSpacing: 11.5 * 0.04,
             marginBottom: 2,
-          }}
-        >
+          }}>
           {greeting()},
         </Text>
         <Text
           numberOfLines={1}
           style={{
-            fontFamily: "Inter",
+            fontFamily: fonts.body,
             fontSize: 18,
             fontWeight: "800",
             color: colors.textPrimary,
             letterSpacing: -18 * 0.02,
             lineHeight: 18 * 1.1,
-          }}
-        >
+          }}>
           {firstName}
         </Text>
       </View>
@@ -81,8 +78,7 @@ export function DashboardHeader({
           borderColor: colors.borderSubtle,
           alignItems: "center",
           justifyContent: "center",
-        }}
-      >
+        }}>
         <BellIcon size={18} color={colors.textSecondary} />
         <View
           style={{

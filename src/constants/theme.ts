@@ -101,8 +101,15 @@ export const shadows = {
   },
 } as const;
 
+/**
+ * Font families. The JS mirror of the typefaces used by the design system:
+ * Barlow Condensed for headings, Outfit for body/UI text. Components that
+ * can't render a Typography component (e.g. TextInput) reference `fonts.body`.
+ * Heading weights are registered as separate families (see Typography.tsx).
+ */
 export const fonts = {
-  inter: "Inter",
+  heading: "BarlowCondensed",
+  body: "Outfit",
 } as const;
 
 export const easing = {

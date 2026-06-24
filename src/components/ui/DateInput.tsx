@@ -1,3 +1,4 @@
+import { fonts } from "@/src/constants/theme";
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
@@ -130,7 +131,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
                 error ? "text-danger uppercase" : "text-text-tertiary uppercase"
               }
               style={{
-                fontFamily: "Inter",
+                fontFamily: fonts.body,
                 fontWeight: "500",
                 fontSize: 10,
                 letterSpacing: 10 * 0.12,
@@ -145,7 +146,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
             style={{ height: 48 }}>
             <Text
               className={`text-[15px] ${value ? "text-text-primary" : "text-text-disabled"}`}
-              style={{ fontFamily: "Inter" }}>
+              style={{ fontFamily: fonts.body }}>
               {value ? formatDate(value) : placeholder}
             </Text>
 
@@ -186,7 +187,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
                 <TouchableOpacity onPress={handleCancel} activeOpacity={0.7}>
                   <Text
                     className="text-[15px] text-white/50"
-                    style={{ fontFamily: "Inter" }}>
+                    style={{ fontFamily: fonts.body }}>
                     Cancel
                   </Text>
                 </TouchableOpacity>
@@ -196,7 +197,7 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
                 <TouchableOpacity onPress={handleDone} activeOpacity={0.7}>
                   <Text
                     className="text-brand-orange text-[15px] font-semibold"
-                    style={{ fontFamily: "Inter" }}>
+                    style={{ fontFamily: fonts.body }}>
                     Done
                   </Text>
                 </TouchableOpacity>

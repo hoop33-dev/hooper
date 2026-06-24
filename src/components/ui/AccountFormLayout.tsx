@@ -8,7 +8,7 @@ import {
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { colors } from "@/src/constants/theme";
+import { colors, fonts } from "@/src/constants/theme";
 import { BackButton } from "./BackButton";
 import { ErrorBanner } from "./ErrorBanner";
 
@@ -65,7 +65,7 @@ export function AccountFormLayout({
             <Text
               className="mb-2 text-[10px] font-medium uppercase"
               style={{
-                fontFamily: "Inter",
+                fontFamily: fonts.body,
                 letterSpacing: 10 * 0.14,
                 color: accentColor,
               }}>
@@ -76,7 +76,7 @@ export function AccountFormLayout({
           <Text
             className="text-text-primary mb-1 font-black"
             style={{
-              fontFamily: "Inter",
+              fontFamily: fonts.body,
               fontSize: 26,
               letterSpacing: 26 * -0.03,
               lineHeight: 26 * 1.12,
@@ -86,7 +86,7 @@ export function AccountFormLayout({
 
           <Text
             className="text-text-secondary text-[13px]"
-            style={{ fontFamily: "Inter", lineHeight: 13 * 1.5 }}>
+            style={{ fontFamily: fonts.body, lineHeight: 13 * 1.5 }}>
             {subtitle}
           </Text>
         </View>
@@ -134,7 +134,7 @@ export function AccountFormLayout({
                 ) : (
                   <Text
                     style={{
-                      fontFamily: "Inter",
+                      fontFamily: fonts.body,
                       fontWeight: "700",
                       fontSize: 15,
                       letterSpacing: 15 * 0.08,

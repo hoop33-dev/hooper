@@ -1,10 +1,10 @@
 import {
   colors,
-  radii,
-  spacing,
-  shadows,
-  fonts,
   easing,
+  fonts,
+  radii,
+  shadows,
+  spacing,
 } from "@/src/constants/theme";
 
 describe("theme", () => {
@@ -74,8 +74,9 @@ describe("theme", () => {
   });
 
   describe("fonts", () => {
-    it("exports the Inter font family name", () => {
-      expect(fonts.inter).toBe("Inter");
+    it("exports the heading and body font families", () => {
+      expect(fonts.heading).toBe("BarlowCondensed");
+      expect(fonts.body).toBe("Outfit");
     });
   });
 

@@ -1,6 +1,6 @@
 import { Modal, Pressable, Text, View } from "react-native";
 
-import { colors } from "@/src/constants/theme";
+import { colors, fonts } from "@/src/constants/theme";
 import { LockIcon } from "./icons";
 
 const PARENT_ACCENT = "#F68D68";
@@ -44,7 +44,7 @@ export function GuardianBanner({ kind = "profile" }: { kind?: LockKind }) {
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: fonts.body,
             fontSize: 13.5,
             fontWeight: "700",
             color: colors.textPrimary,
@@ -53,7 +53,7 @@ export function GuardianBanner({ kind = "profile" }: { kind?: LockKind }) {
         </Text>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: fonts.body,
             fontSize: 12,
             color: colors.textSecondary,
             lineHeight: 17,
@@ -81,7 +81,7 @@ function GotItButton({ onClose }: { onClose: () => void }) {
       }}>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: fonts.body,
           fontSize: 14.5,
           fontWeight: "700",
           color: "#fff",
@@ -124,7 +124,7 @@ function LockCard({ kind, onClose }: { kind: LockKind; onClose: () => void }) {
       </View>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: fonts.body,
           fontSize: 17,
           fontWeight: "800",
           color: colors.textPrimary,
@@ -136,7 +136,7 @@ function LockCard({ kind, onClose }: { kind: LockKind; onClose: () => void }) {
       </Text>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: fonts.body,
           fontSize: 13.5,
           color: colors.textSecondary,
           lineHeight: 20,

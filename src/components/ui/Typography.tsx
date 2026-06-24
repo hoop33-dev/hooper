@@ -1,5 +1,7 @@
 import { Text, type TextProps } from "react-native";
 
+import { fonts } from "@/src/constants/theme";
+
 /**
  * Hooper — Typography
  *
@@ -37,7 +39,7 @@ const HEADING = {
  * Exported for the few places that can't render a Typography component — most
  * notably `TextInput`, which styles its own text via the `style` prop.
  */
-export const BODY_FONT = "Outfit";
+export const BODY_FONT = fonts.body;
 const BODY = BODY_FONT;
 
 type Spec = {

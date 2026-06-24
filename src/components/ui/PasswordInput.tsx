@@ -1,3 +1,4 @@
+import { fonts } from "@/src/constants/theme";
 import { forwardRef, useState } from "react";
 import {
   Pressable,
@@ -66,7 +67,7 @@ export const PasswordInput = forwardRef<RNTextInput, PasswordInputProps>(
               isError ? "text-danger uppercase" : "text-text-tertiary uppercase"
             }
             style={{
-              fontFamily: "Inter",
+              fontFamily: fonts.body,
               fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.12,

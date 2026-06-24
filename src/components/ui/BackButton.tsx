@@ -1,4 +1,4 @@
-import { colors } from "@/src/constants/theme";
+import { colors, fonts } from "@/src/constants/theme";
 import { Pressable, Text } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
@@ -29,7 +29,7 @@ export function BackButton({
       </Svg>
       <Text
         className="text-text-tertiary text-[13px]"
-        style={{ fontFamily: "Inter" }}>
+        style={{ fontFamily: fonts.body }}>
         {label}
       </Text>
     </Pressable>

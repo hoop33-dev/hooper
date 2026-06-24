@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 import { CameraIcon } from "@/src/components/dashboard/icons";
-import { colors } from "@/src/constants/theme";
+import { colors, fonts } from "@/src/constants/theme";
 
 function ImageIcon({ size = 20, color }: { size?: number; color: string }) {
   return (
@@ -152,14 +152,14 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   title: {
-    fontFamily: "Inter",
+    fontFamily: fonts.body,
     fontSize: 18,
     fontWeight: "800",
     color: colors.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
-    fontFamily: "Inter",
+    fontFamily: fonts.body,
     fontSize: 13,
     color: colors.textTertiary,
     marginBottom: 18,
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   optionLabel: {
-    fontFamily: "Inter",
+    fontFamily: fonts.body,
     fontSize: 15,
     fontWeight: "600",
     color: colors.textPrimary,
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
   },
   cancelLabel: {
-    fontFamily: "Inter",
+    fontFamily: fonts.body,
     fontSize: 15,
     fontWeight: "700",
     color: colors.textSecondary,

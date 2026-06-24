@@ -1,4 +1,4 @@
-import { colors } from "@/src/constants/theme";
+import { colors, fonts } from "@/src/constants/theme";
 import { type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -70,7 +70,7 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
           typeof label === "string" ? (
             <Text
               style={{
-                fontFamily: "Inter",
+                fontFamily: fonts.body,
                 fontSize: 12.5,
                 color: colors.textSecondary,
                 lineHeight: 12.5 * 1.55,
@@ -109,7 +109,11 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
             <Circle cx={6} cy={8.5} r={0.6} fill={colors.danger} />
           </Svg>
           <Text
-            style={{ fontFamily: "Inter", fontSize: 11, color: colors.danger }}>
+            style={{
+              fontFamily: fonts.body,
+              fontSize: 11,
+              color: colors.danger,
+            }}>
             {error}
           </Text>
         </View>

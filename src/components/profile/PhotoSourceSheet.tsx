@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 import { CameraIcon } from "@/src/components/dashboard/icons";
+import { Title } from "@/src/components/ui/Typography";
 import { colors, fonts } from "@/src/constants/theme";
 
 function ImageIcon({ size = 20, color }: { size?: number; color: string }) {
@@ -94,7 +95,7 @@ export function PhotoSourceSheet({
         <Pressable onPress={() => {}}>
           <SafeAreaView edges={["bottom"]} style={styles.sheet}>
             <View style={styles.grabber} />
-            <Text style={styles.title}>Change photo</Text>
+            <Title className="mb-1">Change photo</Title>
             <Text style={styles.subtitle}>
               Choose where to get your new profile photo.
             </Text>
@@ -150,13 +151,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: "rgba(255,255,255,0.18)",
     marginBottom: 18,
-  },
-  title: {
-    fontFamily: fonts.body,
-    fontSize: 18,
-    fontWeight: "800",
-    color: colors.textPrimary,
-    marginBottom: 4,
   },
   subtitle: {
     fontFamily: fonts.body,

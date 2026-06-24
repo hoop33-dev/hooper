@@ -78,11 +78,6 @@
       "count": 2
     }
   },
-  "src/components/ui/AccountFormLayout.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/ui/Carousel.tsx": {
     "max-lines-per-function": {
       "count": 1

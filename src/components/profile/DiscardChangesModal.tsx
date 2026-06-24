@@ -1,5 +1,6 @@
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { Title } from "@/src/components/ui/Typography";
 import { colors, fonts } from "@/src/constants/theme";
 
 type DiscardChangesModalProps = {
@@ -24,7 +25,7 @@ export function DiscardChangesModal({
       onRequestClose={onKeepEditing}>
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <Text style={styles.title}>Discard changes?</Text>
+          <Title className="mb-2">Discard changes?</Title>
           <Text style={styles.body}>
             You have unsaved changes. If you leave now, they&apos;ll be lost.
           </Text>
@@ -63,13 +64,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     padding: 24,
-  },
-  title: {
-    fontFamily: fonts.body,
-    fontSize: 19,
-    fontWeight: "800",
-    color: colors.textPrimary,
-    marginBottom: 8,
   },
   body: {
     fontFamily: fonts.body,

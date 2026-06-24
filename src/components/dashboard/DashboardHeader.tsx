@@ -1,7 +1,8 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
+import { Caption, Title } from "@/src/components/ui/Typography";
 import { roleConfig, type RoleId } from "@/src/constants/roles";
-import { colors, fonts } from "@/src/constants/theme";
+import { colors } from "@/src/constants/theme";
 
 import { Avatar } from "./Avatar";
 import { BellIcon } from "./icons";
@@ -30,68 +31,21 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   const r = roleConfig(role);
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 20,
-        paddingTop: 6,
-        paddingBottom: 22,
-        gap: 12,
-      }}>
+    <View className="flex-row items-center gap-3 px-5 pt-1.5 pb-[22px]">
       <Avatar role={role} size={42} initials={initials} imageUrl={imageUrl} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={{
-            fontFamily: fonts.body,
-            fontSize: 11.5,
-            color: colors.textTertiary,
-            fontWeight: "500",
-            letterSpacing: 11.5 * 0.04,
-            marginBottom: 2,
-          }}>
-          {greeting()},
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={{
-            fontFamily: fonts.body,
-            fontSize: 18,
-            fontWeight: "800",
-            color: colors.textPrimary,
-            letterSpacing: -18 * 0.02,
-            lineHeight: 18 * 1.1,
-          }}>
-          {firstName}
-        </Text>
+      <View className="min-w-0 flex-1">
+        <Caption className="mb-0.5">{greeting()},</Caption>
+        <Title numberOfLines={1}>{firstName}</Title>
       </View>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Notifications"
         onPress={onPressBell}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          backgroundColor: colors.surface2,
-          borderWidth: 1,
-          borderColor: colors.borderSubtle,
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
+        className="border-border-subtle bg-surface-2 h-10 w-10 items-center justify-center rounded-full border">
         <BellIcon size={18} color={colors.textSecondary} />
         <View
-          style={{
-            position: "absolute",
-            top: 9,
-            right: 10,
-            width: 8,
-            height: 8,
-            borderRadius: 4,
-            backgroundColor: r.accent,
-            borderWidth: 2,
-            borderColor: colors.surface2,
-          }}
+          className="absolute top-[9px] right-2.5 h-2 w-2 rounded-full border-2"
+          style={{ backgroundColor: r.accent, borderColor: colors.surface2 }}
         />
       </Pressable>
     </View>

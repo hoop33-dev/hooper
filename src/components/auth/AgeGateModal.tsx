@@ -1,3 +1,4 @@
+import { ScreenTitle } from "@/src/components/ui/Typography";
 import type { RoleId } from "@/src/constants/roles";
 import { fonts } from "@/src/constants/theme";
 import { styled } from "nativewind";
@@ -48,15 +49,9 @@ export function AgeGateModal({
             </Svg>
           </View>
 
-          <Text
-            className="text-text-primary mb-3 text-center font-black"
-            style={{
-              fontFamily: fonts.body,
-              fontSize: 22,
-              letterSpacing: 22 * -0.03,
-            }}>
+          <ScreenTitle className="mb-3 text-center">
             You must be 16 or over
-          </Text>
+          </ScreenTitle>
 
           <Text
             className="text-text-secondary mb-7 text-center text-sm"

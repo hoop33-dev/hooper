@@ -1,6 +1,6 @@
 import { styled } from "nativewind";
 import { type ReactNode, type RefObject } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { View } from "react-native";
 import {
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
@@ -8,9 +8,11 @@ import {
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { colors, fonts } from "@/src/constants/theme";
+import { colors } from "@/src/constants/theme";
+import { AccentButton } from "./AccentButton";
 import { BackButton } from "./BackButton";
 import { ErrorBanner } from "./ErrorBanner";
+import { BodySm, Hero, Label } from "./Typography";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -62,33 +64,14 @@ export function AccountFormLayout({
           <BackButton label={backLabel} onPress={onBack} />
 
           {stepLabel ? (
-            <Text
-              className="mb-2 text-[10px] font-medium uppercase"
-              style={{
-                fontFamily: fonts.body,
-                letterSpacing: 10 * 0.14,
-                color: accentColor,
-              }}>
+            <Label className="mb-2" style={{ color: accentColor }}>
               {stepLabel}
-            </Text>
+            </Label>
           ) : null}
 
-          <Text
-            className="text-text-primary mb-1 font-black"
-            style={{
-              fontFamily: fonts.body,
-              fontSize: 26,
-              letterSpacing: 26 * -0.03,
-              lineHeight: 26 * 1.12,
-            }}>
-            {title}
-          </Text>
+          <Hero className="mb-1">{title}</Hero>
 
-          <Text
-            className="text-text-secondary text-[13px]"
-            style={{ fontFamily: fonts.body, lineHeight: 13 * 1.5 }}>
-            {subtitle}
-          </Text>
+          <BodySm>{subtitle}</BodySm>
         </View>
 
         {/* Scrollable form fields */}
@@ -112,39 +95,12 @@ export function AccountFormLayout({
         <KeyboardStickyView>
           <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
             <View className="px-6 py-3">
-              <Pressable
-                onPress={onSubmit}
-                disabled={isSubmitting}
-                style={({ pressed }) => ({
-                  height: 56,
-                  borderRadius: 9999,
-                  backgroundColor: accentColor,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: isSubmitting ? 0.7 : pressed ? 0.85 : 1,
-                  transform: [{ scale: pressed && !isSubmitting ? 0.97 : 1 }],
-                  shadowColor: accentColor,
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 0.35,
-                  shadowRadius: 20,
-                  elevation: 8,
-                })}>
-                {isSubmitting ? (
-                  <ActivityIndicator color={colors.textPrimary} />
-                ) : (
-                  <Text
-                    style={{
-                      fontFamily: fonts.body,
-                      fontWeight: "700",
-                      fontSize: 15,
-                      letterSpacing: 15 * 0.08,
-                      textTransform: "uppercase",
-                      color: colors.textPrimary,
-                    }}>
-                    {submitLabel}
-                  </Text>
-                )}
-              </Pressable>
+              <AccentButton
+                accent={accentColor}
+                loading={isSubmitting}
+                onPress={onSubmit}>
+                {submitLabel}
+              </AccentButton>
             </View>
           </StyledSafeAreaView>
         </KeyboardStickyView>

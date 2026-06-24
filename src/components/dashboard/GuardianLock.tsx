@@ -1,5 +1,6 @@
 import { Modal, Pressable, Text, View } from "react-native";
 
+import { Title } from "@/src/components/ui/Typography";
 import { colors, fonts } from "@/src/constants/theme";
 import { LockIcon } from "./icons";
 
@@ -122,18 +123,9 @@ function LockCard({ kind, onClose }: { kind: LockKind; onClose: () => void }) {
         }}>
         <LockIcon size={24} color={PARENT_ACCENT} />
       </View>
-      <Text
-        style={{
-          fontFamily: fonts.body,
-          fontSize: 17,
-          fontWeight: "800",
-          color: colors.textPrimary,
-          letterSpacing: -17 * 0.02,
-          marginBottom: 8,
-          textAlign: "center",
-        }}>
+      <Title className="mb-2 text-center">
         {kind === "billing" ? "Membership is locked" : "Settings are locked"}
-      </Text>
+      </Title>
       <Text
         style={{
           fontFamily: fonts.body,

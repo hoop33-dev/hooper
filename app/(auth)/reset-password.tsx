@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { styled } from "nativewind";
+import { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
   ActivityIndicator,
+  View,
   type TextInput as RNTextInput,
 } from "react-native";
 import {
@@ -10,21 +11,18 @@ import {
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { styled } from "nativewind";
 
 import {
-  PasswordInput,
-  Button,
   BackButton,
+  BodySm,
+  Button,
   ErrorBanner,
+  Hero,
+  PasswordInput,
 } from "@/src/components/ui";
 import { shadows } from "@/src/constants/theme";
 import { validatePassword } from "@/src/lib/passwordRules";
-import {
-  exchangeResetCode,
-  updatePassword,
-} from "@/src/services/auth.service";
+import { exchangeResetCode, updatePassword } from "@/src/services/auth.service";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -47,7 +45,9 @@ export default function ResetPasswordScreen() {
 
   useEffect(() => {
     if (!code) {
-      setExchangeError("No reset code found. Please use the link from your email.");
+      setExchangeError(
+        "No reset code found. Please use the link from your email.",
+      );
       return;
     }
     let cancelled = false;
@@ -61,7 +61,9 @@ export default function ResetPasswordScreen() {
         setSessionReady(true);
       }
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [code]);
 
   function validate(): boolean {
@@ -105,25 +107,12 @@ export default function ResetPasswordScreen() {
         <View className="px-6 pt-2 pb-4">
           <BackButton onPress={() => router.back()} className="mb-8" />
 
-          <Text
-            className="mb-1 font-black text-white"
-            style={{
-              fontFamily: "Inter",
-              fontSize: 28,
-              letterSpacing: 28 * -0.03,
-              lineHeight: 28 * 1.1,
-            }}
-          >
-            Reset password
-          </Text>
-          <Text
-            className="text-text-secondary text-[14px]"
-            style={{ fontFamily: "Inter", lineHeight: 14 * 1.5 }}
-          >
+          <Hero className="mb-1">Reset password</Hero>
+          <BodySm>
             {done
               ? "Your password has been updated."
               : "Choose a new password for your account."}
-          </Text>
+          </BodySm>
         </View>
 
         {/* Form */}
@@ -137,8 +126,7 @@ export default function ResetPasswordScreen() {
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          bottomOffset={120}
-        >
+          bottomOffset={120}>
           {done ? (
             <ErrorBanner
               variant="success"
@@ -148,12 +136,7 @@ export default function ResetPasswordScreen() {
           ) : isExchanging ? (
             <View className="items-center py-8">
               <ActivityIndicator color="#fff" />
-              <Text
-                className="text-text-secondary mt-3 text-[14px]"
-                style={{ fontFamily: "Inter" }}
-              >
-                Verifying reset link…
-              </Text>
+              <BodySm className="mt-3">Verifying reset link…</BodySm>
             </View>
           ) : exchangeError ? (
             <ErrorBanner
@@ -216,8 +199,7 @@ export default function ResetPasswordScreen() {
                   onPress={() => router.replace("/(auth)/login")}
                   size="lg"
                   className="w-full"
-                  style={shadows.orangeGlow}
-                >
+                  style={shadows.orangeGlow}>
                   Sign in
                 </Button>
               ) : exchangeError ? (
@@ -225,8 +207,7 @@ export default function ResetPasswordScreen() {
                   variant="secondary"
                   onPress={() => router.replace("/(auth)/forgot-password")}
                   size="lg"
-                  className="w-full"
-                >
+                  className="w-full">
                   Request a new link
                 </Button>
               ) : (
@@ -235,8 +216,7 @@ export default function ResetPasswordScreen() {
                   disabled={isSubmitting || isExchanging || !sessionReady}
                   size="lg"
                   className="w-full"
-                  style={shadows.orangeGlow}
-                >
+                  style={shadows.orangeGlow}>
                   {isSubmitting ? (
                     <ActivityIndicator color="#fff" />
                   ) : (

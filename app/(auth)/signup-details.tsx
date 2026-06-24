@@ -167,7 +167,7 @@ export default function SignupDetailsScreen() {
       subtitle={
         <>
           {"Signing up as a "}
-          <Text style={{ color: accent, fontWeight: "600" }}>
+          <Text className="font-semibold" style={{ color: accent }}>
             {roleConfig.title}
           </Text>
         </>

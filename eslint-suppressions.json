@@ -49,11 +49,6 @@
       "count": 1
     }
   },
-  "app/(auth)/role-selector.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "app/(auth)/signup-details.tsx": {
     "max-lines-per-function": {
       "count": 1

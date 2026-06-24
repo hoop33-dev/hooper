@@ -1,17 +1,22 @@
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path, Rect } from "react-native-svg";
 
-import { BackButton } from "@/src/components/ui";
+import {
+  AccentButton,
+  BackButton,
+  BodySm,
+  Caption,
+  Hero,
+  IconTile,
+  MicroLabel,
+  Overline,
+  Pill,
+  RowTitle,
+} from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
 import { sendSecurityCode } from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
@@ -68,83 +73,26 @@ function PhoneIcon() {
   );
 }
 
-function SectionHead({ title }: { title: string }) {
+function MailIcon() {
   return (
-    <Text
-      style={{
-        fontFamily: "Inter",
-        fontSize: 10,
-        fontWeight: "700",
-        letterSpacing: 10 * 0.14,
-        textTransform: "uppercase",
-        color: colors.textTertiary,
-        marginBottom: 10,
-      }}>
-      {title}
-    </Text>
-  );
-}
-
-function SendEmailButton({
-  isSending,
-  onPress,
-}: {
-  isSending: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={isSending}
-      style={({ pressed }) => ({
-        height: 52,
-        borderRadius: 14,
-        backgroundColor: colors.brandOrange,
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "row",
-        gap: 8,
-        opacity: isSending ? 0.7 : pressed ? 0.85 : 1,
-        shadowColor: colors.brandOrange,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-        elevation: 8,
-      })}>
-      {isSending ? (
-        <ActivityIndicator color="#fff" />
-      ) : (
-        <>
-          <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-            <Rect
-              x={2}
-              y={4}
-              width={20}
-              height={16}
-              rx={3}
-              stroke="#fff"
-              strokeWidth={1.8}
-            />
-            <Path
-              d="M2 8l10 7 10-7"
-              stroke="#fff"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontWeight: "600",
-              fontSize: 15,
-              color: "#fff",
-            }}>
-            Send reset email
-          </Text>
-        </>
-      )}
-    </Pressable>
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+      <Rect
+        x={2}
+        y={4}
+        width={20}
+        height={16}
+        rx={3}
+        stroke="#fff"
+        strokeWidth={1.8}
+      />
+      <Path
+        d="M2 8l10 7 10-7"
+        stroke="#fff"
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 }
 
@@ -162,136 +110,56 @@ function PasswordCard({
   onPress,
 }: PasswordCardProps) {
   return (
-    <View
-      style={{
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 18,
-        padding: 20,
-        gap: 16,
-      }}>
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 14 }}>
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 12,
-            backgroundColor: colors.orangeTint10,
-            borderWidth: 1,
-            borderColor: colors.orangeTint20,
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
+    <View className="bg-surface-2 border-border-subtle gap-4 rounded-[18px] border p-5">
+      <View className="flex-row items-start gap-3.5">
+        <IconTile
+          color={colors.brandOrange}
+          size={44}
+          radius={12}
+          bgAlpha="1a"
+          borderAlpha="33">
           <LockIcon />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontWeight: "700",
-              fontSize: 15,
-              color: colors.textPrimary,
-              marginBottom: 4,
-            }}>
-            Change your password
-          </Text>
+        </IconTile>
+        <View className="flex-1">
+          <RowTitle className="mb-1">Change your password</RowTitle>
           {maskedEmail ? (
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 13,
-                color: colors.textSecondary,
-                lineHeight: 13 * 1.55,
-              }}>
+            <BodySm>
               {"We'll send a verification code to "}
-              <Text style={{ fontWeight: "600", color: colors.textPrimary }}>
+              <Text className="text-text-primary font-semibold">
                 {maskedEmail}
               </Text>
               {" to confirm it's you."}
-            </Text>
+            </BodySm>
           ) : null}
         </View>
       </View>
       {sendError ? (
-        <Text
-          style={{ fontFamily: "Inter", fontSize: 12, color: colors.danger }}>
-          {sendError}
-        </Text>
+        <Caption className="text-danger">{sendError}</Caption>
       ) : null}
-      <SendEmailButton isSending={isSending} onPress={onPress} />
+      <AccentButton
+        accent={colors.brandOrange}
+        loading={isSending}
+        icon={<MailIcon />}
+        onPress={onPress}>
+        Send reset email
+      </AccentButton>
     </View>
   );
 }
 
 function TwoFactorSection() {
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 14,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 14,
-        opacity: 0.5,
-      }}>
-      <View
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 10,
-          backgroundColor: "rgba(255,255,255,0.06)",
-          borderWidth: 1,
-          borderColor: colors.borderSubtle,
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
+    <View className="border-border-subtle bg-surface-2 flex-row items-center gap-3.5 rounded-2xl border px-4 py-3.5 opacity-50">
+      <View className="border-border-subtle h-[38px] w-[38px] items-center justify-center rounded-[10px] border bg-white/[0.06]">
         <PhoneIcon />
       </View>
-      <View style={{ flex: 1 }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 14.5,
-            fontWeight: "600",
-            color: colors.textPrimary,
-            marginBottom: 2,
-          }}>
-          Two-factor auth
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 12,
-            color: colors.textTertiary,
-          }}>
-          SMS or authenticator app
-        </Text>
+      <View className="flex-1">
+        <RowTitle>Two-factor auth</RowTitle>
+        <Caption className="mt-0.5">SMS or authenticator app</Caption>
       </View>
-      <View
-        style={{
-          paddingHorizontal: 8,
-          paddingVertical: 4,
-          borderRadius: 6,
-          borderWidth: 1,
-          borderColor: colors.borderStrong,
-        }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 9,
-            fontWeight: "700",
-            letterSpacing: 9 * 0.12,
-            textTransform: "uppercase",
-            color: colors.textTertiary,
-          }}>
-          Soon
-        </Text>
-      </View>
+      <Pill>
+        <MicroLabel>Soon</MicroLabel>
+      </Pill>
     </View>
   );
 }
@@ -326,27 +194,16 @@ export default function SecurityScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}>
-        <View
-          style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 28 }}>
+        <View className="px-6 pt-2 pb-7">
           <BackButton
             label="Profile"
             onPress={() => router.back()}
             className="mb-5"
           />
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontWeight: "900",
-              fontSize: 28,
-              color: colors.textPrimary,
-              letterSpacing: 28 * -0.03,
-              lineHeight: 28 * 1.1,
-            }}>
-            Security
-          </Text>
+          <Hero>Security</Hero>
         </View>
-        <View style={{ paddingHorizontal: 24, marginBottom: 28 }}>
-          <SectionHead title="Password" />
+        <View className="mb-7 px-6">
+          <Overline className="mb-2.5">Password</Overline>
           <PasswordCard
             maskedEmail={maskedEmail}
             isSending={isSending}
@@ -354,8 +211,8 @@ export default function SecurityScreen() {
             onPress={handleSendCode}
           />
         </View>
-        <View style={{ paddingHorizontal: 24 }}>
-          <SectionHead title="Two-Factor Authentication" />
+        <View className="px-6">
+          <Overline className="mb-2.5">Two-Factor Authentication</Overline>
           <TwoFactorSection />
         </View>
       </ScrollView>

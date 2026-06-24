@@ -70,7 +70,14 @@ const SCALE = {
   h3: { fontFamily: HEADING.bold, fontSize: 28, lineHeight: 28 * 1.15 },
   /** Sub-heading — 22px semibold */
   h4: { fontFamily: HEADING.semibold, fontSize: 22, lineHeight: 22 * 1.2 },
-  /** Screen header — 22px black, e.g. "Profile", "Security" */
+  /** Hero / page title — 28px black, e.g. auth headers, "Security" */
+  hero: {
+    fontFamily: HEADING.black,
+    fontSize: 28,
+    lineHeight: 28 * 1.05,
+    letterSpacing: -28 * 0.02,
+  },
+  /** Screen header — 22px black, e.g. "Profile" (dashboard tabs) */
   screenTitle: {
     fontFamily: HEADING.black,
     fontSize: 22,
@@ -196,6 +203,7 @@ export const H1 = createType("h1", "text-text-primary");
 export const H2 = createType("h2", "text-text-primary");
 export const H3 = createType("h3", "text-text-primary");
 export const H4 = createType("h4", "text-text-primary");
+export const Hero = createType("hero", "text-text-primary");
 export const ScreenTitle = createType("screenTitle", "text-text-primary");
 export const Title = createType("title", "text-text-primary");
 

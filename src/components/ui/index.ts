@@ -6,6 +6,7 @@ export {
   H2,
   H3,
   H4,
+  Hero,
   Label,
   Lead,
   Meta,
@@ -29,6 +30,8 @@ export { MenuRow } from "./MenuRow";
 export { Pill } from "./Pill";
 
 export { Field } from "./Field";
+
+export { OtpInput } from "./OtpInput";
 
 export { Switch } from "./Switch";
 

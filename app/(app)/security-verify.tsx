@@ -1,18 +1,19 @@
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-  type TextInput as RNTextInput,
-} from "react-native";
+import { Text, View, type TextInput as RNTextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 
-import { BackButton } from "@/src/components/ui";
+import {
+  AccentButton,
+  BackButton,
+  BodySm,
+  Caption,
+  H4,
+  Hero,
+  OtpInput,
+} from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
 import {
   sendSecurityCode,
@@ -25,24 +26,9 @@ const StyledSafeAreaView = styled(SafeAreaView);
 const CODE_LENGTH = 6;
 const RESEND_COOLDOWN = 60;
 
-const dangerDim = "rgba(229,62,62,0.12)";
-const dangerBorder = "rgba(229,62,62,0.3)";
-const orangeFilled = "rgba(241,88,37,0.08)";
-const orangeFilledBorder = "rgba(241,88,37,0.45)";
-
 function EmailIcon() {
   return (
-    <View
-      style={{
-        width: 72,
-        height: 72,
-        borderRadius: 20,
-        backgroundColor: colors.orangeTint10,
-        borderWidth: 1.5,
-        borderColor: colors.orangeTint20,
-        alignItems: "center",
-        justifyContent: "center",
-      }}>
+    <View className="bg-orange-tint-10 border-orange-tint-20 h-[72px] w-[72px] items-center justify-center rounded-[20px] border-[1.5px]">
       <Svg width={32} height={32} viewBox="0 0 32 32" fill="none">
         <Rect
           x={2}
@@ -179,87 +165,9 @@ function useResend(onError: (msg: string) => void, onReset: () => void) {
   return { resendCooldown, isResending, resendSent, handleResend };
 }
 
-type OtpInputRowProps = {
-  code: string[];
-  errorMsg: string;
-  inputRefs: { current: (RNTextInput | null)[] };
-  onChange: (index: number, value: string) => void;
-  onKeyPress: (index: number, key: string) => void;
-};
-
-function OtpInputRow({
-  code,
-  errorMsg,
-  inputRefs,
-  onChange,
-  onKeyPress,
-}: OtpInputRowProps) {
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        gap: 10,
-        justifyContent: "center",
-        marginBottom: 12,
-      }}>
-      {Array.from({ length: CODE_LENGTH }).map((_, i) => {
-        const filled = !!code[i];
-        return (
-          <TextInput
-            key={i}
-            ref={(el) => {
-              inputRefs.current[i] = el;
-            }}
-            value={code[i]}
-            onChangeText={(v) => onChange(i, v)}
-            onKeyPress={({ nativeEvent }) => onKeyPress(i, nativeEvent.key)}
-            keyboardType="number-pad"
-            maxLength={i === 0 ? CODE_LENGTH : 1}
-            autoFocus={i === 0}
-            selectTextOnFocus
-            style={{
-              width: 46,
-              height: 58,
-              borderRadius: 12,
-              borderWidth: 1.5,
-              borderColor: errorMsg
-                ? dangerBorder
-                : filled
-                  ? orangeFilledBorder
-                  : colors.borderStrong,
-              backgroundColor: errorMsg
-                ? dangerDim
-                : filled
-                  ? orangeFilled
-                  : colors.surface2,
-              color: errorMsg ? colors.danger : colors.textPrimary,
-              fontSize: 24,
-              fontFamily: "Inter",
-              fontWeight: "600",
-              textAlign: "center",
-            }}
-          />
-        );
-      })}
-    </View>
-  );
-}
-
 function ExpiryNotice() {
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 8,
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        marginBottom: 20,
-      }}>
+    <View className="border-border-subtle bg-surface-2 mb-5 flex-row items-start gap-2 rounded-[10px] px-3 py-2.5">
       <Svg
         width={14}
         height={14}
@@ -281,18 +189,10 @@ function ExpiryNotice() {
           strokeLinejoin="round"
         />
       </Svg>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 12,
-          color: colors.textTertiary,
-          lineHeight: 12 * 1.6,
-          flex: 1,
-        }}>
-        {
-          "Code expires in 15 minutes. Check your spam folder if you don't see it."
-        }
-      </Text>
+      <Caption className="flex-1">
+        Code expires in 15 minutes. Check your spam folder if you don&apos;t see
+        it.
+      </Caption>
     </View>
   );
 }
@@ -311,24 +211,18 @@ function ResendRow({
   onResend,
 }: ResendRowProps) {
   return (
-    <View style={{ alignItems: "center", marginBottom: 28 }}>
+    <View className="mb-7 items-center">
       {resendSent ? (
-        <Text style={{ fontFamily: "Inter", fontSize: 13, color: "#34D399" }}>
+        <BodySm style={{ color: "#34D399" }}>
           Code resent — check your inbox
-        </Text>
+        </BodySm>
       ) : (
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 13,
-            color: colors.textTertiary,
-          }}>
+        <BodySm className="text-text-tertiary">
           {"Didn't get it? "}
           <Text
             onPress={cooldown > 0 || isResending ? undefined : onResend}
+            className="font-semibold"
             style={{
-              fontWeight: "600",
-              fontSize: 13,
               color: cooldown > 0 ? colors.textTertiary : colors.brandOrange,
             }}>
             {isResending
@@ -337,110 +231,25 @@ function ResendRow({
                 ? `Resend in ${cooldown}s`
                 : "Resend"}
           </Text>
-        </Text>
+        </BodySm>
       )}
     </View>
   );
 }
 
-type VerifyButtonProps = {
-  isComplete: boolean;
-  isVerifying: boolean;
-  onPress: () => void;
-};
-
-function VerifyButton({ isComplete, isVerifying, onPress }: VerifyButtonProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={isVerifying || !isComplete}
-      style={({ pressed }) => ({
-        height: 56,
-        borderRadius: 14,
-        backgroundColor: isComplete ? colors.brandOrange : colors.surface2,
-        alignItems: "center",
-        justifyContent: "center",
-        opacity: isVerifying ? 0.7 : pressed && isComplete ? 0.85 : 1,
-        transform: [
-          { scale: pressed && isComplete && !isVerifying ? 0.97 : 1 },
-        ],
-        shadowColor: colors.brandOrange,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: isComplete ? 0.35 : 0,
-        shadowRadius: 20,
-        elevation: isComplete ? 8 : 0,
-      })}>
-      {isVerifying ? (
-        <ActivityIndicator
-          color={isComplete ? colors.textPrimary : colors.textTertiary}
-        />
-      ) : (
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "600",
-            fontSize: 15,
-            color: isComplete ? colors.textPrimary : colors.textTertiary,
-          }}>
-          Verify code
-        </Text>
-      )}
-    </Pressable>
-  );
-}
-
-function VerifyPageHeader({ onBack }: { onBack: () => void }) {
-  return (
-    <>
-      <View style={{ paddingHorizontal: 24, paddingTop: 8 }}>
-        <BackButton label="Security" onPress={onBack} />
-      </View>
-      <View style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8 }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "900",
-            fontSize: 28,
-            color: colors.textPrimary,
-            letterSpacing: 28 * -0.03,
-            lineHeight: 28 * 1.1,
-          }}>
-          Security
-        </Text>
-      </View>
-    </>
-  );
-}
-
 function EmailPromptSection({ maskedEmail }: { maskedEmail: string }) {
   return (
-    <View style={{ alignItems: "center", gap: 20, marginBottom: 36 }}>
+    <View className="mb-9 items-center gap-5">
       <EmailIcon />
-      <View style={{ alignItems: "center" }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "700",
-            fontSize: 22,
-            color: colors.textPrimary,
-            marginBottom: 8,
-          }}>
-          Check your email
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 14,
-            color: colors.textSecondary,
-            lineHeight: 14 * 1.6,
-            textAlign: "center",
-          }}>
+      <View className="items-center">
+        <H4 className="mb-2">Check your email</H4>
+        <BodySm className="text-center">
           {"We sent a 6-digit code to "}
-          <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>
+          <Text className="text-text-primary font-semibold">
             {maskedEmail || "your email"}
           </Text>
           {". Enter it below."}
-        </Text>
+        </BodySm>
       </View>
     </View>
   );
@@ -475,27 +284,24 @@ export default function SecurityVerifyScreen() {
 
   return (
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
-      <VerifyPageHeader onBack={() => router.back()} />
-      <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 24 }}>
+      <View className="px-6 pt-2">
+        <BackButton label="Security" onPress={() => router.back()} />
+      </View>
+      <View className="px-6 pt-4 pb-2">
+        <Hero>Security</Hero>
+      </View>
+      <View className="flex-1 px-6 pt-6">
         <EmailPromptSection maskedEmail={maskedEmail} />
-        <OtpInputRow
+        <OtpInput
           code={code}
-          errorMsg={errorMsg}
+          error={!!errorMsg}
           inputRefs={inputRefs}
           onChange={handleChange}
           onKeyPress={handleKeyPress}
         />
-        <View style={{ height: 18, alignItems: "center", marginBottom: 16 }}>
+        <View className="mt-3 mb-4 h-[18px] items-center">
           {errorMsg ? (
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 12,
-                color: colors.danger,
-                textAlign: "center",
-              }}>
-              {errorMsg}
-            </Text>
+            <Caption className="text-danger text-center">{errorMsg}</Caption>
           ) : null}
         </View>
         <ExpiryNotice />
@@ -506,12 +312,15 @@ export default function SecurityVerifyScreen() {
           onResend={handleResend}
         />
       </View>
-      <View style={{ paddingHorizontal: 24, paddingBottom: 8 }}>
-        <VerifyButton
-          isComplete={isComplete}
-          isVerifying={isVerifying}
-          onPress={handleVerify}
-        />
+      <View className="px-6 pb-2">
+        <AccentButton
+          accent={colors.brandOrange}
+          variant={isComplete ? "solid" : "muted"}
+          loading={isVerifying}
+          disabled={!isComplete}
+          onPress={handleVerify}>
+          Verify code
+        </AccentButton>
       </View>
     </StyledSafeAreaView>
   );

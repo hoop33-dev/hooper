@@ -1,20 +1,18 @@
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { useRef, useState } from "react";
-import {
-  Pressable,
-  type TextInput as RNTextInput,
-  Text,
-  View,
-} from "react-native";
+import { type TextInput as RNTextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 import {
+  AccentButton,
   AccountFormLayout,
+  BodySm,
   DateInput,
   type DateInputHandle,
   ErrorMessage,
+  H4,
   Input,
   PasswordInput,
   PhoneInput,
@@ -23,7 +21,6 @@ import {
 } from "@/src/components/ui";
 import { NZ_REGIONS } from "@/src/constants/regions";
 import { roleConfig } from "@/src/constants/roles";
-import { colors } from "@/src/constants/theme";
 import { validatePassword } from "@/src/lib/passwordRules";
 import { createChildAccount } from "@/src/services/parent.service";
 
@@ -65,24 +62,12 @@ function SuccessView({
 }) {
   return (
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 32,
-          gap: 24,
-        }}>
+      <View className="flex-1 items-center justify-center gap-6 px-8">
         <View
+          className="h-20 w-20 items-center justify-center rounded-3xl border-[1.5px]"
           style={{
-            width: 80,
-            height: 80,
-            borderRadius: 24,
             backgroundColor: "rgba(52,211,153,0.12)",
-            borderWidth: 1.5,
             borderColor: "rgba(52,211,153,0.3)",
-            alignItems: "center",
-            justifyContent: "center",
           }}>
           <Svg width={36} height={36} viewBox="0 0 36 36" fill="none">
             <Path
@@ -95,78 +80,20 @@ function SuccessView({
           </Svg>
         </View>
 
-        <View style={{ alignItems: "center", gap: 8 }}>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontWeight: "700",
-              fontSize: 22,
-              color: colors.textPrimary,
-            }}>
-            Account created
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 14,
-              color: colors.textSecondary,
-              textAlign: "center",
-              lineHeight: 14 * 1.5,
-            }}>
+        <View className="items-center gap-2">
+          <H4>Account created</H4>
+          <BodySm className="text-center">
             {childName}&apos;s player account is ready.
-          </Text>
+          </BodySm>
         </View>
 
-        <View style={{ width: "100%", gap: 12, marginTop: 8 }}>
-          <Pressable
-            onPress={onAddAnother}
-            style={({ pressed }) => ({
-              height: 56,
-              borderRadius: 9999,
-              backgroundColor: PARENT_ACCENT,
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: pressed ? 0.85 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-              shadowColor: PARENT_ACCENT,
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.45,
-              shadowRadius: 16,
-              elevation: 8,
-            })}>
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontWeight: "700",
-                fontSize: 15,
-                letterSpacing: 15 * 0.08,
-                textTransform: "uppercase",
-                color: colors.textPrimary,
-              }}>
-              Add another child
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={onDone}
-            style={({ pressed }) => ({
-              height: 56,
-              borderRadius: 9999,
-              backgroundColor: colors.surface2,
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: pressed ? 0.7 : 1,
-            })}>
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontWeight: "600",
-                fontSize: 15,
-                color: colors.textSecondary,
-              }}>
-              Done
-            </Text>
-          </Pressable>
+        <View className="mt-2 w-full gap-3">
+          <AccentButton accent={PARENT_ACCENT} onPress={onAddAnother}>
+            Add another child
+          </AccentButton>
+          <AccentButton accent={PARENT_ACCENT} variant="muted" onPress={onDone}>
+            Done
+          </AccentButton>
         </View>
       </View>
     </StyledSafeAreaView>

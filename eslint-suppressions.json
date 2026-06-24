@@ -1,7 +1,7 @@
 {
   "app/(app)/parent/add-child.tsx": {
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "app/(app)/parent/manage-child.tsx": {

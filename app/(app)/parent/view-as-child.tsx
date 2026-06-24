@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -12,15 +12,21 @@ import {
 import {
   BellIcon,
   ChatIcon,
-  ChevronIcon,
   CreditIcon,
   EyeIcon,
   HelpIcon,
   HomeIcon,
-  LockIcon,
   SettingsIcon,
   XIcon,
 } from "@/src/components/dashboard/icons";
+import {
+  BodySm,
+  MenuRow,
+  Meta,
+  MicroLabel,
+  ScreenTitle,
+  Title,
+} from "@/src/components/ui";
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import {
@@ -100,7 +106,7 @@ export default function ViewAsChildScreen() {
   const c = resolveChild(child, params);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.surface }}>
+    <View className="bg-surface flex-1">
       <LinearGradient
         colors={[PLAYER.headerTint, "transparent"]}
         start={{ x: 0, y: 0 }}
@@ -109,7 +115,7 @@ export default function ViewAsChildScreen() {
         style={{ position: "absolute", top: 0, left: 0, right: 0, height: 320 }}
       />
 
-      <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+      <SafeAreaView edges={["top"]} className="flex-1">
         <ViewAsBanner firstName={c.firstName} onExit={() => router.back()} />
         <TabContent tab={tab} child={c} />
       </SafeAreaView>
@@ -135,7 +141,13 @@ function TabContent({ tab, child }: { tab: Tab; child: ResolvedChild }) {
         locked={child.locked}
       />
     );
-  return <DashboardTab firstName={child.firstName} initials={child.initials} avatarUrl={child.avatarUrl} />;
+  return (
+    <DashboardTab
+      firstName={child.firstName}
+      initials={child.initials}
+      avatarUrl={child.avatarUrl}
+    />
+  );
 }
 
 function DashboardTab({
@@ -187,42 +199,19 @@ function ViewAsBanner({
         borderRadius: 999,
       }}>
       <EyeIcon size={14} color="#3A1F12" />
-      <Text
-        style={{
-          flex: 1,
-          fontFamily: "Inter",
-          fontSize: 12.5,
-          fontWeight: "700",
-          color: "#3A1F12",
-          letterSpacing: -12.5 * 0.01,
-        }}>
+      <Meta className="flex-1" style={{ color: "#3A1F12" }}>
         Viewing as{" "}
-        <Text style={{ fontWeight: "800" }}>{firstName || "athlete"}</Text>
-      </Text>
+        <Text className="font-extrabold">{firstName || "athlete"}</Text>
+      </Meta>
       <Pressable
         onPress={onExit}
         accessibilityRole="button"
         accessibilityLabel="Exit view as"
         hitSlop={8}
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 5,
-          height: 28,
-          paddingHorizontal: 12,
-          borderRadius: 999,
-          backgroundColor: "#3A1F12",
-        }}>
+        className="h-7 flex-row items-center gap-1.5 rounded-full px-3"
+        style={{ backgroundColor: "#3A1F12" }}>
         <XIcon size={11} color="#FBD9C9" />
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 12,
-            fontWeight: "700",
-            color: "#FBD9C9",
-          }}>
-          Exit
-        </Text>
+        <Meta style={{ color: "#FBD9C9" }}>Exit</Meta>
       </Pressable>
     </LinearGradient>
   );
@@ -231,107 +220,14 @@ function ViewAsBanner({
 /* ─── Chat tab (mirrors the child's chat screen) ────────────── */
 function ChatTab() {
   return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        paddingHorizontal: 32,
-      }}>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 22,
-          fontWeight: "800",
-          color: colors.textPrimary,
-          letterSpacing: -22 * 0.02,
-          marginBottom: 8,
-        }}>
-        Chat
-      </Text>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 14,
-          color: colors.textTertiary,
-          textAlign: "center",
-        }}>
-        Coming soon.
-      </Text>
+    <View className="flex-1 items-center justify-center px-8">
+      <Title className="mb-2">Chat</Title>
+      <BodySm className="text-text-tertiary text-center">Coming soon.</BodySm>
     </View>
   );
 }
 
 /* ─── Settings tab (read-only view of the child's profile area) ─ */
-function PreviewRow({
-  icon,
-  title,
-  sub,
-  locked,
-}: {
-  icon: ReactNode;
-  title: string;
-  sub?: string;
-  locked?: boolean;
-}) {
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 14,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 14,
-        opacity: locked ? 0.55 : 1,
-      }}>
-      <View
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 10,
-          backgroundColor: `${PLAYER.accent}14`,
-          borderWidth: 1,
-          borderColor: `${PLAYER.accent}30`,
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
-        {icon}
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 14.5,
-            fontWeight: "600",
-            color: colors.textPrimary,
-            marginBottom: sub ? 2 : 0,
-          }}>
-          {title}
-        </Text>
-        {sub ? (
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 12,
-              color: colors.textTertiary,
-            }}>
-            {sub}
-          </Text>
-        ) : null}
-      </View>
-      {locked ? (
-        <LockIcon size={16} color={colors.textTertiary} />
-      ) : (
-        <ChevronIcon size={16} color={colors.textTertiary} />
-      )}
-    </View>
-  );
-}
-
 function SettingsIdentity({
   initials,
   fullName,
@@ -344,18 +240,7 @@ function SettingsIdentity({
   avatarUrl: string | null;
 }) {
   return (
-    <View
-      style={{
-        marginHorizontal: 20,
-        marginBottom: 18,
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 18,
-        padding: 22,
-        alignItems: "center",
-        overflow: "hidden",
-      }}>
+    <View className="bg-surface-2 border-border-subtle mx-5 mb-5 items-center overflow-hidden rounded-[18px] border p-5">
       <LinearGradient
         colors={[`${PLAYER.accent}22`, "transparent"]}
         pointerEvents="none"
@@ -367,29 +252,9 @@ function SettingsIdentity({
         initials={initials}
         imageUrl={avatarUrl}
       />
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 20,
-          fontWeight: "800",
-          color: colors.textPrimary,
-          letterSpacing: -20 * 0.02,
-          marginTop: 14,
-          marginBottom: 3,
-        }}>
-        {fullName}
-      </Text>
+      <Title className="mt-3.5 mb-0.5">{fullName}</Title>
       {username ? (
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 12,
-            fontWeight: "600",
-            color: PLAYER.accent,
-            letterSpacing: 12 * 0.06,
-          }}>
-          @{username}
-        </Text>
+        <Meta style={{ color: PLAYER.accent }}>@{username}</Meta>
       ) : null}
     </View>
   );
@@ -412,17 +277,8 @@ function SettingsTab({
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 24 }}>
-      <View style={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: 20 }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 22,
-            fontWeight: "900",
-            color: colors.textPrimary,
-            letterSpacing: -22 * 0.03,
-          }}>
-          Profile
-        </Text>
+      <View className="px-5 pt-1.5 pb-5">
+        <ScreenTitle>Profile</ScreenTitle>
       </View>
 
       <SettingsIdentity
@@ -434,29 +290,33 @@ function SettingsTab({
 
       {locked ? <GuardianBanner kind="profile" /> : null}
 
-      <View style={{ paddingHorizontal: 20, gap: 8 }}>
-        <PreviewRow
+      <View className="gap-2 px-5">
+        <MenuRow
           icon={<SettingsIcon size={18} color={PLAYER.accent} />}
           title="Profile settings"
           sub={
             locked ? "Managed by your guardian" : "Photo, name, username, bio"
           }
+          accent={PLAYER.accent}
           locked={locked}
         />
-        <PreviewRow
+        <MenuRow
           icon={<CreditIcon size={18} color={PLAYER.accent} />}
           title="Subscription & billing"
           sub="Managed by your guardian"
+          accent={PLAYER.accent}
           locked
         />
-        <PreviewRow
+        <MenuRow
           icon={<BellIcon size={18} color={PLAYER.accent} />}
           title="Notifications"
           sub="Push, email, SMS"
+          accent={PLAYER.accent}
         />
-        <PreviewRow
+        <MenuRow
           icon={<HelpIcon size={18} color={PLAYER.accent} />}
           title="Help & FAQs"
+          accent={PLAYER.accent}
         />
       </View>
     </ScrollView>
@@ -478,14 +338,8 @@ function LocalNav({
   ];
   return (
     <View
-      style={{
-        flexDirection: "row",
-        backgroundColor: "rgba(20,17,18,0.92)",
-        borderTopWidth: 1,
-        borderTopColor: colors.borderSubtle,
-        paddingBottom: 22,
-        paddingTop: 6,
-      }}>
+      className="border-border-subtle flex-row border-t pt-1.5 pb-[22px]"
+      style={{ backgroundColor: "rgba(20,17,18,0.92)" }}>
       {tabs.map((t) => {
         const isActive = t.id === active;
         const color = isActive ? PLAYER.accent : colors.textTertiary;
@@ -495,38 +349,15 @@ function LocalNav({
             accessibilityRole="button"
             accessibilityLabel={t.label}
             onPress={() => onChange(t.id)}
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 4,
-              paddingTop: 6,
-              paddingBottom: 4,
-            }}>
+            className="flex-1 items-center justify-center gap-1 pt-1.5 pb-1">
             {isActive ? (
               <View
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  width: 28,
-                  height: 2,
-                  borderRadius: 2,
-                  backgroundColor: PLAYER.accent,
-                }}
+                className="absolute top-0 h-0.5 w-7 rounded-sm"
+                style={{ backgroundColor: PLAYER.accent }}
               />
             ) : null}
             <t.Icon size={22} color={color} />
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 10,
-                fontWeight: isActive ? "700" : "500",
-                letterSpacing: 10 * 0.05,
-                color,
-                textTransform: "uppercase",
-              }}>
-              {t.label}
-            </Text>
+            <MicroLabel style={{ color }}>{t.label}</MicroLabel>
           </Pressable>
         );
       })}

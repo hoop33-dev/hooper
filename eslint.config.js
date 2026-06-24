@@ -11,6 +11,34 @@ const TEST_GLOBS = [
   "**/*.spec.{js,jsx,ts,tsx}",
 ];
 
+// Semantic guardrails shared by all non-test source. Screens (app/**) layer an
+// extra restriction on top (see below), so keep these reusable.
+const BASE_RESTRICTED_SYNTAX = [
+  {
+    selector: "CallExpression[callee.property.name='then']",
+    message:
+      "Use async/await + try/catch instead of .then() chains (codebase standard).",
+  },
+  {
+    selector: "CallExpression[callee.property.name='catch']",
+    message:
+      "Use async/await + try/catch instead of .catch() chains (codebase standard).",
+  },
+  {
+    selector: "ImportExpression",
+    message:
+      "Dynamic import() is invisible to the Metro bundler and breaks static analysis. Use a static import.",
+  },
+  {
+    selector: "NewExpression[callee.name='Function']",
+    message: "The Function constructor is an eval-style security risk.",
+  },
+  {
+    selector: "CallExpression[callee.name='Function']",
+    message: "The Function constructor is an eval-style security risk.",
+  },
+];
+
 module.exports = defineConfig([
   expo,
 
@@ -44,32 +72,7 @@ module.exports = defineConfig([
       "@typescript-eslint/no-require-imports": "error",
 
       // Semantic guardrails encoded as syntax restrictions.
-      "no-restricted-syntax": [
-        "error",
-        {
-          selector: "CallExpression[callee.property.name='then']",
-          message:
-            "Use async/await + try/catch instead of .then() chains (codebase standard).",
-        },
-        {
-          selector: "CallExpression[callee.property.name='catch']",
-          message:
-            "Use async/await + try/catch instead of .catch() chains (codebase standard).",
-        },
-        {
-          selector: "ImportExpression",
-          message:
-            "Dynamic import() is invisible to the Metro bundler and breaks static analysis. Use a static import.",
-        },
-        {
-          selector: "NewExpression[callee.name='Function']",
-          message: "The Function constructor is an eval-style security risk.",
-        },
-        {
-          selector: "CallExpression[callee.name='Function']",
-          message: "The Function constructor is an eval-style security risk.",
-        },
-      ],
+      "no-restricted-syntax": ["error", ...BASE_RESTRICTED_SYNTAX],
     },
   },
 
@@ -88,6 +91,21 @@ module.exports = defineConfig([
                 "Screens must not touch the Supabase client directly — go through a service in src/services/**.",
             },
           ],
+        },
+      ],
+
+      // ── Design-system purity: screens describe text with Typography, not
+      // hand-rolled font styles. Keep type in one place (Typography.tsx).
+      // (Re-includes the base restrictions, since flat config replaces — not
+      // merges — a rule's options for matching files.)
+      "no-restricted-syntax": [
+        "error",
+        ...BASE_RESTRICTED_SYNTAX,
+        {
+          selector:
+            "Property[key.name=/^(fontFamily|fontSize|fontWeight|letterSpacing)$/]",
+          message:
+            "Don't set font styles inline in screens — render a Typography component (H1–Stat, Body, Label, etc.). Font/type tokens live in src/components/ui/Typography.tsx.",
         },
       ],
     },

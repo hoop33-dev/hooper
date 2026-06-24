@@ -22,8 +22,7 @@ export function Card({
   return (
     <View
       className={`overflow-hidden rounded-xl ${variantClasses[variant]} ${className}`}
-      {...rest}
-    >
+      {...rest}>
       {variant === "accent" && (
         <View className="bg-brand-orange h-[3px] w-full" />
       )}

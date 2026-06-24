@@ -1,5 +1,5 @@
-import { View, Text } from "react-native";
 import { colors } from "@/src/constants/theme";
+import { Text, View } from "react-native";
 
 type ErrorBannerProps = {
   variant?: "error" | "success";
@@ -37,8 +37,7 @@ export function ErrorBanner({
         borderRadius: 10,
         padding: title ? 16 : 12,
         gap: title ? 4 : undefined,
-      }}
-    >
+      }}>
       {title ? (
         <Text
           style={{
@@ -46,8 +45,7 @@ export function ErrorBanner({
             fontWeight: "600",
             fontSize: 14,
             color: s.titleColor,
-          }}
-        >
+          }}>
           {title}
         </Text>
       ) : null}
@@ -57,8 +55,7 @@ export function ErrorBanner({
           fontSize: 13,
           color: s.messageColor,
           lineHeight: 18,
-        }}
-      >
+        }}>
         {message}
       </Text>
     </View>

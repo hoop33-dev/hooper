@@ -1,14 +1,14 @@
-import { useState, forwardRef } from "react";
+import { forwardRef, useState } from "react";
 import {
-  View,
-  Text,
   Pressable,
-  type TextInputProps,
+  Text,
+  View,
   type TextInput as RNTextInput,
+  type TextInputProps,
 } from "react-native";
-import Svg, { Path, Circle } from "react-native-svg";
-import { Input } from "./Input";
+import Svg, { Circle, Path } from "react-native-svg";
 import { ErrorMessage } from "./ErrorMessage";
+import { Input } from "./Input";
 import { PasswordStrengthBar } from "./PasswordStrengthBar";
 
 type PasswordInputProps = Omit<TextInputProps, "style" | "secureTextEntry"> & {
@@ -28,8 +28,7 @@ function EyeIcon({ visible }: { visible: boolean }) {
         fill="none"
         stroke="rgba(255,255,255,0.35)"
         strokeWidth={1.8}
-        strokeLinecap="round"
-      >
+        strokeLinecap="round">
         <Path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
         <Path d="M1 1l22 22" />
       </Svg>
@@ -43,8 +42,7 @@ function EyeIcon({ visible }: { visible: boolean }) {
       fill="none"
       stroke="rgba(255,255,255,0.35)"
       strokeWidth={1.8}
-      strokeLinecap="round"
-    >
+      strokeLinecap="round">
       <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
       <Circle cx={12} cy={12} r={3} />
     </Svg>
@@ -52,7 +50,10 @@ function EyeIcon({ visible }: { visible: boolean }) {
 }
 
 export const PasswordInput = forwardRef<RNTextInput, PasswordInputProps>(
-  function PasswordInput({ label, error, hasError, showStrength, ...rest }, ref) {
+  function PasswordInput(
+    { label, error, hasError, showStrength, ...rest },
+    ref,
+  ) {
     const [show, setShow] = useState(false);
     const isError = !!error || !!hasError;
     const valueStr = typeof rest.value === "string" ? rest.value : "";
@@ -69,8 +70,7 @@ export const PasswordInput = forwardRef<RNTextInput, PasswordInputProps>(
               fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.12,
-            }}
-          >
+            }}>
             {label}
           </Text>
         )}
@@ -93,8 +93,7 @@ export const PasswordInput = forwardRef<RNTextInput, PasswordInputProps>(
               padding: 4,
             }}
             hitSlop={8}
-            accessibilityLabel={show ? "Hide password" : "Show password"}
-          >
+            accessibilityLabel={show ? "Hide password" : "Show password"}>
             <EyeIcon visible={show} />
           </Pressable>
         </View>

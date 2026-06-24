@@ -1,12 +1,12 @@
-import { useState, forwardRef } from "react";
+import { colors } from "@/src/constants/theme";
+import { forwardRef, useState } from "react";
 import {
+  Text,
   TextInput,
   View,
-  Text,
-  type TextInputProps,
   type TextInput as RNTextInput,
+  type TextInputProps,
 } from "react-native";
-import { colors } from "@/src/constants/theme";
 
 type InputProps = Omit<TextInputProps, "style"> & {
   label?: string;
@@ -51,8 +51,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
             fontSize: 10,
             letterSpacing: 10 * 0.12,
             textTransform: "uppercase",
-          }}
-        >
+          }}>
           {label}
         </Text>
       ) : null}
@@ -83,15 +82,13 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
       {error ? (
         <Text
           className="text-danger"
-          style={{ fontFamily: "Inter", fontSize: 11 }}
-        >
+          style={{ fontFamily: "Inter", fontSize: 11 }}>
           {error}
         </Text>
       ) : hint ? (
         <Text
           className="text-text-tertiary"
-          style={{ fontFamily: "Inter", fontSize: 11 }}
-        >
+          style={{ fontFamily: "Inter", fontSize: 11 }}>
           {hint}
         </Text>
       ) : null}

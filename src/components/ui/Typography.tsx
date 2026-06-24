@@ -32,8 +32,13 @@ const HEADING = {
   black: "BarlowCondensed-Black",
 } as const;
 
-/** Body / UI face. Outfit is a variable font, so `fontWeight` works directly. */
-const BODY = "Outfit";
+/**
+ * Body / UI face. Outfit is a variable font, so `fontWeight` works directly.
+ * Exported for the few places that can't render a Typography component — most
+ * notably `TextInput`, which styles its own text via the `style` prop.
+ */
+export const BODY_FONT = "Outfit";
+const BODY = BODY_FONT;
 
 type Spec = {
   fontFamily: string;
@@ -95,6 +100,13 @@ const SCALE = {
     fontWeight: "600",
     fontSize: 15,
     lineHeight: 15 * 1.3,
+  },
+  /** Control / tab label — 13px bold */
+  tab: {
+    fontFamily: BODY,
+    fontWeight: "700",
+    fontSize: 13,
+    lineHeight: 13 * 1.2,
   },
   /** Body — 16px regular */
   body: {
@@ -190,6 +202,7 @@ export const Title = createType("title", "text-text-primary");
 /* ── Body ──────────────────────────────────────────────────── */
 export const Lead = createType("lead", "text-text-primary");
 export const RowTitle = createType("rowTitle", "text-text-primary");
+export const TabLabel = createType("tab", "text-text-primary");
 export const Body = createType("body", "text-text-secondary");
 export const BodySm = createType("bodySm", "text-text-secondary");
 export const Caption = createType("caption", "text-text-tertiary");

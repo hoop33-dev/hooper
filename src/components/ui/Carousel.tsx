@@ -1,16 +1,16 @@
 import {
   type ReactNode,
+  useCallback,
   useEffect,
   useRef,
   useState,
-  useCallback,
 } from "react";
 import {
-  View,
-  Pressable,
   Animated,
   Dimensions,
   PanResponder,
+  Pressable,
+  View,
 } from "react-native";
 
 type CarouselProps<T> = {
@@ -132,8 +132,7 @@ export function Carousel<T>({
           dots row at a stable vertical position as slides change. */}
       <View
         pointerEvents="none"
-        style={{ position: "absolute", width, opacity: 0 }}
-      >
+        style={{ position: "absolute", width, opacity: 0 }}>
         {items.map((item, i) => (
           <View
             key={i}
@@ -145,8 +144,7 @@ export function Carousel<T>({
                 next[i] = h;
                 return next;
               });
-            }}
-          >
+            }}>
             {renderItem(item, i)}
           </View>
         ))}
@@ -157,24 +155,21 @@ export function Carousel<T>({
           style={{
             opacity,
             transform: [{ translateY: translate }],
-          }}
-        >
+          }}>
           {renderItem(items[index], index)}
         </Animated.View>
       </View>
 
       {showDots && items.length > 1 && (
         <View
-          className={`mt-7 flex-row items-center justify-center gap-1.5 ${dotsClassName}`}
-        >
+          className={`mt-7 flex-row items-center justify-center gap-1.5 ${dotsClassName}`}>
           {items.map((_, i) => (
             <Pressable
               key={i}
               onPress={() => goTo(i, i > index ? 1 : -1)}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel={`Go to slide ${i + 1}`}
-            >
+              accessibilityLabel={`Go to slide ${i + 1}`}>
               <View
                 className={`h-1.5 rounded-full ${
                   i === index ? "bg-brand-orange w-5" : "w-1.5 bg-white/20"

@@ -1,16 +1,16 @@
+import { styled } from "nativewind";
 import { type ReactNode, type RefObject } from "react";
-import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import {
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 
+import { colors } from "@/src/constants/theme";
 import { BackButton } from "./BackButton";
 import { ErrorBanner } from "./ErrorBanner";
-import { colors } from "@/src/constants/theme";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -68,8 +68,7 @@ export function AccountFormLayout({
                 fontFamily: "Inter",
                 letterSpacing: 10 * 0.14,
                 color: accentColor,
-              }}
-            >
+              }}>
               {stepLabel}
             </Text>
           ) : null}
@@ -81,15 +80,13 @@ export function AccountFormLayout({
               fontSize: 26,
               letterSpacing: 26 * -0.03,
               lineHeight: 26 * 1.12,
-            }}
-          >
+            }}>
             {title}
           </Text>
 
           <Text
             className="text-text-secondary text-[13px]"
-            style={{ fontFamily: "Inter", lineHeight: 13 * 1.5 }}
-          >
+            style={{ fontFamily: "Inter", lineHeight: 13 * 1.5 }}>
             {subtitle}
           </Text>
         </View>
@@ -106,8 +103,7 @@ export function AccountFormLayout({
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          bottomOffset={120}
-        >
+          bottomOffset={120}>
           {submitError ? <ErrorBanner message={submitError} /> : null}
           {children}
         </KeyboardAwareScrollView>
@@ -132,8 +128,7 @@ export function AccountFormLayout({
                   shadowOpacity: 0.35,
                   shadowRadius: 20,
                   elevation: 8,
-                })}
-              >
+                })}>
                 {isSubmitting ? (
                   <ActivityIndicator color={colors.textPrimary} />
                 ) : (
@@ -145,8 +140,7 @@ export function AccountFormLayout({
                       letterSpacing: 15 * 0.08,
                       textTransform: "uppercase",
                       color: colors.textPrimary,
-                    }}
-                  >
+                    }}>
                     {submitLabel}
                   </Text>
                 )}

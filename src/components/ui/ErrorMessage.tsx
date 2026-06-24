@@ -1,6 +1,6 @@
-import { View, Text } from "react-native";
-import Svg, { Circle, Path } from "react-native-svg";
 import { colors } from "@/src/constants/theme";
+import { Text, View } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
 
 export function ErrorMessage({ message }: { message: string }) {
   return (

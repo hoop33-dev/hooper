@@ -1,36 +1,35 @@
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRouter } from "expo-router";
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-  type RefObject,
-} from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
-  Text,
-  TextInput,
   View,
   type TextInput as RNTextInput,
 } from "react-native";
 
 import { GuardianBanner, GuardianLockPopup } from "@/src/components/dashboard";
-import { Avatar } from "@/src/components/dashboard/Avatar";
 import {
-  CameraIcon,
   CheckIcon,
   LockIcon,
   UserIcon,
 } from "@/src/components/dashboard/icons";
+import { AvatarEditor } from "@/src/components/profile/AvatarEditor";
 import { DiscardChangesModal } from "@/src/components/profile/DiscardChangesModal";
 import { PhotoSourceSheet } from "@/src/components/profile/PhotoSourceSheet";
-import { ErrorBanner } from "@/src/components/ui/ErrorBanner";
-import { SelectInput } from "@/src/components/ui/SelectInput";
+import {
+  AccentButton,
+  Caption,
+  Field,
+  Label,
+  Overline,
+  ScreenHeader,
+  SelectInput,
+  StickySaveBar,
+  ToggleRow,
+} from "@/src/components/ui";
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
@@ -39,274 +38,6 @@ import { useRegionOptions } from "@/src/hooks/useRegionOptions";
 import { checkUsernameAvailable } from "@/src/services/auth.service";
 import { updateProfile, uploadAvatar } from "@/src/services/profile.service";
 import { useAuthStore } from "@/src/stores/auth.store";
-import Svg, { Path } from "react-native-svg";
-
-/* ─── Sub-components ───────────────────────────────────────── */
-
-function BackButton({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel="Back"
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        marginBottom: 16,
-        alignSelf: "flex-start",
-      }}>
-      <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-        <Path
-          d="M10 3L5 8L10 13"
-          stroke={colors.textTertiary}
-          strokeWidth={1.8}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </Svg>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 13,
-          fontWeight: "500",
-          color: colors.textTertiary,
-        }}>
-        Profile
-      </Text>
-    </Pressable>
-  );
-}
-
-function SectionLabel({ children }: { children: string }) {
-  return (
-    <Text
-      style={{
-        fontFamily: "Inter",
-        fontSize: 11,
-        fontWeight: "700",
-        letterSpacing: 11 * 0.14,
-        textTransform: "uppercase",
-        color: colors.textSecondary,
-        marginTop: 12,
-        marginBottom: 14,
-      }}>
-      {children}
-    </Text>
-  );
-}
-
-function FieldLabel({
-  children,
-  error,
-}: {
-  children: string;
-  error?: boolean;
-}) {
-  return (
-    <Text
-      style={{
-        fontFamily: "Inter",
-        fontSize: 10,
-        fontWeight: "500",
-        letterSpacing: 10 * 0.12,
-        textTransform: "uppercase",
-        color: error ? colors.danger : colors.textTertiary,
-        marginBottom: 6,
-      }}>
-      {children}
-    </Text>
-  );
-}
-
-type TextFieldProps = {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  prefix?: string;
-  suffix?: ReactNode;
-  accent: string;
-  multiline?: boolean;
-  numberOfLines?: number;
-  error?: boolean;
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  inputRef?: RefObject<RNTextInput | null>;
-  onSubmitEditing?: () => void;
-  returnKeyType?: "next" | "done" | "go";
-};
-
-function TextField({
-  value,
-  onChange,
-  placeholder,
-  prefix,
-  suffix,
-  accent,
-  multiline,
-  numberOfLines,
-  error,
-  autoCapitalize = "sentences",
-  inputRef,
-  onSubmitEditing,
-  returnKeyType,
-}: TextFieldProps) {
-  const [focused, setFocused] = useState(false);
-  const borderColor = error
-    ? colors.danger
-    : focused
-      ? accent
-      : colors.borderSubtle;
-
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: multiline ? "flex-start" : "center",
-        minHeight: multiline ? undefined : 48,
-        backgroundColor: focused ? "rgba(255,255,255,0.06)" : colors.surface2,
-        borderWidth: 1.5,
-        borderColor,
-        borderRadius: 10,
-        paddingHorizontal: 14,
-        paddingVertical: multiline ? 12 : 0,
-      }}>
-      {prefix ? (
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 15,
-            color: colors.textTertiary,
-            marginRight: 2,
-          }}>
-          {prefix}
-        </Text>
-      ) : null}
-      <TextInput
-        ref={inputRef}
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textDisabled}
-        multiline={multiline}
-        numberOfLines={numberOfLines}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={false}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        onSubmitEditing={onSubmitEditing}
-        returnKeyType={returnKeyType}
-        blurOnSubmit={!multiline}
-        style={{
-          flex: 1,
-          fontFamily: "Inter",
-          fontSize: 15,
-          color: colors.textPrimary,
-          textAlignVertical: multiline ? "top" : "center",
-          minHeight: multiline ? (numberOfLines ? numberOfLines * 22 : 66) : 48,
-        }}
-      />
-      {suffix ? <View style={{ marginLeft: 8 }}>{suffix}</View> : null}
-    </View>
-  );
-}
-
-function ToggleRow({
-  title,
-  sub,
-  value,
-  onChange,
-  accent,
-  icon,
-}: {
-  title: string;
-  sub: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
-  accent: string;
-  icon: ReactNode;
-}) {
-  return (
-    <Pressable
-      onPress={() => onChange(!value)}
-      accessibilityRole="switch"
-      accessibilityState={{ checked: value }}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 14,
-        padding: 14,
-        paddingHorizontal: 16,
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 14,
-      }}>
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          backgroundColor: `${accent}14`,
-          borderWidth: 1,
-          borderColor: `${accent}30`,
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}>
-        {icon}
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 14.5,
-            fontWeight: "600",
-            color: colors.textPrimary,
-            marginBottom: 2,
-          }}>
-          {title}
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 12,
-            color: colors.textTertiary,
-            lineHeight: 17,
-          }}>
-          {sub}
-        </Text>
-      </View>
-      {/* Toggle pill */}
-      <View
-        style={{
-          width: 42,
-          height: 26,
-          borderRadius: 999,
-          backgroundColor: value ? accent : "rgba(255,255,255,0.10)",
-          flexShrink: 0,
-          justifyContent: "center",
-          paddingHorizontal: 3,
-        }}>
-        <View
-          style={{
-            width: 20,
-            height: 20,
-            borderRadius: 10,
-            backgroundColor: "#fff",
-            alignSelf: value ? "flex-end" : "flex-start",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.3,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        />
-      </View>
-    </Pressable>
-  );
-}
-
-/* ─── Main screen ──────────────────────────────────────────── */
 
 export default function ProfileSettingsScreen() {
   const router = useRouter();
@@ -559,149 +290,61 @@ export default function ProfileSettingsScreen() {
     ) : usernameStatus === "available" ? (
       <CheckIcon size={14} color={colors.success} />
     ) : usernameStatus === "taken" ? (
-      <Text style={{ fontFamily: "Inter", fontSize: 11, color: colors.danger }}>
-        Taken
-      </Text>
+      <Caption className="text-danger">Taken</Caption>
     ) : null;
 
   // Avatar display: show pending local preview or saved URL or initials
   const displayAvatarUrl = pendingImageUri ?? user?.avatarUrl ?? null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.surface }}>
+    <View className="bg-surface flex-1">
       <LinearGradient
         colors={[r.headerTint, "transparent"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0.7, y: 0.7 }}
         pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 320,
-        }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: 320 }}
       />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: saveError ? 184 : 120 }}
-        style={{ flex: 1 }}>
-        {/* Header */}
-        <View
-          style={{ paddingHorizontal: 20, paddingTop: 58, paddingBottom: 4 }}>
-          <BackButton onPress={() => router.back()} />
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 26,
-              fontWeight: "900",
-              color: colors.textPrimary,
-              letterSpacing: -26 * 0.03,
-            }}>
-            Profile settings
-          </Text>
-        </View>
+        className="flex-1">
+        <ScreenHeader
+          title="Profile settings"
+          backLabel="Profile"
+          onBack={() => router.back()}
+        />
 
         {locked ? <GuardianBanner kind="profile" /> : null}
 
-        <View style={{ position: "relative" }}>
+        <View className="relative">
           <View
             pointerEvents={locked ? "none" : "auto"}
             style={{ opacity: locked ? 0.5 : 1 }}>
             {/* Avatar editor */}
-            <View
-              style={{
-                alignItems: "center",
-                paddingTop: 28,
-                paddingBottom: 28,
-                paddingHorizontal: 20,
-              }}>
-              <View style={{ position: "relative", marginBottom: 12 }}>
-                {displayAvatarUrl ? (
-                  <View
-                    style={{
-                      width: 92,
-                      height: 92,
-                      borderRadius: 46,
-                      overflow: "hidden",
-                    }}>
-                    <Image
-                      source={{ uri: displayAvatarUrl }}
-                      style={{ width: 92, height: 92 }}
-                      resizeMode="cover"
-                    />
-                  </View>
-                ) : (
-                  <Avatar
-                    role={role}
-                    size={92}
-                    initials={user?.initials ?? "?"}
-                  />
-                )}
-                <Pressable
-                  onPress={handleChangePhoto}
-                  accessibilityRole="button"
-                  accessibilityLabel="Change photo"
-                  style={{
-                    position: "absolute",
-                    bottom: -4,
-                    right: -4,
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: r.accent,
-                    borderWidth: 3,
-                    borderColor: colors.surface,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    shadowColor: r.accent,
-                    shadowOffset: { width: 0, height: 0 },
-                    shadowOpacity: 0.6,
-                    shadowRadius: 12,
-                    elevation: 4,
-                  }}>
-                  {uploadingPhoto ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <CameraIcon size={15} color="#fff" />
-                  )}
-                </Pressable>
-              </View>
-              <Pressable onPress={handleChangePhoto} accessibilityRole="button">
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 12,
-                    fontWeight: "700",
-                    color: r.accent,
-                    borderWidth: 1,
-                    borderColor: `${r.accent}40`,
-                    paddingHorizontal: 14,
-                    paddingVertical: 7,
-                    borderRadius: 999,
-                    letterSpacing: 12 * 0.02,
-                  }}>
-                  Change photo
-                </Text>
-              </Pressable>
+            <View className="items-center px-5 py-7">
+              <AvatarEditor
+                role={role}
+                initials={user?.initials ?? "?"}
+                displayUri={displayAvatarUrl}
+                accent={r.accent}
+                size={92}
+                uploading={uploadingPhoto}
+                onPress={handleChangePhoto}
+              />
             </View>
 
             {/* Form */}
-            <View style={{ paddingHorizontal: 20 }}>
-              <SectionLabel>Personal</SectionLabel>
+            <View className="px-5">
+              <Overline className="mt-3 mb-3.5">Personal</Overline>
 
               {/* First / Last name row */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  gap: 10,
-                  marginBottom: 12,
-                }}>
-                <View style={{ flex: 1 }}>
-                  <FieldLabel error={!!errors.firstName}>First name</FieldLabel>
-                  <TextField
+              <View className="mb-3 flex-row gap-2.5">
+                <View className="flex-1">
+                  <Field
+                    label="First name"
                     value={firstName}
                     onChange={(v) => {
                       setFirstName(v);
@@ -714,9 +357,9 @@ export default function ProfileSettingsScreen() {
                     onSubmitEditing={() => lastNameRef.current?.focus()}
                   />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <FieldLabel error={!!errors.lastName}>Last name</FieldLabel>
-                  <TextField
+                <View className="flex-1">
+                  <Field
+                    label="Last name"
                     value={lastName}
                     onChange={(v) => {
                       setLastName(v);
@@ -733,35 +376,25 @@ export default function ProfileSettingsScreen() {
               </View>
 
               {/* Username */}
-              <View style={{ marginBottom: 12 }}>
-                <FieldLabel error={!!errors.username}>Username</FieldLabel>
-                <TextField
+              <View className="mb-3">
+                <Field
+                  label="Username"
                   value={username}
                   onChange={handleUsernameChange}
                   prefix="@"
                   suffix={usernameSuffix}
                   accent={r.accent}
                   error={!!errors.username}
+                  errorText={errors.username}
                   autoCapitalize="none"
                   inputRef={usernameRef}
                   returnKeyType="next"
                 />
-                {errors.username ? (
-                  <Text
-                    style={{
-                      fontFamily: "Inter",
-                      fontSize: 11,
-                      color: colors.danger,
-                      marginTop: 4,
-                    }}>
-                    {errors.username}
-                  </Text>
-                ) : null}
               </View>
 
               {/* Region */}
-              <View style={{ marginBottom: 12 }}>
-                <FieldLabel>Region</FieldLabel>
+              <View className="mb-3">
+                <Label className="mb-1.5">Region</Label>
                 <SelectInput
                   value={regionId}
                   options={regionOptions}
@@ -771,9 +404,9 @@ export default function ProfileSettingsScreen() {
               </View>
 
               {/* Bio */}
-              <View style={{ marginBottom: 4 }}>
-                <FieldLabel>Bio</FieldLabel>
-                <TextField
+              <View className="mb-1">
+                <Field
+                  label="Bio"
                   value={bio}
                   onChange={setBio}
                   placeholder="Tell people about yourself…"
@@ -785,9 +418,9 @@ export default function ProfileSettingsScreen() {
               </View>
 
               {/* Privacy section */}
-              <SectionLabel>Privacy</SectionLabel>
+              <Overline className="mt-3 mb-3.5">Privacy</Overline>
 
-              <View style={{ gap: 8 }}>
+              <View className="gap-2">
                 <ToggleRow
                   title="Private profile"
                   sub={
@@ -816,99 +449,28 @@ export default function ProfileSettingsScreen() {
               onPress={() => setShowLock(true)}
               accessibilityRole="button"
               accessibilityLabel="Settings locked by guardian"
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
+              className="absolute inset-0"
             />
           ) : null}
         </View>
       </ScrollView>
 
       {/* Sticky save button */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          paddingHorizontal: 20,
-          paddingBottom: 36,
-          paddingTop: 12,
-          backgroundColor: "transparent",
-        }}
-        pointerEvents="box-none">
-        <LinearGradient
-          colors={["transparent", colors.surface]}
-          style={{
-            position: "absolute",
-            top: -20,
-            left: 0,
-            right: 0,
-            bottom: 0,
-          }}
-          pointerEvents="none"
-        />
-        {saveError ? (
-          <View style={{ marginBottom: 10 }}>
-            <ErrorBanner message={saveError} />
-          </View>
-        ) : null}
-        <Pressable
-          onPress={locked ? () => setShowLock(true) : handleSave}
-          disabled={saving}
-          accessibilityRole="button"
-          style={{
-            height: 52,
-            flexDirection: "row",
-            gap: 8,
-            backgroundColor: locked
-              ? colors.surface2
-              : saving
-                ? `${r.accent}80`
-                : r.accent,
-            borderWidth: locked ? 1 : 0,
-            borderColor: colors.borderSubtle,
-            borderRadius: 9999,
-            alignItems: "center",
-            justifyContent: "center",
-            shadowColor: r.accent,
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: locked || saving ? 0 : 0.45,
-            shadowRadius: 16,
-            elevation: locked ? 0 : 6,
-          }}>
-          {locked ? (
-            <>
-              <LockIcon size={15} color={colors.textSecondary} />
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontSize: 15,
-                  fontWeight: "700",
-                  color: colors.textSecondary,
-                }}>
-                Locked by guardian
-              </Text>
-            </>
-          ) : saving ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 15,
-                fontWeight: "700",
-                color: "#fff",
-              }}>
-              Save changes
-            </Text>
-          )}
-        </Pressable>
-      </View>
+      <StickySaveBar error={saveError}>
+        {locked ? (
+          <AccentButton
+            variant="muted"
+            accent={r.accent}
+            icon={<LockIcon size={15} color={colors.textSecondary} />}
+            onPress={() => setShowLock(true)}>
+            Locked by guardian
+          </AccentButton>
+        ) : (
+          <AccentButton accent={r.accent} loading={saving} onPress={handleSave}>
+            {saving ? <ActivityIndicator color="#fff" /> : "Save changes"}
+          </AccentButton>
+        )}
+      </StickySaveBar>
 
       <PhotoSourceSheet
         visible={photoSheetVisible}

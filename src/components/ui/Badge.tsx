@@ -1,5 +1,5 @@
-import { View, Text, type ViewProps } from "react-native";
 import { colors } from "@/src/constants/theme";
+import { Text, View, type ViewProps } from "react-native";
 
 export type BadgeVariant =
   | "orange"
@@ -64,8 +64,7 @@ export function Badge({
   return (
     <View
       className={`flex-row items-center self-start rounded-full px-3 py-1 ${s.container} ${className}`}
-      {...rest}
-    >
+      {...rest}>
       {dot && <View className={`mr-1.5 h-1.5 w-1.5 rounded-full ${s.dot}`} />}
       <Text
         className={s.text}
@@ -74,8 +73,7 @@ export function Badge({
           fontWeight: "600",
           fontSize: 11,
           letterSpacing: 11 * 0.04,
-        }}
-      >
+        }}>
         {children}
       </Text>
     </View>
@@ -91,16 +89,14 @@ export function Tag({
   return (
     <View
       className={`border-border-subtle bg-surface-2 self-start rounded-md border px-2.5 py-1 ${className}`}
-      {...rest}
-    >
+      {...rest}>
       <Text
         className="text-text-secondary"
         style={{
           fontFamily: "Inter",
           fontWeight: "500",
           fontSize: 11,
-        }}
-      >
+        }}>
         {children}
       </Text>
     </View>
@@ -117,8 +113,7 @@ export function NumberBadge({ count }: { count: number | string }) {
           fontWeight: "700",
           fontSize: 11,
           color: colors.textPrimary,
-        }}
-      >
+        }}>
         {count}
       </Text>
     </View>

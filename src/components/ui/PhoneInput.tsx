@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
-import { View, Text, type TextInput as RNTextInput } from "react-native";
-import { Input } from "./Input";
+import { Text, View, type TextInput as RNTextInput } from "react-native";
 import { ErrorMessage } from "./ErrorMessage";
+import { Input } from "./Input";
 
 type PhoneInputProps = {
   label?: string;
@@ -42,8 +42,7 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
               fontWeight: "500",
               fontSize: 10,
               letterSpacing: 10 * 0.12,
-            }}
-          >
+            }}>
             {label}
           </Text>
         )}
@@ -51,12 +50,10 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
         <View className="flex-row items-stretch gap-2">
           {/* Country code badge — stretches to match the Input height */}
           <View
-            className={`bg-surface-2 items-center justify-center self-stretch rounded-[10px] border-[1.5px] px-4 ${error ? "border-danger" : "border-border-subtle"}`}
-          >
+            className={`bg-surface-2 items-center justify-center self-stretch rounded-[10px] border-[1.5px] px-4 ${error ? "border-danger" : "border-border-subtle"}`}>
             <Text
               className="text-text-secondary text-[15px] font-medium"
-              style={{ fontFamily: "Inter" }}
-            >
+              style={{ fontFamily: "Inter" }}>
               {countryCode}
             </Text>
           </View>

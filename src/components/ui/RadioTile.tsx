@@ -1,8 +1,8 @@
-import { useState, type ReactNode } from "react";
-import { Pressable, View, Text, Platform } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Path } from "react-native-svg";
 import { colors } from "@/src/constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { useState, type ReactNode } from "react";
+import { Platform, Pressable, Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
 export type RadioTileProps = {
   id: string;
@@ -59,41 +59,38 @@ export function RadioTile({
         shadowOpacity: selected ? 0.4 : 0.3,
         shadowRadius: selected ? 20 : 8,
         elevation: Platform.OS === "android" ? 0 : selected ? 8 : 3,
-      }}
-    >
+      }}>
       {/* overflow:"hidden" clips the gradient to the tile's rounded corners */}
       <Pressable
         onPress={onPress}
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
-        style={{ borderRadius: 14.5, overflow: "hidden" }}
-      >
+        style={{ borderRadius: 14.5, overflow: "hidden" }}>
         <LinearGradient
           colors={gradientColors}
           start={{ x: 0.2, y: 0.2 }}
           end={{ x: 1, y: 1 }}
-          style={{ padding: 20, paddingBottom: 18 }}
-        >
+          style={{ padding: 20, paddingBottom: 18 }}>
           {/* Top row: icon container + radio indicator */}
           <View
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
               marginBottom: 14,
-            }}
-          >
+            }}>
             <View
               style={{
                 width: 56,
                 height: 56,
                 borderRadius: 14,
-                backgroundColor: selected ? accentDim : "rgba(255,255,255,0.04)",
+                backgroundColor: selected
+                  ? accentDim
+                  : "rgba(255,255,255,0.04)",
                 borderWidth: 1,
                 borderColor: selected ? accentBorder : colors.borderSubtle,
                 alignItems: "center",
                 justifyContent: "center",
-              }}
-            >
+              }}>
               {icon}
             </View>
 
@@ -108,8 +105,7 @@ export function RadioTile({
                 alignItems: "center",
                 justifyContent: "center",
                 marginTop: 2,
-              }}
-            >
+              }}>
               {selected && (
                 <Svg width={11} height={8} viewBox="0 0 11 8" fill="none">
                   <Path
@@ -134,8 +130,7 @@ export function RadioTile({
               textTransform: "uppercase",
               color: selected ? accent : colors.textTertiary,
               marginBottom: 5,
-            }}
-          >
+            }}>
             {label}
           </Text>
 
@@ -149,8 +144,7 @@ export function RadioTile({
               color: colors.textPrimary,
               marginBottom: 8,
               lineHeight: 22 * 1.1,
-            }}
-          >
+            }}>
             {title}
           </Text>
 
@@ -162,8 +156,7 @@ export function RadioTile({
               fontSize: 13,
               lineHeight: 13 * 1.55,
               color: colors.textSecondary,
-            }}
-          >
+            }}>
             {body}
           </Text>
         </LinearGradient>

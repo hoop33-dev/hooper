@@ -1,13 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { type ReactNode, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 
 import {
   Avatar,
@@ -26,114 +20,23 @@ import {
   SettingsIcon as SettingsGearIcon,
   ShieldIcon,
 } from "@/src/components/dashboard/icons";
+import {
+  Caption,
+  IconTile,
+  Lead,
+  MenuRow,
+  Meta,
+  MicroLabel,
+  Pill,
+  ScreenTitle,
+  SectionLabel,
+  Title,
+} from "@/src/components/ui";
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 import { useGuardianControls } from "@/src/hooks/useGuardianControls";
 import { useAuthStore } from "@/src/stores/auth.store";
-
-type MenuRowProps = {
-  icon: ReactNode;
-  title: string;
-  sub?: string;
-  accent: string;
-  danger?: boolean;
-  locked?: boolean;
-  comingSoon?: boolean;
-  onPress?: () => void;
-};
-
-function MenuRow({
-  icon,
-  title,
-  sub,
-  accent,
-  danger,
-  locked,
-  comingSoon,
-  onPress,
-}: MenuRowProps) {
-  const [pressed, setPressed] = useState(false);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 14,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 14,
-        opacity: locked || comingSoon ? 0.55 : 1,
-        transform: [{ scale: pressed ? 0.99 : 1 }],
-      }}>
-      <View
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 10,
-          backgroundColor: danger ? "rgba(229,62,62,0.10)" : `${accent}14`,
-          borderWidth: 1,
-          borderColor: danger ? "rgba(229,62,62,0.25)" : `${accent}30`,
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
-        {icon}
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 14.5,
-            fontWeight: "600",
-            color: danger ? colors.danger : colors.textPrimary,
-            marginBottom: sub ? 2 : 0,
-          }}>
-          {title}
-        </Text>
-        {sub ? (
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 12,
-              color: colors.textTertiary,
-            }}>
-            {sub}
-          </Text>
-        ) : null}
-      </View>
-      {locked ? (
-        <LockIcon size={16} color={colors.textTertiary} />
-      ) : comingSoon ? null : (
-        <ChevronIcon size={16} color={colors.textTertiary} />
-      )}
-    </Pressable>
-  );
-}
-
-function SectionHead({ title }: { title: string }) {
-  return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: 12 }}>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 11,
-          fontWeight: "700",
-          letterSpacing: 11 * 0.13,
-          color: colors.textSecondary,
-          textTransform: "uppercase",
-        }}>
-        {title}
-      </Text>
-    </View>
-  );
-}
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -166,42 +69,14 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 24 }}>
         {/* Title bar */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingHorizontal: 20,
-            paddingTop: 6,
-            paddingBottom: 28,
-          }}>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 22,
-              fontWeight: "900",
-              color: colors.textPrimary,
-              letterSpacing: -22 * 0.03,
-            }}>
-            Profile
-          </Text>
+        <View className="flex-row items-center justify-between px-5 pt-1.5 pb-7">
+          <ScreenTitle>Profile</ScreenTitle>
         </View>
 
         {user ? (
           <>
             {/* Identity card */}
-            <View
-              style={{
-                marginHorizontal: 20,
-                marginBottom: 18,
-                backgroundColor: colors.surface2,
-                borderWidth: 1,
-                borderColor: colors.borderSubtle,
-                borderRadius: 18,
-                padding: 22,
-                alignItems: "center",
-                overflow: "hidden",
-              }}>
+            <View className="bg-surface-2 border-border-subtle mx-5 mb-5 items-center overflow-hidden rounded-[18px] border p-5">
               <LinearGradient
                 colors={[`${r.accent}22`, "transparent"]}
                 pointerEvents="none"
@@ -224,94 +99,33 @@ export default function SettingsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Change photo"
                   onPress={() => router.push("/(app)/profile-settings")}
+                  className="absolute -right-0.5 -bottom-0.5 h-[26px] w-[26px] items-center justify-center rounded-full border-[2.5px]"
                   style={{
-                    position: "absolute",
-                    bottom: -2,
-                    right: -2,
-                    width: 26,
-                    height: 26,
-                    borderRadius: 13,
                     backgroundColor: r.accent,
-                    borderWidth: 2.5,
                     borderColor: colors.surface2,
-                    alignItems: "center",
-                    justifyContent: "center",
                   }}>
                   <CameraIcon size={13} color="#fff" />
                 </Pressable>
               </View>
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontSize: 20,
-                  fontWeight: "800",
-                  color: colors.textPrimary,
-                  letterSpacing: -20 * 0.02,
-                  marginTop: 14,
-                  marginBottom: 3,
-                }}>
-                {user.fullName}
-              </Text>
+              <Title className="mt-3.5 mb-0.5">{user.fullName}</Title>
               {user.username ? (
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: r.accent,
-                    letterSpacing: 12 * 0.06,
-                  }}>
-                  @{user.username}
-                </Text>
+                <Meta style={{ color: r.accent }}>@{user.username}</Meta>
               ) : null}
 
-              <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
+              <View className="mt-3.5 flex-row gap-2">
                 {user.regionName ? (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 5,
-                      paddingHorizontal: 10,
-                      paddingVertical: 5,
-                      backgroundColor: "rgba(255,255,255,0.04)",
-                      borderWidth: 1,
-                      borderColor: colors.borderSubtle,
-                      borderRadius: 999,
-                    }}>
-                    <PinIcon size={10} color={colors.textTertiary} />
-                    <Text
-                      style={{
-                        fontFamily: "Inter",
-                        fontSize: 11,
-                        fontWeight: "600",
-                        color: colors.textSecondary,
-                      }}>
+                  <Pill
+                    icon={<PinIcon size={10} color={colors.textTertiary} />}>
+                    <Meta className="text-text-secondary">
                       {user.regionName}
-                    </Text>
-                  </View>
+                    </Meta>
+                  </Pill>
                 ) : null}
-                <View
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 5,
-                    backgroundColor: `${r.accent}14`,
-                    borderWidth: 1,
-                    borderColor: `${r.accent}30`,
-                    borderRadius: 999,
-                  }}>
-                  <Text
-                    style={{
-                      fontFamily: "Inter",
-                      fontSize: 10,
-                      fontWeight: "700",
-                      color: r.accent,
-                      letterSpacing: 10 * 0.1,
-                      textTransform: "uppercase",
-                    }}>
+                <Pill color={r.accent}>
+                  <MicroLabel style={{ color: r.accent }}>
                     {r.shortLabel}
-                  </Text>
-                </View>
+                  </MicroLabel>
+                </Pill>
               </View>
             </View>
 
@@ -319,15 +133,8 @@ export default function SettingsScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={isChild ? () => setBillingLockOpen(true) : undefined}
-              style={{
-                marginHorizontal: 20,
-                marginBottom: 8,
-                borderWidth: 1,
-                borderColor: `${r.accent}30`,
-                borderRadius: 14,
-                overflow: "hidden",
-                opacity: 0.55,
-              }}>
+              className="mx-5 mb-2 overflow-hidden rounded-2xl border opacity-[0.55]"
+              style={{ borderColor: `${r.accent}30` }}>
               <LinearGradient
                 colors={[`${r.accent}12`, colors.surface2]}
                 start={{ x: 0, y: 0 }}
@@ -339,50 +146,21 @@ export default function SettingsScreen() {
                   paddingVertical: 14,
                   paddingHorizontal: 16,
                 }}>
-                <View
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    backgroundColor: `${r.accent}22`,
-                    borderWidth: 1,
-                    borderColor: `${r.accent}40`,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}>
+                <IconTile
+                  color={r.accent}
+                  size={40}
+                  bgAlpha="22"
+                  borderAlpha="40">
                   <ShieldIcon size={18} color={r.accent} />
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    style={{
-                      fontFamily: "Inter",
-                      fontSize: 9.5,
-                      fontWeight: "700",
-                      letterSpacing: 9.5 * 0.13,
-                      color: r.accent,
-                      textTransform: "uppercase",
-                      marginBottom: 2,
-                    }}>
+                </IconTile>
+                <View className="min-w-0 flex-1">
+                  <MicroLabel className="mb-0.5" style={{ color: r.accent }}>
                     Current plan
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: "Inter",
-                      fontSize: 15,
-                      fontWeight: "800",
-                      color: colors.textPrimary,
-                    }}>
-                    {r.planName}
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: "Inter",
-                      fontSize: 11.5,
-                      color: colors.textSecondary,
-                      marginTop: 1,
-                    }}>
+                  </MicroLabel>
+                  <Lead>{r.planName}</Lead>
+                  <Caption className="text-text-secondary mt-px">
                     {isChild ? r.planSub : "Coming soon"}
-                  </Text>
+                  </Caption>
                 </View>
                 {isChild ? (
                   <ChevronIcon size={16} color={colors.textTertiary} />
@@ -391,8 +169,8 @@ export default function SettingsScreen() {
             </Pressable>
 
             {/* Account */}
-            <SectionHead title="Account" />
-            <View style={{ paddingHorizontal: 20, gap: 8 }}>
+            <SectionLabel title="Account" />
+            <View className="gap-2 px-5">
               <MenuRow
                 icon={<SettingsGearIcon size={18} color={r.accent} />}
                 title="Profile settings"
@@ -404,9 +182,7 @@ export default function SettingsScreen() {
               <MenuRow
                 icon={<CreditIcon size={18} color={r.accent} />}
                 title="Subscription & billing"
-                sub={
-                  isChild ? "Managed by your guardian" : "Coming soon"
-                }
+                sub={isChild ? "Managed by your guardian" : "Coming soon"}
                 accent={r.accent}
                 locked={isChild}
                 comingSoon={!isChild}
@@ -422,8 +198,8 @@ export default function SettingsScreen() {
             </View>
 
             {/* Preferences */}
-            <SectionHead title="Preferences" />
-            <View style={{ paddingHorizontal: 20, gap: 8 }}>
+            <SectionLabel title="Preferences" />
+            <View className="gap-2 px-5">
               <MenuRow
                 icon={<BellIcon size={18} color={r.accent} />}
                 title="Notifications"
@@ -434,8 +210,8 @@ export default function SettingsScreen() {
             </View>
 
             {/* Support */}
-            <SectionHead title="Support" />
-            <View style={{ paddingHorizontal: 20, gap: 8 }}>
+            <SectionLabel title="Support" />
+            <View className="gap-2 px-5">
               <MenuRow
                 icon={<HelpIcon size={18} color={r.accent} />}
                 title="Help & FAQs"
@@ -458,18 +234,9 @@ export default function SettingsScreen() {
               />
             </View>
 
-            <Text
-              style={{
-                paddingTop: 24,
-                paddingHorizontal: 20,
-                textAlign: "center",
-                fontFamily: "Inter",
-                fontSize: 11,
-                color: "rgba(255,255,255,0.22)",
-                letterSpacing: 11 * 0.04,
-              }}>
+            <Caption className="text-text-disabled px-5 pt-6 text-center">
               Hooper · v1.0.0
-            </Text>
+            </Caption>
           </>
         ) : (
           <ActivityIndicator

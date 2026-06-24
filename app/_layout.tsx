@@ -24,7 +24,15 @@ const SHARED_ROUTES = new Set([
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
+    // Body / UI text
+    Outfit: require("../assets/fonts/Outfit.ttf"),
+    // Legacy — still referenced by screens pending migration; removed once unused.
     Inter: require("../assets/fonts/Inter.ttf"),
+    // Headings (Barlow Condensed ships as static weights, registered per weight)
+    "BarlowCondensed-SemiBold": require("../assets/fonts/BarlowCondensed-SemiBold.ttf"),
+    "BarlowCondensed-Bold": require("../assets/fonts/BarlowCondensed-Bold.ttf"),
+    "BarlowCondensed-ExtraBold": require("../assets/fonts/BarlowCondensed-ExtraBold.ttf"),
+    "BarlowCondensed-Black": require("../assets/fonts/BarlowCondensed-Black.ttf"),
   });
 
   const { status, primaryRole, session, hydrate } = useAuthStore();

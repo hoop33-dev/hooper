@@ -2,7 +2,6 @@ export {
   Body,
   BodySm,
   Caption,
-  FONT_FAMILY,
   H1,
   H2,
   H3,

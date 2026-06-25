@@ -97,8 +97,10 @@ function AddChildButton({ onPress }: { onPress: () => void }) {
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="mt-1.5 flex-row items-center justify-center gap-2.5 rounded-2xl border-[1.5px] border-dashed py-4"
+      className="mt-1.5 flex-row items-center justify-center gap-2.5 rounded-2xl py-4"
       style={({ pressed }) => ({
+        borderWidth: 1.5,
+        borderStyle: "dashed",
         borderColor: `${PARENT_ACCENT}55`,
         opacity: pressed ? 0.7 : 1,
       })}>

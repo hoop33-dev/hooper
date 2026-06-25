@@ -20,6 +20,9 @@ const inputTextStyle: TextStyle = {
   fontFamily: BODY_FONT,
   fontSize: 15,
   color: colors.textPrimary,
+  // Drop Android's extra font padding so multiline text aligns with the
+  // single-line inputs instead of sitting lower.
+  includeFontPadding: false,
 };
 
 function resolveBorderColor(
@@ -34,7 +37,7 @@ function resolveBorderColor(
 
 function containerLayout(multiline?: boolean): ViewStyle {
   return multiline
-    ? { alignItems: "flex-start", paddingVertical: 12 }
+    ? { alignItems: "flex-start", paddingVertical: 14 }
     : { alignItems: "center", minHeight: 48 };
 }
 

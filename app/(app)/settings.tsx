@@ -112,7 +112,7 @@ export default function SettingsScreen() {
                 <Meta style={{ color: r.accent }}>@{user.username}</Meta>
               ) : null}
 
-              <View className="mt-3.5 flex-row gap-2">
+              <View className="mt-3.5 flex-row items-center gap-2">
                 {user.regionName ? (
                   <Pill
                     icon={<PinIcon size={10} color={colors.textTertiary} />}>

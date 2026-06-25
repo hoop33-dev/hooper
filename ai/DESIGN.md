@@ -39,7 +39,7 @@ screen — render one of these instead (ESLint enforces this in `app/**`):
 | `Title`                             | Entity name (20)                       |
 | `Lead` / `RowTitle`                 | Strong line / list-row title (15)      |
 | `Body` / `BodySm`                   | Paragraph copy (16 / 13)               |
-| `Caption` / `Meta`                  | Metadata (12 regular / semibold)       |
+| `Caption` / `Meta`                  | Metadata (12 medium / semibold)        |
 | `Label` / `Overline` / `MicroLabel` | Uppercase labels (11 / 11 / 10)        |
 | `TabLabel`                          | Control / tab label (13)               |
 | `Stat`                              | Big numeric (48 orange)                |

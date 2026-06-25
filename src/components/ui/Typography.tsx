@@ -59,40 +59,56 @@ const SCALE = {
     fontFamily: HEADING.black,
     fontSize: 64,
     lineHeight: 64 * 1.05,
-    letterSpacing: -64 * 0.02,
+    letterSpacing: 0,
   },
   /** Section heading — 36px bold */
   h2: {
     fontFamily: HEADING.bold,
     fontSize: 36,
     lineHeight: 36 * 1.1,
-    letterSpacing: -36 * 0.01,
+    letterSpacing: 36 * 0.01,
   },
   /** Card title — 28px bold */
-  h3: { fontFamily: HEADING.bold, fontSize: 28, lineHeight: 28 * 1.15 },
+  h3: {
+    fontFamily: HEADING.bold,
+    fontSize: 28,
+    lineHeight: 28 * 1.15,
+    letterSpacing: 28 * 0.02,
+  },
   /** Sub-heading — 22px semibold */
-  h4: { fontFamily: HEADING.semibold, fontSize: 22, lineHeight: 22 * 1.2 },
+  h4: {
+    fontFamily: HEADING.semibold,
+    fontSize: 22,
+    lineHeight: 22 * 1.2,
+    letterSpacing: 22 * 0.02,
+  },
   /** Hero / page title — 28px black, e.g. auth headers, "Security" */
   hero: {
     fontFamily: HEADING.black,
     fontSize: 28,
     lineHeight: 28 * 1.05,
-    letterSpacing: -28 * 0.02,
+    letterSpacing: 0,
   },
   /** Screen header — 22px black, e.g. "Profile" (dashboard tabs) */
   screenTitle: {
     fontFamily: HEADING.black,
     fontSize: 22,
     lineHeight: 22 * 1.1,
+    letterSpacing: 22 * 0.02,
   },
   /** Entity name — 20px extrabold, e.g. a player's full name */
-  title: { fontFamily: HEADING.extrabold, fontSize: 20, lineHeight: 20 * 1.15 },
+  title: {
+    fontFamily: HEADING.extrabold,
+    fontSize: 20,
+    lineHeight: 20 * 1.15,
+    letterSpacing: 20 * 0.02,
+  },
   /** Stat — 48px black */
   stat: {
     fontFamily: HEADING.black,
     fontSize: 48,
     lineHeight: 48,
-    letterSpacing: -48 * 0.02,
+    letterSpacing: 0,
   },
 
   /* ── Body / UI (Outfit) ── */
@@ -120,21 +136,21 @@ const SCALE = {
   /** Body — 16px regular */
   body: {
     fontFamily: BODY,
-    fontWeight: "400",
+    fontWeight: "500",
     fontSize: 16,
     lineHeight: 16 * 1.5,
   },
-  /** Body small — 13px regular */
+  /** Body small — 13px medium */
   bodySm: {
     fontFamily: BODY,
-    fontWeight: "400",
+    fontWeight: "500",
     fontSize: 13,
     lineHeight: 13 * 1.5,
   },
-  /** Caption / metadata — 12px regular */
+  /** Caption / metadata — 12px medium */
   caption: {
     fontFamily: BODY,
-    fontWeight: "400",
+    fontWeight: "500",
     fontSize: 12,
     lineHeight: 12 * 1.4,
   },

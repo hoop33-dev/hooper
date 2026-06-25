@@ -1,4 +1,4 @@
-import { colors, fonts } from "@/src/constants/theme";
+import { bodyFont, colors } from "@/src/constants/theme";
 import { Text, View, type ViewProps } from "react-native";
 
 export type BadgeVariant =
@@ -69,8 +69,7 @@ export function Badge({
       <Text
         className={s.text}
         style={{
-          fontFamily: fonts.body,
-          fontWeight: "600",
+          fontFamily: bodyFont("600"),
           fontSize: 11,
           letterSpacing: 11 * 0.04,
         }}>
@@ -93,8 +92,7 @@ export function Tag({
       <Text
         className="text-text-secondary"
         style={{
-          fontFamily: fonts.body,
-          fontWeight: "500",
+          fontFamily: bodyFont("500"),
           fontSize: 11,
         }}>
         {children}
@@ -109,8 +107,7 @@ export function NumberBadge({ count }: { count: number | string }) {
     <View className="bg-brand-orange h-5 w-5 items-center justify-center rounded-full">
       <Text
         style={{
-          fontFamily: fonts.body,
-          fontWeight: "700",
+          fontFamily: bodyFont("700"),
           fontSize: 11,
           color: colors.textPrimary,
         }}>

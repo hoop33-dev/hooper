@@ -1,4 +1,4 @@
-import { fonts } from "@/src/constants/theme";
+import { bodyFont } from "@/src/constants/theme";
 import Svg, {
   Circle,
   Defs,
@@ -293,7 +293,7 @@ export function ProgressIllustration() {
           textAnchor="middle"
           fill="rgba(255,255,255,0.3)"
           fontSize="10"
-          fontFamily={fonts.body}>
+          fontFamily={bodyFont("400")}>
           {d}
         </SvgText>
       ))}
@@ -315,7 +315,7 @@ export function ProgressIllustration() {
         fill="#F15825"
         fontSize="13"
         fontWeight="800"
-        fontFamily={fonts.body}>
+        fontFamily={bodyFont("400")}>
         +24%
       </SvgText>
     </Frame>

@@ -1,4 +1,4 @@
-import { colors, fonts } from "@/src/constants/theme";
+import { bodyFont, colors } from "@/src/constants/theme";
 import { getPasswordStrength } from "@/src/lib/passwordStrength";
 import { Text, View } from "react-native";
 
@@ -29,9 +29,8 @@ export function PasswordStrengthBar({ value }: Props) {
       </View>
       <Text
         style={{
-          fontFamily: fonts.body,
+          fontFamily: bodyFont("600"),
           fontSize: 11,
-          fontWeight: "600",
           color: strength.color,
         }}>
         {strength.label}

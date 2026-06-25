@@ -2,7 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Image, Text, View } from "react-native";
 
 import { roleConfig, type RoleId } from "@/src/constants/roles";
-import { fonts } from "@/src/constants/theme";
+import { bodyFont } from "@/src/constants/theme";
 
 type AvatarProps = {
   role: RoleId;
@@ -49,8 +49,7 @@ export function Avatar({ role, size = 42, initials, imageUrl }: AvatarProps) {
           }}>
           <Text
             style={{
-              fontFamily: fonts.body,
-              fontWeight: "800",
+              fontFamily: bodyFont("800"),
               fontSize: size * 0.36,
               letterSpacing: -size * 0.36 * 0.02,
               color: "#FFFFFF",

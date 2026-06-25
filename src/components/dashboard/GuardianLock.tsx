@@ -1,7 +1,7 @@
 import { Modal, Pressable, Text, View } from "react-native";
 
 import { Title } from "@/src/components/ui/Typography";
-import { colors, fonts } from "@/src/constants/theme";
+import { bodyFont, colors } from "@/src/constants/theme";
 import { LockIcon } from "./icons";
 
 const PARENT_ACCENT = "#F68D68";
@@ -45,16 +45,15 @@ export function GuardianBanner({ kind = "profile" }: { kind?: LockKind }) {
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
-            fontFamily: fonts.body,
+            fontFamily: bodyFont("700"),
             fontSize: 13.5,
-            fontWeight: "700",
             color: colors.textPrimary,
           }}>
           Managed by your guardian
         </Text>
         <Text
           style={{
-            fontFamily: fonts.body,
+            fontFamily: bodyFont("400"),
             fontSize: 12,
             color: colors.textSecondary,
             lineHeight: 17,
@@ -82,9 +81,8 @@ function GotItButton({ onClose }: { onClose: () => void }) {
       }}>
       <Text
         style={{
-          fontFamily: fonts.body,
+          fontFamily: bodyFont("700"),
           fontSize: 14.5,
-          fontWeight: "700",
           color: "#fff",
         }}>
         Got it
@@ -128,7 +126,7 @@ function LockCard({ kind, onClose }: { kind: LockKind; onClose: () => void }) {
       </Title>
       <Text
         style={{
-          fontFamily: fonts.body,
+          fontFamily: bodyFont("400"),
           fontSize: 13.5,
           color: colors.textSecondary,
           lineHeight: 20,

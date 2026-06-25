@@ -1,6 +1,6 @@
 import { ScreenTitle } from "@/src/components/ui/Typography";
 import type { RoleId } from "@/src/constants/roles";
-import { fonts } from "@/src/constants/theme";
+import { bodyFont } from "@/src/constants/theme";
 import { styled } from "nativewind";
 import { Modal, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -55,7 +55,7 @@ export function AgeGateModal({
 
           <Text
             className="text-text-secondary mb-7 text-center text-sm"
-            style={{ fontFamily: fonts.body, lineHeight: 14 * 1.6 }}>
+            style={{ fontFamily: bodyFont("400"), lineHeight: 14 * 1.6 }}>
             {isPlayer
               ? "Players must be at least 16 to create their own account. Ask a parent or guardian to sign up and add you as an athlete."
               : "You must be at least 16 years old to create a Hooper account."}
@@ -66,8 +66,8 @@ export function AgeGateModal({
             activeOpacity={0.85}
             className="bg-danger h-[52px] items-center justify-center rounded-full">
             <Text
-              className="text-text-primary text-[15px] font-bold"
-              style={{ fontFamily: fonts.body }}>
+              className="text-text-primary text-[15px]"
+              style={{ fontFamily: bodyFont("700") }}>
               {isPlayer ? "Got it" : "Update date of birth"}
             </Text>
           </TouchableOpacity>

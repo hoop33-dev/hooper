@@ -1,4 +1,4 @@
-import { fonts } from "@/src/constants/theme";
+import { bodyFont } from "@/src/constants/theme";
 import { forwardRef } from "react";
 import { Text, View, type TextInput as RNTextInput } from "react-native";
 import { ErrorMessage } from "./ErrorMessage";
@@ -39,8 +39,7 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
               error ? "text-danger uppercase" : "text-text-tertiary uppercase"
             }
             style={{
-              fontFamily: fonts.body,
-              fontWeight: "500",
+              fontFamily: bodyFont("500"),
               fontSize: 10,
               letterSpacing: 10 * 0.12,
             }}>
@@ -53,8 +52,8 @@ export const PhoneInput = forwardRef<RNTextInput, PhoneInputProps>(
           <View
             className={`bg-surface-2 items-center justify-center self-stretch rounded-[10px] border-[1.5px] px-4 ${error ? "border-danger" : "border-border-subtle"}`}>
             <Text
-              className="text-text-secondary text-[15px] font-medium"
-              style={{ fontFamily: fonts.body }}>
+              className="text-text-secondary text-[15px]"
+              style={{ fontFamily: bodyFont("500") }}>
               {countryCode}
             </Text>
           </View>

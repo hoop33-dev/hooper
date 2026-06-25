@@ -1,4 +1,4 @@
-import { colors, fonts } from "@/src/constants/theme";
+import { bodyFont, colors } from "@/src/constants/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState, type ReactNode } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
@@ -123,8 +123,7 @@ export function RadioTile({
           {/* Role label — uppercase caps */}
           <Text
             style={{
-              fontFamily: fonts.body,
-              fontWeight: "500",
+              fontFamily: bodyFont("500"),
               fontSize: 10,
               letterSpacing: 10 * 0.14,
               textTransform: "uppercase",
@@ -137,8 +136,7 @@ export function RadioTile({
           {/* Title */}
           <Text
             style={{
-              fontFamily: fonts.body,
-              fontWeight: "800",
+              fontFamily: bodyFont("800"),
               fontSize: 22,
               letterSpacing: 22 * -0.03,
               color: colors.textPrimary,
@@ -151,8 +149,7 @@ export function RadioTile({
           {/* Body */}
           <Text
             style={{
-              fontFamily: fonts.body,
-              fontWeight: "400",
+              fontFamily: bodyFont("400"),
               fontSize: 13,
               lineHeight: 13 * 1.55,
               color: colors.textSecondary,

@@ -103,14 +103,33 @@ export const shadows = {
 
 /**
  * Font families. The JS mirror of the typefaces used by the design system:
- * Barlow Condensed for headings, Outfit for body/UI text. Components that
- * can't render a Typography component (e.g. TextInput) reference `fonts.body`.
- * Heading weights are registered as separate families (see Typography.tsx).
+ * Barlow Condensed for headings, Outfit for body/UI text. Both register one
+ * family per weight (React Native can't reliably vary a single variable font),
+ * so body text selects weight by family via `bodyFont()`, not `fontWeight`.
  */
 export const fonts = {
   heading: "BarlowCondensed",
   body: "Outfit",
 } as const;
+
+export type BodyWeight = "400" | "500" | "600" | "700" | "800";
+
+const OUTFIT_BY_WEIGHT: Record<BodyWeight, string> = {
+  "400": "Outfit-Regular",
+  "500": "Outfit-Medium",
+  "600": "Outfit-SemiBold",
+  "700": "Outfit-Bold",
+  "800": "Outfit-ExtraBold",
+};
+
+/**
+ * Resolve a body-text weight to its registered Outfit family. Components that
+ * can't render a Typography component (e.g. TextInput, SVG text) use this in a
+ * `style`/`fontFamily` prop instead of setting `fontWeight`.
+ */
+export function bodyFont(weight: BodyWeight = "400"): string {
+  return OUTFIT_BY_WEIGHT[weight];
+}
 
 export const easing = {
   fast: 180,

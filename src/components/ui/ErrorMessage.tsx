@@ -1,4 +1,4 @@
-import { colors, fonts } from "@/src/constants/theme";
+import { bodyFont, colors } from "@/src/constants/theme";
 import { Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 
@@ -17,7 +17,7 @@ export function ErrorMessage({ message }: { message: string }) {
       </Svg>
       <Text
         className="text-danger text-[11px]"
-        style={{ fontFamily: fonts.body }}>
+        style={{ fontFamily: bodyFont("400") }}>
         {message}
       </Text>
     </View>

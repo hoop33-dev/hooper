@@ -1,7 +1,7 @@
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Title } from "@/src/components/ui/Typography";
-import { colors, fonts } from "@/src/constants/theme";
+import { bodyFont, colors } from "@/src/constants/theme";
 
 type DiscardChangesModalProps = {
   visible: boolean;
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   body: {
-    fontFamily: fonts.body,
+    fontFamily: bodyFont("400"),
     fontSize: 14,
     lineHeight: 14 * 1.5,
     color: colors.textSecondary,
@@ -81,9 +81,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   discardLabel: {
-    fontFamily: fonts.body,
+    fontFamily: bodyFont("700"),
     fontSize: 15,
-    fontWeight: "700",
     color: "#fff",
   },
   keep: {
@@ -95,9 +94,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   keepLabel: {
-    fontFamily: fonts.body,
+    fontFamily: bodyFont("700"),
     fontSize: 15,
-    fontWeight: "700",
     color: colors.textPrimary,
   },
 });

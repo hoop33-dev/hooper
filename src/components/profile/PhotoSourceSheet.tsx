@@ -5,7 +5,7 @@ import Svg, { Path } from "react-native-svg";
 
 import { CameraIcon } from "@/src/components/dashboard/icons";
 import { Title } from "@/src/components/ui/Typography";
-import { colors, fonts } from "@/src/constants/theme";
+import { bodyFont, colors } from "@/src/constants/theme";
 
 function ImageIcon({ size = 20, color }: { size?: number; color: string }) {
   return (
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   subtitle: {
-    fontFamily: fonts.body,
+    fontFamily: bodyFont("400"),
     fontSize: 13,
     color: colors.textTertiary,
     marginBottom: 18,
@@ -178,9 +178,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   optionLabel: {
-    fontFamily: fonts.body,
+    fontFamily: bodyFont("600"),
     fontSize: 15,
-    fontWeight: "600",
     color: colors.textPrimary,
   },
   cancel: {
@@ -194,9 +193,8 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
   },
   cancelLabel: {
-    fontFamily: fonts.body,
+    fontFamily: bodyFont("700"),
     fontSize: 15,
-    fontWeight: "700",
     color: colors.textSecondary,
   },
 });

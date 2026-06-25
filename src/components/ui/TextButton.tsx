@@ -1,4 +1,4 @@
-import { colors, fonts } from "@/src/constants/theme";
+import { bodyFont, colors, type BodyWeight } from "@/src/constants/theme";
 import { useState } from "react";
 import { Pressable, Text, type PressableProps } from "react-native";
 
@@ -22,7 +22,7 @@ const toneColor: Record<NonNullable<TextButtonProps["tone"]>, string> = {
   interactive: colors.brandBlue,
 };
 
-const weightMap: Record<NonNullable<TextButtonProps["weight"]>, string> = {
+const weightMap: Record<NonNullable<TextButtonProps["weight"]>, BodyWeight> = {
   regular: "400",
   medium: "500",
   semibold: "600",
@@ -53,8 +53,7 @@ export function TextButton({
       {...rest}>
       <Text
         style={{
-          fontFamily: fonts.body,
-          fontWeight: weightMap[weight] as "400" | "500" | "600" | "700",
+          fontFamily: bodyFont(weightMap[weight]),
           fontSize: size,
           color,
           textDecorationLine: underline ? "underline" : "none",

@@ -1,13 +1,15 @@
 import { Text, type TextProps } from "react-native";
 
-import { fonts } from "@/src/constants/theme";
+import { bodyFont } from "@/src/constants/theme";
 
 /**
  * Hooper — Typography
  *
  * The single source of truth for every piece of text in the app.
  *
- * Two typefaces:
+ * Two typefaces, each registered as one family per weight (React Native can't
+ * reliably vary a single variable font, so weight is selected by family — not
+ * `fontWeight`):
  *   • Headings  → Barlow Condensed (a condensed display face)
  *   • Body / UI → Outfit (a clean geometric sans)
  *
@@ -35,12 +37,23 @@ const HEADING = {
 } as const;
 
 /**
- * Body / UI face. Outfit is a variable font, so `fontWeight` works directly.
- * Exported for the few places that can't render a Typography component — most
- * notably `TextInput`, which styles its own text via the `style` prop.
+ * Body / UI face. Outfit, one registered family per weight. A variant picks the
+ * family for its weight (no `fontWeight` — the family carries it).
  */
-export const BODY_FONT = fonts.body;
-const BODY = BODY_FONT;
+const BODY = {
+  regular: bodyFont("400"),
+  medium: bodyFont("500"),
+  semibold: bodyFont("600"),
+  bold: bodyFont("700"),
+  extrabold: bodyFont("800"),
+} as const;
+
+/**
+ * Default body family (Outfit Regular). Exported for the few places that can't
+ * render a Typography component — most notably `TextInput`, which styles its
+ * own text via the `style` prop. For other weights call `bodyFont(weight)`.
+ */
+export const BODY_FONT = BODY.regular;
 
 type Spec = {
   fontFamily: string;
@@ -114,57 +127,49 @@ const SCALE = {
   /* ── Body / UI (Outfit) ── */
   /** Strong supporting line — 15px extrabold, e.g. a plan name */
   lead: {
-    fontFamily: BODY,
-    fontWeight: "800",
+    fontFamily: BODY.extrabold,
     fontSize: 15,
     lineHeight: 15 * 1.3,
   },
   /** List/menu row title — 15px semibold */
   rowTitle: {
-    fontFamily: BODY,
-    fontWeight: "600",
+    fontFamily: BODY.semibold,
     fontSize: 15,
     lineHeight: 15 * 1.3,
   },
   /** Control / tab label — 13px bold */
   tab: {
-    fontFamily: BODY,
-    fontWeight: "700",
+    fontFamily: BODY.bold,
     fontSize: 13,
     lineHeight: 13 * 1.2,
   },
-  /** Body — 16px regular */
+  /** Body — 16px medium */
   body: {
-    fontFamily: BODY,
-    fontWeight: "500",
+    fontFamily: BODY.medium,
     fontSize: 16,
     lineHeight: 16 * 1.5,
   },
   /** Body small — 13px medium */
   bodySm: {
-    fontFamily: BODY,
-    fontWeight: "500",
+    fontFamily: BODY.medium,
     fontSize: 13,
     lineHeight: 13 * 1.5,
   },
   /** Caption / metadata — 12px medium */
   caption: {
-    fontFamily: BODY,
-    fontWeight: "500",
+    fontFamily: BODY.medium,
     fontSize: 12,
     lineHeight: 12 * 1.4,
   },
   /** Emphasised metadata — 12px semibold, e.g. a region tag or @username */
   meta: {
-    fontFamily: BODY,
-    fontWeight: "600",
+    fontFamily: BODY.semibold,
     fontSize: 12,
     lineHeight: 12 * 1.4,
   },
   /** Form field label — 11px medium, uppercase, wide tracking */
   label: {
-    fontFamily: BODY,
-    fontWeight: "500",
+    fontFamily: BODY.medium,
     fontSize: 11,
     lineHeight: 11,
     letterSpacing: 11 * 0.12,
@@ -172,8 +177,7 @@ const SCALE = {
   },
   /** Section header — 11px bold, uppercase */
   overline: {
-    fontFamily: BODY,
-    fontWeight: "700",
+    fontFamily: BODY.bold,
     fontSize: 11,
     lineHeight: 11,
     letterSpacing: 11 * 0.13,
@@ -181,8 +185,7 @@ const SCALE = {
   },
   /** Micro label — 10px bold, uppercase, e.g. a role chip */
   microLabel: {
-    fontFamily: BODY,
-    fontWeight: "700",
+    fontFamily: BODY.bold,
     fontSize: 10,
     lineHeight: 10,
     letterSpacing: 10 * 0.1,

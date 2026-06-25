@@ -1,4 +1,4 @@
-import { fonts } from "@/src/constants/theme";
+import { bodyFont } from "@/src/constants/theme";
 import { Linking, Text } from "react-native";
 
 export function DisclosureLabel() {
@@ -6,7 +6,7 @@ export function DisclosureLabel() {
     <Text
       className="text-text-secondary"
       style={{
-        fontFamily: fonts.body,
+        fontFamily: bodyFont("400"),
         fontSize: 12.5,
         lineHeight: 12.5 * 1.55,
       }}>

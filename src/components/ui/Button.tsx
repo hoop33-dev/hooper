@@ -1,4 +1,4 @@
-import { colors, fonts } from "@/src/constants/theme";
+import { bodyFont, colors } from "@/src/constants/theme";
 import { useState, type ReactNode } from "react";
 import {
   Pressable,
@@ -117,8 +117,7 @@ export function Button({
       {typeof children === "string" ? (
         <Text
           style={{
-            fontFamily: fonts.body,
-            fontWeight: "700",
+            fontFamily: bodyFont("700"),
             fontSize: sizeText[size],
             letterSpacing: sizeText[size] * 0.08,
             textTransform: "uppercase",

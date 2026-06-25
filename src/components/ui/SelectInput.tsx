@@ -1,4 +1,4 @@
-import { fonts } from "@/src/constants/theme";
+import { bodyFont } from "@/src/constants/theme";
 import { styled } from "nativewind";
 import { forwardRef, useImperativeHandle, useState } from "react";
 import {
@@ -64,8 +64,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
                 error ? "text-danger uppercase" : "text-text-tertiary uppercase"
               }
               style={{
-                fontFamily: fonts.body,
-                fontWeight: "500",
+                fontFamily: bodyFont("500"),
                 fontSize: 10,
                 letterSpacing: 10 * 0.12,
               }}>
@@ -79,7 +78,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
             style={{ height: 48 }}>
             <Text
               className={`flex-1 text-[15px] ${selected ? "text-text-primary" : "text-text-disabled"}`}
-              style={{ fontFamily: fonts.body }}
+              style={{ fontFamily: bodyFont("400") }}
               numberOfLines={1}>
               {selected ? selected.label : placeholder}
             </Text>
@@ -115,8 +114,8 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
               <View className="bg-border-strong mb-4 h-1 w-9 rounded-full" />
               {label && (
                 <Text
-                  className="text-text-primary mb-2 text-[15px] font-semibold"
-                  style={{ fontFamily: fonts.body }}>
+                  className="text-text-primary mb-2 text-[15px]"
+                  style={{ fontFamily: bodyFont("600") }}>
                   {label}
                 </Text>
               )}
@@ -141,8 +140,10 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
                     className="flex-row items-center justify-between border-b border-white/[0.06] px-1 py-[14px]"
                     activeOpacity={0.7}>
                     <Text
-                      className={`text-[15px] ${isSelected ? "text-brand-orange font-semibold" : "text-text-primary"}`}
-                      style={{ fontFamily: fonts.body }}>
+                      className={`text-[15px] ${isSelected ? "text-brand-orange" : "text-text-primary"}`}
+                      style={{
+                        fontFamily: bodyFont(isSelected ? "600" : "400"),
+                      }}>
                       {item.label}
                     </Text>
 

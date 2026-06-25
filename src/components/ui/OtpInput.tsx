@@ -1,8 +1,6 @@
 import { TextInput, View, type TextInput as RNTextInput } from "react-native";
 
-import { colors } from "@/src/constants/theme";
-
-import { BODY_FONT } from "./Typography";
+import { bodyFont, colors } from "@/src/constants/theme";
 
 // Tints not in the core palette.
 const DANGER_FILL = "rgba(229,62,62,0.12)";
@@ -66,8 +64,7 @@ export function OtpInput({
               backgroundColor: c.bg,
               color: c.text,
               fontSize: 24,
-              fontFamily: BODY_FONT,
-              fontWeight: "600",
+              fontFamily: bodyFont("600"),
               textAlign: "center",
             }}
           />

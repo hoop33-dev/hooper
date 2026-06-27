@@ -18,14 +18,7 @@ import {
   SettingsIcon,
   XIcon,
 } from "@/src/components/dashboard/icons";
-import {
-  BodySm,
-  MenuRow,
-  Meta,
-  MicroLabel,
-  ScreenTitle,
-  Title,
-} from "@/src/components/ui";
+import { BodySm, MenuRow, Meta, ScreenTitle, Title } from "@/src/components/ui";
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import {
@@ -105,8 +98,8 @@ export default function ViewAsChildScreen() {
   const c = resolveChild(child, params);
 
   return (
-    <View className="bg-surface flex-1">
-      <SafeAreaView edges={["top"]} className="flex-1">
+    <View style={{ flex: 1, backgroundColor: colors.surface }}>
+      <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
         <ViewAsBanner firstName={c.firstName} onExit={() => router.back()} />
         <View style={{ flex: 1 }}>
           <TabContent tab={tab} child={c} />
@@ -326,8 +319,14 @@ function LocalNav({
   ];
   return (
     <View
-      className="border-border-subtle flex-row border-t pt-1.5 pb-[22px]"
-      style={{ backgroundColor: "rgba(20,17,18,0.92)" }}>
+      style={{
+        flexDirection: "row",
+        backgroundColor: "rgba(20,17,18,0.92)",
+        borderTopWidth: 1,
+        borderTopColor: colors.borderSubtle,
+        paddingBottom: 14,
+        paddingTop: 6,
+      }}>
       {tabs.map((t) => {
         const isActive = t.id === active;
         const color = isActive ? PLAYER.accent : colors.textTertiary;
@@ -337,15 +336,26 @@ function LocalNav({
             accessibilityRole="button"
             accessibilityLabel={t.label}
             onPress={() => onChange(t.id)}
-            className="flex-1 items-center justify-center gap-1 pt-1.5 pb-1">
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              paddingTop: 8,
+              paddingBottom: 6,
+            }}>
             {isActive ? (
               <View
-                className="absolute top-0 h-0.5 w-7 rounded-sm"
-                style={{ backgroundColor: PLAYER.accent }}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  width: 28,
+                  height: 2,
+                  borderRadius: 2,
+                  backgroundColor: PLAYER.accent,
+                }}
               />
             ) : null}
             <t.Icon size={22} color={color} />
-            <MicroLabel style={{ color }}>{t.label}</MicroLabel>
           </Pressable>
         );
       })}

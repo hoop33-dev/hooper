@@ -8,6 +8,7 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+apps/mobile/expo-env.d.ts
 
 # Native
 .kotlin/

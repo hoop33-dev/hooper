@@ -18,6 +18,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+        working-directory: apps/mobile
 
   lint:
     name: lint
@@ -35,8 +36,10 @@ jobs:
       # ESLint with the suppressions baseline (pre-existing violations don't
       # block, but any new violation of a suppressed rule fails).
       - run: npm run lint
+        working-directory: apps/mobile
       # Full dependency-cruiser graph: circular deps + layering.
       - run: npm run lint:deps
+        working-directory: apps/mobile
       # Append-only migration guard, diffed against the PR base branch.
       - name: check db migrations
         if: github.event_name == 'pull_request'
@@ -47,6 +50,7 @@ jobs:
       - name: dead code (advisory)
         continue-on-error: true
         run: npm run lint:dead
+        working-directory: apps/mobile
 
   test:
     name: test
@@ -59,3 +63,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test
+        working-directory: apps/mobile

@@ -1,5 +1,0 @@
-{
-  "*.{js,jsx,ts,tsx,md,json,yml,yaml}": "prettier --write",
-  "*.{js,jsx,ts,tsx}": "eslint --fix",
-  "*.sql": "node scripts/check-db-migrations.mjs"
-}

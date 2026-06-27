@@ -6,4 +6,4 @@ ios/
 .git/
 
 # Managed by ESLint's bulk-suppressions feature — don't let Prettier reformat it.
-eslint-suppressions.json
+apps/mobile/eslint-suppressions.json

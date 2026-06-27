@@ -21,14 +21,15 @@ Deno.serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  let body: { username?: unknown; password?: unknown };
+  let body: { username?: unknown; password?: unknown; coach_only?: unknown };
   try {
     body = await req.json();
   } catch {
     return json(400, { ok: false, error: "Invalid request body" });
   }
 
-  const { username, password } = body;
+  const { username, password, coach_only } = body;
+  const isCoachOnly = coach_only === true;
 
   if (typeof username !== "string" || !username.trim()) {
     return json(400, { ok: false, error: "username is required" });
@@ -130,6 +131,26 @@ Deno.serve(async (req: Request) => {
 
   if (!signInData?.session) {
     return json(200, { ok: false, error: "Invalid username or password" });
+  }
+
+  // Step 4: enforce coach-only restriction after password is verified, so
+  // attackers can't enumerate coach accounts without knowing the password.
+  if (isCoachOnly) {
+    const { data: coachRole } = await admin
+      .from("user_roles")
+      .select("id")
+      .eq("profile_id", profile.id)
+      .eq("role", "coach")
+      .maybeSingle();
+
+    if (!coachRole) {
+      await admin.auth.admin.signOut(signInData.session.user.id);
+      await clearThrottle();
+      return json(200, {
+        ok: false,
+        error: "This sign-in is for coaches only.",
+      });
+    }
   }
 
   await clearThrottle();

@@ -44,10 +44,11 @@ export type SignInResult =
 export async function signInWithUsername(
   username: string,
   password: string,
+  coachOnly = false,
 ): Promise<SignInResult> {
   const { data, error } = await supabase.functions.invoke(
     "signin-with-username",
-    { body: { username, password } },
+    { body: { username, password, coach_only: coachOnly || undefined } },
   );
 
   if (error) {

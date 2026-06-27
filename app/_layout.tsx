@@ -22,10 +22,23 @@ const SHARED_ROUTES = new Set([
   "security-new-password",
 ]);
 
+// One registered family per weight — React Native can't reliably vary a single
+// variable font, so Outfit (body) and Barlow Condensed (headings) each ship
+// static per-weight files. See src/components/ui/Typography.tsx.
+const FONTS = {
+  "Outfit-Regular": require("../assets/fonts/Outfit-Regular.ttf"),
+  "Outfit-Medium": require("../assets/fonts/Outfit-Medium.ttf"),
+  "Outfit-SemiBold": require("../assets/fonts/Outfit-SemiBold.ttf"),
+  "Outfit-Bold": require("../assets/fonts/Outfit-Bold.ttf"),
+  "Outfit-ExtraBold": require("../assets/fonts/Outfit-ExtraBold.ttf"),
+  "BarlowCondensed-SemiBold": require("../assets/fonts/BarlowCondensed-SemiBold.ttf"),
+  "BarlowCondensed-Bold": require("../assets/fonts/BarlowCondensed-Bold.ttf"),
+  "BarlowCondensed-ExtraBold": require("../assets/fonts/BarlowCondensed-ExtraBold.ttf"),
+  "BarlowCondensed-Black": require("../assets/fonts/BarlowCondensed-Black.ttf"),
+};
+
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    Inter: require("../assets/fonts/Inter.ttf"),
-  });
+  const [fontsLoaded, fontError] = useFonts(FONTS);
 
   const { status, primaryRole, session, hydrate } = useAuthStore();
   const router = useRouter();

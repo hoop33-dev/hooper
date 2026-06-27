@@ -1,8 +1,10 @@
-import { Modal, View, Text, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
-import Svg, { Path, Circle } from "react-native-svg";
+import { ScreenTitle } from "@/src/components/ui/Typography";
 import type { RoleId } from "@/src/constants/roles";
+import { bodyFont } from "@/src/constants/theme";
+import { styled } from "nativewind";
+import { Modal, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle, Path } from "react-native-svg";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -24,13 +26,11 @@ export function AgeGateModal({
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onDismiss}
-    >
+      onRequestClose={onDismiss}>
       <View className="flex-1 justify-end bg-black/[72]">
         <StyledSafeAreaView
           className="bg-surface-2 border-danger/30 rounded-t-[20px] border-t p-6 pb-8"
-          edges={["bottom"]}
-        >
+          edges={["bottom"]}>
           <View className="bg-danger/[12] border-danger/30 mb-5 h-14 w-14 items-center justify-center self-center rounded-full border-[1.5px]">
             <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
               <Path
@@ -49,21 +49,13 @@ export function AgeGateModal({
             </Svg>
           </View>
 
-          <Text
-            className="text-text-primary mb-3 text-center font-black"
-            style={{
-              fontFamily: "Inter",
-              fontSize: 22,
-              letterSpacing: 22 * -0.03,
-            }}
-          >
+          <ScreenTitle className="mb-3 text-center">
             You must be 16 or over
-          </Text>
+          </ScreenTitle>
 
           <Text
             className="text-text-secondary mb-7 text-center text-sm"
-            style={{ fontFamily: "Inter", lineHeight: 14 * 1.6 }}
-          >
+            style={{ fontFamily: bodyFont("400"), lineHeight: 14 * 1.6 }}>
             {isPlayer
               ? "Players must be at least 16 to create their own account. Ask a parent or guardian to sign up and add you as an athlete."
               : "You must be at least 16 years old to create a Hooper account."}
@@ -72,12 +64,10 @@ export function AgeGateModal({
           <TouchableOpacity
             onPress={onDismiss}
             activeOpacity={0.85}
-            className="bg-danger h-[52px] items-center justify-center rounded-full"
-          >
+            className="bg-danger h-[52px] items-center justify-center rounded-full">
             <Text
-              className="text-text-primary text-[15px] font-bold"
-              style={{ fontFamily: "Inter" }}
-            >
+              className="text-text-primary text-[15px]"
+              style={{ fontFamily: bodyFont("700") }}>
               {isPlayer ? "Got it" : "Update date of birth"}
             </Text>
           </TouchableOpacity>

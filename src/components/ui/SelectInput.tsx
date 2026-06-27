@@ -1,14 +1,15 @@
-import { useState, forwardRef, useImperativeHandle } from "react";
+import { bodyFont } from "@/src/constants/theme";
+import { styled } from "nativewind";
+import { forwardRef, useImperativeHandle, useState } from "react";
 import {
-  View,
-  Text,
-  Pressable,
-  Modal,
   FlatList,
+  Modal,
+  Pressable,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
 import Svg, { Path } from "react-native-svg";
 import { ErrorMessage } from "./ErrorMessage";
 
@@ -63,12 +64,10 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
                 error ? "text-danger uppercase" : "text-text-tertiary uppercase"
               }
               style={{
-                fontFamily: "Inter",
-                fontWeight: "500",
+                fontFamily: bodyFont("500"),
                 fontSize: 10,
                 letterSpacing: 10 * 0.12,
-              }}
-            >
+              }}>
               {label}
             </Text>
           )}
@@ -76,13 +75,11 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
           <Pressable
             onPress={() => setOpen(true)}
             className={`bg-surface-2 flex-row items-center justify-between rounded-[10px] border-[1.5px] px-5 ${borderClass}`}
-            style={{ height: 48 }}
-          >
+            style={{ height: 48 }}>
             <Text
               className={`flex-1 text-[15px] ${selected ? "text-text-primary" : "text-text-disabled"}`}
-              style={{ fontFamily: "Inter" }}
-              numberOfLines={1}
-            >
+              style={{ fontFamily: bodyFont("400") }}
+              numberOfLines={1}>
               {selected ? selected.label : placeholder}
             </Text>
 
@@ -104,8 +101,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
           visible={open}
           transparent
           animationType="slide"
-          onRequestClose={() => setOpen(false)}
-        >
+          onRequestClose={() => setOpen(false)}>
           <Pressable
             className="flex-1 bg-black/60"
             onPress={() => setOpen(false)}
@@ -113,15 +109,13 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
 
           <StyledSafeAreaView
             className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t"
-            style={{ maxHeight: "70%" }}
-          >
+            style={{ maxHeight: "70%" }}>
             <View className="items-center pt-3 pb-2">
               <View className="bg-border-strong mb-4 h-1 w-9 rounded-full" />
               {label && (
                 <Text
-                  className="text-text-primary mb-2 text-[15px] font-semibold"
-                  style={{ fontFamily: "Inter" }}
-                >
+                  className="text-text-primary mb-2 text-[15px]"
+                  style={{ fontFamily: bodyFont("600") }}>
                   {label}
                 </Text>
               )}
@@ -144,12 +138,12 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
                       setOpen(false);
                     }}
                     className="flex-row items-center justify-between border-b border-white/[0.06] px-1 py-[14px]"
-                    activeOpacity={0.7}
-                  >
+                    activeOpacity={0.7}>
                     <Text
-                      className={`text-[15px] ${isSelected ? "text-brand-orange font-semibold" : "text-text-primary"}`}
-                      style={{ fontFamily: "Inter" }}
-                    >
+                      className={`text-[15px] ${isSelected ? "text-brand-orange" : "text-text-primary"}`}
+                      style={{
+                        fontFamily: bodyFont(isSelected ? "600" : "400"),
+                      }}>
                       {item.label}
                     </Text>
 
@@ -158,8 +152,7 @@ export const SelectInput = forwardRef<SelectInputHandle, SelectInputProps>(
                         width={18}
                         height={18}
                         viewBox="0 0 18 18"
-                        fill="none"
-                      >
+                        fill="none">
                         <Path
                           d="M3 9l4.5 4.5L15 5"
                           stroke="#F15825"

@@ -1,7 +1,7 @@
+import { bodyFont, colors } from "@/src/constants/theme";
 import { type ReactNode } from "react";
-import { Pressable, View, Text } from "react-native";
-import Svg, { Path, Circle } from "react-native-svg";
-import { colors } from "@/src/constants/theme";
+import { Pressable, Text, View } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
 
 type CheckboxProps = {
   checked: boolean;
@@ -33,8 +33,7 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
               : colors.borderSubtle,
           borderRadius: 10,
           opacity: pressed ? 0.85 : 1,
-        })}
-      >
+        })}>
         {/* Box */}
         <View
           style={{
@@ -52,8 +51,7 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
             justifyContent: "center",
             flexShrink: 0,
             marginTop: 1,
-          }}
-        >
+          }}>
           {checked && (
             <Svg width={11} height={8} viewBox="0 0 11 8" fill="none">
               <Path
@@ -72,13 +70,12 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
           typeof label === "string" ? (
             <Text
               style={{
-                fontFamily: "Inter",
+                fontFamily: bodyFont("400"),
                 fontSize: 12.5,
                 color: colors.textSecondary,
                 lineHeight: 12.5 * 1.55,
                 flex: 1,
-              }}
-            >
+              }}>
               {label}
             </Text>
           ) : (
@@ -94,10 +91,15 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
             alignItems: "center",
             gap: 4,
             paddingHorizontal: 2,
-          }}
-        >
+          }}>
           <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-            <Circle cx={6} cy={6} r={5.5} stroke={colors.danger} strokeWidth={1} />
+            <Circle
+              cx={6}
+              cy={6}
+              r={5.5}
+              stroke={colors.danger}
+              strokeWidth={1}
+            />
             <Path
               d="M6 3.5V6.5"
               stroke={colors.danger}
@@ -106,7 +108,12 @@ export function Checkbox({ checked, onChange, label, error }: CheckboxProps) {
             />
             <Circle cx={6} cy={8.5} r={0.6} fill={colors.danger} />
           </Svg>
-          <Text style={{ fontFamily: "Inter", fontSize: 11, color: colors.danger }}>
+          <Text
+            style={{
+              fontFamily: bodyFont("400"),
+              fontSize: 11,
+              color: colors.danger,
+            }}>
             {error}
           </Text>
         </View>

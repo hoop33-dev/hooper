@@ -4,7 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 import { CameraIcon } from "@/src/components/dashboard/icons";
-import { colors } from "@/src/constants/theme";
+import { Title } from "@/src/components/ui/Typography";
+import { bodyFont, colors } from "@/src/constants/theme";
 
 function ImageIcon({ size = 20, color }: { size?: number; color: string }) {
   return (
@@ -94,7 +95,7 @@ export function PhotoSourceSheet({
         <Pressable onPress={() => {}}>
           <SafeAreaView edges={["bottom"]} style={styles.sheet}>
             <View style={styles.grabber} />
-            <Text style={styles.title}>Change photo</Text>
+            <Title className="mb-1">Change photo</Title>
             <Text style={styles.subtitle}>
               Choose where to get your new profile photo.
             </Text>
@@ -151,15 +152,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.18)",
     marginBottom: 18,
   },
-  title: {
-    fontFamily: "Inter",
-    fontSize: 18,
-    fontWeight: "800",
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
   subtitle: {
-    fontFamily: "Inter",
+    fontFamily: bodyFont("400"),
     fontSize: 13,
     color: colors.textTertiary,
     marginBottom: 18,
@@ -184,9 +178,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   optionLabel: {
-    fontFamily: "Inter",
+    fontFamily: bodyFont("600"),
     fontSize: 15,
-    fontWeight: "600",
     color: colors.textPrimary,
   },
   cancel: {
@@ -200,9 +193,8 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
   },
   cancelLabel: {
-    fontFamily: "Inter",
+    fontFamily: bodyFont("700"),
     fontSize: 15,
-    fontWeight: "700",
     color: colors.textSecondary,
   },
 });

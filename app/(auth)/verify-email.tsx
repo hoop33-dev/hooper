@@ -2,19 +2,24 @@ import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   Easing,
-  Pressable,
   Text,
-  TextInput,
   View,
   type TextInput as RNTextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 
-import { BackButton } from "@/src/components/ui";
+import {
+  AccentButton,
+  BackButton,
+  BodySm,
+  Caption,
+  H4,
+  Label,
+  OtpInput,
+} from "@/src/components/ui";
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import {
@@ -27,13 +32,9 @@ import type { Session } from "@supabase/supabase-js";
 const StyledSafeAreaView = styled(SafeAreaView);
 
 // Tints not in the theme palette
-const dangerDim = "rgba(229,62,62,0.12)";
-const dangerBorder = "rgba(229,62,62,0.3)";
 const successColor = "#34D399";
 const successDim = "rgba(52,211,153,0.12)";
 const successBorder = "rgba(52,211,153,0.3)";
-const orangeFilled = "rgba(241,88,37,0.08)";
-const orangeFilledBorder = "rgba(241,88,37,0.45)";
 
 const CODE_LENGTH = 6;
 const RESEND_COOLDOWN = 60;
@@ -79,17 +80,7 @@ function EmailIllustration({ shake }: { shake: boolean }) {
 
   return (
     <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
-      <View
-        style={{
-          width: 72,
-          height: 72,
-          borderRadius: 20,
-          backgroundColor: colors.orangeTint10,
-          borderWidth: 1.5,
-          borderColor: colors.orangeTint20,
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
+      <View className="bg-orange-tint-10 border-orange-tint-20 h-[72px] w-[72px] items-center justify-center rounded-[20px] border-[1.5px]">
         <Svg width={34} height={34} viewBox="0 0 34 34" fill="none">
           <Rect
             x={3}
@@ -151,23 +142,13 @@ function SuccessView({
 
   return (
     <Animated.View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 20,
-        opacity: opacityAnim,
-      }}>
+      className="flex-1 items-center justify-center gap-5"
+      style={{ opacity: opacityAnim }}>
       <Animated.View
+        className="h-20 w-20 items-center justify-center rounded-3xl border-[1.5px]"
         style={{
-          width: 80,
-          height: 80,
-          borderRadius: 24,
           backgroundColor: successDim,
-          borderWidth: 1.5,
           borderColor: successBorder,
-          alignItems: "center",
-          justifyContent: "center",
           transform: [{ scale: scaleAnim }],
         }}>
         <Svg width={36} height={36} viewBox="0 0 36 36" fill="none">
@@ -181,62 +162,20 @@ function SuccessView({
         </Svg>
       </Animated.View>
 
-      <View style={{ alignItems: "center" }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "700",
-            fontSize: 22,
-            color: colors.textPrimary,
-            marginBottom: 8,
-          }}>
-          Email verified
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 14,
-            color: colors.textSecondary,
-            lineHeight: 14 * 1.5,
-            textAlign: "center",
-          }}>
+      <View className="items-center">
+        <H4 className="mb-2">Email verified</H4>
+        <BodySm className="text-center">
           Your account is ready.{"\n"}Let&apos;s get started.
-        </Text>
+        </BodySm>
       </View>
 
-      <Pressable
+      <AccentButton
+        accent={accent}
+        loading={isLoading}
         onPress={onContinue}
-        disabled={isLoading}
-        style={({ pressed }) => ({
-          width: "100%",
-          height: 56,
-          borderRadius: 14,
-          backgroundColor: accent,
-          alignItems: "center",
-          justifyContent: "center",
-          marginTop: 16,
-          opacity: isLoading ? 0.7 : pressed ? 0.85 : 1,
-          transform: [{ scale: pressed && !isLoading ? 0.97 : 1 }],
-          shadowColor: accent,
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.4,
-          shadowRadius: 20,
-          elevation: 8,
-        })}>
-        {isLoading ? (
-          <ActivityIndicator color={colors.textPrimary} />
-        ) : (
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontWeight: "600",
-              fontSize: 15,
-              color: colors.textPrimary,
-            }}>
-            Continue to Hooper
-          </Text>
-        )}
-      </Pressable>
+        className="mt-4 w-full">
+        Continue to Hooper
+      </AccentButton>
     </Animated.View>
   );
 }
@@ -406,20 +345,11 @@ export default function VerifyEmailScreen() {
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
       {/* Step header — hidden on success */}
       {!isSuccess && (
-        <View style={{ paddingHorizontal: 24, paddingTop: 20 }}>
+        <View className="px-6 pt-5">
           {!fromSignIn && (
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 10,
-                fontWeight: "500",
-                letterSpacing: 10 * 0.14,
-                textTransform: "uppercase",
-                color: accent,
-                marginBottom: 10,
-              }}>
+            <Label className="mb-2.5" style={{ color: accent }}>
               Step 4 of 4
-            </Text>
+            </Label>
           )}
           <BackButton
             label={fromSignIn ? "Sign in" : "Your details"}
@@ -442,13 +372,7 @@ export default function VerifyEmailScreen() {
       )}
 
       {/* Body */}
-      <View
-        style={{
-          flex: 1,
-          paddingHorizontal: 24,
-          paddingTop: 32,
-          paddingBottom: 40,
-        }}>
+      <View className="flex-1 px-6 pt-8 pb-10">
         {isSuccess ? (
           <SuccessView
             onContinue={handleContinue}
@@ -458,162 +382,56 @@ export default function VerifyEmailScreen() {
         ) : (
           <>
             {/* Icon + heading */}
-            <View style={{ alignItems: "center", gap: 20, marginBottom: 40 }}>
+            <View className="mb-10 items-center gap-5">
               <EmailIllustration shake={shake} />
-              <View style={{ alignItems: "center" }}>
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontWeight: "700",
-                    fontSize: 22,
-                    color: colors.textPrimary,
-                    marginBottom: 8,
-                  }}>
-                  Check your email
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 14,
-                    color: colors.textSecondary,
-                    lineHeight: 14 * 1.6,
-                    textAlign: "center",
-                  }}>
+              <View className="items-center">
+                <H4 className="mb-2">Check your email</H4>
+                <BodySm className="text-center">
                   We sent a 6-digit code to{"\n"}
-                  <Text
-                    style={{ color: colors.textPrimary, fontWeight: "500" }}>
+                  <Text className="text-text-primary font-medium">
                     {maskedEmail}
                   </Text>
-                </Text>
+                </BodySm>
               </View>
             </View>
 
             {/* OTP boxes */}
-            <View
-              style={{
-                flexDirection: "row",
-                gap: 10,
-                justifyContent: "center",
-                marginBottom: 12,
-              }}>
-              {Array.from({ length: CODE_LENGTH }).map((_, i) => {
-                const filled = !!code[i];
-                return (
-                  <TextInput
-                    key={i}
-                    ref={(el) => {
-                      inputRefs.current[i] = el;
-                    }}
-                    value={code[i]}
-                    onChangeText={(v) => handleChange(i, v)}
-                    onKeyPress={({ nativeEvent }) =>
-                      handleKeyPress(i, nativeEvent.key)
-                    }
-                    keyboardType="number-pad"
-                    maxLength={i === 0 ? CODE_LENGTH : 1}
-                    autoFocus={i === 0}
-                    selectTextOnFocus
-                    style={{
-                      width: 46,
-                      height: 58,
-                      borderRadius: 12,
-                      borderWidth: 1.5,
-                      borderColor: errorMsg
-                        ? dangerBorder
-                        : filled
-                          ? orangeFilledBorder
-                          : colors.borderStrong,
-                      backgroundColor: errorMsg
-                        ? dangerDim
-                        : filled
-                          ? orangeFilled
-                          : colors.surface2,
-                      color: errorMsg ? colors.danger : colors.textPrimary,
-                      fontSize: 24,
-                      fontFamily: "Inter",
-                      fontWeight: "600",
-                      textAlign: "center",
-                    }}
-                  />
-                );
-              })}
-            </View>
+            <OtpInput
+              code={code}
+              error={!!errorMsg}
+              inputRefs={inputRefs}
+              onChange={handleChange}
+              onKeyPress={handleKeyPress}
+            />
 
             {/* Error / spacer */}
-            <View
-              style={{ height: 20, alignItems: "center", marginBottom: 32 }}>
+            <View className="mt-3 mb-8 h-5 items-center">
               {errorMsg ? (
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 12,
-                    color: colors.danger,
-                    textAlign: "center",
-                  }}>
+                <Caption className="text-danger text-center">
                   Incorrect code — please try again
-                </Text>
+                </Caption>
               ) : null}
             </View>
 
             {/* Verify button */}
-            <Pressable
+            <AccentButton
+              accent={accent}
+              variant={isComplete ? "solid" : "muted"}
+              loading={isVerifying}
+              disabled={!isComplete}
               onPress={handleVerify}
-              disabled={isVerifying || !isComplete}
-              style={({ pressed }) => ({
-                width: "100%",
-                height: 56,
-                borderRadius: 14,
-                backgroundColor: isComplete ? accent : colors.surface2,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: isVerifying ? 0.7 : pressed && isComplete ? 0.85 : 1,
-                transform: [
-                  { scale: pressed && isComplete && !isVerifying ? 0.97 : 1 },
-                ],
-                shadowColor: accent,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: isComplete ? 0.35 : 0,
-                shadowRadius: 20,
-                elevation: isComplete ? 8 : 0,
-                marginBottom: 24,
-              })}>
-              {isVerifying ? (
-                <ActivityIndicator
-                  color={isComplete ? colors.textPrimary : colors.textTertiary}
-                />
-              ) : (
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontWeight: "600",
-                    fontSize: 15,
-                    color: isComplete
-                      ? colors.textPrimary
-                      : colors.textTertiary,
-                  }}>
-                  Verify email
-                </Text>
-              )}
-            </Pressable>
+              className="mb-6">
+              Verify email
+            </AccentButton>
 
             {/* Resend row */}
-            <View style={{ alignItems: "center" }}>
+            <View className="items-center">
               {resendSent ? (
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 13,
-                    color: successColor,
-                  }}>
+                <BodySm style={{ color: successColor }}>
                   Code resent — check your inbox
-                </Text>
+                </BodySm>
               ) : (
-                <Text
-                  style={{
-                    fontFamily: "Inter",
-                    fontSize: 13,
-                    color: colors.textTertiary,
-                  }}>
+                <BodySm className="text-text-tertiary">
                   Didn&apos;t get it?{" "}
                   <Text
                     onPress={
@@ -621,10 +439,8 @@ export default function VerifyEmailScreen() {
                         ? undefined
                         : handleResend
                     }
+                    className="font-semibold"
                     style={{
-                      fontFamily: "Inter",
-                      fontWeight: "600",
-                      fontSize: 13,
                       color:
                         resendCooldown > 0
                           ? colors.textTertiary
@@ -636,7 +452,7 @@ export default function VerifyEmailScreen() {
                         ? `Resend in ${resendCooldown}s`
                         : "Resend code"}
                   </Text>
-                </Text>
+                </BodySm>
               )}
             </View>
           </>

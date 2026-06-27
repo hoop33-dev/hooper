@@ -1,6 +1,7 @@
 import { Modal, Pressable, Text, View } from "react-native";
 
-import { colors } from "@/src/constants/theme";
+import { Title } from "@/src/components/ui/Typography";
+import { bodyFont, colors } from "@/src/constants/theme";
 import { LockIcon } from "./icons";
 
 const PARENT_ACCENT = "#F68D68";
@@ -44,16 +45,15 @@ export function GuardianBanner({ kind = "profile" }: { kind?: LockKind }) {
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: bodyFont("700"),
             fontSize: 13.5,
-            fontWeight: "700",
             color: colors.textPrimary,
           }}>
           Managed by your guardian
         </Text>
         <Text
           style={{
-            fontFamily: "Inter",
+            fontFamily: bodyFont("400"),
             fontSize: 12,
             color: colors.textSecondary,
             lineHeight: 17,
@@ -81,9 +81,8 @@ function GotItButton({ onClose }: { onClose: () => void }) {
       }}>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: bodyFont("700"),
           fontSize: 14.5,
-          fontWeight: "700",
           color: "#fff",
         }}>
         Got it
@@ -122,21 +121,12 @@ function LockCard({ kind, onClose }: { kind: LockKind; onClose: () => void }) {
         }}>
         <LockIcon size={24} color={PARENT_ACCENT} />
       </View>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 17,
-          fontWeight: "800",
-          color: colors.textPrimary,
-          letterSpacing: -17 * 0.02,
-          marginBottom: 8,
-          textAlign: "center",
-        }}>
+      <Title className="mb-2 text-center">
         {kind === "billing" ? "Membership is locked" : "Settings are locked"}
-      </Text>
+      </Title>
       <Text
         style={{
-          fontFamily: "Inter",
+          fontFamily: bodyFont("400"),
           fontSize: 13.5,
           color: colors.textSecondary,
           lineHeight: 20,

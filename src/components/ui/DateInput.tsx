@@ -1,17 +1,18 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  Modal,
-  Platform,
-  TouchableOpacity,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { styled } from "nativewind";
+import { bodyFont } from "@/src/constants/theme";
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
+import { styled } from "nativewind";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import {
+  Modal,
+  Platform,
+  Pressable,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path, Rect } from "react-native-svg";
 import { ErrorMessage } from "./ErrorMessage";
 
@@ -130,12 +131,10 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
                 error ? "text-danger uppercase" : "text-text-tertiary uppercase"
               }
               style={{
-                fontFamily: "Inter",
-                fontWeight: "500",
+                fontFamily: bodyFont("500"),
                 fontSize: 10,
                 letterSpacing: 10 * 0.12,
-              }}
-            >
+              }}>
               {label}
             </Text>
           )}
@@ -143,12 +142,10 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
           <Pressable
             onPress={() => setShowPicker(true)}
             className={`bg-surface-2 flex-row items-center justify-between rounded-[10px] border-[1.5px] px-5 ${borderClass}`}
-            style={{ height: 48 }}
-          >
+            style={{ height: 48 }}>
             <Text
               className={`text-[15px] ${value ? "text-text-primary" : "text-text-disabled"}`}
-              style={{ fontFamily: "Inter" }}
-            >
+              style={{ fontFamily: bodyFont("400") }}>
               {value ? formatDate(value) : placeholder}
             </Text>
 
@@ -182,16 +179,14 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
             visible={showPicker}
             transparent
             animationType="slide"
-            onRequestClose={handleCancel}
-          >
+            onRequestClose={handleCancel}>
             <Pressable className="flex-1 bg-black/60" onPress={handleCancel} />
             <StyledSafeAreaView className="bg-surface-2 border-border-subtle rounded-t-[20px] border-t">
               <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
                 <TouchableOpacity onPress={handleCancel} activeOpacity={0.7}>
                   <Text
                     className="text-[15px] text-white/50"
-                    style={{ fontFamily: "Inter" }}
-                  >
+                    style={{ fontFamily: bodyFont("400") }}>
                     Cancel
                   </Text>
                 </TouchableOpacity>
@@ -200,9 +195,8 @@ export const DateInput = forwardRef<DateInputHandle, DateInputProps>(
 
                 <TouchableOpacity onPress={handleDone} activeOpacity={0.7}>
                   <Text
-                    className="text-brand-orange text-[15px] font-semibold"
-                    style={{ fontFamily: "Inter" }}
-                  >
+                    className="text-brand-orange text-[15px]"
+                    style={{ fontFamily: bodyFont("600") }}>
                     Done
                   </Text>
                 </TouchableOpacity>

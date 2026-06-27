@@ -1,19 +1,21 @@
+import { useRouter } from "expo-router";
+import { styled } from "nativewind";
 import { useState } from "react";
-import { View, Text, ActivityIndicator } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import {
   KeyboardAwareScrollView,
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { styled } from "nativewind";
 
 import {
-  Input,
-  ErrorMessage,
-  Button,
   BackButton,
+  BodySm,
+  Button,
   ErrorBanner,
+  ErrorMessage,
+  Hero,
+  Input,
 } from "@/src/components/ui";
 import { shadows } from "@/src/constants/theme";
 import { sendPasswordResetEmail } from "@/src/services/auth.service";
@@ -66,25 +68,12 @@ export default function ForgotPasswordScreen() {
             className="mb-8"
           />
 
-          <Text
-            className="mb-1 font-black text-white"
-            style={{
-              fontFamily: "Inter",
-              fontSize: 28,
-              letterSpacing: 28 * -0.03,
-              lineHeight: 28 * 1.1,
-            }}
-          >
-            Forgot password?
-          </Text>
-          <Text
-            className="text-text-secondary text-[14px]"
-            style={{ fontFamily: "Inter", lineHeight: 14 * 1.5 }}
-          >
+          <Hero className="mb-1">Forgot password?</Hero>
+          <BodySm>
             {sent
               ? "Check your inbox — we've sent a reset link."
               : "Enter your email and we'll send you a reset link."}
-          </Text>
+          </BodySm>
         </View>
 
         {/* Form */}
@@ -98,8 +87,7 @@ export default function ForgotPasswordScreen() {
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          bottomOffset={120}
-        >
+          bottomOffset={120}>
           {sent ? (
             <ErrorBanner
               variant="success"
@@ -109,7 +97,11 @@ export default function ForgotPasswordScreen() {
           ) : (
             <>
               {serviceError ? (
-                <ErrorBanner variant="error" title="Error" message={serviceError} />
+                <ErrorBanner
+                  variant="error"
+                  title="Error"
+                  message={serviceError}
+                />
               ) : null}
 
               <View>
@@ -134,20 +126,14 @@ export default function ForgotPasswordScreen() {
               </View>
 
               {/* Child account notice */}
-              <View
-                className="rounded-xl px-4 py-3"
-                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
-              >
-                <Text
-                  className="text-text-secondary text-[13px]"
-                  style={{ fontFamily: "Inter", lineHeight: 13 * 1.5 }}
-                >
-                  <Text className="text-white" style={{ fontFamily: "Inter" }}>
+              <View className="rounded-xl bg-white/[0.06] px-4 py-3">
+                <BodySm>
+                  <Text className="text-text-primary font-semibold">
                     Child account?{" "}
                   </Text>
                   A parent can change your password from within the app — no
                   email reset needed.
-                </Text>
+                </BodySm>
               </View>
             </>
           )}
@@ -162,8 +148,7 @@ export default function ForgotPasswordScreen() {
                   variant="secondary"
                   onPress={() => router.back()}
                   size="lg"
-                  className="w-full"
-                >
+                  className="w-full">
                   Back to sign in
                 </Button>
               ) : (
@@ -172,8 +157,7 @@ export default function ForgotPasswordScreen() {
                   disabled={isSubmitting}
                   size="lg"
                   className="w-full"
-                  style={shadows.orangeGlow}
-                >
+                  style={shadows.orangeGlow}>
                   {isSubmitting ? (
                     <ActivityIndicator color="#fff" />
                   ) : (

@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useRouter } from "expo-router";
+import { styled } from "nativewind";
+import { useRef, useState } from "react";
 import {
-  View,
-  Text,
   ActivityIndicator,
+  View,
   type TextInput as RNTextInput,
 } from "react-native";
 import {
@@ -10,21 +11,23 @@ import {
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { styled } from "nativewind";
 
 import {
-  Input,
-  PasswordInput,
-  ErrorMessage,
-  TextButton,
-  Button,
   BackButton,
+  BodySm,
+  Button,
+  Caption,
   ErrorBanner,
+  ErrorMessage,
+  Hero,
+  Input,
+  Label,
+  PasswordInput,
+  TextButton,
 } from "@/src/components/ui";
+import { shadows } from "@/src/constants/theme";
 import { signInWithUsername } from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
-import { shadows } from "@/src/constants/theme";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
@@ -100,23 +103,8 @@ export default function LoginScreen() {
             className="mb-8"
           />
 
-          <Text
-            className="mb-1 font-black text-white"
-            style={{
-              fontFamily: "Inter",
-              fontSize: 28,
-              letterSpacing: 28 * -0.03,
-              lineHeight: 28 * 1.1,
-            }}
-          >
-            Welcome back
-          </Text>
-          <Text
-            className="text-text-secondary text-[14px]"
-            style={{ fontFamily: "Inter", lineHeight: 14 * 1.5 }}
-          >
-            Sign in to your account
-          </Text>
+          <Hero className="mb-1">Welcome back</Hero>
+          <BodySm>Sign in to your account</BodySm>
         </View>
 
         {/* Form */}
@@ -130,8 +118,7 @@ export default function LoginScreen() {
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          bottomOffset={120}
-        >
+          bottomOffset={120}>
           {submitError ? <ErrorBanner message={submitError} /> : null}
 
           <View>
@@ -156,26 +143,14 @@ export default function LoginScreen() {
 
           <View>
             <View className="mb-1.5 flex-row items-center justify-between">
-              <Text
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: "500",
-                  fontSize: 10,
-                  letterSpacing: 10 * 0.12,
-                  textTransform: "uppercase",
-                  color: passwordError
-                    ? "rgba(229,62,62,1)"
-                    : "rgba(255,255,255,0.35)",
-                }}
-              >
+              <Label className={passwordError ? "text-danger" : ""}>
                 Password
-              </Text>
+              </Label>
               <TextButton
                 tone="brand"
                 weight="medium"
                 size={12}
-                onPress={() => router.push("/(auth)/forgot-password")}
-              >
+                onPress={() => router.push("/(auth)/forgot-password")}>
                 Forgot password?
               </TextButton>
             </View>
@@ -205,24 +180,17 @@ export default function LoginScreen() {
                 disabled={isSubmitting}
                 size="lg"
                 className="w-full"
-                style={shadows.orangeGlow}
-              >
+                style={shadows.orangeGlow}>
                 {isSubmitting ? <ActivityIndicator color="#fff" /> : "Sign in"}
               </Button>
 
               <View className="flex-row items-center justify-center gap-1.5">
-                <Text
-                  className="text-text-tertiary"
-                  style={{ fontFamily: "Inter", fontSize: 13 }}
-                >
-                  No account?
-                </Text>
+                <Caption className="text-text-tertiary">No account?</Caption>
                 <TextButton
                   tone="brand"
                   weight="semibold"
                   size={13}
-                  onPress={() => router.push("/(auth)/role-selector")}
-                >
+                  onPress={() => router.push("/(auth)/role-selector")}>
                   Create one
                 </TextButton>
               </View>

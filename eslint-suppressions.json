@@ -1,7 +1,7 @@
 {
   "app/(app)/parent/add-child.tsx": {
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "app/(app)/parent/manage-child.tsx": {
@@ -14,7 +14,7 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     },
     "sonarjs/cognitive-complexity": {
       "count": 1
@@ -49,22 +49,14 @@
       "count": 1
     }
   },
-  "app/(auth)/role-selector.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "app/(auth)/signup-details.tsx": {
     "max-lines-per-function": {
       "count": 1
     }
   },
   "app/(auth)/verify-email.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     },
     "sonarjs/cognitive-complexity": {
       "count": 1
@@ -84,11 +76,6 @@
   "src/components/splash/illustrations.tsx": {
     "max-lines-per-function": {
       "count": 2
-    }
-  },
-  "src/components/ui/AccountFormLayout.tsx": {
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "src/components/ui/Carousel.tsx": {
@@ -111,9 +98,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "sonarjs/cognitive-complexity": {
       "count": 1
     }
   },

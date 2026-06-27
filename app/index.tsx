@@ -1,16 +1,16 @@
-import { type ReactNode } from "react";
-import { ImageBackground, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
+import { type ReactNode } from "react";
+import { ImageBackground, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Body, Button, Carousel, H2, Label, Logo } from "@/src/components/ui";
 import {
   CoachConnectIllustration,
   CourtIllustration,
   ProgressIllustration,
 } from "@/src/components/splash/illustrations";
+import { Body, Button, Carousel, H2, Label, Logo } from "@/src/components/ui";
 
 const StyledImageBackground = styled(ImageBackground);
 const StyledSafeAreaView = styled(SafeAreaView);
@@ -57,8 +57,7 @@ export default function SplashScreen() {
     <StyledImageBackground
       source={{ uri: HERO_IMAGE_URI }}
       resizeMode="cover"
-      className="bg-surface flex-1"
-    >
+      className="bg-surface flex-1">
       <LinearGradient
         colors={[
           "rgba(26,23,24,0.55)",
@@ -81,7 +80,7 @@ export default function SplashScreen() {
             autoAdvanceMs={6000}
             renderItem={(slide) => (
               <View className="items-center">
-                <View style={{ width: 200, height: 140 }} className="mb-5">
+                <View className="mb-5 h-[140px] w-[200px]">
                   {slide.illustration}
                 </View>
 
@@ -89,19 +88,9 @@ export default function SplashScreen() {
                   {slide.label}
                 </Label>
 
-                <H2
-                  className="mb-3.5 text-center"
-                  style={{ fontSize: 32, lineHeight: 32 * 1.12 }}
-                >
-                  {slide.headline}
-                </H2>
+                <H2 className="mb-3.5 text-center">{slide.headline}</H2>
 
-                <Body
-                  className="text-center"
-                  style={{ maxWidth: 280, fontSize: 14 }}
-                >
-                  {slide.body}
-                </Body>
+                <Body className="max-w-[280px] text-center">{slide.body}</Body>
               </View>
             )}
           />
@@ -112,8 +101,7 @@ export default function SplashScreen() {
             variant="primary"
             size="lg"
             className="shadow-orange-glow w-full"
-            onPress={() => router.push("/(auth)/role-selector")}
-          >
+            onPress={() => router.push("/(auth)/role-selector")}>
             Create account
           </Button>
 
@@ -121,8 +109,7 @@ export default function SplashScreen() {
             variant="secondary"
             size="lg"
             className="w-full"
-            onPress={() => router.push("/(auth)/login")}
-          >
+            onPress={() => router.push("/(auth)/login")}>
             Sign in
           </Button>
         </View>

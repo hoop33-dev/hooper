@@ -1,3 +1,4 @@
+import { bodyFont, colors } from "@/src/constants/theme";
 import { useState, type ReactNode } from "react";
 import {
   Pressable,
@@ -6,7 +7,6 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { colors } from "@/src/constants/theme";
 
 export type ButtonVariant = "primary" | "secondary" | "navy" | "ghost" | "icon";
 export type ButtonSize = "sm" | "md" | "lg";
@@ -90,8 +90,7 @@ export function Button({
           },
           style,
         ]}
-        {...rest}
-      >
+        {...rest}>
         {children}
       </Pressable>
     );
@@ -114,19 +113,16 @@ export function Button({
         },
         style,
       ]}
-      {...rest}
-    >
+      {...rest}>
       {typeof children === "string" ? (
         <Text
           style={{
-            fontFamily: "Inter",
-            fontWeight: "700",
+            fontFamily: bodyFont("700"),
             fontSize: sizeText[size],
             letterSpacing: sizeText[size] * 0.08,
             textTransform: "uppercase",
             color: variantTextColor(variant, disabled),
-          }}
-        >
+          }}>
           {children}
         </Text>
       ) : (

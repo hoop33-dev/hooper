@@ -1,12 +1,6 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 
 import {
   Avatar,
@@ -14,6 +8,15 @@ import {
   DashboardLayout,
 } from "@/src/components/dashboard";
 import { EyeIcon, PlusIcon } from "@/src/components/dashboard/icons";
+import {
+  Caption,
+  IconTile,
+  Lead,
+  Meta,
+  Overline,
+  Pill,
+  TabLabel,
+} from "@/src/components/ui";
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import { useChildren } from "@/src/hooks/useChildren";
@@ -35,29 +38,12 @@ function ViewAsButton({
       accessibilityLabel={`View as ${firstName}`}
       onPress={onPress}
       hitSlop={6}
-      style={({ pressed }) => ({
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 5,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        backgroundColor: `${PARENT_ACCENT}18`,
-        borderWidth: 1,
-        borderColor: `${PARENT_ACCENT}40`,
-        borderRadius: 999,
-        flexShrink: 0,
-        opacity: pressed ? 0.7 : 1,
-      })}>
-      <EyeIcon size={12} color={PARENT_ACCENT} />
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 11.5,
-          fontWeight: "700",
-          color: PARENT_ACCENT,
-        }}>
-        View as
-      </Text>
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+      <Pill
+        color={PARENT_ACCENT}
+        icon={<EyeIcon size={12} color={PARENT_ACCENT} />}>
+        <Meta style={{ color: PARENT_ACCENT }}>View as</Meta>
+      </Pill>
     </Pressable>
   );
 }
@@ -78,51 +64,21 @@ function ChildCard({
       accessibilityRole="button"
       accessibilityLabel={`Manage ${child.firstName}`}
       onPress={onManage}
-      style={({ pressed }) => ({
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 16,
-        padding: 14,
-        transform: [{ scale: pressed ? 0.99 : 1 }],
-      })}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Avatar role="player" size={50} initials={initials} imageUrl={child.avatarUrl} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 7,
-              marginBottom: 3,
-            }}>
-            <Text
-              style={{
-                fontFamily: "Inter",
-                fontSize: 15,
-                fontWeight: "800",
-                color: colors.textPrimary,
-                letterSpacing: -15 * 0.02,
-              }}>
-              {child.firstName}
-            </Text>
-            <View
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: 4,
-                backgroundColor: colors.success,
-              }}
-            />
+      className="border-border-subtle bg-surface-2 rounded-2xl border p-3.5"
+      style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+      <View className="flex-row items-center gap-3">
+        <Avatar
+          role="player"
+          size={50}
+          initials={initials}
+          imageUrl={child.avatarUrl}
+        />
+        <View className="min-w-0 flex-1">
+          <View className="mb-0.5 flex-row items-center gap-1.5">
+            <Lead>{child.firstName}</Lead>
+            <View className="bg-success h-[7px] w-[7px] rounded-full" />
           </View>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 11.5,
-              color: colors.textSecondary,
-            }}>
-            @{child.username}
-          </Text>
+          <Caption className="text-text-secondary">@{child.username}</Caption>
         </View>
         <ViewAsButton
           firstName={child.firstName}
@@ -141,42 +97,22 @@ function AddChildButton({ onPress }: { onPress: () => void }) {
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
+      className="mt-1.5 flex-row items-center justify-center gap-2.5 rounded-2xl py-4"
       style={({ pressed }) => ({
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-        backgroundColor: "transparent",
         borderWidth: 1.5,
-        borderColor: `${PARENT_ACCENT}55`,
         borderStyle: "dashed",
-        borderRadius: 14,
-        paddingVertical: 16,
-        marginTop: 6,
+        borderColor: `${PARENT_ACCENT}55`,
         opacity: pressed ? 0.7 : 1,
       })}>
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 16,
-          backgroundColor: `${PARENT_ACCENT}20`,
-          borderWidth: 1,
-          borderColor: `${PARENT_ACCENT}45`,
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
+      <IconTile
+        color={PARENT_ACCENT}
+        size={32}
+        radius={16}
+        bgAlpha="20"
+        borderAlpha="45">
         <PlusIcon size={16} color={PARENT_ACCENT} />
-      </View>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 14,
-          fontWeight: "700",
-          color: PARENT_ACCENT,
-        }}>
-        Add another child
-      </Text>
+      </IconTile>
+      <TabLabel style={{ color: PARENT_ACCENT }}>Add another child</TabLabel>
     </Pressable>
   );
 }
@@ -195,19 +131,8 @@ function ChildrenSection({
   onAdd: () => void;
 }) {
   return (
-    <View style={{ paddingHorizontal: 20, gap: 10 }}>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 11,
-          fontWeight: "700",
-          letterSpacing: 11 * 0.13,
-          color: colors.textSecondary,
-          textTransform: "uppercase",
-          marginBottom: 2,
-        }}>
-        Your children
-      </Text>
+    <View className="gap-2.5 px-5">
+      <Overline className="mb-0.5">Your children</Overline>
 
       {isLoading ? (
         <ActivityIndicator
@@ -287,7 +212,7 @@ export default function ParentDashboard() {
           />
         </ScrollView>
       ) : (
-        <View style={{ flex: 1 }} />
+        <View className="flex-1" />
       )}
     </DashboardLayout>
   );

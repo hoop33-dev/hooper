@@ -1,30 +1,40 @@
-import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState, type RefObject } from "react";
 import {
   ActivityIndicator,
-  Image,
-  Pressable,
   ScrollView,
-  Text,
-  TextInput,
   View,
   type TextInput as RNTextInput,
 } from "react-native";
-import Svg, { Path } from "react-native-svg";
 
 import { Avatar } from "@/src/components/dashboard/Avatar";
 import {
-  CameraIcon,
   ChevronIcon,
   CreditIcon,
   SettingsIcon,
   ShieldIcon,
 } from "@/src/components/dashboard/icons";
+import { AvatarEditor } from "@/src/components/profile/AvatarEditor";
 import { PhotoSourceSheet } from "@/src/components/profile/PhotoSourceSheet";
-import { ErrorBanner } from "@/src/components/ui/ErrorBanner";
-import { SelectInput } from "@/src/components/ui/SelectInput";
+import {
+  AccentButton,
+  Badge,
+  BodySm,
+  Caption,
+  Field,
+  IconTile,
+  Label,
+  Overline,
+  RowTitle,
+  ScreenHeader,
+  ScreenTitle,
+  SegmentedControl,
+  SelectInput,
+  StickySaveBar,
+  Title,
+  ToggleRow,
+} from "@/src/components/ui";
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import {
@@ -38,261 +48,7 @@ import { uploadAvatar } from "@/src/services/profile.service";
 const PARENT = roleConfig("parent");
 type InputRef = RefObject<RNTextInput | null>;
 
-/* ─── Primitives ────────────────────────────────────────────── */
-
-function SectionLabel({ children }: { children: string }) {
-  return (
-    <Text
-      style={{
-        fontFamily: "Inter",
-        fontSize: 11,
-        fontWeight: "700",
-        letterSpacing: 11 * 0.14,
-        textTransform: "uppercase",
-        color: colors.textSecondary,
-        marginTop: 12,
-        marginBottom: 14,
-      }}>
-      {children}
-    </Text>
-  );
-}
-
-function FieldLabel({
-  children,
-  error,
-}: {
-  children: string;
-  error?: boolean;
-}) {
-  return (
-    <Text
-      style={{
-        fontFamily: "Inter",
-        fontSize: 10,
-        fontWeight: "500",
-        letterSpacing: 10 * 0.12,
-        textTransform: "uppercase",
-        color: error ? colors.danger : colors.textTertiary,
-        marginBottom: 6,
-      }}>
-      {children}
-    </Text>
-  );
-}
-
-type FieldProps = {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  prefix?: string;
-  error?: boolean;
-  errorText?: string;
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  inputRef?: InputRef;
-  onSubmit?: () => void;
-  returnKeyType?: "next" | "done";
-};
-
-function Field({
-  label,
-  value,
-  onChange,
-  prefix,
-  error,
-  errorText,
-  autoCapitalize = "sentences",
-  inputRef,
-  onSubmit,
-  returnKeyType,
-}: FieldProps) {
-  const [focused, setFocused] = useState(false);
-  const borderColor = error
-    ? colors.danger
-    : focused
-      ? PARENT.accent
-      : colors.borderSubtle;
-  return (
-    <View>
-      <FieldLabel error={error}>{label}</FieldLabel>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          height: 48,
-          backgroundColor: focused ? "rgba(255,255,255,0.06)" : colors.surface2,
-          borderWidth: 1.5,
-          borderColor,
-          borderRadius: 10,
-          paddingHorizontal: 14,
-        }}>
-        {prefix ? (
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 15,
-              color: colors.textTertiary,
-            }}>
-            {prefix}
-          </Text>
-        ) : null}
-        <TextInput
-          ref={inputRef}
-          value={value}
-          onChangeText={onChange}
-          autoCapitalize={autoCapitalize}
-          autoCorrect={false}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onSubmitEditing={onSubmit}
-          returnKeyType={returnKeyType}
-          blurOnSubmit={false}
-          style={{
-            flex: 1,
-            fontFamily: "Inter",
-            fontSize: 15,
-            color: colors.textPrimary,
-          }}
-        />
-      </View>
-      {errorText ? (
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 11,
-            color: colors.danger,
-            marginTop: 4,
-          }}>
-          {errorText}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
-function Switch({ on }: { on: boolean }) {
-  return (
-    <View
-      style={{
-        width: 42,
-        height: 26,
-        borderRadius: 999,
-        backgroundColor: on ? PARENT.accent : "rgba(255,255,255,0.10)",
-        justifyContent: "center",
-        paddingHorizontal: 3,
-      }}>
-      <View
-        style={{
-          width: 20,
-          height: 20,
-          borderRadius: 10,
-          backgroundColor: "#fff",
-          alignSelf: on ? "flex-end" : "flex-start",
-        }}
-      />
-    </View>
-  );
-}
-
-/* ─── Header + segment ──────────────────────────────────────── */
-
-function ManageHeader({ onBack }: { onBack: () => void }) {
-  return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 58, paddingBottom: 4 }}>
-      <Pressable
-        onPress={onBack}
-        accessibilityRole="button"
-        accessibilityLabel="Back"
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 6,
-          marginBottom: 18,
-          alignSelf: "flex-start",
-        }}>
-        <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-          <Path
-            d="M10 3L5 8L10 13"
-            stroke={colors.textTertiary}
-            strokeWidth={1.8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </Svg>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 13,
-            fontWeight: "500",
-            color: colors.textTertiary,
-          }}>
-          Children
-        </Text>
-      </Pressable>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 26,
-          fontWeight: "900",
-          color: colors.textPrimary,
-          letterSpacing: -26 * 0.03,
-        }}>
-        Manage child
-      </Text>
-    </View>
-  );
-}
-
-function ChildSegment({
-  tab,
-  setTab,
-}: {
-  tab: "profile" | "billing";
-  setTab: (t: "profile" | "billing") => void;
-}) {
-  const tabs: { id: "profile" | "billing"; label: string }[] = [
-    { id: "profile", label: "Profile" },
-    { id: "billing", label: "Billing" },
-  ];
-  return (
-    <View
-      style={{
-        marginHorizontal: 20,
-        marginBottom: 22,
-        padding: 4,
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 999,
-        flexDirection: "row",
-      }}>
-      {tabs.map((t) => (
-        <Pressable
-          key={t.id}
-          accessibilityRole="button"
-          onPress={() => setTab(t.id)}
-          style={{
-            flex: 1,
-            height: 38,
-            backgroundColor: tab === t.id ? PARENT.accent : "transparent",
-            borderRadius: 9999,
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 13,
-              fontWeight: "700",
-              color: tab === t.id ? "#fff" : colors.textSecondary,
-            }}>
-            {t.label}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
+/* ─── Identity + tabs ───────────────────────────────────────── */
 
 function IdentityCard({
   initials,
@@ -306,68 +62,18 @@ function IdentityCard({
   avatarUrl: string | null;
 }) {
   return (
-    <View
-      style={{
-        marginHorizontal: 20,
-        marginTop: 18,
-        marginBottom: 20,
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 16,
-        padding: 16,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 14,
-      }}>
+    <View className="border-border-subtle bg-surface-2 mx-5 mt-[18px] mb-5 flex-row items-center gap-3.5 rounded-2xl border p-4">
       <Avatar
         role="player"
         size={58}
         initials={initials}
         imageUrl={avatarUrl}
       />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 17,
-            fontWeight: "800",
-            color: colors.textPrimary,
-            letterSpacing: -17 * 0.02,
-          }}>
-          {name}
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 12,
-            color: colors.textSecondary,
-            marginTop: 2,
-          }}>
-          {subtitle}
-        </Text>
+      <View className="min-w-0 flex-1">
+        <Title>{name}</Title>
+        <Caption className="text-text-secondary mt-0.5">{subtitle}</Caption>
       </View>
-      <View
-        style={{
-          paddingVertical: 3,
-          paddingHorizontal: 8,
-          borderRadius: 999,
-          backgroundColor: "rgba(56,161,105,0.14)",
-          borderWidth: 1,
-          borderColor: "rgba(56,161,105,0.3)",
-        }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 9.5,
-            fontWeight: "700",
-            letterSpacing: 9.5 * 0.12,
-            color: colors.success,
-            textTransform: "uppercase",
-          }}>
-          Active
-        </Text>
-      </View>
+      <Badge variant="green">Active</Badge>
     </View>
   );
 }
@@ -427,75 +133,6 @@ async function pickImageFromCamera(
   return null;
 }
 
-function AvatarEditor({
-  initials,
-  displayUri,
-  onPress,
-}: {
-  initials: string;
-  displayUri: string | null;
-  onPress: () => void;
-}) {
-  return (
-    <View style={{ alignItems: "center", paddingTop: 4, paddingBottom: 20 }}>
-      <View style={{ position: "relative", marginBottom: 12 }}>
-        {displayUri ? (
-          <View
-            style={{
-              width: 84,
-              height: 84,
-              borderRadius: 42,
-              overflow: "hidden",
-            }}>
-            <Image
-              source={{ uri: displayUri }}
-              style={{ width: 84, height: 84 }}
-              resizeMode="cover"
-            />
-          </View>
-        ) : (
-          <Avatar role="player" size={84} initials={initials} />
-        )}
-        <Pressable
-          onPress={onPress}
-          accessibilityRole="button"
-          accessibilityLabel="Change photo"
-          style={{
-            position: "absolute",
-            bottom: -4,
-            right: -4,
-            width: 30,
-            height: 30,
-            borderRadius: 15,
-            backgroundColor: PARENT.accent,
-            borderWidth: 3,
-            borderColor: colors.surface,
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
-          <CameraIcon size={14} color="#fff" />
-        </Pressable>
-      </View>
-      <Pressable onPress={onPress} accessibilityRole="button">
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 12,
-            fontWeight: "700",
-            color: PARENT.accent,
-            borderWidth: 1,
-            borderColor: `${PARENT.accent}40`,
-            paddingHorizontal: 14,
-            paddingVertical: 7,
-            borderRadius: 999,
-          }}>
-          Change photo
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
-
 /* ─── Profile tab ───────────────────────────────────────────── */
 
 function PersonalFields({
@@ -511,31 +148,33 @@ function PersonalFields({
 }) {
   return (
     <>
-      <SectionLabel>Personal</SectionLabel>
-      <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
-        <View style={{ flex: 1 }}>
+      <Overline className="mt-3 mb-3.5">Personal</Overline>
+      <View className="mb-3.5 flex-row gap-2.5">
+        <View className="flex-1">
           <Field
             label="First name"
             value={form.firstName}
             onChange={form.setFirstName}
+            accent={PARENT.accent}
             autoCapitalize="words"
             returnKeyType="next"
-            onSubmit={() => lastNameRef.current?.focus()}
+            onSubmitEditing={() => lastNameRef.current?.focus()}
           />
         </View>
-        <View style={{ flex: 1 }}>
+        <View className="flex-1">
           <Field
             label="Last name"
             value={form.lastName}
             onChange={form.setLastName}
+            accent={PARENT.accent}
             autoCapitalize="words"
             inputRef={lastNameRef}
             returnKeyType="next"
-            onSubmit={() => usernameRef.current?.focus()}
+            onSubmitEditing={() => usernameRef.current?.focus()}
           />
         </View>
       </View>
-      <View style={{ marginBottom: 14 }}>
+      <View className="mb-3.5">
         <Field
           label="Username"
           prefix="@"
@@ -544,6 +183,7 @@ function PersonalFields({
             form.setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ""));
             form.setUsernameError(undefined);
           }}
+          accent={PARENT.accent}
           autoCapitalize="none"
           inputRef={usernameRef}
           error={!!form.usernameError}
@@ -551,7 +191,7 @@ function PersonalFields({
         />
       </View>
       <View>
-        <FieldLabel>Region</FieldLabel>
+        <Label className="mb-1.5">Region</Label>
         <SelectInput
           value={form.regionId}
           options={regionOptions}
@@ -574,57 +214,15 @@ function GuardianSection({
 }) {
   return (
     <>
-      <SectionLabel>Guardian controls</SectionLabel>
-      <Pressable
-        onPress={() => onChange(!value)}
-        accessibilityRole="switch"
-        accessibilityState={{ checked: value }}
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 14,
-          paddingVertical: 14,
-          paddingHorizontal: 16,
-          backgroundColor: colors.surface2,
-          borderWidth: 1,
-          borderColor: colors.borderSubtle,
-          borderRadius: 14,
-        }}>
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            backgroundColor: `${PARENT.accent}14`,
-            borderWidth: 1,
-            borderColor: `${PARENT.accent}30`,
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
-          <SettingsIcon size={18} color={PARENT.accent} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 14.5,
-              fontWeight: "600",
-              color: colors.textPrimary,
-              marginBottom: 2,
-            }}>
-            Lock profile settings
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 12,
-              color: colors.textTertiary,
-            }}>
-            Stop {childName || "your child"} from editing their own profile.
-          </Text>
-        </View>
-        <Switch on={value} />
-      </Pressable>
+      <Overline className="mt-3 mb-3.5">Guardian controls</Overline>
+      <ToggleRow
+        title="Lock profile settings"
+        sub={`Stop ${childName || "your child"} from editing their own profile.`}
+        value={value}
+        onChange={onChange}
+        accent={PARENT.accent}
+        icon={<SettingsIcon size={18} color={PARENT.accent} />}
+      />
       <ShieldNote childName={childName} />
     </>
   );
@@ -632,42 +230,14 @@ function GuardianSection({
 
 function ShieldNote({ childName }: { childName: string }) {
   return (
-    <View
-      style={{
-        marginTop: 16,
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 12,
-        padding: 16,
-        flexDirection: "row",
-        gap: 12,
-        alignItems: "flex-start",
-      }}>
-      <View
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 8,
-          backgroundColor: `${PARENT.accent}14`,
-          borderWidth: 1,
-          borderColor: `${PARENT.accent}30`,
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
+    <View className="border-border-subtle bg-surface-2 mt-4 flex-row items-start gap-3 rounded-xl border p-4">
+      <IconTile color={PARENT.accent} size={28} radius={8}>
         <ShieldIcon size={14} color={PARENT.accent} />
-      </View>
-      <Text
-        style={{
-          flex: 1,
-          fontFamily: "Inter",
-          fontSize: 12.5,
-          color: colors.textSecondary,
-          lineHeight: 19,
-        }}>
+      </IconTile>
+      <BodySm className="text-text-secondary flex-1">
         You manage {childName || "your child"}&apos;s account until they turn
         16.
-      </Text>
+      </BodySm>
     </View>
   );
 }
@@ -690,12 +260,17 @@ function ProfileTab({
   onChangePhoto: () => void;
 }) {
   return (
-    <View style={{ paddingHorizontal: 20 }}>
-      <AvatarEditor
-        initials={initials}
-        displayUri={displayAvatarUri}
-        onPress={onChangePhoto}
-      />
+    <View className="px-5">
+      <View className="pt-1 pb-5">
+        <AvatarEditor
+          role="player"
+          initials={initials}
+          displayUri={displayAvatarUri}
+          accent={PARENT.accent}
+          size={84}
+          onPress={onChangePhoto}
+        />
+      </View>
       <PersonalFields
         form={form}
         regionOptions={regionOptions}
@@ -717,96 +292,29 @@ function BillingPlanCard() {
   const player = roleConfig("player");
   return (
     <View
-      style={{
-        backgroundColor: colors.surface2,
-        borderWidth: 1.5,
-        borderColor: `${PARENT.accent}55`,
-        borderRadius: 18,
-        padding: 18,
-      }}>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 9.5,
-          fontWeight: "700",
-          letterSpacing: 9.5 * 0.14,
-          color: PARENT.accent,
-          textTransform: "uppercase",
-          marginBottom: 4,
-        }}>
+      className="bg-surface-2 rounded-[18px] border-[1.5px] p-[18px]"
+      style={{ borderColor: `${PARENT.accent}55` }}>
+      <Overline className="mb-1" style={{ color: PARENT.accent }}>
         {player.planName}
-      </Text>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 22,
-          fontWeight: "900",
-          color: colors.textPrimary,
-          letterSpacing: -22 * 0.03,
-          marginBottom: 4,
-        }}>
-        Standard
-      </Text>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 13,
-          color: colors.textSecondary,
-        }}>
-        {player.planSub}
-      </Text>
+      </Overline>
+      <ScreenTitle className="mb-1">Standard</ScreenTitle>
+      <BodySm>{player.planSub}</BodySm>
     </View>
   );
 }
 
 function BillingComingSoon({ firstName }: { firstName: string }) {
   return (
-    <View
-      style={{
-        marginTop: 16,
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
-        borderRadius: 14,
-        padding: 16,
-        flexDirection: "row",
-        gap: 12,
-        alignItems: "flex-start",
-      }}>
-      <View
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 10,
-          backgroundColor: "rgba(255,255,255,0.04)",
-          borderWidth: 1,
-          borderColor: colors.borderSubtle,
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
+    <View className="border-border-subtle bg-surface-2 mt-4 flex-row items-start gap-3 rounded-2xl border p-4">
+      <View className="border-border-subtle h-[38px] w-[38px] items-center justify-center rounded-[10px] border bg-white/5">
         <CreditIcon size={18} color={colors.textSecondary} />
       </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 13.5,
-            fontWeight: "600",
-            color: colors.textPrimary,
-            marginBottom: 2,
-          }}>
-          Billing is coming soon
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 12,
-            color: colors.textTertiary,
-            lineHeight: 18,
-          }}>
+      <View className="min-w-0 flex-1">
+        <RowTitle>Billing is coming soon</RowTitle>
+        <Caption className="mt-0.5">
           You&apos;ll be able to manage {firstName || "your child"}&apos;s plan,
           payment method, and renewals here.
-        </Text>
+        </Caption>
       </View>
       <ChevronIcon size={16} color={colors.textDisabled} />
     </View>
@@ -815,70 +323,10 @@ function BillingComingSoon({ firstName }: { firstName: string }) {
 
 function BillingTab({ firstName }: { firstName: string }) {
   return (
-    <View style={{ paddingHorizontal: 20 }}>
-      <SectionLabel>Current plan</SectionLabel>
+    <View className="px-5">
+      <Overline className="mt-3 mb-3.5">Current plan</Overline>
       <BillingPlanCard />
       <BillingComingSoon firstName={firstName} />
-    </View>
-  );
-}
-
-function SaveBar({
-  onPress,
-  saving,
-  error,
-}: {
-  onPress: () => void;
-  saving: boolean;
-  error?: string | null;
-}) {
-  return (
-    <View
-      style={{
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        paddingHorizontal: 20,
-        paddingBottom: 36,
-        paddingTop: 12,
-      }}
-      pointerEvents="box-none">
-      <LinearGradient
-        colors={["transparent", colors.surface]}
-        style={{ position: "absolute", top: -20, left: 0, right: 0, bottom: 0 }}
-        pointerEvents="none"
-      />
-      {error ? (
-        <View style={{ marginBottom: 10 }}>
-          <ErrorBanner message={error} />
-        </View>
-      ) : null}
-      <Pressable
-        onPress={onPress}
-        disabled={saving}
-        accessibilityRole="button"
-        style={{
-          height: 52,
-          backgroundColor: saving ? `${PARENT.accent}80` : PARENT.accent,
-          borderRadius: 9999,
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
-        {saving ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text
-            style={{
-              fontFamily: "Inter",
-              fontSize: 15,
-              fontWeight: "700",
-              color: "#fff",
-            }}>
-            Save changes
-          </Text>
-        )}
-      </Pressable>
     </View>
   );
 }
@@ -947,20 +395,19 @@ export default function ManageChildScreen() {
   const displayAvatarUri = pendingImage?.uri ?? form.avatarUrl;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.surface }}>
-      <LinearGradient
-        colors={[PARENT.headerTint, "transparent"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.7, y: 0.7 }}
-        pointerEvents="none"
-        style={{ position: "absolute", top: 0, left: 0, right: 0, height: 320 }}
-      />
+    <View className="bg-surface flex-1">
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: tab === "profile" ? (saveError ? 184 : 120) : 32 }}
-        style={{ flex: 1 }}>
-        <ManageHeader onBack={() => router.back()} />
+        contentContainerStyle={{
+          paddingBottom: tab === "profile" ? (saveError ? 184 : 120) : 32,
+        }}
+        className="flex-1">
+        <ScreenHeader
+          title="Manage child"
+          backLabel="Children"
+          onBack={() => router.back()}
+        />
         {form.loading ? (
           <ActivityIndicator
             color={colors.textTertiary}
@@ -974,7 +421,16 @@ export default function ManageChildScreen() {
               subtitle={subtitle}
               avatarUrl={form.avatarUrl}
             />
-            <ChildSegment tab={tab} setTab={setTab} />
+            <SegmentedControl
+              segments={[
+                { id: "profile", label: "Profile" },
+                { id: "billing", label: "Billing" },
+              ]}
+              value={tab}
+              onChange={setTab}
+              accent={PARENT.accent}
+              className="mx-5 mb-[22px]"
+            />
             {tab === "profile" ? (
               <ProfileTab
                 form={form}
@@ -992,7 +448,14 @@ export default function ManageChildScreen() {
         )}
       </ScrollView>
       {!form.loading && tab === "profile" ? (
-        <SaveBar onPress={handleSave} saving={form.saving} error={saveError} />
+        <StickySaveBar error={saveError}>
+          <AccentButton
+            accent={PARENT.accent}
+            loading={form.saving}
+            onPress={handleSave}>
+            {form.saving ? <ActivityIndicator color="#fff" /> : "Save changes"}
+          </AccentButton>
+        </StickySaveBar>
       ) : null}
       <PhotoSourceSheet
         visible={photoSheetVisible}

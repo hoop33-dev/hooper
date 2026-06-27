@@ -1,6 +1,6 @@
+import { bodyFont, colors } from "@/src/constants/theme";
 import { Pressable, Text } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { colors } from "@/src/constants/theme";
 
 type BackButtonProps = {
   label?: string;
@@ -17,8 +17,7 @@ export function BackButton({
     <Pressable
       onPress={onPress}
       className={`flex-row items-center gap-1.5 self-start ${className}`}
-      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-    >
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
       <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
         <Path
           d="M10 3L5 8L10 13"
@@ -30,8 +29,7 @@ export function BackButton({
       </Svg>
       <Text
         className="text-text-tertiary text-[13px]"
-        style={{ fontFamily: "Inter" }}
-      >
+        style={{ fontFamily: bodyFont("400") }}>
         {label}
       </Text>
     </Pressable>

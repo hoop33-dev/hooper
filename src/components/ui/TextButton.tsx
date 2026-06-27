@@ -1,6 +1,6 @@
+import { bodyFont, colors, type BodyWeight } from "@/src/constants/theme";
 import { useState } from "react";
 import { Pressable, Text, type PressableProps } from "react-native";
-import { colors } from "@/src/constants/theme";
 
 type TextButtonProps = Omit<PressableProps, "children" | "style"> & {
   /** Text shown inside the clickable region */
@@ -22,7 +22,7 @@ const toneColor: Record<NonNullable<TextButtonProps["tone"]>, string> = {
   interactive: colors.brandBlue,
 };
 
-const weightMap: Record<NonNullable<TextButtonProps["weight"]>, string> = {
+const weightMap: Record<NonNullable<TextButtonProps["weight"]>, BodyWeight> = {
   regular: "400",
   medium: "500",
   semibold: "600",
@@ -50,18 +50,15 @@ export function TextButton({
       onPressOut={() => setPressed(false)}
       className={className}
       hitSlop={6}
-      {...rest}
-    >
+      {...rest}>
       <Text
         style={{
-          fontFamily: "Inter",
-          fontWeight: weightMap[weight] as "400" | "500" | "600" | "700",
+          fontFamily: bodyFont(weightMap[weight]),
           fontSize: size,
           color,
           textDecorationLine: underline ? "underline" : "none",
           opacity: pressed ? 0.6 : 1,
-        }}
-      >
+        }}>
         {children}
       </Text>
     </Pressable>

@@ -1,12 +1,13 @@
-import { useState, forwardRef } from "react";
+import { colors } from "@/src/constants/theme";
+import { forwardRef, useState } from "react";
 import {
   TextInput,
   View,
-  Text,
-  type TextInputProps,
   type TextInput as RNTextInput,
+  type TextInputProps,
 } from "react-native";
-import { colors } from "@/src/constants/theme";
+
+import { BODY_FONT, Caption, Label } from "./Typography";
 
 type InputProps = Omit<TextInputProps, "style"> & {
   label?: string;
@@ -43,18 +44,9 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
   return (
     <View className={`gap-1.5 ${className}`}>
       {label ? (
-        <Text
-          className={error || hasError ? "text-danger" : "text-text-tertiary"}
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "500",
-            fontSize: 10,
-            letterSpacing: 10 * 0.12,
-            textTransform: "uppercase",
-          }}
-        >
+        <Label className={error || hasError ? "text-danger" : ""}>
           {label}
-        </Text>
+        </Label>
       ) : null}
       <TextInput
         ref={ref}
@@ -62,7 +54,7 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
         underlineColorAndroid="transparent"
         className={`bg-surface-2 rounded-lg border ${borderClass} ${inputClassName}`}
         style={{
-          fontFamily: "Inter",
+          fontFamily: BODY_FONT,
           fontSize: 15,
           color: "rgba(255,255,255,0.85)",
           paddingHorizontal: 20,
@@ -81,19 +73,9 @@ export const Input = forwardRef<RNTextInput, InputProps>(function Input(
         {...rest}
       />
       {error ? (
-        <Text
-          className="text-danger"
-          style={{ fontFamily: "Inter", fontSize: 11 }}
-        >
-          {error}
-        </Text>
+        <Caption className="text-danger">{error}</Caption>
       ) : hint ? (
-        <Text
-          className="text-text-tertiary"
-          style={{ fontFamily: "Inter", fontSize: 11 }}
-        >
-          {hint}
-        </Text>
+        <Caption>{hint}</Caption>
       ) : null}
     </View>
   );

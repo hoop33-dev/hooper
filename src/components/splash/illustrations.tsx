@@ -1,3 +1,4 @@
+import { bodyFont } from "@/src/constants/theme";
 import Svg, {
   Circle,
   Defs,
@@ -21,8 +22,7 @@ function Frame({ children }: { children: React.ReactNode }) {
       viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
       width="100%"
       height="100%"
-      fill="none"
-    >
+      fill="none">
       {children}
     </Svg>
   );
@@ -293,8 +293,7 @@ export function ProgressIllustration() {
           textAnchor="middle"
           fill="rgba(255,255,255,0.3)"
           fontSize="10"
-          fontFamily="Inter"
-        >
+          fontFamily={bodyFont("400")}>
           {d}
         </SvgText>
       ))}
@@ -316,8 +315,7 @@ export function ProgressIllustration() {
         fill="#F15825"
         fontSize="13"
         fontWeight="800"
-        fontFamily="Inter"
-      >
+        fontFamily={bodyFont("400")}>
         +24%
       </SvgText>
     </Frame>

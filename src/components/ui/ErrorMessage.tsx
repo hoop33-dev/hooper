@@ -1,6 +1,6 @@
-import { View, Text } from "react-native";
+import { bodyFont, colors } from "@/src/constants/theme";
+import { Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
-import { colors } from "@/src/constants/theme";
 
 export function ErrorMessage({ message }: { message: string }) {
   return (
@@ -15,7 +15,9 @@ export function ErrorMessage({ message }: { message: string }) {
         />
         <Circle cx={6} cy={8.5} r={0.6} fill={colors.danger} />
       </Svg>
-      <Text className="text-danger text-[11px]" style={{ fontFamily: "Inter" }}>
+      <Text
+        className="text-danger text-[11px]"
+        style={{ fontFamily: bodyFont("400") }}>
         {message}
       </Text>
     </View>

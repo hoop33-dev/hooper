@@ -11,8 +11,7 @@ export default function CoachDashboard() {
       {user ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 24 }}
-        >
+          contentContainerStyle={{ paddingBottom: 24 }}>
           <DashboardHeader
             role="coach"
             firstName={user.firstName}
@@ -21,7 +20,7 @@ export default function CoachDashboard() {
           />
         </ScrollView>
       ) : (
-        <View style={{ flex: 1 }} />
+        <View className="flex-1" />
       )}
     </DashboardLayout>
   );

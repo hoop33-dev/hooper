@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import {
   ActivityIndicator,
   Animated,
-  Text,
   View,
   type TextInput as RNTextInput,
 } from "react-native";
@@ -17,8 +16,11 @@ import Svg, { Path, Rect } from "react-native-svg";
 
 import {
   BackButton,
+  BodySm,
   Button,
   ErrorBanner,
+  H4,
+  Hero,
   PasswordInput,
 } from "@/src/components/ui";
 import { colors, shadows } from "@/src/constants/theme";
@@ -33,18 +35,10 @@ const successColor = "#38A169";
 
 function PasswordUpdatedIcon() {
   return (
-    <View style={{ position: "relative", alignItems: "center" }}>
+    <View className="relative items-center">
       <View
-        style={{
-          width: 88,
-          height: 88,
-          borderRadius: 26,
-          backgroundColor: successDim,
-          borderWidth: 1.5,
-          borderColor: successBorder,
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
+        className="h-[88px] w-[88px] items-center justify-center rounded-[26px] border-[1.5px]"
+        style={{ backgroundColor: successDim, borderColor: successBorder }}>
         <Svg width={36} height={36} viewBox="0 0 24 24" fill="none">
           <Rect
             x={3}
@@ -70,19 +64,8 @@ function PasswordUpdatedIcon() {
         </Svg>
       </View>
       <View
-        style={{
-          position: "absolute",
-          bottom: -6,
-          right: -6,
-          width: 28,
-          height: 28,
-          borderRadius: 14,
-          backgroundColor: successColor,
-          borderWidth: 2.5,
-          borderColor: colors.surface,
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
+        className="absolute -right-1.5 -bottom-1.5 h-7 w-7 items-center justify-center rounded-full border-[2.5px]"
+        style={{ backgroundColor: successColor, borderColor: colors.surface }}>
         <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
           <Path
             d="M5 12l5 5L20 7"
@@ -119,43 +102,17 @@ function PasswordUpdatedView() {
 
   return (
     <Animated.View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        paddingHorizontal: 32,
-        opacity: opacityAnim,
-      }}>
+      className="flex-1 items-center justify-center px-8"
+      style={{ opacity: opacityAnim }}>
       <Animated.View
-        style={{
-          transform: [{ scale: scaleAnim }],
-          alignItems: "center",
-          marginBottom: 28,
-        }}>
+        className="mb-7 items-center"
+        style={{ transform: [{ scale: scaleAnim }] }}>
         <PasswordUpdatedIcon />
       </Animated.View>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontWeight: "800",
-          fontSize: 24,
-          color: colors.textPrimary,
-          textAlign: "center",
-          marginBottom: 10,
-          letterSpacing: 24 * -0.02,
-        }}>
-        Password updated.
-      </Text>
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontSize: 14,
-          color: colors.textSecondary,
-          textAlign: "center",
-          lineHeight: 14 * 1.6,
-        }}>
-        {"Your account is secure. You're signed in automatically."}
-      </Text>
+      <H4 className="mb-2.5 text-center">Password updated.</H4>
+      <BodySm className="text-center">
+        Your account is secure. You&apos;re signed in automatically.
+      </BodySm>
     </Animated.View>
   );
 }
@@ -196,26 +153,8 @@ function NewPasswordFields({
       keyboardShouldPersistTaps="handled"
       bottomOffset={120}>
       <View>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontWeight: "800",
-            fontSize: 22,
-            color: colors.textPrimary,
-            letterSpacing: 22 * -0.02,
-            marginBottom: 6,
-          }}>
-          New password
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Inter",
-            fontSize: 14,
-            color: colors.textSecondary,
-            lineHeight: 14 * 1.55,
-          }}>
-          Choose a strong password you haven&apos;t used before.
-        </Text>
+        <H4 className="mb-1.5">New password</H4>
+        <BodySm>Choose a strong password you haven&apos;t used before.</BodySm>
       </View>
       {submitError ? (
         <ErrorBanner variant="error" title="Error" message={submitError} />
@@ -312,20 +251,9 @@ function useNewPasswordForm() {
 
 function NewPasswordHeader({ onBack }: { onBack: () => void }) {
   return (
-    <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 4 }}>
+    <View className="px-6 pt-2 pb-1">
       <BackButton label="Verify" onPress={onBack} className="mb-4" />
-      <Text
-        style={{
-          fontFamily: "Inter",
-          fontWeight: "900",
-          fontSize: 28,
-          color: colors.textPrimary,
-          letterSpacing: 28 * -0.03,
-          lineHeight: 28 * 1.1,
-          marginBottom: 2,
-        }}>
-        Security
-      </Text>
+      <Hero>Security</Hero>
     </View>
   );
 }
@@ -340,7 +268,7 @@ function SubmitButton({ isSubmitting, canSubmit, onPress }: SubmitButtonProps) {
   return (
     <KeyboardStickyView>
       <StyledSafeAreaView edges={["bottom"]} className="bg-surface">
-        <View style={{ paddingHorizontal: 24, paddingVertical: 12 }}>
+        <View className="px-6 py-3">
           <Button
             onPress={onPress}
             disabled={isSubmitting || !canSubmit}
@@ -369,7 +297,7 @@ export default function SecurityNewPasswordScreen() {
         className="bg-surface flex-1"
         edges={["top", "bottom"]}>
         <PasswordUpdatedView />
-        <View style={{ paddingHorizontal: 24, paddingBottom: 8 }}>
+        <View className="px-6 pb-2">
           <Button
             onPress={() => router.replace("/(app)/settings")}
             size="lg"
@@ -384,7 +312,7 @@ export default function SecurityNewPasswordScreen() {
 
   return (
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top"]}>
-      <View style={{ flex: 1 }}>
+      <View className="flex-1">
         <NewPasswordHeader onBack={() => router.back()} />
         <NewPasswordFields
           password={form.password}

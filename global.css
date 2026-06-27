@@ -40,7 +40,10 @@
   --color-orange-tint-40: rgba(241, 88, 37, 0.4);
 
   /* ── TYPOGRAPHY ──────────────────────────────── */
-  --font-family-inter: "Inter", system-ui, sans-serif;
+  /* Headings use Barlow Condensed (registered per weight at runtime — see
+     Typography.tsx); body / UI text uses Outfit. Mirrored in theme.ts `fonts`. */
+  --font-family-heading: "BarlowCondensed";
+  --font-family-body: "Outfit";
 
   /* ── SHADOWS (NativeWind utilities) ──────────── */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);

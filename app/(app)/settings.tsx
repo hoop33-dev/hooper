@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
@@ -77,17 +76,6 @@ export default function SettingsScreen() {
           <>
             {/* Identity card */}
             <View className="bg-surface-2 border-border-subtle mx-5 mb-5 items-center overflow-hidden rounded-[18px] border p-5">
-              <LinearGradient
-                colors={[`${r.accent}22`, "transparent"]}
-                pointerEvents="none"
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 80,
-                }}
-              />
               <View>
                 <Avatar
                   role={role}
@@ -135,16 +123,14 @@ export default function SettingsScreen() {
               onPress={isChild ? () => setBillingLockOpen(true) : undefined}
               className="mx-5 mb-2 overflow-hidden rounded-2xl border opacity-[0.55]"
               style={{ borderColor: `${r.accent}30` }}>
-              <LinearGradient
-                colors={[`${r.accent}12`, colors.surface2]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              <View
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 14,
                   paddingVertical: 14,
                   paddingHorizontal: 16,
+                  backgroundColor: colors.surface2,
                 }}>
                 <IconTile
                   color={r.accent}
@@ -165,7 +151,7 @@ export default function SettingsScreen() {
                 {isChild ? (
                   <ChevronIcon size={16} color={colors.textTertiary} />
                 ) : null}
-              </LinearGradient>
+              </View>
             </Pressable>
 
             {/* Account */}

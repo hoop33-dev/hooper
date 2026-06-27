@@ -1,5 +1,4 @@
 import { bodyFont, colors } from "@/src/constants/theme";
-import { LinearGradient } from "expo-linear-gradient";
 import { useState, type ReactNode } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -17,13 +16,6 @@ export type RadioTileProps = {
   onPress: () => void;
 };
 
-function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
 export function RadioTile({
   id: _id,
   label,
@@ -38,13 +30,6 @@ export function RadioTile({
 }: RadioTileProps) {
   const [pressed, setPressed] = useState(false);
 
-  const gradientColors: [string, string] = selected
-    ? [hexToRgba(accent, 0.2), hexToRgba(accent, 0)]
-    : ["transparent", "transparent"];
-
-  // Android: elevation creates a hardware layer that clips gradient children
-  // regardless of the view hierarchy arrangement. Disable elevation on Android
-  // (shadow props have no effect there anyway — elevation is the only mechanism).
   return (
     <View
       style={{
@@ -60,17 +45,12 @@ export function RadioTile({
         shadowRadius: selected ? 20 : 8,
         elevation: Platform.OS === "android" ? 0 : selected ? 8 : 3,
       }}>
-      {/* overflow:"hidden" clips the gradient to the tile's rounded corners */}
       <Pressable
         onPress={onPress}
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
         style={{ borderRadius: 14.5, overflow: "hidden" }}>
-        <LinearGradient
-          colors={gradientColors}
-          start={{ x: 0.2, y: 0.2 }}
-          end={{ x: 1, y: 1 }}
-          style={{ padding: 20, paddingBottom: 18 }}>
+        <View style={{ padding: 20, paddingBottom: 18 }}>
           {/* Top row: icon container + radio indicator */}
           <View
             style={{
@@ -156,7 +136,7 @@ export function RadioTile({
             }}>
             {body}
           </Text>
-        </LinearGradient>
+        </View>
       </Pressable>
     </View>
   );

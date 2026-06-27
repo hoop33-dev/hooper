@@ -1,5 +1,4 @@
 import * as ImagePicker from "expo-image-picker";
-import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -298,14 +297,6 @@ export default function ProfileSettingsScreen() {
 
   return (
     <View className="bg-surface flex-1">
-      <LinearGradient
-        colors={[r.headerTint, "transparent"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.7, y: 0.7 }}
-        pointerEvents="none"
-        style={{ position: "absolute", top: 0, left: 0, right: 0, height: 320 }}
-      />
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -107,17 +106,11 @@ export default function ViewAsChildScreen() {
 
   return (
     <View className="bg-surface flex-1">
-      <LinearGradient
-        colors={[PLAYER.headerTint, "transparent"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.7, y: 0.7 }}
-        pointerEvents="none"
-        style={{ position: "absolute", top: 0, left: 0, right: 0, height: 320 }}
-      />
-
       <SafeAreaView edges={["top"]} className="flex-1">
         <ViewAsBanner firstName={c.firstName} onExit={() => router.back()} />
-        <TabContent tab={tab} child={c} />
+        <View style={{ flex: 1 }}>
+          <TabContent tab={tab} child={c} />
+        </View>
       </SafeAreaView>
 
       <SafeAreaView
@@ -161,6 +154,7 @@ function DashboardTab({
 }) {
   return (
     <ScrollView
+      style={{ flex: 1 }}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 24 }}>
       <DashboardHeader
@@ -182,10 +176,7 @@ function ViewAsBanner({
   onExit: () => void;
 }) {
   return (
-    <LinearGradient
-      colors={["#F8A488", "#F68D68"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
+    <View
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -197,6 +188,7 @@ function ViewAsBanner({
         paddingLeft: 14,
         paddingRight: 8,
         borderRadius: 999,
+        backgroundColor: "#F68D68",
       }}>
       <EyeIcon size={14} color="#3A1F12" />
       <Meta className="flex-1" style={{ color: "#3A1F12" }}>
@@ -213,7 +205,7 @@ function ViewAsBanner({
         <XIcon size={11} color="#FBD9C9" />
         <Meta style={{ color: "#FBD9C9" }}>Exit</Meta>
       </Pressable>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -241,11 +233,6 @@ function SettingsIdentity({
 }) {
   return (
     <View className="bg-surface-2 border-border-subtle mx-5 mb-5 items-center overflow-hidden rounded-[18px] border p-5">
-      <LinearGradient
-        colors={[`${PLAYER.accent}22`, "transparent"]}
-        pointerEvents="none"
-        style={{ position: "absolute", top: 0, left: 0, right: 0, height: 80 }}
-      />
       <Avatar
         role="player"
         size={84}
@@ -275,6 +262,7 @@ function SettingsTab({
 }) {
   return (
     <ScrollView
+      style={{ flex: 1 }}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 24 }}>
       <View className="px-5 pt-1.5 pb-5">

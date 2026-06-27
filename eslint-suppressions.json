@@ -99,9 +99,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "sonarjs/cognitive-complexity": {
-      "count": 1
     }
   },
   "src/components/ui/SelectInput.tsx": {

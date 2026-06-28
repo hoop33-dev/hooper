@@ -74,6 +74,7 @@ jobs:
 
       - name: Publish EAS update (development)
         if: steps.tip_check.outputs.is_tip == 'true'
+        working-directory: apps/mobile
         run: |
           eas update \
             --branch development \

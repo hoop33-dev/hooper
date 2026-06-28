@@ -37,6 +37,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Publish EAS update (development)
+        working-directory: apps/mobile
         run: |
           eas update \
             --branch development \

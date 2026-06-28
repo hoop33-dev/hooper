@@ -167,6 +167,7 @@ jobs:
       - name: Publish preview update
         id: publish
         shell: bash
+        working-directory: apps/mobile
         run: |
           # Branch and message are passed via env (not inlined as GitHub
           # expressions) so that quotes or other shell metacharacters in the

@@ -1,4 +1,3 @@
-import { supabase } from "@/src/lib/supabase";
 import {
   checkUsernameAvailable,
   resendVerificationOtp,
@@ -7,38 +6,37 @@ import {
   signUp,
   verifyEmailOtp,
 } from "@/src/services/auth.service";
+import { initClient } from "@hooper/api";
 
-jest.mock("@/src/lib/supabase", () => ({
-  supabase: {
-    rpc: jest.fn(),
-    functions: { invoke: jest.fn() },
-    auth: {
-      setSession: jest.fn(),
-      signOut: jest.fn(),
-      verifyOtp: jest.fn(),
-      resend: jest.fn(),
-      signUp: jest.fn(),
-      signInWithOtp: jest.fn(),
-      resetPasswordForEmail: jest.fn(),
-    },
+const mockSupabase = {
+  rpc: jest.fn(),
+  functions: { invoke: jest.fn() },
+  auth: {
+    setSession: jest.fn(),
+    signOut: jest.fn(),
+    verifyOtp: jest.fn(),
+    resend: jest.fn(),
+    signUp: jest.fn(),
+    signInWithOtp: jest.fn(),
+    resetPasswordForEmail: jest.fn(),
   },
-}));
+};
 
-const mockRpc = supabase.rpc as jest.Mock;
-const mockInvoke = supabase.functions.invoke as jest.Mock;
-const mockSetSession = supabase.auth.setSession as jest.Mock;
-const mockAuthSignOut = supabase.auth.signOut as jest.Mock;
-const mockVerifyOtp = supabase.auth.verifyOtp as jest.Mock;
-const mockResend = supabase.auth.resend as jest.Mock;
-const mockAuthSignUp = supabase.auth.signUp as jest.Mock;
-const mockSignInWithOtp = supabase.auth.signInWithOtp as jest.Mock;
-const mockResetPasswordForEmail = supabase.auth
-  .resetPasswordForEmail as jest.Mock;
+const mockRpc = mockSupabase.rpc;
+const mockInvoke = mockSupabase.functions.invoke;
+const mockSetSession = mockSupabase.auth.setSession;
+const mockAuthSignOut = mockSupabase.auth.signOut;
+const mockVerifyOtp = mockSupabase.auth.verifyOtp;
+const mockResend = mockSupabase.auth.resend;
+const mockAuthSignUp = mockSupabase.auth.signUp;
+const mockSignInWithOtp = mockSupabase.auth.signInWithOtp;
+const mockResetPasswordForEmail = mockSupabase.auth.resetPasswordForEmail;
 
 const fakeSession = { user: { id: "u1", email: "test@example.com" } } as any;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  initClient(mockSupabase as any);
   mockSignInWithOtp.mockResolvedValue({ data: {}, error: null });
   mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
   mockInvoke.mockResolvedValue({ data: { ok: true }, error: null });

@@ -1,15 +1,16 @@
-import { supabase } from "@/src/lib/supabase";
 import { uploadAvatar } from "@/src/services/profile.service";
+import { initClient } from "@hooper/api";
 
-jest.mock("@/src/lib/supabase", () => ({
-  supabase: {
-    storage: { from: jest.fn() },
-  },
-}));
+const mockSupabase = {
+  storage: { from: jest.fn() },
+};
 
-const mockStorageFrom = supabase.storage.from as jest.Mock;
+const mockStorageFrom = mockSupabase.storage.from;
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  initClient(mockSupabase as any);
+});
 
 // ─── uploadAvatar ─────────────────────────────────────────────────────────────
 

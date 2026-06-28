@@ -1,4 +1,3 @@
-import { supabase } from "@/src/lib/supabase";
 import {
   createChildAccount,
   getChildProfile,
@@ -6,18 +5,20 @@ import {
   listChildren,
   updateChildProfile,
 } from "@/src/services/parent.service";
+import { initClient } from "@hooper/api";
 
-jest.mock("@/src/lib/supabase", () => ({
-  supabase: {
-    functions: { invoke: jest.fn() },
-    from: jest.fn(),
-  },
-}));
+const mockSupabase = {
+  functions: { invoke: jest.fn() },
+  from: jest.fn(),
+};
 
-const mockInvoke = supabase.functions.invoke as jest.Mock;
-const mockFrom = supabase.from as jest.Mock;
+const mockInvoke = mockSupabase.functions.invoke;
+const mockFrom = mockSupabase.from;
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  initClient(mockSupabase as any);
+});
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

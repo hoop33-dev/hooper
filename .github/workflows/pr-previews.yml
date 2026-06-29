@@ -3,6 +3,13 @@ name: PR Preview
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    paths:
+      - "apps/mobile/**"
+      - "packages/**"
+      - "supabase/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/pr-previews.yml"
   workflow_dispatch:
     inputs:
       pr_number:

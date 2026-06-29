@@ -128,25 +128,23 @@ append-only DB-migration guard.
 
 ## Web Deployment (Vercel)
 
-The web app deploys to Vercel via `.github/workflows/deploy-web.yml`:
+The web app deploys through **Vercel's native Git integration** — no GitHub
+Actions workflow or repo secrets required. Connect the repository once in the
+Vercel dashboard and Vercel handles deployments automatically:
 
-- **Pull requests** that touch web/shared/backend code get a **preview**
-  deployment; the URL is posted back as a PR comment.
-- **Merges to `main`** deploy to **production**.
+- **Pull requests** get a **preview** deployment; Vercel posts the URL on the PR.
+- **Merges to the production branch** deploy to **production**.
 
-The workflow is secret-gated — it stays green and no-ops until you add three
-repository secrets (Settings → Secrets and variables → Actions):
+One-time setup in the Vercel project:
 
-| Secret              | Where to get it                                         |
-| ------------------- | ------------------------------------------------------- |
-| `VERCEL_TOKEN`      | Vercel → Account Settings → Tokens                      |
-| `VERCEL_ORG_ID`     | `vercel link` then read `apps/web/.vercel/project.json` |
-| `VERCEL_PROJECT_ID` | same `project.json`                                     |
+- **Root Directory** → `apps/web`.
+- **Framework Preset** → Next.js (auto-detected).
+- **Environment Variables** → `NEXT_PUBLIC_SUPABASE_URL` and
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Production + Preview).
 
-In the Vercel project, set **Root Directory** to `apps/web`. (Vercel's native
-Git integration is an alternative to this workflow — connect the repo in the
-Vercel dashboard with the same root directory and it will create previews
-automatically; in that case you can delete `deploy-web.yml`.)
+`apps/web/vercel.json` pins the framework and region; everything else is
+inferred. The build/install commands run from the repo root so the workspace
+resolves correctly.
 
 ---
 

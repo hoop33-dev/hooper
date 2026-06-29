@@ -47,8 +47,9 @@ per-platform — web uses `@supabase/ssr` (per-request, cookie-based) under
 
 - `ci.yml` — typecheck / lint / test for both apps, plus a web production
   build and the append-only DB-migration guard. Gates every PR.
-- `deploy-web.yml` — Vercel preview on web PRs, production on merge to `main`
-  (secret-gated; no-ops until `VERCEL_*` secrets are set).
+- Web (Vercel) deploys via Vercel's native Git integration (preview on PRs,
+  production on the production branch) — configured in the Vercel dashboard
+  with Root Directory `apps/web`, not via a workflow in this repo.
 - `pr-previews.yml` — Expo EAS Update preview on mobile PRs.
 - `deploy-edge-functions.yml`, `deploy-email-templates.yml`, `migrate-feature-db.yml`
   — Supabase backend deploys.

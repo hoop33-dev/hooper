@@ -1,19 +1,26 @@
 # Hooper
 
-A mobile app connecting basketball players, their guardians, and coaches.
+A platform connecting basketball players, their guardians, and coaches.
 Players manage a profile, guardians create and manage child accounts (with
 controls like locking profile editing), and coaches connect to athletes.
 
-Built with React Native (Expo) and Supabase (Postgres, Auth, Storage, and
-Deno edge functions). There is no separate Node.js backend — server-side logic
-runs in Supabase edge functions.
+This is an **npm-workspaces monorepo** with two apps and a shared backend:
+
+- **`apps/mobile`** — React Native (Expo) app.
+- **`apps/web`** — Next.js (App Router) app.
+- **`supabase/`** — the single shared backend (Postgres, Auth, Storage, and
+  Deno edge functions). There is no separate Node.js backend.
+
+Shared code lives in `packages/*` (`@hooper/db` schema types, `@hooper/api`
+service layer, `@hooper/shared` helpers). See `ai/structure.md` for the full
+layout and layering rules.
 
 ---
 
 ## Prerequisites
 
 - Node.js 20+
-- [Expo Go](https://expo.dev/go) on your phone, or Xcode for iOS Simulator (macOS only)
+- [Expo Go](https://expo.dev/go) on your phone, or Xcode for iOS Simulator (macOS only) — for mobile
 - A [Supabase](https://supabase.com) account
 
 ---
@@ -30,41 +37,53 @@ npm install
 
 ### 2. Set up environment variables
 
-Create a `.env.local` file in the project root:
+Each app reads its own `.env.local`, both pointing at the same Supabase project.
+Get the values from the Supabase dashboard under **Settings → API**.
+
+`apps/mobile/.env.local`:
 
 ```
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Get these values from the Supabase dashboard under **Settings → API**.
+`apps/web/.env.local`:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
 > Ask the project owner to be added to the Supabase project if you don't have access.
 
-### 3. Start the dev server
+### 3. Start a dev server
 
 ```bash
-npx expo start
+# Mobile
+npm run dev --workspace apps/mobile      # or: cd apps/mobile && npx expo start
+
+# Web
+npm run dev --workspace apps/web         # Next.js on http://localhost:3000
 ```
 
-- Press `i` to open in iOS Simulator
-- Press `a` to open in Android Emulator
-- Scan the QR code with Expo Go on your phone
+For mobile: press `i` (iOS Simulator), `a` (Android Emulator), or scan the QR
+code with Expo Go.
 
 ---
 
 ## Tech Stack
 
-| Layer       | Technology                           |
-| ----------- | ------------------------------------ |
-| Mobile      | React Native (Expo, expo-router)     |
-| Styling     | NativeWind (Tailwind) + theme tokens |
-| State       | Zustand                              |
-| Server-side | Supabase Edge Functions (Deno)       |
-| Database    | PostgreSQL via Supabase (RLS)        |
-| Auth        | Supabase Auth                        |
-| Storage     | Supabase Storage                     |
-| CI/CD       | GitHub Actions + EAS                 |
+| Layer       | Technology                                   |
+| ----------- | -------------------------------------------- |
+| Mobile      | React Native (Expo, expo-router)             |
+| Web         | Next.js (App Router, React 19)               |
+| Styling     | NativeWind / Tailwind + theme tokens         |
+| State       | Zustand (mobile)                             |
+| Server-side | Supabase Edge Functions (Deno)               |
+| Database    | PostgreSQL via Supabase (RLS)                |
+| Auth        | Supabase Auth                                |
+| Storage     | Supabase Storage                             |
+| CI/CD       | GitHub Actions · EAS (mobile) · Vercel (web) |
 
 ---
 
@@ -72,49 +91,68 @@ npx expo start
 
 ```
 hooper/
-│
-├── app/                          # expo-router — file-based navigation only
-│   ├── _layout.tsx               # Root: fonts, auth hydration, route guard, ErrorBoundary
-│   ├── index.tsx                 # Unauthenticated splash / intro
-│   ├── (auth)/                   # Public routes (no session): login, signup, verify, reset
-│   └── (app)/                    # Authenticated routes, gated by role
-│       ├── player.tsx | coach.tsx | parent.tsx   # Role dashboards
-│       ├── chat.tsx | settings.tsx | profile-settings.tsx
-│       ├── security*.tsx         # Password-change flow
-│       └── parent/               # Guardian-only: add-child, manage-child, view-as-child
-│
-├── src/
-│   ├── components/               # UI only — no data fetching (enforced by depcruise)
-│   │   ├── ui/                   # Primitives — Button, Card, Input, Typography…
-│   │   ├── common/               # ErrorBoundary
-│   │   ├── dashboard/            # DashboardLayout, DashboardHeader, BottomNav, Avatar…
-│   │   ├── auth/ | profile/ | splash/
-│   ├── hooks/                    # useChildren, useDashboardUser, useGuardianControls…
-│   ├── lib/                      # supabase.ts (client) + pure helpers (age, password…)
-│   ├── services/                 # ALL Supabase access (auth, parent, profile, region)
-│   ├── stores/                   # Zustand — auth.store.ts
-│   ├── types/                    # database.types.ts (generated; never edit by hand)
-│   └── constants/                # theme.ts, roles.tsx, regions.ts
-│
-├── supabase/
-│   ├── migrations/               # Append-only SQL (guarded by scripts/check-db-migrations.mjs)
-│   ├── functions/                # Deno edge functions (service-role logic)
-│   └── templates/                # Transactional email HTML
-│
-├── assets/fonts/                 # Inter.ttf
-├── app.json                      # Expo config
-├── eas.json                      # EAS build profiles
-├── tsconfig.json
-└── package.json
+├── apps/
+│   ├── mobile/        # Expo / React Native app (@hooper/mobile)
+│   └── web/           # Next.js app (@hooper/web)
+├── packages/
+│   ├── db/            # @hooper/db — Supabase domain + schema types (shared)
+│   ├── api/           # @hooper/api — Supabase service layer (mobile)
+│   └── shared/        # @hooper/shared — pure helpers
+├── supabase/          # Migrations, edge functions, email templates (shared backend)
+├── scripts/           # Migration guard, per-app eslint runners
+└── ai/                # Living docs (structure.md, DESIGN.md)
 ```
 
 See `ai/structure.md` for the full conventions and layering rules.
 
 ---
 
-## PR Previews
+## Quality Gates
 
-Every pull request against `main` automatically publishes an OTA update via EAS and posts a QR code link in the PR comments.
+Run from the repo root with `--workspace`, or `cd` into the app:
+
+```bash
+npm run typecheck --workspace apps/web      # tsc --noEmit
+npm run lint      --workspace apps/web      # ESLint
+npm run test      --workspace apps/web      # Vitest
+npm run build     --workspace apps/web      # next build
+
+npm run quality   --workspace apps/mobile   # lint + dependency-cruiser
+npm run test      --workspace apps/mobile   # Jest
+```
+
+CI (`.github/workflows/ci.yml`) runs all of these on every PR, plus the
+append-only DB-migration guard.
+
+---
+
+## Web Deployment (Vercel)
+
+The web app deploys to Vercel via `.github/workflows/deploy-web.yml`:
+
+- **Pull requests** that touch web/shared/backend code get a **preview**
+  deployment; the URL is posted back as a PR comment.
+- **Merges to `main`** deploy to **production**.
+
+The workflow is secret-gated — it stays green and no-ops until you add three
+repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret              | Where to get it                                         |
+| ------------------- | ------------------------------------------------------- |
+| `VERCEL_TOKEN`      | Vercel → Account Settings → Tokens                      |
+| `VERCEL_ORG_ID`     | `vercel link` then read `apps/web/.vercel/project.json` |
+| `VERCEL_PROJECT_ID` | same `project.json`                                     |
+
+In the Vercel project, set **Root Directory** to `apps/web`. (Vercel's native
+Git integration is an alternative to this workflow — connect the repo in the
+Vercel dashboard with the same root directory and it will create previews
+automatically; in that case you can delete `deploy-web.yml`.)
+
+---
+
+## Mobile PR Previews
+
+Every pull request that touches mobile/shared code automatically publishes an OTA update via EAS and posts a QR code link in the PR comments.
 
 To test your branch on your phone:
 
@@ -183,9 +221,11 @@ version is a hash of the native project, so:
 
 ## Environment Variables
 
-| Variable                        | Where to get it           |
-| ------------------------------- | ------------------------- |
-| `EXPO_PUBLIC_SUPABASE_URL`      | Supabase → Settings → API |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API |
+| Variable                        | App    | Where to get it           |
+| ------------------------------- | ------ | ------------------------- |
+| `EXPO_PUBLIC_SUPABASE_URL`      | mobile | Supabase → Settings → API |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | mobile | Supabase → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_URL`      | web    | Supabase → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | web    | Supabase → Settings → API |
 
 Never commit `.env.local`. It is gitignored. Never add secrets to `app.json` or anywhere tracked by git.

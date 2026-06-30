@@ -1,3 +1,5 @@
+export * from "./schema";
+
 export type RoleType = "player" | "coach" | "parent";
 export type LinkStatus = "active" | "disconnected";
 

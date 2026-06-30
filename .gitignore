@@ -10,6 +10,12 @@ web-build/
 expo-env.d.ts
 apps/mobile/expo-env.d.ts
 
+# Next.js (apps/web)
+.next/
+out/
+next-env.d.ts
+apps/web/.vercel
+
 # Native
 .kotlin/
 *.orig.*

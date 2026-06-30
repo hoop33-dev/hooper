@@ -4,6 +4,10 @@ dist/
 android/
 ios/
 .git/
+.next/
+apps/web/.next/
+apps/web/out/
+package-lock.json
 
 # Managed by ESLint's bulk-suppressions feature — don't let Prettier reformat it.
 apps/mobile/eslint-suppressions.json

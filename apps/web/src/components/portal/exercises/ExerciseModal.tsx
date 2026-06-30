@@ -81,7 +81,7 @@ function DeleteZone({ onDelete }: { onDelete: () => void }) {
 
   if (confirming) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+      <div className="flex h-9 items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4">
         <span className="flex-1 text-sm text-red-700">Delete this exercise?</span>
         <PortalButton variant="ghost" size="sm" onClick={() => setConfirming(false)}>
           Cancel
@@ -94,13 +94,15 @@ function DeleteZone({ onDelete }: { onDelete: () => void }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => setConfirming(true)}
-      className="text-xs font-semibold text-red-500 hover:underline"
-    >
-      Delete exercise
-    </button>
+    <div className="flex h-9 items-center">
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        className="text-xs font-semibold text-red-500 hover:underline"
+      >
+        Delete exercise
+      </button>
+    </div>
   );
 }
 

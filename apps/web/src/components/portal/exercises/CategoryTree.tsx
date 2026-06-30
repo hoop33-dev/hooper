@@ -15,7 +15,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ExerciseCategoryTreeNode } from "@hooper/db";
 import { cn } from "@/src/lib/cn";
 
@@ -64,7 +64,7 @@ function SortableItem({ node, selectedId, onSelect }: SortableItemProps) {
       <div
         className={cn(
           "group flex items-center gap-0.5 rounded-lg",
-          isSelected && "bg-portal-orange-soft",
+          isSelected ? "bg-portal-orange-soft" : "hover:bg-portal-border/50",
         )}
       >
         <button
@@ -130,6 +130,10 @@ interface CategoryTreeProps {
 
 export function CategoryTree({ nodes, selectedId, onSelect, onReorder }: CategoryTreeProps) {
   const [items, setItems] = useState(nodes);
+
+  useEffect(() => {
+    setItems(nodes);
+  }, [nodes]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),

@@ -19,7 +19,7 @@ interface CategoryDetailPanelProps {
 
 function BlankState({ onStartCreate }: { onStartCreate: () => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4">
+    <div className="flex flex-1 flex-col items-center justify-center gap-4">
       <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-portal-border">
         <svg className="h-10 w-10 text-portal-text3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
           <path strokeLinecap="round" d="M3 7h18M3 12h18M3 17h10" />
@@ -169,7 +169,7 @@ function DeleteZone({ onDelete }: { onDelete: () => void }) {
   const [confirming, setConfirming] = useState(false);
   if (confirming) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+      <div className="flex h-9 items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4">
         <span className="flex-1 text-sm text-red-700">Delete this category?</span>
         <PortalButton variant="ghost" size="sm" onClick={() => setConfirming(false)}>Cancel</PortalButton>
         <PortalButton variant="danger" size="sm" onClick={onDelete}>Delete</PortalButton>
@@ -177,13 +177,15 @@ function DeleteZone({ onDelete }: { onDelete: () => void }) {
     );
   }
   return (
-    <button
-      type="button"
-      onClick={() => setConfirming(true)}
-      className="text-xs font-semibold text-red-500 hover:underline"
-    >
-      Delete category
-    </button>
+    <div className="flex h-9 items-center">
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        className="text-xs font-semibold text-red-500 hover:underline"
+      >
+        Delete category
+      </button>
+    </div>
   );
 }
 

@@ -15,7 +15,7 @@ const variants: Record<Variant, string> = {
   primary:
     "bg-portal-orange text-white hover:brightness-110 active:brightness-95",
   secondary:
-    "bg-portal-card border border-portal-border text-portal-text1 hover:bg-portal-bg",
+    "bg-portal-card border border-portal-border text-portal-text1 hover:bg-portal-border/50",
   ghost: "text-portal-text2 hover:bg-portal-border/50",
   danger: "bg-red-500 text-white hover:bg-red-600",
 };

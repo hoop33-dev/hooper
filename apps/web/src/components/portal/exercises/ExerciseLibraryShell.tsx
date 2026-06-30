@@ -79,7 +79,7 @@ function TabButton({
       className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
         active
           ? "bg-portal-orange text-white"
-          : "text-portal-text2 hover:bg-portal-border"
+          : "text-portal-text2 hover:bg-portal-border-mid"
       }`}
     >
       {children}

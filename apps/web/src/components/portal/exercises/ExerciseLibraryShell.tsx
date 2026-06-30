@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
 import { ExerciseModal } from "./ExerciseModal";
 import { ExerciseCard } from "./ExerciseCard";
@@ -108,25 +109,10 @@ export function ExerciseLibraryShell({
       (!categoryFilter || ex.categories.some((c) => c.id === categoryFilter)),
   );
 
-  function openCreate() {
-    setEditingExercise(null);
-    setModalOpen(true);
-  }
-
-  function openEdit(exercise: ExerciseWithDetails) {
-    setEditingExercise(exercise);
-    setModalOpen(true);
-  }
-
-  function closeModal() {
-    setModalOpen(false);
-    setEditingExercise(null);
-  }
-
-  function handleSaved() {
-    closeModal();
-    startTransition(() => {});
-  }
+  function openCreate() { setEditingExercise(null); setModalOpen(true); }
+  function openEdit(exercise: ExerciseWithDetails) { setEditingExercise(exercise); setModalOpen(true); }
+  function closeModal() { setModalOpen(false); setEditingExercise(null); }
+  function handleSaved() { closeModal(); startTransition(() => {}); }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -137,6 +123,15 @@ export function ExerciseLibraryShell({
           onChange={setCategoryFilter}
         />
         <div className="ml-auto flex items-center gap-3">
+          <Link
+            href="/exercises/categories"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-portal-border bg-portal-card px-4 text-sm font-semibold text-portal-text1 hover:bg-portal-border/50 transition"
+          >
+            <svg className="h-3.5 w-3.5 text-portal-text2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18M3 12h18M3 17h10" />
+            </svg>
+            Categories
+          </Link>
           <SearchBar value={search} onChange={setSearch} />
           <PortalButton variant="primary" onClick={openCreate}>
             <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">

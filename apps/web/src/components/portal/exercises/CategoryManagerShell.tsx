@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import type { ExerciseCategoryRow, ExerciseWithDetails, ExerciseCategoryTreeNode } from "@hooper/db";
 import { buildCategoryTree } from "@/src/lib/categoryTree";
 import { CategorySidebar } from "./CategorySidebar";
 import { CategoryDetailPanel } from "./CategoryDetailPanel";
+import type { DropPosition } from "./CategoryTree";
 
 interface CategoryManagerShellProps {
   initialCategories: ExerciseCategoryRow[];
@@ -19,6 +20,53 @@ interface CategoryManagerShellProps {
 
 type PanelMode = "blank" | "view" | "create";
 
+function computeDropResult(
+  categories: ExerciseCategoryRow[],
+  dragId: string,
+  targetId: string,
+  position: DropPosition,
+): { newParentId: string | null; positionUpdates: { id: string; position: number }[] } | null {
+  const drag = categories.find((c) => c.id === dragId);
+  const target = categories.find((c) => c.id === targetId);
+  if (!drag || !target) return null;
+
+  const newParentId: string | null =
+    position === "inside" ? target.id : (target.parent_id ?? null);
+
+  const newSiblings = categories
+    .filter((c) => (c.parent_id ?? null) === newParentId && c.id !== dragId)
+    .sort((a, b) => a.position - b.position);
+
+  let insertIndex: number;
+  if (position === "inside") {
+    insertIndex = newSiblings.length;
+  } else if (position === "before") {
+    const idx = newSiblings.findIndex((c) => c.id === targetId);
+    insertIndex = idx === -1 ? 0 : idx;
+  } else {
+    const idx = newSiblings.findIndex((c) => c.id === targetId);
+    insertIndex = idx === -1 ? newSiblings.length : idx + 1;
+  }
+
+  newSiblings.splice(insertIndex, 0, drag);
+  const newUpdates = newSiblings.map((c, i) => ({ id: c.id, position: i }));
+
+  const oldParentId = drag.parent_id ?? null;
+  const oldUpdates =
+    oldParentId !== newParentId
+      ? categories
+          .filter((c) => (c.parent_id ?? null) === oldParentId && c.id !== dragId)
+          .sort((a, b) => a.position - b.position)
+          .map((c, i) => ({ id: c.id, position: i }))
+      : [];
+
+  const positionUpdates = [...newUpdates, ...oldUpdates].filter(
+    (u, i, arr) => arr.findIndex((a) => a.id === u.id) === i,
+  );
+
+  return { newParentId, positionUpdates };
+}
+
 export function CategoryManagerShell(props: CategoryManagerShellProps) {
   const {
     initialCategories, exercises, initialSelectedId, createAction,
@@ -26,27 +74,19 @@ export function CategoryManagerShell(props: CategoryManagerShellProps) {
   } = props;
   const [categories, setCategories] = useState(initialCategories);
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
-  const [mode, setMode] = useState<PanelMode>(
-    initialSelectedId ? "view" : "blank",
-  );
-
-  const preReorderRef = useRef<ExerciseCategoryRow[]>([]);
+  const [mode, setMode] = useState<PanelMode>(initialSelectedId ? "view" : "blank");
 
   const tree: ExerciseCategoryTreeNode[] = buildCategoryTree(
-    categories.map((c) => ({ ...c, exercise_count: 0 })),
+    categories.map((c) => ({
+      ...c,
+      exercise_count: exercises.filter((ex) => ex.categories.some((ec) => ec.id === c.id)).length,
+    })),
   );
 
   const selectedCategory = categories.find((c) => c.id === selectedId) ?? null;
 
-  function handleSelect(id: string) {
-    setSelectedId(id);
-    setMode("view");
-  }
-
-  function handleStartCreate() {
-    setSelectedId(null);
-    setMode("create");
-  }
+  function handleSelect(id: string) { setSelectedId(id); setMode("view"); }
+  function handleStartCreate() { setSelectedId(null); setMode("create"); }
 
   async function handleCreate(data: { name: string; description: string; parent_id?: string }) {
     const result = await createAction({ ...data, created_by: profileId });
@@ -57,10 +97,7 @@ export function CategoryManagerShell(props: CategoryManagerShellProps) {
     }
   }
 
-  async function handleUpdate(
-    id: string,
-    data: { name: string; description: string; parent_id?: string | null },
-  ) {
+  async function handleUpdate(id: string, data: { name: string; description: string; parent_id?: string | null }) {
     const result = await updateAction(id, data);
     if (result.ok) {
       setCategories((prev) => prev.map((c) =>
@@ -78,16 +115,19 @@ export function CategoryManagerShell(props: CategoryManagerShellProps) {
     }
   }
 
-  async function handleReorder(updates: { id: string; position: number }[]) {
-    preReorderRef.current = categories;
-    setCategories((prev) =>
-      prev.map((c) => {
-        const update = updates.find((u) => u.id === c.id);
-        return update ? { ...c, position: update.position } : c;
-      }),
-    );
-    const result = await reorderAction(updates);
-    if (!result.ok) setCategories(preReorderRef.current);
+  async function handleDrop(dragId: string, targetId: string, position: DropPosition) {
+    const r = computeDropResult(categories, dragId, targetId, position);
+    if (!r) return;
+    const drag = categories.find((c) => c.id === dragId)!;
+    setCategories((prev) => prev.map((c) => {
+      if (c.id === dragId) return { ...c, parent_id: r.newParentId };
+      const u = r.positionUpdates.find((p) => p.id === c.id);
+      return u ? { ...c, position: u.position } : c;
+    }));
+    const ops: Promise<{ ok: boolean }>[] = [];
+    if ((drag.parent_id ?? null) !== r.newParentId) ops.push(updateAction(dragId, { parent_id: r.newParentId }));
+    if (r.positionUpdates.length > 0) ops.push(reorderAction(r.positionUpdates));
+    await Promise.all(ops);
   }
 
   return (
@@ -100,7 +140,7 @@ export function CategoryManagerShell(props: CategoryManagerShellProps) {
       mode={mode}
       handleSelect={handleSelect}
       handleStartCreate={handleStartCreate}
-      handleReorder={handleReorder}
+      handleDrop={handleDrop}
       handleCreate={handleCreate}
       handleUpdate={handleUpdate}
       handleDelete={handleDelete}
@@ -109,18 +149,8 @@ export function CategoryManagerShell(props: CategoryManagerShellProps) {
 }
 
 function CategoryManagerLayout({
-  tree,
-  selectedId,
-  selectedCategory,
-  categories,
-  exercises,
-  mode,
-  handleSelect,
-  handleStartCreate,
-  handleReorder,
-  handleCreate,
-  handleUpdate,
-  handleDelete,
+  tree, selectedId, selectedCategory, categories, exercises, mode,
+  handleSelect, handleStartCreate, handleDrop, handleCreate, handleUpdate, handleDelete,
 }: {
   tree: ExerciseCategoryTreeNode[];
   selectedId: string | null;
@@ -130,7 +160,7 @@ function CategoryManagerLayout({
   mode: PanelMode;
   handleSelect: (id: string) => void;
   handleStartCreate: () => void;
-  handleReorder: (updates: { id: string; position: number }[]) => Promise<void>;
+  handleDrop: (dragId: string, targetId: string, position: DropPosition) => Promise<void>;
   handleCreate: (data: { name: string; description: string; parent_id?: string }) => Promise<void>;
   handleUpdate: (id: string, data: { name: string; description: string; parent_id?: string | null }) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
@@ -142,7 +172,7 @@ function CategoryManagerLayout({
         selectedId={selectedId}
         onSelect={handleSelect}
         onCreate={handleStartCreate}
-        onReorder={handleReorder}
+        onDrop={handleDrop}
       />
       <div className="flex flex-1 overflow-hidden">
         <CategoryDetailPanel

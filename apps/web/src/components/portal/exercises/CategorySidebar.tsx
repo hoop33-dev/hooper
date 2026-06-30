@@ -1,14 +1,14 @@
 "use client";
 
 import type { ExerciseCategoryTreeNode } from "@hooper/db";
-import { CategoryTree } from "./CategoryTree";
+import { CategoryTree, type DropPosition } from "./CategoryTree";
 
 interface CategorySidebarProps {
   tree: ExerciseCategoryTreeNode[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onCreate: () => void;
-  onReorder: (updates: { id: string; position: number }[]) => void;
+  onDrop: (dragId: string, targetId: string, position: DropPosition) => void;
 }
 
 export function CategorySidebar({
@@ -16,7 +16,7 @@ export function CategorySidebar({
   selectedId,
   onSelect,
   onCreate,
-  onReorder,
+  onDrop,
 }: CategorySidebarProps) {
   return (
     <aside className="flex w-[260px] flex-shrink-0 flex-col border-r border-portal-border bg-portal-card">
@@ -46,7 +46,7 @@ export function CategorySidebar({
             nodes={tree}
             selectedId={selectedId}
             onSelect={onSelect}
-            onReorder={onReorder}
+            onDrop={onDrop}
           />
         )}
       </div>

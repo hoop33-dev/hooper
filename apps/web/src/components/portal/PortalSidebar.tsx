@@ -1,0 +1,166 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/src/lib/cn";
+import type { CoachProfile } from "@/src/services/auth.service";
+
+function DumbbellIcon({ size = 15, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 5v14M18 5v14M2 9h4v6H2zM18 9h4v6h-4zM6 12h12" />
+    </svg>
+  );
+}
+
+function LayersIcon({ size = 15, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" />
+    </svg>
+  );
+}
+
+function UsersIcon({ size = 15, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+const NAV_ITEMS = [
+  {
+    id: "exercises",
+    label: "Exercise Library",
+    href: "/exercises",
+    Icon: DumbbellIcon,
+    active: true,
+    subItems: [
+      { label: "Exercises", href: "/exercises" },
+      { label: "Categories", href: "/exercises/categories" },
+    ],
+  },
+  { id: "programs",  label: "Programs",  href: "/programs",  Icon: LayersIcon, active: false, subItems: [] },
+  { id: "athletes",  label: "Athletes",  href: "/athletes",  Icon: UsersIcon,  active: false, subItems: [] },
+];
+
+function SidebarHeader() {
+  return (
+    <div className="flex items-center gap-2.5 border-b border-white/[0.06] px-5 py-4">
+      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-portal-orange p-0.5">
+        <Image src="/logo.png" alt="Hooper" width={24} height={24} className="rounded-md object-contain" />
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span className="font-title text-[17px] font-black tracking-[0.12em] text-white">HOOPER</span>
+        <span className="text-[10px] font-bold tracking-[0.1em] text-white/30 uppercase">Portal</span>
+      </div>
+    </div>
+  );
+}
+
+function SidebarNavItem({
+  item,
+  pathname,
+}: {
+  item: (typeof NAV_ITEMS)[number];
+  pathname: string;
+}) {
+  const isActive = pathname.startsWith(item.href);
+  const color = isActive ? "#F15825" : "rgba(255,255,255,0.42)";
+
+  if (!item.active) {
+    return (
+      <div className="flex cursor-not-allowed items-center gap-2.5 rounded-lg px-3 py-2.5 opacity-30">
+        <item.Icon size={15} color="rgba(255,255,255,0.42)" />
+        <span className="text-[13px] font-medium text-white/55">{item.label}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Link
+        href={item.href}
+        className={cn(
+          "flex items-center gap-2.5 rounded-lg px-3 py-2.5 transition-colors",
+          isActive ? "bg-[rgba(241,88,37,0.13)]" : "hover:bg-white/[0.06]",
+        )}
+      >
+        <item.Icon size={15} color={color} />
+        <span
+          className={cn(
+            "text-[13px]",
+            isActive ? "font-bold text-white" : "font-medium text-white/55",
+          )}
+        >
+          {item.label}
+        </span>
+        {isActive && (
+          <div className="ml-auto h-1 w-1 rounded-full bg-portal-orange" />
+        )}
+      </Link>
+
+      {isActive && item.subItems.length > 0 && (
+        <div className="ml-7 mt-0.5 flex flex-col gap-0.5">
+          {item.subItems.map((sub) => {
+            const subExact = pathname === sub.href ||
+              (sub.href !== item.href && pathname.startsWith(sub.href));
+            return (
+              <Link
+                key={sub.href}
+                href={sub.href}
+                className={cn(
+                  "rounded-md px-2 py-1.5 text-[12px] transition-colors",
+                  subExact
+                    ? "font-semibold text-white"
+                    : "font-medium text-white/40 hover:text-white/70",
+                )}
+              >
+                {sub.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SidebarCoachFooter({ profile }: { profile: CoachProfile | null }) {
+  const initials = profile
+    ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}`.toUpperCase()
+    : "??";
+  const name = profile
+    ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || "Coach"
+    : "Coach";
+
+  return (
+    <div className="flex items-center gap-2.5 border-t border-white/[0.08] px-5 py-3.5">
+      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#4A7FD4] to-[#2B5AA8]">
+        <span className="text-[11px] font-extrabold text-white">{initials}</span>
+      </div>
+      <div>
+        <div className="text-[12px] font-bold leading-tight text-white">{name}</div>
+        <div className="text-[10px] text-white/40">Head Coach</div>
+      </div>
+    </div>
+  );
+}
+
+export function PortalSidebar({ profile }: { profile: CoachProfile | null }) {
+  const pathname = usePathname();
+
+  return (
+    <aside className="flex h-full w-[220px] flex-shrink-0 flex-col bg-sidebar">
+      <SidebarHeader />
+      <nav className="flex flex-1 flex-col gap-0.5 p-2.5">
+        {NAV_ITEMS.map((item) => (
+          <SidebarNavItem key={item.id} item={item} pathname={pathname} />
+        ))}
+      </nav>
+      <SidebarCoachFooter profile={profile} />
+    </aside>
+  );
+}

@@ -6,3 +6,14 @@
  * Never hand-edit them here.
  */
 export * from "@hooper/db";
+
+// Exercise Library types (re-exported from @hooper/db)
+export type {
+  ExerciseCategoryRow,
+  ExerciseRow,
+  ExerciseCategoryLinkRow,
+  ExerciseUnitTypeRow,
+  ExerciseCategoryWithCount,
+  ExerciseCategoryTreeNode,
+  ExerciseWithDetails,
+} from "@hooper/db";

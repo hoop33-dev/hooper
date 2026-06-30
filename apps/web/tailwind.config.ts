@@ -32,6 +32,18 @@ const config: Config = {
         "surface-container-highest": "#383435",
         // Auth split-screen right panel
         "auth-canvas": "#F2EDE7",
+        // Portal light-mode palette (exercise library and future portal tabs)
+        "portal-bg":     "#F5F4F0",
+        "portal-card":   "#FFFFFF",
+        "portal-border": "#E8E5E0",
+        "portal-border-mid": "#D4D0CA",
+        "portal-text1":  "#1A1718",
+        "portal-text2":  "#6B6567",
+        "portal-text3":  "#A09C9D",
+        "portal-orange": "#F15825",
+        "portal-orange-soft": "rgba(241,88,37,0.09)",
+        "sidebar":       "#1A1718",
+        "sidebar-surface2": "#2D2829",
       },
       fontFamily: {
         sans: ["var(--font-lexend)", "Lexend", "sans-serif"],

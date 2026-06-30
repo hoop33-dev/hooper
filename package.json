@@ -10,7 +10,7 @@
     "check:db": "node scripts/check-db-migrations.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "node -e \"if(!process.env.CI){require('child_process').execSync('husky',{stdio:'inherit'})}\""
   },
   "overrides": {
     "lightningcss": "1.30.1"

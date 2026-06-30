@@ -7,12 +7,12 @@ import { useState } from "react";
 import { signIn } from "./actions";
 
 interface Errors {
-  email?: string;
+  username?: string;
   password?: string;
   form?: string;
 }
 
-function EnvelopeIcon() {
+function PersonIcon() {
   return (
     <svg
       width="18"
@@ -25,8 +25,8 @@ function EnvelopeIcon() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-      <polyline points="22,6 12,13 2,6" />
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
     </svg>
   );
 }
@@ -140,7 +140,7 @@ function SubmitButton({ loading }: { loading: boolean }) {
 
 function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
@@ -152,7 +152,7 @@ function LoginForm() {
   async function handleSubmit(evt: React.FormEvent) {
     evt.preventDefault();
     const e: Errors = {};
-    if (!email.trim()) e.email = "Required";
+    if (!username.trim()) e.username = "Required";
     if (!password) e.password = "Required";
     if (Object.keys(e).length) {
       setErrors(e);
@@ -161,11 +161,11 @@ function LoginForm() {
     setErrors({});
     setLoading(true);
     try {
-      const result = await signIn(email, password);
+      const result = await signIn(username, password);
       if (!result.ok) {
         setErrors({ form: result.error });
       } else {
-        router.push("/");
+        router.push("/dashboard");
         router.refresh();
       }
     } finally {
@@ -180,17 +180,17 @@ function LoginForm() {
       className="mt-8 flex flex-col gap-5"
     >
       <AuthInput
-        id="email"
-        label="Email address"
-        type="email"
-        placeholder="email@hoop33.co.nz"
-        autoComplete="email"
-        error={errors.email}
-        value={email}
-        prefix={<EnvelopeIcon />}
+        id="username"
+        label="Username"
+        type="text"
+        placeholder="your_username"
+        autoComplete="username"
+        error={errors.username}
+        value={username}
+        prefix={<PersonIcon />}
         onChange={(e) => {
-          setEmail(e.target.value);
-          clearField("email");
+          setUsername(e.target.value);
+          clearField("username");
         }}
       />
       <PasswordField

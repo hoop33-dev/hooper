@@ -64,7 +64,7 @@ export function AuthInput({
           {...props}
         />
         {suffix && (
-          <span className="text-neutral-dark/35 ml-3 shrink-0">{suffix}</span>
+          <span className="text-neutral-dark/35 ml-3 flex shrink-0 items-center">{suffix}</span>
         )}
       </div>
       {error && (

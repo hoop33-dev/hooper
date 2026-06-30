@@ -1,20 +1,22 @@
 "use server";
 
-import { signInWithPassword } from "@/src/services/auth.service";
+import { signInWithUsername, signOut as serviceSignOut } from "@/src/services/auth.service";
+import { redirect } from "next/navigation";
 
 type SignInResult = { ok: true } | { ok: false; error: string };
 
 export async function signIn(
-  email: string,
+  username: string,
   password: string,
 ): Promise<SignInResult> {
-  const result = await signInWithPassword(email, password);
+  const result = await signInWithUsername(username, password);
   if (!result.ok) {
-    const message =
-      result.error === "Invalid login credentials"
-        ? "Incorrect email or password."
-        : result.error;
-    return { ok: false, error: message };
+    return { ok: false, error: result.error };
   }
   return { ok: true };
+}
+
+export async function signOut(): Promise<void> {
+  await serviceSignOut();
+  redirect("/");
 }

@@ -9,7 +9,14 @@ import { toExerciseWithDetails, type RawExercise } from "./exercise.service";
 export const BLOCK_EXERCISE_SELECT =
   "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type, position))";
 
-export const BLOCKS_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
+// Select content for a single `blocks` row, embedding its placed exercises.
+const BLOCK_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
+
+// Select content for a single `sessions` row, embedding its blocks (which in
+// turn embed their block_exercises). Used directly by session.service.ts's
+// getSessionById, and nested one level deeper by program.service.ts's
+// getProgramById (`sessions(${SESSION_SELECT})`).
+export const SESSION_SELECT = `*, blocks(${BLOCK_SELECT})`;
 
 export type RawBlockExercise = BlockExerciseRow & { exercise: RawExercise };
 export type RawBlock = BlockRow & { block_exercises: RawBlockExercise[] };

@@ -9,7 +9,7 @@ import type {
   SessionRow,
 } from "@hooper/db";
 import {
-  BLOCKS_SELECT,
+  SESSION_SELECT,
   shapeBlocksWithExercises,
   type RawBlock,
 } from "./programShaping";
@@ -62,7 +62,7 @@ export async function getProgramById(
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("programs")
-      .select(`*, sessions(*, ${BLOCKS_SELECT})`)
+      .select(`*, sessions(${SESSION_SELECT})`)
       .eq("id", id)
       .single();
 

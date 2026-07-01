@@ -10,7 +10,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { BlockExerciseWithDetails, BlockWithExercises } from "@hooper/db";
 import { useState } from "react";
-import { BlockColorPicker } from "./BlockColorPicker";
 import { SortableBlockExerciseRow } from "./dnd/SortableBlockExerciseRow";
 
 function GripIcon() {
@@ -79,7 +78,11 @@ function BlockNameField({
       type="button"
       disabled={readOnly}
       onClick={() => !readOnly && setRenaming(true)}
-      className="text-portal-text1 min-w-0 flex-1 truncate text-left text-[13px] font-bold">
+      title={readOnly ? undefined : "Click to rename"}
+      className={cn(
+        "text-portal-text1 -mx-1 min-w-0 flex-1 truncate rounded px-1 py-0.5 text-left text-[13px] font-bold",
+        !readOnly && "hover:bg-portal-border/50",
+      )}>
       {name}
     </button>
   );
@@ -91,7 +94,6 @@ interface BlockCardHeaderProps {
   sortableBlock?: boolean;
   dragHandleProps?: Record<string, unknown>;
   onRename: (name: string) => void;
-  onColorChange: (color: string) => void;
   onDelete: () => void;
 }
 
@@ -101,7 +103,6 @@ function BlockCardHeader({
   sortableBlock,
   dragHandleProps,
   onRename,
-  onColorChange,
   onDelete,
 }: BlockCardHeaderProps) {
   return (
@@ -120,15 +121,12 @@ function BlockCardHeader({
         onRename={onRename}
       />
       {!readOnly && (
-        <>
-          <BlockColorPicker color={block.color} onChange={onColorChange} />
-          <button
-            type="button"
-            onClick={onDelete}
-            className="text-portal-text3 flex-shrink-0 hover:text-red-500">
-            <XIcon />
-          </button>
-        </>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="text-portal-text3 flex-shrink-0 hover:text-red-500">
+          <XIcon />
+        </button>
       )}
     </div>
   );
@@ -141,7 +139,6 @@ interface BlockCardProps {
   onOpenExercise: (blockExercise: BlockExerciseWithDetails) => void;
   onRemoveExercise: (id: string) => void;
   onRename: (name: string) => void;
-  onColorChange: (color: string) => void;
   onDelete: () => void;
 }
 
@@ -152,7 +149,6 @@ export function BlockCard({
   onOpenExercise,
   onRemoveExercise,
   onRename,
-  onColorChange,
   onDelete,
 }: BlockCardProps) {
   const sortable = useSortable({
@@ -178,7 +174,7 @@ export function BlockCard({
         borderLeftColor: block.color,
       }}
       className={cn(
-        "border-portal-border bg-portal-card overflow-hidden rounded-xl border border-l-[3px]",
+        "bg-portal-card border-portal-border border-b-portal-border-mid overflow-hidden rounded-xl border-t border-r border-b-2 border-l-[3px]",
         isOver && !readOnly && "ring-portal-orange ring-2",
         sortable.isDragging && "opacity-40",
       )}>
@@ -188,7 +184,6 @@ export function BlockCard({
         sortableBlock={sortableBlock}
         dragHandleProps={{ ...sortable.attributes, ...sortable.listeners }}
         onRename={onRename}
-        onColorChange={onColorChange}
         onDelete={onDelete}
       />
       <SortableContext

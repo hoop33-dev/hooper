@@ -20,7 +20,7 @@ import type {
   SessionWithBlocks,
 } from "@hooper/db";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { BlockExercisePositionUpdate } from "./dnd/dropComputation";
 import { useBlockExerciseDnd } from "./dnd/useBlockExerciseDnd";
 import type { SessionCreateData } from "./SessionCreateModal";
@@ -153,6 +153,21 @@ export function useProgramCanvasState(
   );
   const [sessionModal, setSessionModal] = useState<SessionModalState>(null);
 
+  // `program` is a fresh object every time the server component behind this
+  // page re-renders (navigation or router.refresh()), but `sessions` was
+  // only seeded from it once on mount. Without this, session create/rename/
+  // duplicate/delete — all of which call router.refresh() rather than
+  // patching local state — would silently not show up until a hard reload.
+  useEffect(() => {
+    setSessions(program.sessions);
+    setFocusedSessionId((prev) =>
+      prev && program.sessions.some((s) => s.id === prev)
+        ? prev
+        : (firstSessionOfWeek(program.sessions, selectedWeek)?.id ?? null),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [program.sessions]);
+
   const weekSessions = sessions
     .filter((s) => s.week_number === selectedWeek)
     .sort((a, b) => a.position - b.position);
@@ -173,6 +188,10 @@ export function useProgramCanvasState(
     exercisesById,
     addExerciseToBlockAction: actions.addExerciseToBlockAction,
     reorderBlockExercisesAction: actions.reorderBlockExercisesAction,
+    createBlockAction: focusedSessionId
+      ? (name) =>
+          actions.createBlockAction({ session_id: focusedSessionId, name })
+      : undefined,
   });
 
   const blockActions = useBlockActions({

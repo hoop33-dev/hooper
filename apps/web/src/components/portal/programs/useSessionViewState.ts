@@ -60,6 +60,8 @@ export function useSessionViewState(
     addExerciseToBlockAction: actions.addExerciseToBlockAction,
     reorderBlockExercisesAction: actions.reorderBlockExercisesAction,
     reorderBlocksAction: actions.reorderBlocksAction,
+    createBlockAction: (name) =>
+      actions.createBlockAction({ session_id: session.id, name }),
   });
 
   const blockActions = useBlockActions({

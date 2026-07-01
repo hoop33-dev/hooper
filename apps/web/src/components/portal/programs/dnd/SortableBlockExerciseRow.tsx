@@ -47,6 +47,7 @@ export function SortableBlockExerciseRow({
   onOpen,
   onRemove,
 }: SortableBlockExerciseRowProps) {
+  const rowId = `block-exercise:${blockExercise.id}`;
   const {
     attributes,
     listeners,
@@ -54,17 +55,21 @@ export function SortableBlockExerciseRow({
     transform,
     transition,
     isDragging,
+    over,
+    active,
   } = useSortable({
-    id: `block-exercise:${blockExercise.id}`,
+    id: rowId,
     disabled: readOnly,
   });
+  const isDropTarget = over?.id === rowId && active?.id !== rowId;
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "border-portal-border flex items-center gap-2 border-b px-3 py-2 last:border-b-0",
+        "border-portal-border flex items-center gap-2 border-t-2 border-b px-3 py-2 last:border-b-0",
+        isDropTarget ? "border-t-portal-orange" : "border-t-transparent",
         isDragging && "opacity-30",
         !readOnly && "hover:bg-portal-bg cursor-pointer",
       )}

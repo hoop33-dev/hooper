@@ -9,13 +9,13 @@ import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
 import { BlockCard } from "./BlockCard";
+import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
 
 interface BlockListProps {
   blocks: BlockWithExercises[];
   onOpenExercise: (be: BlockExerciseWithDetails) => void;
   onRemoveExercise: (exerciseRowId: string) => void;
   onRenameBlock: (blockId: string, name: string) => void;
-  onColorChangeBlock: (blockId: string, color: string) => void;
   onDeleteBlock: (blockId: string) => void;
   onAddBlock: (name: string) => Promise<void>;
 }
@@ -36,12 +36,17 @@ function AddBlockForm({ onAdd }: { onAdd: (name: string) => Promise<void> }) {
 
   if (!adding) {
     return (
-      <button
-        type="button"
-        onClick={() => setAdding(true)}
-        className="border-portal-border-mid text-portal-text3 rounded-xl border border-dashed py-3 text-center text-sm font-semibold">
-        + Add block
-      </button>
+      <NewBlockDropZone className="border-portal-border-mid rounded-xl border border-dashed">
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="text-portal-text3 w-full py-3 text-center text-sm font-semibold">
+          + Add block
+          <span className="block text-xs font-normal">
+            or drag an exercise here
+          </span>
+        </button>
+      </NewBlockDropZone>
     );
   }
 
@@ -78,7 +83,6 @@ export function BlockList({
   onOpenExercise,
   onRemoveExercise,
   onRenameBlock,
-  onColorChangeBlock,
   onDeleteBlock,
   onAddBlock,
 }: BlockListProps) {
@@ -95,7 +99,6 @@ export function BlockList({
             onOpenExercise={onOpenExercise}
             onRemoveExercise={onRemoveExercise}
             onRename={(name) => onRenameBlock(block.id, name)}
-            onColorChange={(color) => onColorChangeBlock(block.id, color)}
             onDelete={() => onDeleteBlock(block.id)}
           />
         ))}

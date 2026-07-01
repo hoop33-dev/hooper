@@ -66,7 +66,6 @@ export function ProgramCanvasShell({
             state.blockActions.removeExerciseById(exerciseRowId)
           }
           onRenameBlock={state.blockActions.renameBlock}
-          onColorChangeBlock={state.blockActions.changeBlockColor}
           onDeleteBlock={state.blockActions.deleteBlockById}
         />
         <ExerciseLibraryShelf exercises={exercises} categories={categories} />

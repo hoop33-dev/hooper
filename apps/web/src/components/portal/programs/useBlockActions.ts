@@ -23,7 +23,7 @@ export interface UseBlockActionsOptions {
   createBlockAction: (name: string) => Promise<ActionResult<BlockRow>>;
   updateBlockAction: (
     id: string,
-    data: { name?: string; color?: string },
+    data: { name?: string },
   ) => Promise<ActionResult<BlockRow>>;
   deleteBlockAction: (id: string) => Promise<ActionResult>;
   updateBlockExerciseAction: (
@@ -55,12 +55,10 @@ export function useBlockActions(options: UseBlockActionsOptions) {
 
   async function renameBlock(blockId: string, name: string) {
     const result = await updateBlockAction(blockId, { name });
-    if (result.ok) setBlocks(patchBlock(blocks, blockId, { name }));
-  }
-
-  async function changeBlockColor(blockId: string, color: string) {
-    const result = await updateBlockAction(blockId, { color });
-    if (result.ok) setBlocks(patchBlock(blocks, blockId, { color }));
+    // color is server-derived from the new name, so patch from the
+    // returned row rather than assuming only `name` changed.
+    if (result.ok && result.data)
+      setBlocks(patchBlock(blocks, blockId, result.data));
   }
 
   async function deleteBlockById(blockId: string) {
@@ -88,7 +86,6 @@ export function useBlockActions(options: UseBlockActionsOptions) {
     closeExerciseEditor: () => setEditingExercise(null),
     addBlock,
     renameBlock,
-    changeBlockColor,
     deleteBlockById,
     saveExerciseMeasurement,
     removeExerciseById,

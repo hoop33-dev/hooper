@@ -42,7 +42,6 @@ export function SessionViewShell({
           onOpenExercise={state.blockActions.openExerciseEditor}
           onRemoveExercise={state.blockActions.removeExerciseById}
           onRenameBlock={state.blockActions.renameBlock}
-          onColorChangeBlock={state.blockActions.changeBlockColor}
           onDeleteBlock={state.blockActions.deleteBlockById}
           onAddBlock={state.blockActions.addBlock}
         />

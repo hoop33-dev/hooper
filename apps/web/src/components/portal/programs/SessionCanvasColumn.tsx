@@ -3,6 +3,7 @@
 import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
 import Link from "next/link";
 import { BlockCard } from "./BlockCard";
+import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
 
 interface SessionCanvasColumnProps {
   programId: string;
@@ -16,7 +17,6 @@ interface SessionCanvasColumnProps {
   onOpenExercise: (blockExercise: BlockExerciseWithDetails) => void;
   onRemoveExercise: (blockId: string, exerciseRowId: string) => void;
   onRenameBlock: (blockId: string, name: string) => void;
-  onColorChangeBlock: (blockId: string, color: string) => void;
   onDeleteBlock: (blockId: string) => void;
 }
 
@@ -138,7 +138,6 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
     onOpenExercise,
     onRemoveExercise,
     onRenameBlock,
-    onColorChangeBlock,
     onDeleteBlock,
   } = props;
 
@@ -155,17 +154,18 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
             onRemoveExercise(block.id, exerciseRowId)
           }
           onRename={(name) => onRenameBlock(block.id, name)}
-          onColorChange={(color) => onColorChangeBlock(block.id, color)}
           onDelete={() => onDeleteBlock(block.id)}
         />
       ))}
       {isFocused && (
-        <button
-          type="button"
-          onClick={onAddBlock}
-          className="border-portal-border-mid text-portal-text3 rounded-lg border border-dashed py-2 text-xs font-semibold">
-          + Add block
-        </button>
+        <NewBlockDropZone className="border-portal-border-mid rounded-lg border border-dashed">
+          <button
+            type="button"
+            onClick={onAddBlock}
+            className="text-portal-text3 w-full py-2 text-xs font-semibold">
+            + Add block
+          </button>
+        </NewBlockDropZone>
       )}
     </div>
   );

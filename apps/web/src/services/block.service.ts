@@ -5,7 +5,7 @@ import type { BlockExerciseRow, BlockRow } from "@hooper/db";
 import { defaultBlockColor } from "@hooper/shared";
 
 export type CreateBlockInput = { session_id: string; name: string };
-export type UpdateBlockInput = { name?: string; color?: string };
+export type UpdateBlockInput = { name?: string };
 
 export type AddExerciseToBlockInput = {
   block_id: string;
@@ -97,8 +97,12 @@ export async function updateBlock(
     const { data, error } = await supabase
       .from("blocks")
       .update({
-        ...(input.name !== undefined && { name: input.name }),
-        ...(input.color !== undefined && { color: input.color }),
+        // Color is always derived from the name (never independently set),
+        // so a rename recomputes it too.
+        ...(input.name !== undefined && {
+          name: input.name,
+          color: defaultBlockColor(input.name),
+        }),
       })
       .eq("id", id)
       .select()

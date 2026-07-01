@@ -16,7 +16,6 @@ interface SessionCanvasRowProps {
   onOpenExercise: (blockExercise: BlockExerciseWithDetails) => void;
   onRemoveExercise: (blockId: string, exerciseRowId: string) => void;
   onRenameBlock: (blockId: string, name: string) => void;
-  onColorChangeBlock: (blockId: string, color: string) => void;
   onDeleteBlock: (blockId: string) => void;
 }
 
@@ -33,11 +32,10 @@ export function SessionCanvasRow({
   onOpenExercise,
   onRemoveExercise,
   onRenameBlock,
-  onColorChangeBlock,
   onDeleteBlock,
 }: SessionCanvasRowProps) {
   return (
-    <div className="flex flex-1 gap-3 overflow-x-auto p-4">
+    <div className="flex flex-1 items-start gap-3 overflow-x-auto overflow-y-auto p-4">
       {sessions.map((session) => (
         <SessionCanvasColumn
           key={session.id}
@@ -52,7 +50,6 @@ export function SessionCanvasRow({
           onOpenExercise={onOpenExercise}
           onRemoveExercise={onRemoveExercise}
           onRenameBlock={onRenameBlock}
-          onColorChangeBlock={onColorChangeBlock}
           onDeleteBlock={onDeleteBlock}
         />
       ))}

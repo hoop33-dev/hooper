@@ -10,7 +10,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
-  type DragOverEvent,
+  type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import type { ExerciseCategoryTreeNode } from "@hooper/db";
@@ -181,6 +181,7 @@ export function CategoryTree({ nodes, selectedId, onSelect, onDrop }: CategoryTr
   const [dropTarget, setDropTarget] = useState<DropTarget>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const pointerYRef = useRef(0);
+  const dropTargetRef = useRef<DropTarget>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => { setFlatItems(flattenTree(nodes)); }, [nodes]);
@@ -194,13 +195,19 @@ export function CategoryTree({ nodes, selectedId, onSelect, onDrop }: CategoryTr
   const visibleItems = useMemo(() => flatItems.filter((item) => !isItemHidden(item, flatItems, collapsed)), [flatItems, collapsed]);
   const descendantsOfActive = useMemo(() => activeId ? buildDescendantSet(flatItems, activeId) : new Set<string>(), [flatItems, activeId]);
 
+  function setDt(dt: DropTarget) {
+    if (dropTargetRef.current?.id === dt?.id && dropTargetRef.current?.position === dt?.position) return;
+    dropTargetRef.current = dt;
+    setDropTarget(dt);
+  }
+
   function handleDragStart({ active }: DragStartEvent) { setActiveId(active.id as string); }
 
-  function handleDragOver({ active, over }: DragOverEvent) {
-    if (!over || over.id === active.id) { setDropTarget(null); return; }
+  function handleDragMove({ active, over }: DragMoveEvent) {
+    if (!over || over.id === active.id) { setDt(null); return; }
     const overId = over.id as string;
-    if (overId === ROOT_END_ID) { setDropTarget({ id: ROOT_END_ID, position: "after" }); return; }
-    setDropTarget({ id: overId, position: positionFor(pointerYRef.current, over.rect, flatItems, overId, active.id as string) });
+    if (overId === ROOT_END_ID) { setDt({ id: ROOT_END_ID, position: "after" }); return; }
+    setDt({ id: overId, position: positionFor(pointerYRef.current, over.rect, flatItems, overId, active.id as string) });
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
@@ -211,6 +218,7 @@ export function CategoryTree({ nodes, selectedId, onSelect, onDrop }: CategoryTr
         : { id: overId, position: positionFor(pointerYRef.current, over.rect, flatItems, overId, active.id as string) };
       if (resolved) onDrop(active.id as string, resolved.id, resolved.position);
     }
+    dropTargetRef.current = null;
     setActiveId(null);
     setDropTarget(null);
   }
@@ -222,7 +230,7 @@ export function CategoryTree({ nodes, selectedId, onSelect, onDrop }: CategoryTr
   const activeItem = flatItems.find((f) => f.id === activeId);
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
       <div className="flex flex-col gap-0.5">
         {visibleItems.map((item) => (
           <DraggableItem

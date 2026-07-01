@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -20,6 +20,8 @@ import { cn } from "@/src/lib/cn";
 type FlatItem = ExerciseCategoryTreeNode & { depth: number };
 export type DropPosition = "before" | "inside" | "after";
 type DropTarget = { id: string; position: DropPosition } | null;
+
+const ROOT_END_ID = "__end__";
 
 interface CategoryTreeProps {
   nodes: ExerciseCategoryTreeNode[];
@@ -65,6 +67,35 @@ function isDescendantOf(flatItems: FlatItem[], nodeId: string, ancestorId: strin
   if (!node?.parent_id) return false;
   if (node.parent_id === ancestorId) return true;
   return isDescendantOf(flatItems, node.parent_id, ancestorId);
+}
+
+function isItemHidden(item: FlatItem, flatItems: FlatItem[], collapsed: Set<string>): boolean {
+  if (!item.parent_id) return false;
+  if (collapsed.has(item.parent_id)) return true;
+  const parent = flatItems.find((f) => f.id === item.parent_id);
+  return parent ? isItemHidden(parent, flatItems, collapsed) : false;
+}
+
+function buildDescendantSet(flatItems: FlatItem[], rootId: string): Set<string> {
+  const set = new Set<string>();
+  const add = (id: string) => flatItems.filter((f) => f.parent_id === id).forEach((f) => { set.add(f.id); add(f.id); });
+  add(rootId);
+  return set;
+}
+
+function resolveEndDrop(flatItems: FlatItem[], dragId: string): { id: string; position: DropPosition } | null {
+  const last = flatItems.filter((f) => !f.parent_id && f.id !== dragId).at(-1);
+  return last ? { id: last.id, position: "after" } : null;
+}
+
+function RootDropZone({ isActive, dropTarget }: { isActive: boolean; dropTarget: DropTarget }) {
+  const { setNodeRef } = useDroppable({ id: ROOT_END_ID });
+  if (!isActive) return null;
+  return (
+    <div ref={setNodeRef} className="min-h-[32px]">
+      {dropTarget?.id === ROOT_END_ID && <DropLine />}
+    </div>
+  );
 }
 
 function DraggableItem({
@@ -137,51 +168,42 @@ export function CategoryTree({ nodes, selectedId, onSelect, onDrop }: CategoryTr
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const pointerYRef = useRef(0);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => { setFlatItems(flattenTree(nodes)); }, [nodes]);
 
-  useEffect(() => {
-    function onPointerMove(e: PointerEvent) { pointerYRef.current = e.clientY; }
-    window.addEventListener("pointermove", onPointerMove);
-    return () => window.removeEventListener("pointermove", onPointerMove);
-  }, []);
+  const visibleItems = useMemo(
+    () => flatItems.filter((item) => !isItemHidden(item, flatItems, collapsed)),
+    [flatItems, collapsed],
+  );
 
-  const visibleItems = useMemo(() => {
-    const isHidden = (item: FlatItem): boolean => {
-      if (!item.parent_id) return false;
-      if (collapsed.has(item.parent_id)) return true;
-      const parent = flatItems.find((f) => f.id === item.parent_id);
-      return parent ? isHidden(parent) : false;
-    };
-    return flatItems.filter((item) => !isHidden(item));
-  }, [flatItems, collapsed]);
-
-  const descendantsOfActive = useMemo(() => {
-    const set = new Set<string>();
-    if (!activeId) return set;
-    const addDescendants = (id: string) => {
-      flatItems.filter((f) => f.parent_id === id).forEach((f) => { set.add(f.id); addDescendants(f.id); });
-    };
-    addDescendants(activeId);
-    return set;
-  }, [flatItems, activeId]);
+  const descendantsOfActive = useMemo(
+    () => activeId ? buildDescendantSet(flatItems, activeId) : new Set<string>(),
+    [flatItems, activeId],
+  );
 
   function handleDragStart({ active }: DragStartEvent) { setActiveId(active.id as string); }
 
-  function handleDragOver({ active, over }: DragOverEvent) {
+  function handleDragOver({ active, over, delta }: DragOverEvent) {
     if (!over || over.id === active.id) { setDropTarget(null); return; }
     const overId = over.id as string;
-    const ratio = (pointerYRef.current - over.rect.top) / over.rect.height;
+    if (overId === ROOT_END_ID) { setDropTarget({ id: ROOT_END_ID, position: "after" }); return; }
+    const initialRect = active.rect.current.initial;
+    if (!initialRect) { setDropTarget(null); return; }
+    const centerY = initialRect.top + initialRect.height / 2 + delta.y;
+    const ratio = (centerY - over.rect.top) / over.rect.height;
     const wouldCycle = isDescendantOf(flatItems, overId, active.id as string);
     const position: DropPosition =
-      !wouldCycle && ratio > 0.25 && ratio < 0.75 ? "inside" : ratio < 0.5 ? "before" : "after";
+      !wouldCycle && ratio > 0.15 && ratio < 0.85 ? "inside" : ratio < 0.5 ? "before" : "after";
     setDropTarget({ id: overId, position });
   }
 
   function handleDragEnd({ active }: DragEndEvent) {
-    if (dropTarget && dropTarget.id !== active.id) onDrop(active.id as string, dropTarget.id, dropTarget.position);
+    if (dropTarget && dropTarget.id !== active.id) {
+      const resolved = dropTarget.id === ROOT_END_ID
+        ? resolveEndDrop(flatItems, active.id as string) : dropTarget;
+      if (resolved) onDrop(active.id as string, resolved.id, resolved.position);
+    }
     setActiveId(null);
     setDropTarget(null);
   }
@@ -208,6 +230,7 @@ export function CategoryTree({ nodes, selectedId, onSelect, onDrop }: CategoryTr
             descendantsOfActive={descendantsOfActive}
           />
         ))}
+        <RootDropZone isActive={!!activeId} dropTarget={dropTarget} />
       </div>
       <DragOverlay>
         {activeItem && (

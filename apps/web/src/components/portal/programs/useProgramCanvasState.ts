@@ -138,6 +138,39 @@ function useSessionModalHandlers(
   };
 }
 
+function useCanvasBlockState(
+  focusedSession: SessionWithBlocks | null,
+  focusedSessionId: string | null,
+  actions: ProgramCanvasActions,
+  setFocusedBlocks: (blocks: BlockWithExercises[]) => void,
+  exercisesById: Map<string, ExerciseWithDetails>,
+) {
+  const dnd = useBlockExerciseDnd({
+    blocks: focusedSession?.blocks ?? [],
+    setBlocks: setFocusedBlocks,
+    exercisesById,
+    addExerciseToBlockAction: actions.addExerciseToBlockAction,
+    reorderBlockExercisesAction: actions.reorderBlockExercisesAction,
+    createBlockAction: focusedSessionId
+      ? (name) =>
+          actions.createBlockAction({ session_id: focusedSessionId, name })
+      : undefined,
+  });
+
+  const blockActions = useBlockActions({
+    blocks: focusedSession?.blocks ?? [],
+    setBlocks: setFocusedBlocks,
+    createBlockAction: (name) =>
+      actions.createBlockAction({ session_id: focusedSessionId ?? "", name }),
+    updateBlockAction: actions.updateBlockAction,
+    deleteBlockAction: actions.deleteBlockAction,
+    updateBlockExerciseAction: actions.updateBlockExerciseAction,
+    removeExerciseFromBlockAction: actions.removeExerciseFromBlockAction,
+  });
+
+  return { dnd, blockActions };
+}
+
 export function useProgramCanvasState(
   program: ProgramWithSessions,
   exercises: ExerciseWithDetails[],
@@ -182,28 +215,13 @@ export function useProgramCanvasState(
     );
   }
 
-  const dnd = useBlockExerciseDnd({
-    blocks: focusedSession?.blocks ?? [],
-    setBlocks: setFocusedBlocks,
+  const { dnd, blockActions } = useCanvasBlockState(
+    focusedSession,
+    focusedSessionId,
+    actions,
+    setFocusedBlocks,
     exercisesById,
-    addExerciseToBlockAction: actions.addExerciseToBlockAction,
-    reorderBlockExercisesAction: actions.reorderBlockExercisesAction,
-    createBlockAction: focusedSessionId
-      ? (name) =>
-          actions.createBlockAction({ session_id: focusedSessionId, name })
-      : undefined,
-  });
-
-  const blockActions = useBlockActions({
-    blocks: focusedSession?.blocks ?? [],
-    setBlocks: setFocusedBlocks,
-    createBlockAction: (name) =>
-      actions.createBlockAction({ session_id: focusedSessionId ?? "", name }),
-    updateBlockAction: actions.updateBlockAction,
-    deleteBlockAction: actions.deleteBlockAction,
-    updateBlockExerciseAction: actions.updateBlockExerciseAction,
-    removeExerciseFromBlockAction: actions.removeExerciseFromBlockAction,
-  });
+  );
 
   function selectWeek(week: number) {
     setSelectedWeek(week);

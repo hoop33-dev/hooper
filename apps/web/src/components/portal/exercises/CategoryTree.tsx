@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -60,8 +60,15 @@ function rowClass(isDropTarget: boolean, dropPos: DropPosition | undefined, isSe
   return "";
 }
 
+function isDescendantOf(flatItems: FlatItem[], nodeId: string, ancestorId: string): boolean {
+  const node = flatItems.find((f) => f.id === nodeId);
+  if (!node?.parent_id) return false;
+  if (node.parent_id === ancestorId) return true;
+  return isDescendantOf(flatItems, node.parent_id, ancestorId);
+}
+
 function DraggableItem({
-  item, selectedId, onSelect, activeId, dropTarget, collapsed, onToggleCollapse,
+  item, selectedId, onSelect, activeId, dropTarget, collapsed, onToggleCollapse, descendantsOfActive,
 }: {
   item: FlatItem;
   selectedId: string | null;
@@ -70,14 +77,14 @@ function DraggableItem({
   dropTarget: DropTarget;
   collapsed: Set<string>;
   onToggleCollapse: (id: string) => void;
+  descendantsOfActive: Set<string>;
 }) {
   const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({ id: item.id });
   const { setNodeRef: setDropRef } = useDroppable({ id: item.id });
   const setRef = (el: HTMLElement | null) => { setDragRef(el); setDropRef(el); };
   const isSelected = selectedId === item.id;
   const isDropTarget = dropTarget?.id === item.id;
-  const isChildOfActive = activeId !== null && item.parent_id === activeId;
-  const opacity = isDragging || isChildOfActive ? 0.3 : 1;
+  const opacity = isDragging || descendantsOfActive.has(item.id) ? 0.3 : 1;
   const dropPos = dropTarget?.position;
 
   return (
@@ -85,7 +92,7 @@ function DraggableItem({
       {isDropTarget && dropPos === "before" && <DropLine />}
       <div
         ref={setRef}
-        style={{ marginLeft: item.depth > 0 ? "20px" : 0, opacity }}
+        style={{ marginLeft: item.depth * 20, opacity }}
         className={cn("group flex items-center gap-0.5 rounded-lg transition-colors", rowClass(isDropTarget, dropPos, isSelected, activeId))}
       >
         <button
@@ -130,49 +137,57 @@ export function CategoryTree({ nodes, selectedId, onSelect, onDrop }: CategoryTr
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const pointerYRef = useRef(0);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => { setFlatItems(flattenTree(nodes)); }, [nodes]);
 
-  const visibleItems = useMemo(
-    () => flatItems.filter((item) => !item.parent_id || !collapsed.has(item.parent_id)),
-    [flatItems, collapsed],
-  );
+  useEffect(() => {
+    function onPointerMove(e: PointerEvent) { pointerYRef.current = e.clientY; }
+    window.addEventListener("pointermove", onPointerMove);
+    return () => window.removeEventListener("pointermove", onPointerMove);
+  }, []);
 
-  function handleDragStart({ active }: DragStartEvent) {
-    setActiveId(active.id as string);
-  }
+  const visibleItems = useMemo(() => {
+    const isHidden = (item: FlatItem): boolean => {
+      if (!item.parent_id) return false;
+      if (collapsed.has(item.parent_id)) return true;
+      const parent = flatItems.find((f) => f.id === item.parent_id);
+      return parent ? isHidden(parent) : false;
+    };
+    return flatItems.filter((item) => !isHidden(item));
+  }, [flatItems, collapsed]);
 
-  function handleDragOver({ active, over, delta }: DragOverEvent) {
+  const descendantsOfActive = useMemo(() => {
+    const set = new Set<string>();
+    if (!activeId) return set;
+    const addDescendants = (id: string) => {
+      flatItems.filter((f) => f.parent_id === id).forEach((f) => { set.add(f.id); addDescendants(f.id); });
+    };
+    addDescendants(activeId);
+    return set;
+  }, [flatItems, activeId]);
+
+  function handleDragStart({ active }: DragStartEvent) { setActiveId(active.id as string); }
+
+  function handleDragOver({ active, over }: DragOverEvent) {
     if (!over || over.id === active.id) { setDropTarget(null); return; }
-    const overRect = over.rect;
-    const initialRect = active.rect.current.initial;
-    if (!initialRect) { setDropTarget(null); return; }
-    const activeCenterY = initialRect.top + initialRect.height / 2 + delta.y;
-    const ratio = (activeCenterY - overRect.top) / overRect.height;
     const overId = over.id as string;
-    const overItem = flatItems.find((f) => f.id === overId);
-    const dragItem = flatItems.find((f) => f.id === (active.id as string));
-    const canNest = overItem?.depth === 0 && !dragItem?.children.length && overId !== active.id;
+    const ratio = (pointerYRef.current - over.rect.top) / over.rect.height;
+    const wouldCycle = isDescendantOf(flatItems, overId, active.id as string);
     const position: DropPosition =
-      canNest && ratio > 0.3 && ratio < 0.7 ? "inside" : ratio < 0.5 ? "before" : "after";
+      !wouldCycle && ratio > 0.25 && ratio < 0.75 ? "inside" : ratio < 0.5 ? "before" : "after";
     setDropTarget({ id: overId, position });
   }
 
   function handleDragEnd({ active }: DragEndEvent) {
-    if (dropTarget && dropTarget.id !== active.id) {
-      onDrop(active.id as string, dropTarget.id, dropTarget.position);
-    }
+    if (dropTarget && dropTarget.id !== active.id) onDrop(active.id as string, dropTarget.id, dropTarget.position);
     setActiveId(null);
     setDropTarget(null);
   }
 
   function toggleCollapse(id: string) {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+    setCollapsed((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   }
 
   const activeItem = flatItems.find((f) => f.id === activeId);
@@ -190,6 +205,7 @@ export function CategoryTree({ nodes, selectedId, onSelect, onDrop }: CategoryTr
             dropTarget={dropTarget}
             collapsed={collapsed}
             onToggleCollapse={toggleCollapse}
+            descendantsOfActive={descendantsOfActive}
           />
         ))}
       </div>

@@ -38,6 +38,17 @@ function BlankState({ onStartCreate }: { onStartCreate: () => void }) {
   );
 }
 
+function sortedHierarchical(
+  cats: ExerciseCategoryRow[],
+  parentId: string | null = null,
+  depth = 0,
+): { cat: ExerciseCategoryRow; depth: number }[] {
+  return cats
+    .filter((c) => (c.parent_id ?? null) === parentId)
+    .sort((a, b) => a.position - b.position)
+    .flatMap((c) => [{ cat: c, depth }, ...sortedHierarchical(cats, c.id, depth + 1)]);
+}
+
 function ParentSelector({
   allCategories,
   excludeIds,
@@ -49,9 +60,8 @@ function ParentSelector({
   value: string;
   onChange: (id: string) => void;
 }) {
-  const available = allCategories.filter(
-    (c) => !excludeIds.includes(c.id) && !c.parent_id,
-  );
+  const available = allCategories.filter((c) => !excludeIds.includes(c.id));
+  const items = sortedHierarchical(available);
 
   return (
     <div className="flex flex-col gap-1">
@@ -65,9 +75,9 @@ function ParentSelector({
         className="h-9 w-full rounded-lg border border-portal-border bg-portal-card px-3 text-sm text-portal-text1 focus:border-portal-orange focus:outline-none"
       >
         <option value="">None (top-level)</option>
-        {available.map((cat) => (
+        {items.map(({ cat, depth }) => (
           <option key={cat.id} value={cat.id}>
-            {cat.name}
+            {"  ".repeat(depth) + cat.name}
           </option>
         ))}
       </select>

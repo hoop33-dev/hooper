@@ -73,6 +73,54 @@ export type ExerciseUnitTypeRow = {
   position: number;
 };
 
+export type ProgramStatus = "draft" | "active";
+
+export type ProgramRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  weeks: number;
+  sessions_per_week: number;
+  status: ProgramStatus;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SessionRow = {
+  id: string;
+  program_id: string;
+  week_number: number;
+  name: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BlockRow = {
+  id: string;
+  session_id: string;
+  name: string;
+  color: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BlockExerciseRow = {
+  id: string;
+  block_id: string;
+  exercise_id: string;
+  position: number;
+  sets: number;
+  unit_type: string;
+  reps: number | null;
+  value: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -90,7 +138,8 @@ export type Database = {
       };
       exercise_categories: {
         Row: ExerciseCategoryRow;
-        Insert: Partial<ExerciseCategoryRow> & Pick<ExerciseCategoryRow, "name" | "created_by">;
+        Insert: Partial<ExerciseCategoryRow> &
+          Pick<ExerciseCategoryRow, "name" | "created_by">;
         Update: Partial<ExerciseCategoryRow>;
         Relationships: [];
       };
@@ -112,11 +161,43 @@ export type Database = {
         Update: Partial<ExerciseUnitTypeRow>;
         Relationships: [];
       };
+      programs: {
+        Row: ProgramRow;
+        Insert: Partial<ProgramRow> &
+          Pick<
+            ProgramRow,
+            "name" | "weeks" | "sessions_per_week" | "created_by"
+          >;
+        Update: Partial<ProgramRow>;
+        Relationships: [];
+      };
+      sessions: {
+        Row: SessionRow;
+        Insert: Partial<SessionRow> &
+          Pick<SessionRow, "program_id" | "week_number" | "name">;
+        Update: Partial<SessionRow>;
+        Relationships: [];
+      };
+      blocks: {
+        Row: BlockRow;
+        Insert: Partial<BlockRow> &
+          Pick<BlockRow, "session_id" | "name" | "color">;
+        Update: Partial<BlockRow>;
+        Relationships: [];
+      };
+      block_exercises: {
+        Row: BlockExerciseRow;
+        Insert: Partial<BlockExerciseRow> &
+          Pick<BlockExerciseRow, "block_id" | "exercise_id" | "unit_type">;
+        Update: Partial<BlockExerciseRow>;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
     Enums: {
       user_role: UserRoleEnum;
+      program_status: ProgramStatus;
     };
     CompositeTypes: { [_ in never]: never };
   };

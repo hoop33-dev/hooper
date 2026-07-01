@@ -1,4 +1,15 @@
 export * from "./schema";
+export type {
+  BlockExerciseRow,
+  BlockRow,
+  ExerciseCategoryLinkRow,
+  ExerciseCategoryRow,
+  ExerciseRow,
+  ExerciseUnitTypeRow,
+  ProgramRow,
+  ProgramStatus,
+  SessionRow,
+} from "./schema";
 
 export type RoleType = "player" | "coach" | "parent";
 export type LinkStatus = "active" | "disconnected";
@@ -46,7 +57,6 @@ export type ParentPlayerLink = {
 };
 
 import type { ExerciseCategoryRow, ExerciseRow } from "./schema";
-export type { ExerciseCategoryRow, ExerciseRow, ExerciseCategoryLinkRow, ExerciseUnitTypeRow } from "./schema";
 
 export type ExerciseCategoryWithCount = ExerciseCategoryRow & {
   exercise_count: number;
@@ -59,4 +69,37 @@ export type ExerciseCategoryTreeNode = ExerciseCategoryWithCount & {
 export type ExerciseWithDetails = ExerciseRow & {
   categories: ExerciseCategoryRow[];
   unitTypes: string[];
+};
+
+import type {
+  BlockExerciseRow,
+  BlockRow,
+  ProgramRow,
+  SessionRow,
+} from "./schema";
+
+// `exercise` carries its own unitTypes (not just the raw row) so the
+// measurement modal can offer only that exercise's configured unit types.
+export type BlockExerciseWithDetails = BlockExerciseRow & {
+  exercise: ExerciseWithDetails;
+};
+
+export type BlockWithExercises = BlockRow & {
+  exercises: BlockExerciseWithDetails[];
+};
+
+export type SessionWithBlocks = SessionRow & {
+  blocks: BlockWithExercises[];
+};
+
+// Full depth: the program canvas renders real blocks + placed exercises
+// inline, not a count summary, so this needs the whole tree.
+export type ProgramWithSessions = ProgramRow & {
+  sessions: SessionWithBlocks[];
+};
+
+// sessionCount is a real COUNT(*) over `sessions` — never
+// weeks * sessions_per_week, since sessions are created manually.
+export type ProgramSummary = ProgramRow & {
+  sessionCount: number;
 };

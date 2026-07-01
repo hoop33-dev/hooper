@@ -1,8 +1,12 @@
-import type { ExerciseRow, ExerciseWithDetails, ExerciseCategoryRow } from "@hooper/db";
-import { err, ok, toErrorMessage } from "@/src/lib/result";
 import type { Result } from "@/src/lib/result";
-import { createClient } from "@/src/lib/supabase/server";
+import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient as createBrowserClient } from "@/src/lib/supabase/client";
+import { createClient } from "@/src/lib/supabase/server";
+import type {
+  ExerciseCategoryRow,
+  ExerciseRow,
+  ExerciseWithDetails,
+} from "@hooper/db";
 
 export type CreateExerciseInput = {
   name: string;
@@ -20,12 +24,12 @@ export type UpdateExerciseInput = {
   unitTypes: string[];
 };
 
-type RawExercise = ExerciseRow & {
+export type RawExercise = ExerciseRow & {
   exercise_category_links: { category_id: string }[];
   exercise_unit_types: { unit_type: string; position: number }[];
 };
 
-function toExerciseWithDetails(
+export function toExerciseWithDetails(
   raw: RawExercise,
   allCategories: ExerciseCategoryRow[],
 ): ExerciseWithDetails {
@@ -126,7 +130,10 @@ async function insertCategoryLinks(
 ): Promise<string | null> {
   if (categoryIds.length === 0) return null;
   const { error } = await supabase.from("exercise_category_links").insert(
-    categoryIds.map((category_id) => ({ exercise_id: exerciseId, category_id })),
+    categoryIds.map((category_id) => ({
+      exercise_id: exerciseId,
+      category_id,
+    })),
   );
   return error?.message ?? null;
 }
@@ -165,7 +172,11 @@ export async function createExercise(
 
     if (error) return err(error.message);
 
-    const linkErr = await insertCategoryLinks(supabase, data.id, input.categoryIds);
+    const linkErr = await insertCategoryLinks(
+      supabase,
+      data.id,
+      input.categoryIds,
+    );
     if (linkErr) return err(linkErr);
 
     const unitErr = await insertUnitTypes(supabase, data.id, input.unitTypes);
@@ -199,7 +210,10 @@ export async function updateExercise(
 
     if (error) return err(error.message);
 
-    await supabase.from("exercise_category_links").delete().eq("exercise_id", id);
+    await supabase
+      .from("exercise_category_links")
+      .delete()
+      .eq("exercise_id", id);
     await supabase.from("exercise_unit_types").delete().eq("exercise_id", id);
 
     const linkErr = await insertCategoryLinks(supabase, id, input.categoryIds);

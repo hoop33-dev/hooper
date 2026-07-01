@@ -1,0 +1,39 @@
+import type {
+  BlockExerciseRow,
+  BlockRow,
+  BlockWithExercises,
+  ExerciseCategoryRow,
+} from "@hooper/db";
+import { toExerciseWithDetails, type RawExercise } from "./exercise.service";
+
+export const BLOCK_EXERCISE_SELECT =
+  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type, position))";
+
+export const BLOCKS_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
+
+export type RawBlockExercise = BlockExerciseRow & { exercise: RawExercise };
+export type RawBlock = BlockRow & { block_exercises: RawBlockExercise[] };
+
+/**
+ * Sorts blocks/exercises by position and resolves each placed exercise's
+ * nested `exercise` embed into the same `ExerciseWithDetails` shape the
+ * exercise library uses, so a block-exercise measurement modal can read
+ * `exercise.unitTypes` regardless of whether it was loaded via the program
+ * canvas or the session split-panel view.
+ */
+export function shapeBlocksWithExercises(
+  rawBlocks: RawBlock[],
+  allCategories: ExerciseCategoryRow[],
+): BlockWithExercises[] {
+  return [...rawBlocks]
+    .sort((a, b) => a.position - b.position)
+    .map(({ block_exercises, ...block }) => ({
+      ...block,
+      exercises: [...block_exercises]
+        .sort((a, b) => a.position - b.position)
+        .map(({ exercise, ...blockExercise }) => ({
+          ...blockExercise,
+          exercise: toExerciseWithDetails(exercise, allCategories),
+        })),
+    }));
+}

@@ -9,11 +9,25 @@ export * from "@hooper/db";
 
 // Exercise Library types (re-exported from @hooper/db)
 export type {
-  ExerciseCategoryRow,
-  ExerciseRow,
   ExerciseCategoryLinkRow,
-  ExerciseUnitTypeRow,
-  ExerciseCategoryWithCount,
+  ExerciseCategoryRow,
   ExerciseCategoryTreeNode,
+  ExerciseCategoryWithCount,
+  ExerciseRow,
+  ExerciseUnitTypeRow,
   ExerciseWithDetails,
+} from "@hooper/db";
+
+// Program Library types (re-exported from @hooper/db)
+export type {
+  BlockExerciseRow,
+  BlockExerciseWithDetails,
+  BlockRow,
+  BlockWithExercises,
+  ProgramRow,
+  ProgramStatus,
+  ProgramSummary,
+  ProgramWithSessions,
+  SessionRow,
+  SessionWithBlocks,
 } from "@hooper/db";

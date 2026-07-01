@@ -44,3 +44,19 @@ export type ParentPlayerLink = {
   created_at: string;
   updated_at: string;
 };
+
+import type { ExerciseCategoryRow, ExerciseRow } from "./schema";
+export type { ExerciseCategoryRow, ExerciseRow, ExerciseCategoryLinkRow, ExerciseUnitTypeRow } from "./schema";
+
+export type ExerciseCategoryWithCount = ExerciseCategoryRow & {
+  exercise_count: number;
+};
+
+export type ExerciseCategoryTreeNode = ExerciseCategoryWithCount & {
+  children: ExerciseCategoryTreeNode[];
+};
+
+export type ExerciseWithDetails = ExerciseRow & {
+  categories: ExerciseCategoryRow[];
+  unitTypes: string[];
+};

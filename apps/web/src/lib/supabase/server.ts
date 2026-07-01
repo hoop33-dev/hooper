@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/src/types/database.types";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -11,10 +12,15 @@ import { cookies } from "next/headers";
  * NOTE: Pages and components must not import this directly. All data access
  * goes through the service layer in src/services/** (enforced by ESLint).
  */
-export async function createClient() {
+export async function createClient(): Promise<SupabaseClient<Database>> {
   const cookieStore = await cookies();
 
-  return createServerClient<Database>(
+  // @supabase/ssr@0.5.2 returns SupabaseClient<Db, SchemaName, Schema> (3 type
+  // args) but @supabase/supabase-js@2.101.1 has 5 type params. The 3-arg
+  // mapping places Schema in the SchemaName slot, collapsing all row types to
+  // never. Casting to SupabaseClient<Database> (1 arg) uses the correct
+  // defaults: SchemaName='public', Schema=Database['public'].
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -34,11 +40,10 @@ export async function createClient() {
               cookieStore.set(name, value, options);
             }
           } catch {
-            // The `setAll` method was called from a Server Component. This can
-            // be ignored if middleware refreshes the session — which it does.
+            // ignore in Server Components — middleware handles session refresh
           }
         },
       },
     },
-  );
+  ) as unknown as SupabaseClient<Database>;
 }

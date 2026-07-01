@@ -31,19 +31,9 @@ function UsersIcon({ size = 15, color = "currentColor" }: { size?: number; color
 }
 
 const NAV_ITEMS = [
-  {
-    id: "exercises",
-    label: "Exercise Library",
-    href: "/exercises",
-    Icon: DumbbellIcon,
-    active: true,
-    subItems: [
-      { label: "Exercises", href: "/exercises" },
-      { label: "Categories", href: "/exercises/categories" },
-    ],
-  },
-  { id: "programs",  label: "Programs",  href: "/programs",  Icon: LayersIcon, active: false, subItems: [] },
-  { id: "athletes",  label: "Athletes",  href: "/athletes",  Icon: UsersIcon,  active: false, subItems: [] },
+  { id: "exercises", label: "Exercise Library", href: "/exercises", Icon: DumbbellIcon, active: true },
+  { id: "programs",  label: "Programs",         href: "/programs",  Icon: LayersIcon,  active: false },
+  { id: "athletes",  label: "Athletes",         href: "/athletes",  Icon: UsersIcon,   active: false },
 ];
 
 function SidebarHeader() {
@@ -80,51 +70,26 @@ function SidebarNavItem({
   }
 
   return (
-    <div>
-      <Link
-        href={item.href}
+    <Link
+      href={item.href}
+      className={cn(
+        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 transition-colors",
+        isActive ? "bg-[rgba(241,88,37,0.13)]" : "hover:bg-white/[0.06]",
+      )}
+    >
+      <item.Icon size={15} color={color} />
+      <span
         className={cn(
-          "flex items-center gap-2.5 rounded-lg px-3 py-2.5 transition-colors",
-          isActive ? "bg-[rgba(241,88,37,0.13)]" : "hover:bg-white/[0.06]",
+          "text-[13px]",
+          isActive ? "font-bold text-white" : "font-medium text-white/55",
         )}
       >
-        <item.Icon size={15} color={color} />
-        <span
-          className={cn(
-            "text-[13px]",
-            isActive ? "font-bold text-white" : "font-medium text-white/55",
-          )}
-        >
-          {item.label}
-        </span>
-        {isActive && (
-          <div className="ml-auto h-1 w-1 rounded-full bg-portal-orange" />
-        )}
-      </Link>
-
-      {isActive && item.subItems.length > 0 && (
-        <div className="ml-7 mt-0.5 flex flex-col gap-0.5">
-          {item.subItems.map((sub) => {
-            const subExact = pathname === sub.href ||
-              (sub.href !== item.href && pathname.startsWith(sub.href));
-            return (
-              <Link
-                key={sub.href}
-                href={sub.href}
-                className={cn(
-                  "rounded-md px-2 py-1.5 text-[12px] transition-colors",
-                  subExact
-                    ? "font-semibold text-white"
-                    : "font-medium text-white/40 hover:text-white/70",
-                )}
-              >
-                {sub.label}
-              </Link>
-            );
-          })}
-        </div>
+        {item.label}
+      </span>
+      {isActive && (
+        <div className="ml-auto h-1 w-1 rounded-full bg-portal-orange" />
       )}
-    </div>
+    </Link>
   );
 }
 

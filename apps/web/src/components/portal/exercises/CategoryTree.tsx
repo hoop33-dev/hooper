@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -88,6 +88,18 @@ function resolveEndDrop(flatItems: FlatItem[], dragId: string): { id: string; po
   return last ? { id: last.id, position: "after" } : null;
 }
 
+function positionFor(
+  pointerY: number,
+  overRect: { top: number; height: number },
+  flatItems: FlatItem[],
+  overId: string,
+  activeId: string,
+): DropPosition {
+  const ratio = (pointerY - overRect.top) / overRect.height;
+  const wouldCycle = isDescendantOf(flatItems, overId, activeId);
+  return !wouldCycle && ratio > 0.15 && ratio < 0.85 ? "inside" : ratio < 0.5 ? "before" : "after";
+}
+
 function RootDropZone({ isActive, dropTarget }: { isActive: boolean; dropTarget: DropTarget }) {
   const { setNodeRef } = useDroppable({ id: ROOT_END_ID });
   if (!isActive) return null;
@@ -168,40 +180,35 @@ export function CategoryTree({ nodes, selectedId, onSelect, onDrop }: CategoryTr
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const pointerYRef = useRef(0);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => { setFlatItems(flattenTree(nodes)); }, [nodes]);
 
-  const visibleItems = useMemo(
-    () => flatItems.filter((item) => !isItemHidden(item, flatItems, collapsed)),
-    [flatItems, collapsed],
-  );
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => { pointerYRef.current = e.clientY; };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => window.removeEventListener("pointermove", onMove);
+  }, []);
 
-  const descendantsOfActive = useMemo(
-    () => activeId ? buildDescendantSet(flatItems, activeId) : new Set<string>(),
-    [flatItems, activeId],
-  );
+  const visibleItems = useMemo(() => flatItems.filter((item) => !isItemHidden(item, flatItems, collapsed)), [flatItems, collapsed]);
+  const descendantsOfActive = useMemo(() => activeId ? buildDescendantSet(flatItems, activeId) : new Set<string>(), [flatItems, activeId]);
 
   function handleDragStart({ active }: DragStartEvent) { setActiveId(active.id as string); }
 
-  function handleDragOver({ active, over, delta }: DragOverEvent) {
+  function handleDragOver({ active, over }: DragOverEvent) {
     if (!over || over.id === active.id) { setDropTarget(null); return; }
     const overId = over.id as string;
     if (overId === ROOT_END_ID) { setDropTarget({ id: ROOT_END_ID, position: "after" }); return; }
-    const initialRect = active.rect.current.initial;
-    if (!initialRect) { setDropTarget(null); return; }
-    const centerY = initialRect.top + initialRect.height / 2 + delta.y;
-    const ratio = (centerY - over.rect.top) / over.rect.height;
-    const wouldCycle = isDescendantOf(flatItems, overId, active.id as string);
-    const position: DropPosition =
-      !wouldCycle && ratio > 0.15 && ratio < 0.85 ? "inside" : ratio < 0.5 ? "before" : "after";
-    setDropTarget({ id: overId, position });
+    setDropTarget({ id: overId, position: positionFor(pointerYRef.current, over.rect, flatItems, overId, active.id as string) });
   }
 
-  function handleDragEnd({ active }: DragEndEvent) {
-    if (dropTarget && dropTarget.id !== active.id) {
-      const resolved = dropTarget.id === ROOT_END_ID
-        ? resolveEndDrop(flatItems, active.id as string) : dropTarget;
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    if (over && over.id !== active.id) {
+      const overId = over.id as string;
+      const resolved = overId === ROOT_END_ID
+        ? resolveEndDrop(flatItems, active.id as string)
+        : { id: overId, position: positionFor(pointerYRef.current, over.rect, flatItems, overId, active.id as string) };
       if (resolved) onDrop(active.id as string, resolved.id, resolved.position);
     }
     setActiveId(null);

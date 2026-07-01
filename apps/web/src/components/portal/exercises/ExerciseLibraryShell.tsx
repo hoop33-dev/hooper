@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
+import { getDescendantIds } from "@/src/lib/categoryTree";
 import { ExerciseModal } from "./ExerciseModal";
 import { ExerciseCard } from "./ExerciseCard";
 import { PortalButton } from "../ui/PortalButton";
@@ -36,6 +37,17 @@ function SearchBar({ value, onChange }: { value: string; onChange: (v: string) =
   );
 }
 
+function sortedHierarchical(
+  cats: ExerciseCategoryRow[],
+  parentId: string | null = null,
+  depth = 0,
+): { cat: ExerciseCategoryRow; depth: number }[] {
+  return cats
+    .filter((c) => (c.parent_id ?? null) === parentId)
+    .sort((a, b) => a.position - b.position)
+    .flatMap((c) => [{ cat: c, depth }, ...sortedHierarchical(cats, c.id, depth + 1)]);
+}
+
 function CategoryTabs({
   categories,
   selected,
@@ -45,19 +57,19 @@ function CategoryTabs({
   selected: string;
   onChange: (id: string) => void;
 }) {
-  const topLevel = categories.filter((c) => !c.parent_id);
+  const items = sortedHierarchical(categories);
   return (
     <div className="flex gap-1 overflow-x-auto">
       <TabButton active={selected === ""} onClick={() => onChange("")}>
         All
       </TabButton>
-      {topLevel.map((cat) => (
+      {items.map(({ cat, depth }) => (
         <TabButton
           key={cat.id}
           active={selected === cat.id}
           onClick={() => onChange(cat.id)}
         >
-          {cat.name}
+          {depth > 0 ? `${"·".repeat(depth)} ${cat.name}` : cat.name}
         </TabButton>
       ))}
     </div>
@@ -103,10 +115,14 @@ export function ExerciseLibraryShell({
   const [editingExercise, setEditingExercise] = useState<ExerciseWithDetails | null>(null);
   const [, startTransition] = useTransition();
 
+  const categoryFilterIds = categoryFilter
+    ? new Set([categoryFilter, ...getDescendantIds(categoryFilter, categories)])
+    : null;
+
   const filtered = exercises.filter(
     (ex) =>
       (!search || ex.name.toLowerCase().includes(search.toLowerCase())) &&
-      (!categoryFilter || ex.categories.some((c) => c.id === categoryFilter)),
+      (!categoryFilterIds || ex.categories.some((c) => categoryFilterIds.has(c.id))),
   );
 
   function openCreate() { setEditingExercise(null); setModalOpen(true); }

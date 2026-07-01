@@ -125,6 +125,46 @@ function TabButton({
   );
 }
 
+function LibraryToolbar({
+  categories,
+  categoryFilter,
+  onCategoryChange,
+  search,
+  onSearchChange,
+  onCreateClick,
+}: {
+  categories: ExerciseCategoryRow[];
+  categoryFilter: string;
+  onCategoryChange: (id: string) => void;
+  search: string;
+  onSearchChange: (v: string) => void;
+  onCreateClick: () => void;
+}) {
+  return (
+    <div className="border-portal-border bg-portal-card flex items-center gap-3 border-b px-7 py-3">
+      <CategoryTabs categories={categories} selected={categoryFilter} onChange={onCategoryChange} />
+      <div className="ml-auto flex items-center gap-3">
+        <Link
+          href="/exercises/categories"
+          className="border-portal-border bg-portal-card text-portal-text1 hover:bg-portal-border/50 inline-flex h-9 items-center gap-1.5 rounded-lg border px-4 text-sm font-semibold transition"
+        >
+          <svg className="text-portal-text2 h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18M3 12h18M3 17h10" />
+          </svg>
+          Categories
+        </Link>
+        <SearchBar value={search} onChange={onSearchChange} />
+        <PortalButton variant="primary" onClick={onCreateClick}>
+          <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+          </svg>
+          Create exercise
+        </PortalButton>
+      </div>
+    </div>
+  );
+}
+
 export function ExerciseLibraryShell({
   exercises,
   categories,
@@ -152,64 +192,21 @@ export function ExerciseLibraryShell({
         ex.categories.some((c) => categoryFilterIds.has(c.id))),
   );
 
-  function openCreate() {
-    setEditingExercise(null);
-    setModalOpen(true);
-  }
-  function openEdit(exercise: ExerciseWithDetails) {
-    setEditingExercise(exercise);
-    setModalOpen(true);
-  }
-  function closeModal() {
-    setModalOpen(false);
-    setEditingExercise(null);
-  }
-  function handleSaved() {
-    closeModal();
-    startTransition(() => {});
-  }
+  function openCreate() { setEditingExercise(null); setModalOpen(true); }
+  function openEdit(exercise: ExerciseWithDetails) { setEditingExercise(exercise); setModalOpen(true); }
+  function closeModal() { setModalOpen(false); setEditingExercise(null); }
+  function handleSaved() { closeModal(); startTransition(() => {}); }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="border-portal-border bg-portal-card flex items-center gap-3 border-b px-7 py-3">
-        <CategoryTabs
-          categories={categories}
-          selected={categoryFilter}
-          onChange={setCategoryFilter}
-        />
-        <div className="ml-auto flex items-center gap-3">
-          <Link
-            href="/exercises/categories"
-            className="border-portal-border bg-portal-card text-portal-text1 hover:bg-portal-border/50 inline-flex h-9 items-center gap-1.5 rounded-lg border px-4 text-sm font-semibold transition"
-          >
-            <svg
-              className="text-portal-text2 h-3.5 w-3.5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 7h18M3 12h18M3 17h10"
-              />
-            </svg>
-            Categories
-          </Link>
-          <SearchBar value={search} onChange={setSearch} />
-          <PortalButton variant="primary" onClick={openCreate}>
-            <svg
-              className="h-3.5 w-3.5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-            </svg>
-            Create exercise
-          </PortalButton>
-        </div>
-      </div>
+      <LibraryToolbar
+        categories={categories}
+        categoryFilter={categoryFilter}
+        onCategoryChange={setCategoryFilter}
+        search={search}
+        onSearchChange={setSearch}
+        onCreateClick={openCreate}
+      />
 
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (

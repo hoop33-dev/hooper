@@ -2,8 +2,10 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  type Active,
   type DragEndEvent,
   type DragStartEvent,
+  type Over,
 } from "@dnd-kit/core";
 import type {
   BlockExerciseRow,
@@ -18,6 +20,7 @@ import {
   type BlockExercisePositionUpdate,
   type BlockPositionUpdate,
 } from "./dropComputation";
+import { isInsertAfter } from "./insertPosition";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
@@ -127,16 +130,18 @@ function resolveTargetSession(
 async function handleBlockDrop(
   options: UseBlockExerciseDndOptions,
   activeBlockId: string,
-  overId: string,
+  active: Active,
+  over: Over,
 ) {
   if (!options.reorderBlocksAction) return;
-  const target = resolveTargetSession(options.blocks, overId);
+  const target = resolveTargetSession(options.blocks, String(over.id));
   if (!target) return;
   const result = computeBlockMove(
     options.blocks,
     activeBlockId,
     target.sessionId,
     target.overBlockId,
+    target.overBlockId ? isInsertAfter(active, over) : false,
   );
   if (!result) return;
   options.setBlocks(result.blocks);
@@ -146,13 +151,14 @@ async function handleBlockDrop(
 async function handleExerciseDrop(
   options: UseBlockExerciseDndOptions,
   activeExerciseId: string,
-  overId: string,
+  active: Active,
+  over: Over,
 ) {
   const sourceBlockId = findBlockIdForExercise(
     options.blocks,
     activeExerciseId,
   );
-  const target = resolveDropTarget(options.blocks, overId);
+  const target = resolveDropTarget(options.blocks, String(over.id));
   if (!sourceBlockId || !target) return;
 
   const result = computeExerciseMove(
@@ -161,6 +167,7 @@ async function handleExerciseDrop(
     sourceBlockId,
     target.blockId,
     target.overExerciseId,
+    target.overExerciseId ? isInsertAfter(active, over) : false,
   );
   if (!result) return;
   options.setBlocks(result.blocks);
@@ -191,12 +198,13 @@ async function handleLibraryDropOnNewBlock(
 async function handleLibraryDrop(
   options: UseBlockExerciseDndOptions,
   exerciseId: string,
-  overId: string,
+  active: Active,
+  over: Over,
 ) {
   const exercise = options.exercisesById.get(exerciseId);
   if (!exercise) return;
 
-  const overParsed = parseId(overId);
+  const overParsed = parseId(String(over.id));
   if (overParsed?.type === "new-block") {
     await handleLibraryDropOnNewBlock(
       options,
@@ -207,7 +215,7 @@ async function handleLibraryDrop(
     return;
   }
 
-  const target = resolveDropTarget(options.blocks, overId);
+  const target = resolveDropTarget(options.blocks, String(over.id));
   if (!target) return;
 
   const result = await options.addExerciseToBlockAction({
@@ -227,13 +235,14 @@ async function handleLibraryDrop(
   }
 
   // Dropped onto a specific row rather than empty block space — move the
-  // newly-appended row to that index instead of leaving it at the end.
+  // newly-appended row to that row's position (before/after per pointer).
   const reordered = computeExerciseMove(
     appended,
     newRow.id,
     target.blockId,
     target.blockId,
     target.overExerciseId,
+    isInsertAfter(active, over),
   );
   if (!reordered) {
     options.setBlocks(appended);
@@ -262,11 +271,11 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
     if (!activeParsed) return;
 
     if (activeParsed.type === "block") {
-      await handleBlockDrop(options, activeParsed.value, over.id as string);
+      await handleBlockDrop(options, activeParsed.value, active, over);
     } else if (activeParsed.type === "block-exercise") {
-      await handleExerciseDrop(options, activeParsed.value, over.id as string);
+      await handleExerciseDrop(options, activeParsed.value, active, over);
     } else {
-      await handleLibraryDrop(options, activeParsed.value, over.id as string);
+      await handleLibraryDrop(options, activeParsed.value, active, over);
     }
   }
 

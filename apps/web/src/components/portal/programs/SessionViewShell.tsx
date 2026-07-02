@@ -8,6 +8,7 @@ import type {
 } from "@hooper/db";
 import { BlockExerciseMeasurementModal } from "./BlockExerciseMeasurementModal";
 import { BlockList } from "./BlockList";
+import { blockDndCollision } from "./dnd/collision";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
 import { ExerciseLibraryPanel } from "./ExerciseLibraryPanel";
 import {
@@ -33,6 +34,7 @@ export function SessionViewShell({
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <DndContext
         sensors={state.dnd.sensors}
+        collisionDetection={blockDndCollision}
         onDragStart={state.dnd.handleDragStart}
         onDragEnd={state.dnd.handleDragEnd}
         onDragCancel={state.dnd.handleDragCancel}>

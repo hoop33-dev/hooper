@@ -79,15 +79,6 @@ export type SessionModalState =
   | { type: "duplicate"; session: SessionWithBlocks }
   | null;
 
-function firstSessionOfWeek(
-  sessions: SessionWithBlocks[],
-  week: number,
-): SessionWithBlocks | undefined {
-  return sessions
-    .filter((s) => s.week_number === week)
-    .sort((a, b) => a.position - b.position)[0];
-}
-
 function useSessionModalHandlers(
   program: ProgramWithSessions,
   actions: ProgramCanvasActions,
@@ -199,17 +190,10 @@ function useCanvasBlockState(
  */
 function useSyncSessionsFromProgram(
   program: ProgramWithSessions,
-  selectedWeek: number,
   setSessions: (sessions: SessionWithBlocks[]) => void,
-  setFocusedSessionId: (fn: (prev: string | null) => string | null) => void,
 ) {
   useEffect(() => {
     setSessions(program.sessions);
-    setFocusedSessionId((prev) =>
-      prev && program.sessions.some((s) => s.id === prev)
-        ? prev
-        : (firstSessionOfWeek(program.sessions, selectedWeek)?.id ?? null),
-    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [program.sessions]);
 }
@@ -224,24 +208,13 @@ export function useProgramCanvasState(
   const [selectedWeek, setSelectedWeek] = useState(
     program.sessions[0]?.week_number ?? 1,
   );
-  const [focusedSessionId, setFocusedSessionId] = useState<string | null>(
-    firstSessionOfWeek(program.sessions, program.sessions[0]?.week_number ?? 1)
-      ?.id ?? null,
-  );
   const [sessionModal, setSessionModal] = useState<SessionModalState>(null);
 
-  useSyncSessionsFromProgram(
-    program,
-    selectedWeek,
-    setSessions,
-    setFocusedSessionId,
-  );
+  useSyncSessionsFromProgram(program, setSessions);
 
   const weekSessions = sessions
     .filter((s) => s.week_number === selectedWeek)
     .sort((a, b) => a.position - b.position);
-  const focusedSession =
-    sessions.find((s) => s.id === focusedSessionId) ?? null;
   const exercisesById = new Map(exercises.map((e) => [e.id, e]));
 
   function setWeekBlocks(blocks: BlockWithExercises[]) {
@@ -264,7 +237,6 @@ export function useProgramCanvasState(
 
   function selectWeek(week: number) {
     setSelectedWeek(week);
-    setFocusedSessionId(firstSessionOfWeek(sessions, week)?.id ?? null);
   }
 
   async function addWeek() {
@@ -291,9 +263,6 @@ export function useProgramCanvasState(
     selectWeek,
     addWeek,
     weekSessions,
-    focusedSession,
-    focusedSessionId,
-    setFocusedSessionId,
     exercisesById,
     dnd,
     blockActions,

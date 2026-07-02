@@ -62,9 +62,9 @@ function makeBlock(
 }
 
 describe("computeBlockMove", () => {
-  it("reorders two blocks within the same session and resequences positions", () => {
+  it("reorders two blocks within the same session when dropping after", () => {
     const blocks = [makeBlock("b1", 0, []), makeBlock("b2", 1, [])];
-    const result = computeBlockMove(blocks, "b1", "s1", "b2");
+    const result = computeBlockMove(blocks, "b1", "s1", "b2", true);
     expect(result).not.toBeNull();
     expect(result!.blocks.map((b) => b.id)).toEqual(["b2", "b1"]);
     expect(result!.updates).toEqual([
@@ -73,7 +73,12 @@ describe("computeBlockMove", () => {
     ]);
   });
 
-  it("returns null when active and over are the same block in the same session", () => {
+  it("returns null when dropping back into the same slot (before next block)", () => {
+    const blocks = [makeBlock("b1", 0, []), makeBlock("b2", 1, [])];
+    expect(computeBlockMove(blocks, "b1", "s1", "b2", false)).toBeNull();
+  });
+
+  it("returns null when active and over are the same block", () => {
     const blocks = [makeBlock("b1", 0, []), makeBlock("b2", 1, [])];
     expect(computeBlockMove(blocks, "b1", "s1", "b1")).toBeNull();
   });
@@ -89,7 +94,7 @@ describe("computeBlockMove", () => {
       makeBlock("b2", 1, [], "s1"),
       makeBlock("b3", 0, [], "s2"),
     ];
-    const result = computeBlockMove(blocks, "b1", "s2", "b3");
+    const result = computeBlockMove(blocks, "b1", "s2", "b3", false);
     expect(result).not.toBeNull();
 
     const s1Blocks = result!.blocks.filter((b) => b.session_id === "s1");
@@ -127,6 +132,16 @@ describe("computeExerciseMove", () => {
       { id: "e2", block_id: "b1", position: 0 },
       { id: "e1", block_id: "b1", position: 1 },
       { id: "e3", block_id: "b1", position: 2 },
+    ]);
+  });
+
+  it("inserts after the over exercise when insertAfter is set", () => {
+    const blocks = [makeBlock("b1", 0, ["e1", "e2", "e3"])];
+    const result = computeExerciseMove(blocks, "e1", "b1", "b1", "e2", true);
+    expect(result!.blocks[0].exercises.map((e) => e.id)).toEqual([
+      "e2",
+      "e1",
+      "e3",
     ]);
   });
 

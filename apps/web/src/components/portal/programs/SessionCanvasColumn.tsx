@@ -11,8 +11,6 @@ import { sessionDropId } from "./dnd/useBlockExerciseDnd";
 interface SessionCanvasColumnProps {
   programId: string;
   session: SessionWithBlocks;
-  isFocused: boolean;
-  onFocus: () => void;
   onRename: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -28,31 +26,16 @@ function stop(e: React.MouseEvent) {
 }
 
 function ColumnHeaderActions({
-  isFocused,
-  onFocus,
   onRename,
   onDuplicate,
   onDelete,
 }: {
-  isFocused: boolean;
-  onFocus: () => void;
   onRename: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
   return (
     <div className="flex flex-shrink-0 items-center gap-1.5">
-      {!isFocused && (
-        <button
-          type="button"
-          onClick={(e) => {
-            stop(e);
-            onFocus();
-          }}
-          className="text-portal-orange text-[10px] font-semibold">
-          Edit here
-        </button>
-      )}
       <button
         type="button"
         onClick={(e) => {
@@ -90,24 +73,15 @@ function ColumnHeaderActions({
 function ColumnHeader({
   programId,
   session,
-  isFocused,
-  onFocus,
   onRename,
   onDuplicate,
   onDelete,
 }: Pick<
   SessionCanvasColumnProps,
-  | "programId"
-  | "session"
-  | "isFocused"
-  | "onFocus"
-  | "onRename"
-  | "onDuplicate"
-  | "onDelete"
+  "programId" | "session" | "onRename" | "onDuplicate" | "onDelete"
 >) {
   return (
-    <div
-      className={`rounded-lg border p-2.5 ${isFocused ? "border-portal-orange" : "border-portal-border"} bg-portal-card`}>
+    <div className="border-portal-border bg-portal-card rounded-lg border p-2.5">
       <div className="flex items-start justify-between gap-1.5">
         <Link
           href={`/programs/${programId}/sessions/${session.id}`}
@@ -125,8 +99,6 @@ function ColumnHeader({
           </div>
         </Link>
         <ColumnHeaderActions
-          isFocused={isFocused}
-          onFocus={onFocus}
           onRename={onRename}
           onDuplicate={onDuplicate}
           onDelete={onDelete}
@@ -139,7 +111,6 @@ function ColumnHeader({
 export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
   const {
     session,
-    isFocused,
     onAddBlock,
     onOpenExercise,
     onRemoveExercise,
@@ -165,7 +136,6 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
           <BlockCard
             key={block.id}
             block={block}
-            readOnly={!isFocused}
             dense
             onOpenExercise={onOpenExercise}
             onRemoveExercise={(exerciseRowId) =>

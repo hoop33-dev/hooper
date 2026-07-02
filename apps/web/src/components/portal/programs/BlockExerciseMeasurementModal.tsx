@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/src/lib/cn";
 import {
   formatMeasurementSummary,
   measurementInputMode,
@@ -7,9 +8,56 @@ import {
   type MeasurementInputMode,
 } from "@/src/lib/measurementFormat";
 import type { BlockExerciseWithDetails } from "@hooper/db";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalTextarea } from "../ui/PortalInput";
+
+/**
+ * Number entry that allows the field to be blank while typing and coerces to
+ * `min` on blur, with the native up/down spinner arrows hidden.
+ */
+function StepperInput({
+  value,
+  min,
+  onChange,
+  className,
+}: {
+  value: number;
+  min: number;
+  onChange: (v: number) => void;
+  className: string;
+}) {
+  const [text, setText] = useState(String(value));
+  // Keep the field in sync when value changes elsewhere (e.g. +/- buttons).
+  useEffect(() => setText(String(value)), [value]);
+
+  return (
+    <input
+      type="number"
+      inputMode="decimal"
+      min={min}
+      value={text}
+      onChange={(e) => {
+        const next = e.target.value;
+        setText(next);
+        if (next === "") return; // allow transient blank while typing
+        const parsed = Number(next);
+        if (!Number.isNaN(parsed)) onChange(parsed);
+      }}
+      onBlur={() => {
+        const parsed = Number(text);
+        const resolved =
+          text === "" || Number.isNaN(parsed) ? min : Math.max(min, parsed);
+        onChange(resolved);
+        setText(String(resolved));
+      }}
+      className={cn(
+        "[appearance:textfield] outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+        className,
+      )}
+    />
+  );
+}
 
 export type BlockExerciseUpdateData = {
   unit_type: string;
@@ -88,15 +136,11 @@ function SetsField({
           className="border-portal-border bg-portal-bg text-portal-text2 h-7 w-7 flex-shrink-0 rounded-lg border">
           −
         </button>
-        <input
-          type="number"
-          min={1}
+        <StepperInput
           value={value}
-          onChange={(e) => {
-            const v = e.target.valueAsNumber;
-            if (!Number.isNaN(v)) onChange(Math.max(1, v));
-          }}
-          className="font-title text-portal-text1 w-full flex-1 rounded-lg text-center text-lg font-black outline-none"
+          min={1}
+          onChange={onChange}
+          className="font-title text-portal-text1 w-full flex-1 rounded-lg text-center text-lg font-black"
         />
         <button
           type="button"
@@ -137,15 +181,11 @@ function NumberField({
           −
         </button>
         <div className="border-portal-border bg-portal-card flex flex-1 items-center justify-center gap-1 rounded-lg border py-1">
-          <input
-            type="number"
-            min={0}
+          <StepperInput
             value={value}
-            onChange={(e) => {
-              const v = e.target.valueAsNumber;
-              if (!Number.isNaN(v)) onChange(Math.max(0, v));
-            }}
-            className="font-title text-portal-orange w-full min-w-0 text-center text-base font-black outline-none"
+            min={0}
+            onChange={onChange}
+            className="font-title text-portal-orange w-full min-w-0 text-center text-base font-black"
           />
           {suffix && (
             <span className="text-portal-text3 flex-shrink-0 text-[11px]">
@@ -347,9 +387,9 @@ export function BlockExerciseMeasurementModal({
     setSaving(true);
     await onSave({
       unit_type: unitType,
-      sets,
-      reps: mode === "duration" ? undefined : reps,
-      value: mode === "reps-only" ? undefined : value,
+      sets: Math.max(1, sets),
+      reps: mode === "duration" ? undefined : Math.max(0, reps),
+      value: mode === "reps-only" ? undefined : Math.max(0, value),
       notes: notes.trim() || undefined,
     });
     setSaving(false);

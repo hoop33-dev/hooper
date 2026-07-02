@@ -7,20 +7,21 @@ import {
 } from "@/src/lib/measurementFormat";
 import type { Active, Over } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import type { BlockExerciseWithDetails } from "@hooper/db";
 import { isInsertAfter } from "./insertPosition";
 
-/** Only an exercise drag (not a block drag) shows this row's insertion line. */
+/** A row shows an insertion line for exercise reorders and library drops
+ * (not block drags, which reorder whole blocks). */
 function computeRowDropIndicator(
   rowId: string,
   active: Active | null,
   over: Over | null,
 ) {
-  const isExerciseDrag =
-    typeof active?.id === "string" && active.id.startsWith("block-exercise:");
+  const activeId = typeof active?.id === "string" ? active.id : "";
+  const isExerciseLike =
+    activeId.startsWith("block-exercise:") || activeId.startsWith("library:");
   const isDropTarget =
-    isExerciseDrag && over?.id === rowId && active?.id !== rowId;
+    isExerciseLike && over?.id === rowId && activeId !== rowId;
   return { isDropTarget, after: isDropTarget && isInsertAfter(active, over) };
 }
 
@@ -140,48 +141,38 @@ export function SortableBlockExerciseRow({
   onRemove,
 }: SortableBlockExerciseRowProps) {
   const rowId = `block-exercise:${blockExercise.id}`;
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-    over,
-    active,
-  } = useSortable({ id: rowId });
+  const { attributes, listeners, setNodeRef, isDragging, over, active } =
+    useSortable({ id: rowId });
   // Dragging never depends on readOnly — a coach can always move exercises
   // around, even in a non-focused session on the canvas. readOnly only
   // gates editing (opening the modal, removing a row).
   const { isDropTarget, after } = computeRowDropIndicator(rowId, active, over);
 
+  // No CSS transform is applied: items stay put while dragging so only the
+  // insertion line moves (per design), and static rects keep the line stable.
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "border-portal-border relative flex items-center gap-2 border-b last:border-b-0",
+        "border-portal-border relative flex touch-none items-center gap-2 border-b select-none last:border-b-0",
         dense ? "px-3 py-2" : "px-3.5 py-2.5",
         isDragging && "opacity-30",
-        !readOnly && "hover:bg-portal-bg cursor-pointer",
+        !readOnly && "hover:bg-portal-bg cursor-grab active:cursor-grabbing",
       )}
-      onClick={readOnly ? undefined : onOpen}>
+      onClick={readOnly ? undefined : onOpen}
+      {...attributes}
+      {...listeners}>
       {isDropTarget && (
         <div
           className={cn(
-            "bg-portal-orange absolute inset-x-0 h-0.5",
-            after ? "bottom-0" : "top-0",
+            "bg-portal-orange pointer-events-none absolute inset-x-0 z-10 h-0.5",
+            after ? "-bottom-px" : "-top-px",
           )}
         />
       )}
-      <button
-        type="button"
-        className="text-portal-text3 flex-shrink-0 cursor-grab touch-none active:cursor-grabbing"
-        onClick={(e) => e.stopPropagation()}
-        {...attributes}
-        {...listeners}>
+      <span className="text-portal-text3 flex-shrink-0">
         <GripIcon />
-      </button>
+      </span>
       <RowBody blockExercise={blockExercise} dense={dense} />
       {!readOnly && onRemove && (
         <button
@@ -190,6 +181,7 @@ export function SortableBlockExerciseRow({
             e.stopPropagation();
             onRemove();
           }}
+          onPointerDown={(e) => e.stopPropagation()}
           className="text-portal-text3 hover:text-portal-text1 flex-shrink-0">
           <XIcon />
         </button>

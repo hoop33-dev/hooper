@@ -6,6 +6,7 @@ import type {
   ExerciseWithDetails,
   ProgramWithSessions,
 } from "@hooper/db";
+import { blockDndCollision } from "./dnd/collision";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
 import { ExerciseLibraryShelf } from "./ExerciseLibraryShelf";
 import { SessionCanvasRow } from "./SessionCanvasRow";
@@ -34,6 +35,7 @@ export function ProgramCanvasShell({
     <div className="flex h-full flex-col overflow-hidden">
       <DndContext
         sensors={state.dnd.sensors}
+        collisionDetection={blockDndCollision}
         onDragStart={state.dnd.handleDragStart}
         onDragEnd={state.dnd.handleDragEnd}
         onDragCancel={state.dnd.handleDragCancel}>
@@ -46,8 +48,6 @@ export function ProgramCanvasShell({
         <SessionCanvasRow
           programId={program.id}
           sessions={state.weekSessions}
-          focusedSessionId={state.focusedSessionId}
-          onFocus={state.setFocusedSessionId}
           onRenameSession={(session) =>
             state.setSessionModal({ type: "rename", session })
           }

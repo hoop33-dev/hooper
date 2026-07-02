@@ -1,5 +1,6 @@
 "use client";
 
+import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -14,6 +15,7 @@ import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
 import { BlockCard } from "./BlockCard";
 import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
+import { sessionDropId } from "./dnd/useBlockExerciseDnd";
 
 interface BlockListProps {
   sessionId: string;
@@ -104,8 +106,13 @@ export function BlockList({
   onAddBlock,
   onAddExerciseToBlock,
 }: BlockListProps) {
+  // Session-level drop target so a whole block can be dragged to the end of
+  // the list (below the last block) even though there's no row to hover.
+  const { setNodeRef } = useDroppable({ id: sessionDropId(sessionId) });
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
+    <div
+      ref={setNodeRef}
+      className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
       <SortableContext
         items={blocks.map((b) => `block:${b.id}`)}
         strategy={verticalListSortingStrategy}>

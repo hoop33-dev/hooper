@@ -7,7 +7,6 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import type {
   BlockExerciseWithDetails,
   BlockWithExercises,
@@ -18,27 +17,40 @@ import { AddExercisePopover } from "./AddExercisePopover";
 import { SortableBlockExerciseRow } from "./dnd/SortableBlockExerciseRow";
 import { isInsertAfter } from "./dnd/insertPosition";
 
-/** Dragging a whole block is always allowed (including across sessions on
- * the canvas) — readOnly only gates rename/delete/add-exercise actions. */
+type BlockDropIndicator = {
+  lineEdge: "top" | "bottom" | null;
+  emptyHighlight: boolean;
+};
+
+/**
+ * A block card shows either a block-reorder line (block drag hovering this
+ * card), an append line at its bottom (an exercise/library item dropped onto
+ * the block body rather than a specific row), or a fill highlight (something
+ * dropped onto an empty block, which has no row to anchor a line to).
+ */
 function computeBlockDropIndicator(
   blockDomId: string,
   hasExercises: boolean,
   active: Active | null,
   over: Over | null,
-) {
-  const isBlockDrag =
-    typeof active?.id === "string" && active.id.startsWith("block:");
-  const isDropTarget =
-    isBlockDrag && over?.id === blockDomId && active?.id !== blockDomId;
-  // Rows handle their own insertion line; an empty block has no row to
-  // anchor one to, so give it a plain highlight instead when an exercise
-  // is dragged over it (never for block drags — those get the line above).
-  const isEmptyExerciseDropTarget =
-    !isBlockDrag && active != null && over?.id === blockDomId && !hasExercises;
+): BlockDropIndicator {
+  const activeId = typeof active?.id === "string" ? active.id : "";
+  const isOverThis = over?.id === blockDomId;
+  if (!activeId || !isOverThis)
+    return { lineEdge: null, emptyHighlight: false };
+
+  if (activeId.startsWith("block:")) {
+    if (activeId === blockDomId)
+      return { lineEdge: null, emptyHighlight: false };
+    return {
+      lineEdge: isInsertAfter(active, over) ? "bottom" : "top",
+      emptyHighlight: false,
+    };
+  }
+  // Exercise or library item dropped onto the block itself (not a row).
   return {
-    isDropTarget,
-    after: isDropTarget && isInsertAfter(active, over),
-    isEmptyExerciseDropTarget,
+    lineEdge: hasExercises ? "bottom" : null,
+    emptyHighlight: !hasExercises,
   };
 }
 
@@ -100,6 +112,7 @@ function BlockNameField({
         onBlur={commit}
         onKeyDown={(e) => e.key === "Enter" && commit()}
         onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
         className="border-portal-orange bg-portal-card text-portal-text1 min-w-0 flex-1 rounded border px-1.5 py-0.5 text-[13px] font-bold outline-none"
       />
     );
@@ -141,14 +154,15 @@ function BlockCardHeader({
   onDelete,
   addExercise,
 }: BlockCardHeaderProps) {
+  // The whole header is the block's grab area (a click on the name still
+  // renames — the pointer sensor only starts a drag past an 8px threshold).
   return (
-    <div className="border-portal-border bg-portal-bg flex items-center gap-2 border-b px-3 py-2">
-      <button
-        type="button"
-        className="text-portal-text3 flex-shrink-0 cursor-grab touch-none"
-        {...dragHandleProps}>
+    <div
+      className="border-portal-border bg-portal-bg flex touch-none items-center gap-2 border-b px-3 py-2"
+      {...dragHandleProps}>
+      <span className="text-portal-text3 flex-shrink-0 cursor-grab active:cursor-grabbing">
         <GripIcon />
-      </button>
+      </span>
       <BlockNameField
         name={block.name}
         color={block.color}
@@ -156,15 +170,18 @@ function BlockCardHeader({
         onRename={onRename}
       />
       {!readOnly && addExercise && (
-        <AddExercisePopover
-          exercises={addExercise.exercises}
-          onAdd={addExercise.onAdd}
-        />
+        <div onPointerDown={(e) => e.stopPropagation()}>
+          <AddExercisePopover
+            exercises={addExercise.exercises}
+            onAdd={addExercise.onAdd}
+          />
+        </div>
       )}
       {!readOnly && (
         <button
           type="button"
           onClick={onDelete}
+          onPointerDown={(e) => e.stopPropagation()}
           className="text-portal-text3 flex-shrink-0 hover:text-red-500">
           <XIcon />
         </button>
@@ -236,38 +253,30 @@ export function BlockCard({
   onDelete,
 }: BlockCardProps) {
   const blockDomId = `block:${block.id}`;
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
+  const { attributes, listeners, setNodeRef, isDragging, active, over } =
+    useSortable({ id: blockDomId });
+  const { lineEdge, emptyHighlight } = computeBlockDropIndicator(
+    blockDomId,
+    block.exercises.length > 0,
     active,
     over,
-  } = useSortable({ id: blockDomId });
-  const { isDropTarget, after, isEmptyExerciseDropTarget } =
-    computeBlockDropIndicator(
-      blockDomId,
-      block.exercises.length > 0,
-      active,
-      over,
-    );
+  );
 
+  // No CSS transform is applied: blocks stay put while dragging so only the
+  // insertion line moves, keeping drop targets stable.
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
         "bg-portal-card border-portal-border relative overflow-hidden rounded-xl border",
-        isEmptyExerciseDropTarget && "bg-portal-orange-soft",
+        emptyHighlight && "bg-portal-orange-soft",
         isDragging && "opacity-40",
       )}>
-      {isDropTarget && (
+      {lineEdge && (
         <div
           className={cn(
-            "bg-portal-orange absolute inset-x-0 z-10 h-0.5",
-            after ? "bottom-0" : "top-0",
+            "bg-portal-orange pointer-events-none absolute inset-x-0 z-10 h-0.5",
+            lineEdge === "bottom" ? "bottom-0" : "top-0",
           )}
         />
       )}

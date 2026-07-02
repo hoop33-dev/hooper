@@ -6,8 +6,6 @@ import { SessionCanvasColumn } from "./SessionCanvasColumn";
 interface SessionCanvasRowProps {
   programId: string;
   sessions: SessionWithBlocks[];
-  focusedSessionId: string | null;
-  onFocus: (id: string) => void;
   onRenameSession: (session: SessionWithBlocks) => void;
   onDuplicateSession: (session: SessionWithBlocks) => void;
   onDeleteSession: (id: string) => void;
@@ -22,8 +20,6 @@ interface SessionCanvasRowProps {
 export function SessionCanvasRow({
   programId,
   sessions,
-  focusedSessionId,
-  onFocus,
   onRenameSession,
   onDuplicateSession,
   onDeleteSession,
@@ -41,8 +37,6 @@ export function SessionCanvasRow({
           key={session.id}
           programId={programId}
           session={session}
-          isFocused={session.id === focusedSessionId}
-          onFocus={() => onFocus(session.id)}
           onRename={() => onRenameSession(session)}
           onDuplicate={() => onDuplicateSession(session)}
           onDelete={() => onDeleteSession(session.id)}

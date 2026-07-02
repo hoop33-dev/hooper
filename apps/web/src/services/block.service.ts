@@ -131,16 +131,18 @@ export async function reorderBlocks(
 ): Promise<Result<void>> {
   try {
     const supabase = await createClient();
-    const { error } = await supabase.from("blocks").upsert(
-      updates.map(({ id, session_id, position }) => ({
-        id,
-        session_id,
-        position,
-      })) as unknown as BlockRow[],
-      { onConflict: "id" },
+    // Per-row UPDATEs, not upsert: upsert runs an INSERT ... ON CONFLICT,
+    // which still validates NOT NULL columns (blocks.name) against the
+    // insert payload even for rows that already exist — so a positions-only
+    // upsert fails with "null value in column name". UPDATE only touches
+    // the columns we pass.
+    const results = await Promise.all(
+      updates.map(({ id, session_id, position }) =>
+        supabase.from("blocks").update({ session_id, position }).eq("id", id),
+      ),
     );
-
-    if (error) return err(error.message);
+    const failed = results.find((r) => r.error);
+    if (failed?.error) return err(failed.error.message);
     return ok(undefined);
   } catch (e) {
     return err(toErrorMessage(e));
@@ -228,16 +230,18 @@ export async function reorderBlockExercises(
 ): Promise<Result<void>> {
   try {
     const supabase = await createClient();
-    const { error } = await supabase.from("block_exercises").upsert(
-      updates.map(({ id, block_id, position }) => ({
-        id,
-        block_id,
-        position,
-      })) as unknown as BlockExerciseRow[],
-      { onConflict: "id" },
+    // Per-row UPDATEs (see reorderBlocks): an upsert would fail the NOT NULL
+    // checks on exercise_id / unit_type for the implicit insert path.
+    const results = await Promise.all(
+      updates.map(({ id, block_id, position }) =>
+        supabase
+          .from("block_exercises")
+          .update({ block_id, position })
+          .eq("id", id),
+      ),
     );
-
-    if (error) return err(error.message);
+    const failed = results.find((r) => r.error);
+    if (failed?.error) return err(failed.error.message);
     return ok(undefined);
   } catch (e) {
     return err(toErrorMessage(e));

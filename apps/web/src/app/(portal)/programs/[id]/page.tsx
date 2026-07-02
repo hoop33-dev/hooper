@@ -3,6 +3,7 @@ import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
 import { getProgramById } from "@/src/services/program.service";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { updateProgramAction } from "../actions";
 import {
@@ -42,6 +43,13 @@ export default async function ProgramCanvasPage({
       <PageHeader
         title={programResult.data.name}
         subtitle={`${programResult.data.weeks} weeks · ${programResult.data.sessions_per_week} sessions/week`}
+        action={
+          <Link
+            href="/programs"
+            className="text-portal-text2 text-xs font-semibold hover:underline">
+            ← Back to programs
+          </Link>
+        }
       />
       <ProgramCanvasShell
         program={programResult.data}

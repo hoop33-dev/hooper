@@ -37,7 +37,7 @@ export default async function SessionViewPage({
     <div className="flex h-full flex-col overflow-hidden">
       <PageHeader
         title={sessionResult.data.name}
-        subtitle={`Week ${sessionResult.data.week_number}`}
+        subtitle={`Week ${sessionResult.data.week_number} · Session ${sessionResult.data.position + 1}`}
         action={
           <Link
             href={`/programs/${id}`}

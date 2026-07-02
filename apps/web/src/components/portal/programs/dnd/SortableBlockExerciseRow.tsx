@@ -1,7 +1,10 @@
 "use client";
 
 import { cn } from "@/src/lib/cn";
-import { formatMeasurementSummary } from "@/src/lib/measurementFormat";
+import {
+  formatMeasurementCompact,
+  measurementStatColumns,
+} from "@/src/lib/measurementFormat";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { BlockExerciseWithDetails } from "@hooper/db";
@@ -34,9 +37,82 @@ function XIcon() {
   );
 }
 
+function ExerciseIcon() {
+  return (
+    <div className="bg-portal-bg border-portal-border text-portal-text3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border">
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round">
+        <path d="M4 8v8M8 6v12M16 6v12M20 8v8M8 12h8" />
+      </svg>
+    </div>
+  );
+}
+
+function StatColumn({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex w-11 flex-shrink-0 flex-col items-center">
+      <span className="text-portal-text1 text-sm font-extrabold">{value}</span>
+      <span className="text-portal-text3 text-[9px] font-semibold tracking-wide">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function RowBody({
+  blockExercise,
+  dense,
+}: {
+  blockExercise: BlockExerciseWithDetails;
+  dense?: boolean;
+}) {
+  if (dense) {
+    return (
+      <>
+        <div className="min-w-0 flex-1">
+          <div className="text-portal-text1 truncate text-[12px] font-semibold">
+            {blockExercise.exercise.name}
+          </div>
+        </div>
+        <div className="text-portal-text3 flex-shrink-0 text-[11px]">
+          {formatMeasurementCompact(blockExercise)}
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <ExerciseIcon />
+      <div className="min-w-0 flex-1">
+        <div className="text-portal-text1 truncate text-[13px] font-bold">
+          {blockExercise.exercise.name}
+        </div>
+        {blockExercise.notes && (
+          <div className="text-portal-text3 mt-0.5 truncate text-[11px]">
+            {blockExercise.notes}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-shrink-0 items-center gap-3">
+        {measurementStatColumns(blockExercise).map((col) => (
+          <StatColumn key={col.label} label={col.label} value={col.value} />
+        ))}
+      </div>
+    </>
+  );
+}
+
 interface SortableBlockExerciseRowProps {
   blockExercise: BlockExerciseWithDetails;
   readOnly?: boolean;
+  dense?: boolean;
   onOpen?: () => void;
   onRemove?: () => void;
 }
@@ -44,6 +120,7 @@ interface SortableBlockExerciseRowProps {
 export function SortableBlockExerciseRow({
   blockExercise,
   readOnly,
+  dense,
   onOpen,
   onRemove,
 }: SortableBlockExerciseRowProps) {
@@ -68,7 +145,8 @@ export function SortableBlockExerciseRow({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "border-portal-border flex items-center gap-2 border-t-2 border-b px-3 py-2 last:border-b-0",
+        "border-portal-border flex items-center gap-2 border-t-2 border-b last:border-b-0",
+        dense ? "px-3 py-2" : "px-3.5 py-2.5",
         isDropTarget ? "border-t-portal-orange" : "border-t-transparent",
         isDragging && "opacity-30",
         !readOnly && "hover:bg-portal-bg cursor-pointer",
@@ -84,14 +162,7 @@ export function SortableBlockExerciseRow({
           <GripIcon />
         </button>
       )}
-      <div className="min-w-0 flex-1">
-        <div className="text-portal-text1 truncate text-[12px] font-semibold">
-          {blockExercise.exercise.name}
-        </div>
-      </div>
-      <div className="text-portal-text3 flex-shrink-0 text-[11px]">
-        {formatMeasurementSummary(blockExercise)}
-      </div>
+      <RowBody blockExercise={blockExercise} dense={dense} />
       {!readOnly && onRemove && (
         <button
           type="button"

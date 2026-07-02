@@ -8,8 +8,13 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { BlockExerciseWithDetails, BlockWithExercises } from "@hooper/db";
+import type {
+  BlockExerciseWithDetails,
+  BlockWithExercises,
+  ExerciseWithDetails,
+} from "@hooper/db";
 import { useState } from "react";
+import { AddExercisePopover } from "./AddExercisePopover";
 import { SortableBlockExerciseRow } from "./dnd/SortableBlockExerciseRow";
 
 function GripIcon() {
@@ -95,6 +100,10 @@ interface BlockCardHeaderProps {
   dragHandleProps?: Record<string, unknown>;
   onRename: (name: string) => void;
   onDelete: () => void;
+  addExercise?: {
+    exercises: ExerciseWithDetails[];
+    onAdd: (id: string) => void;
+  };
 }
 
 function BlockCardHeader({
@@ -104,6 +113,7 @@ function BlockCardHeader({
   dragHandleProps,
   onRename,
   onDelete,
+  addExercise,
 }: BlockCardHeaderProps) {
   return (
     <div className="border-portal-border bg-portal-bg flex items-center gap-2 border-b px-3 py-2">
@@ -120,6 +130,12 @@ function BlockCardHeader({
         readOnly={readOnly}
         onRename={onRename}
       />
+      {!readOnly && addExercise && (
+        <AddExercisePopover
+          exercises={addExercise.exercises}
+          onAdd={addExercise.onAdd}
+        />
+      )}
       {!readOnly && (
         <button
           type="button"
@@ -136,6 +152,9 @@ interface BlockCardProps {
   block: BlockWithExercises;
   readOnly?: boolean;
   sortableBlock?: boolean;
+  dense?: boolean;
+  exercises?: ExerciseWithDetails[];
+  onAddExercise?: (exerciseId: string) => void;
   onOpenExercise: (blockExercise: BlockExerciseWithDetails) => void;
   onRemoveExercise: (id: string) => void;
   onRename: (name: string) => void;
@@ -146,6 +165,9 @@ export function BlockCard({
   block,
   readOnly,
   sortableBlock,
+  dense,
+  exercises,
+  onAddExercise,
   onOpenExercise,
   onRemoveExercise,
   onRename,
@@ -185,6 +207,11 @@ export function BlockCard({
         dragHandleProps={{ ...sortable.attributes, ...sortable.listeners }}
         onRename={onRename}
         onDelete={onDelete}
+        addExercise={
+          !dense && exercises && onAddExercise
+            ? { exercises, onAdd: onAddExercise }
+            : undefined
+        }
       />
       <SortableContext
         items={block.exercises.map((e) => `block-exercise:${e.id}`)}
@@ -199,6 +226,7 @@ export function BlockCard({
               key={be.id}
               blockExercise={be}
               readOnly={readOnly}
+              dense={dense}
               onOpen={() => onOpenExercise(be)}
               onRemove={() => onRemoveExercise(be.id)}
             />

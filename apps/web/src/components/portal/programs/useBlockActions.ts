@@ -5,6 +5,7 @@ import type {
   BlockExerciseWithDetails,
   BlockRow,
   BlockWithExercises,
+  ExerciseWithDetails,
 } from "@hooper/db";
 import { useState } from "react";
 import type { BlockExerciseUpdateData } from "./BlockExerciseMeasurementModal";
@@ -31,6 +32,12 @@ export interface UseBlockActionsOptions {
     data: BlockExerciseUpdateData,
   ) => Promise<ActionResult<BlockExerciseRow>>;
   removeExerciseFromBlockAction: (id: string) => Promise<ActionResult>;
+  /** Only needed to power the block header's "+ Add" exercise picker. */
+  addExerciseToBlockAction?: (input: {
+    block_id: string;
+    exercise_id: string;
+  }) => Promise<ActionResult<BlockExerciseRow>>;
+  exercisesById?: Map<string, ExerciseWithDetails>;
 }
 
 export function useBlockActions(options: UseBlockActionsOptions) {
@@ -42,6 +49,8 @@ export function useBlockActions(options: UseBlockActionsOptions) {
     deleteBlockAction,
     updateBlockExerciseAction,
     removeExerciseFromBlockAction,
+    addExerciseToBlockAction,
+    exercisesById,
   } = options;
   const [editingExercise, setEditingExercise] =
     useState<BlockExerciseWithDetails | null>(null);
@@ -80,6 +89,22 @@ export function useBlockActions(options: UseBlockActionsOptions) {
     if (result.ok) setBlocks(removeExercise(blocks, exerciseRowId));
   }
 
+  async function addExerciseToBlock(blockId: string, exerciseId: string) {
+    const exercise = exercisesById?.get(exerciseId);
+    if (!addExerciseToBlockAction || !exercise) return;
+    const result = await addExerciseToBlockAction({
+      block_id: blockId,
+      exercise_id: exerciseId,
+    });
+    if (!result.ok || !result.data) return;
+    const newRow = { ...result.data, exercise };
+    setBlocks(
+      blocks.map((b) =>
+        b.id === blockId ? { ...b, exercises: [...b.exercises, newRow] } : b,
+      ),
+    );
+  }
+
   return {
     editingExercise,
     openExerciseEditor: setEditingExercise,
@@ -89,5 +114,6 @@ export function useBlockActions(options: UseBlockActionsOptions) {
     deleteBlockById,
     saveExerciseMeasurement,
     removeExerciseById,
+    addExerciseToBlock,
   };
 }

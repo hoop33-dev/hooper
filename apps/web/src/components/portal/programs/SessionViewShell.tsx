@@ -39,11 +39,13 @@ export function SessionViewShell({
         <ExerciseLibraryPanel exercises={exercises} categories={categories} />
         <BlockList
           blocks={state.blocks}
+          exercises={exercises}
           onOpenExercise={state.blockActions.openExerciseEditor}
           onRemoveExercise={state.blockActions.removeExerciseById}
           onRenameBlock={state.blockActions.renameBlock}
           onDeleteBlock={state.blockActions.deleteBlockById}
           onAddBlock={state.blockActions.addBlock}
+          onAddExerciseToBlock={state.blockActions.addExerciseToBlock}
         />
         <DragOverlay>
           <DragPreviewOverlay

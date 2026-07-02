@@ -110,6 +110,9 @@ function ColumnHeader({
           href={`/programs/${programId}/sessions/${session.id}`}
           onClick={stop}
           className="min-w-0 flex-1">
+          <div className="text-portal-text3 text-[10px] font-bold tracking-wide uppercase">
+            Session {session.position + 1}
+          </div>
           <div className="text-portal-text1 truncate text-[13px] font-bold hover:underline">
             {session.name}
           </div>
@@ -149,6 +152,7 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
           key={block.id}
           block={block}
           readOnly={!isFocused}
+          dense
           onOpenExercise={onOpenExercise}
           onRemoveExercise={(exerciseRowId) =>
             onRemoveExercise(block.id, exerciseRowId)

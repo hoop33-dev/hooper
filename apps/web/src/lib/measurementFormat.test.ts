@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatMeasurementCompact,
   formatMeasurementSummary,
   measurementInputMode,
+  measurementStatColumns,
   weightUnitLabel,
 } from "./measurementFormat";
 
@@ -90,5 +92,75 @@ describe("formatMeasurementSummary", () => {
         value: null,
       }),
     ).toBe("3 sets");
+  });
+});
+
+describe("formatMeasurementCompact", () => {
+  it("formats reps-based exercises as sets×reps, load omitted", () => {
+    expect(
+      formatMeasurementCompact({
+        sets: 4,
+        unit_type: "Reps × Weight (kg)",
+        reps: 8,
+        value: 60,
+      }),
+    ).toBe("4×8");
+  });
+
+  it("formats duration-based exercises as sets×duration", () => {
+    expect(
+      formatMeasurementCompact({
+        sets: 3,
+        unit_type: "Time",
+        reps: null,
+        value: 20,
+      }),
+    ).toBe("3×20s");
+  });
+});
+
+describe("measurementStatColumns", () => {
+  it("returns SETS/REPS/LOAD for weighted exercises", () => {
+    expect(
+      measurementStatColumns({
+        sets: 4,
+        unit_type: "Reps × Weight (kg)",
+        reps: 8,
+        value: 32,
+      }),
+    ).toEqual([
+      { label: "SETS", value: "4" },
+      { label: "REPS", value: "8" },
+      { label: "LOAD", value: "32 kg" },
+    ]);
+  });
+
+  it("shows BW as load for bodyweight exercises", () => {
+    expect(
+      measurementStatColumns({
+        sets: 2,
+        unit_type: "Bodyweight",
+        reps: 15,
+        value: null,
+      }),
+    ).toEqual([
+      { label: "SETS", value: "2" },
+      { label: "REPS", value: "15" },
+      { label: "LOAD", value: "BW" },
+    ]);
+  });
+
+  it("returns SETS/DURATION for time-based exercises", () => {
+    expect(
+      measurementStatColumns({
+        sets: 3,
+        unit_type: "Time",
+        reps: null,
+        value: 45,
+      }),
+    ).toEqual([
+      { label: "SETS", value: "3" },
+      { label: "DURATION", value: "45s" },
+    ]);
   });
 });

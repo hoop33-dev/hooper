@@ -52,3 +52,55 @@ export function formatMeasurementSummary(m: MeasurementFields): string {
   }
   return base;
 }
+
+/**
+ * Dense one-line summary for the program canvas's compact rows, e.g.
+ * "4×8", "2×15", "3×20s" — sets × reps/duration, load omitted.
+ */
+export function formatMeasurementCompact(m: MeasurementFields): string {
+  const mode = measurementInputMode(m.unit_type);
+  if (mode === "duration") {
+    const unit = m.unit_type === "Time" ? "s" : "m";
+    return `${m.sets}×${m.value != null ? `${m.value}${unit}` : "—"}`;
+  }
+  return `${m.sets}×${m.reps != null ? m.reps : "—"}`;
+}
+
+export type MeasurementStatColumn = { label: string; value: string };
+
+/**
+ * The session editor's per-row stat columns (SETS / REPS / LOAD, or
+ * SETS / DURATION for time- and distance-based exercises).
+ */
+export function measurementStatColumns(
+  m: MeasurementFields,
+): MeasurementStatColumn[] {
+  const mode = measurementInputMode(m.unit_type);
+  const sets = { label: "SETS", value: `${m.sets}` };
+
+  if (mode === "duration") {
+    const unit = m.unit_type === "Time" ? "s" : "m";
+    const duration = {
+      label: "DURATION",
+      value: m.value != null ? `${m.value}${unit}` : "—",
+    };
+    return [sets, duration];
+  }
+
+  const reps = { label: "REPS", value: m.reps != null ? `${m.reps}` : "—" };
+  if (mode === "reps-weight" && m.value != null) {
+    return [
+      sets,
+      reps,
+      { label: "LOAD", value: `${m.value} ${weightUnitLabel(m.unit_type)}` },
+    ];
+  }
+  if (mode === "reps-percent" && m.value != null) {
+    return [sets, reps, { label: "LOAD", value: `${m.value}%` }];
+  }
+  return [
+    sets,
+    reps,
+    { label: "LOAD", value: m.unit_type === "Bodyweight" ? "BW" : "—" },
+  ];
+}

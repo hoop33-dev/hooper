@@ -4,7 +4,11 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import type { BlockExerciseWithDetails, BlockWithExercises } from "@hooper/db";
+import type {
+  BlockExerciseWithDetails,
+  BlockWithExercises,
+  ExerciseWithDetails,
+} from "@hooper/db";
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
@@ -13,11 +17,13 @@ import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
 
 interface BlockListProps {
   blocks: BlockWithExercises[];
+  exercises: ExerciseWithDetails[];
   onOpenExercise: (be: BlockExerciseWithDetails) => void;
   onRemoveExercise: (exerciseRowId: string) => void;
   onRenameBlock: (blockId: string, name: string) => void;
   onDeleteBlock: (blockId: string) => void;
   onAddBlock: (name: string) => Promise<void>;
+  onAddExerciseToBlock: (blockId: string, exerciseId: string) => void;
 }
 
 function AddBlockForm({ onAdd }: { onAdd: (name: string) => Promise<void> }) {
@@ -80,11 +86,13 @@ function AddBlockForm({ onAdd }: { onAdd: (name: string) => Promise<void> }) {
 
 export function BlockList({
   blocks,
+  exercises,
   onOpenExercise,
   onRemoveExercise,
   onRenameBlock,
   onDeleteBlock,
   onAddBlock,
+  onAddExerciseToBlock,
 }: BlockListProps) {
   return (
     <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-5">
@@ -96,10 +104,14 @@ export function BlockList({
             key={block.id}
             block={block}
             sortableBlock
+            exercises={exercises}
             onOpenExercise={onOpenExercise}
             onRemoveExercise={onRemoveExercise}
             onRename={(name) => onRenameBlock(block.id, name)}
             onDelete={() => onDeleteBlock(block.id)}
+            onAddExercise={(exerciseId) =>
+              onAddExerciseToBlock(block.id, exerciseId)
+            }
           />
         ))}
       </SortableContext>

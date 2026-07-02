@@ -73,6 +73,8 @@ export function useSessionViewState(
     deleteBlockAction: actions.deleteBlockAction,
     updateBlockExerciseAction: actions.updateBlockExerciseAction,
     removeExerciseFromBlockAction: actions.removeExerciseFromBlockAction,
+    addExerciseToBlockAction: actions.addExerciseToBlockAction,
+    exercisesById,
   });
 
   return { blocks, exercisesById, dnd, blockActions };

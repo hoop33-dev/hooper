@@ -4,6 +4,7 @@ import {
   useSensors,
   type Active,
   type DragEndEvent,
+  type DragMoveEvent,
   type DragStartEvent,
   type Over,
 } from "@dnd-kit/core";
@@ -92,17 +93,44 @@ function findBlockIdForExercise(
   );
 }
 
-function resolveDropTarget(
+type ExerciseTarget = {
+  blockId: string;
+  overExerciseId: string | null;
+  insertAfter: boolean;
+};
+
+/**
+ * Where an exercise/library item should land. Over a row: before/after that
+ * row per the pointer. Over a block itself (i.e. its header, since rows claim
+ * the body): at the front of the block — `excludeId` keeps a self-drag from
+ * targeting itself.
+ */
+function resolveExerciseTarget(
   blocks: BlockWithExercises[],
-  overId: string,
-): { blockId: string; overExerciseId: string | null } | null {
-  const over = parseId(overId);
-  if (!over) return null;
-  if (over.type === "block")
-    return { blockId: over.value, overExerciseId: null };
-  if (over.type === "block-exercise") {
-    const blockId = findBlockIdForExercise(blocks, over.value);
-    return blockId ? { blockId, overExerciseId: over.value } : null;
+  active: Active,
+  over: Over,
+  excludeId?: string,
+): ExerciseTarget | null {
+  const parsed = parseId(String(over.id));
+  if (!parsed) return null;
+  if (parsed.type === "block-exercise") {
+    const blockId = findBlockIdForExercise(blocks, parsed.value);
+    if (!blockId) return null;
+    return {
+      blockId,
+      overExerciseId: parsed.value,
+      insertAfter: isInsertAfter(active, over),
+    };
+  }
+  if (parsed.type === "block") {
+    const block = blocks.find((b) => b.id === parsed.value);
+    if (!block) return null;
+    const firstOther = block.exercises.find((e) => e.id !== excludeId);
+    return {
+      blockId: parsed.value,
+      overExerciseId: firstOther?.id ?? null,
+      insertAfter: false,
+    };
   }
   return null;
 }
@@ -158,7 +186,12 @@ async function handleExerciseDrop(
     options.blocks,
     activeExerciseId,
   );
-  const target = resolveDropTarget(options.blocks, String(over.id));
+  const target = resolveExerciseTarget(
+    options.blocks,
+    active,
+    over,
+    activeExerciseId,
+  );
   if (!sourceBlockId || !target) return;
 
   const result = computeExerciseMove(
@@ -167,7 +200,7 @@ async function handleExerciseDrop(
     sourceBlockId,
     target.blockId,
     target.overExerciseId,
-    target.overExerciseId ? isInsertAfter(active, over) : false,
+    target.insertAfter,
   );
   if (!result) return;
   options.setBlocks(result.blocks);
@@ -215,7 +248,7 @@ async function handleLibraryDrop(
     return;
   }
 
-  const target = resolveDropTarget(options.blocks, String(over.id));
+  const target = resolveExerciseTarget(options.blocks, active, over);
   if (!target) return;
 
   const result = await options.addExerciseToBlockAction({
@@ -234,15 +267,15 @@ async function handleLibraryDrop(
     return;
   }
 
-  // Dropped onto a specific row rather than empty block space — move the
-  // newly-appended row to that row's position (before/after per pointer).
+  // Dropped onto a specific row (or a block header → before its first row) —
+  // move the newly-appended row to that position.
   const reordered = computeExerciseMove(
     appended,
     newRow.id,
     target.blockId,
     target.blockId,
     target.overExerciseId,
-    isInsertAfter(active, over),
+    target.insertAfter,
   );
   if (!reordered) {
     options.setBlocks(appended);
@@ -254,6 +287,10 @@ async function handleLibraryDrop(
 
 export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    overId: string;
+    after: boolean;
+  } | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
@@ -262,8 +299,23 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
     setActiveId(event.active.id as string);
   }
 
+  // Fires continuously as the pointer moves, so the insertion line can track
+  // top-half vs bottom-half of the same item (useSortable's `over` alone can't).
+  function handleDragMove(event: DragMoveEvent) {
+    const { active, over } = event;
+    if (!over) {
+      setDropTarget(null);
+      return;
+    }
+    setDropTarget({
+      overId: String(over.id),
+      after: isInsertAfter(active, over),
+    });
+  }
+
   async function handleDragEnd(event: DragEndEvent) {
     setActiveId(null);
+    setDropTarget(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -281,12 +333,19 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
 
   function handleDragCancel() {
     setActiveId(null);
+    setDropTarget(null);
   }
 
   return {
     sensors,
     activeId,
+    indicator: {
+      activeId,
+      overId: dropTarget?.overId ?? null,
+      after: dropTarget?.after ?? false,
+    },
     handleDragStart,
+    handleDragMove,
     handleDragEnd,
     handleDragCancel,
   };

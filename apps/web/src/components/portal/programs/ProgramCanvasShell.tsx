@@ -7,6 +7,7 @@ import type {
   ProgramWithSessions,
 } from "@hooper/db";
 import { blockDndCollision } from "./dnd/collision";
+import { DragIndicatorContext } from "./dnd/DragIndicatorContext";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
 import { ExerciseLibraryShelf } from "./ExerciseLibraryShelf";
 import { SessionCanvasRow } from "./SessionCanvasRow";
@@ -37,48 +38,51 @@ export function ProgramCanvasShell({
         sensors={state.dnd.sensors}
         collisionDetection={blockDndCollision}
         onDragStart={state.dnd.handleDragStart}
+        onDragMove={state.dnd.handleDragMove}
         onDragEnd={state.dnd.handleDragEnd}
         onDragCancel={state.dnd.handleDragCancel}>
-        <WeekTabStrip
-          totalWeeks={program.weeks}
-          selectedWeek={state.selectedWeek}
-          onSelect={state.selectWeek}
-          onAddWeek={state.addWeek}
-        />
-        <SessionCanvasRow
-          programId={program.id}
-          sessions={state.weekSessions}
-          onRenameSession={(session) =>
-            state.setSessionModal({ type: "rename", session })
-          }
-          onDuplicateSession={(session) =>
-            state.setSessionModal({ type: "duplicate", session })
-          }
-          onDeleteSession={state.handleDeleteSession}
-          onAddSession={() =>
-            state.setSessionModal({
-              type: "create",
-              weekNumber: state.selectedWeek,
-            })
-          }
-          onAddBlock={(sessionId) =>
-            state.blockActions.addBlock(sessionId, "New block")
-          }
-          onOpenExercise={state.blockActions.openExerciseEditor}
-          onRemoveExercise={(_blockId, exerciseRowId) =>
-            state.blockActions.removeExerciseById(exerciseRowId)
-          }
-          onRenameBlock={state.blockActions.renameBlock}
-          onDeleteBlock={state.blockActions.deleteBlockById}
-        />
-        <ExerciseLibraryShelf exercises={exercises} categories={categories} />
-        <DragOverlay>
-          <DragPreviewOverlay
-            activeId={state.dnd.activeId}
-            blocks={state.weekSessions.flatMap((s) => s.blocks)}
-            exercisesById={state.exercisesById}
+        <DragIndicatorContext.Provider value={state.dnd.indicator}>
+          <WeekTabStrip
+            totalWeeks={program.weeks}
+            selectedWeek={state.selectedWeek}
+            onSelect={state.selectWeek}
+            onAddWeek={state.addWeek}
           />
-        </DragOverlay>
+          <SessionCanvasRow
+            programId={program.id}
+            sessions={state.weekSessions}
+            onRenameSession={(session) =>
+              state.setSessionModal({ type: "rename", session })
+            }
+            onDuplicateSession={(session) =>
+              state.setSessionModal({ type: "duplicate", session })
+            }
+            onDeleteSession={state.handleDeleteSession}
+            onAddSession={() =>
+              state.setSessionModal({
+                type: "create",
+                weekNumber: state.selectedWeek,
+              })
+            }
+            onAddBlock={(sessionId) =>
+              state.blockActions.addBlock(sessionId, "New block")
+            }
+            onOpenExercise={state.blockActions.openExerciseEditor}
+            onRemoveExercise={(_blockId, exerciseRowId) =>
+              state.blockActions.removeExerciseById(exerciseRowId)
+            }
+            onRenameBlock={state.blockActions.renameBlock}
+            onDeleteBlock={state.blockActions.deleteBlockById}
+          />
+          <ExerciseLibraryShelf exercises={exercises} categories={categories} />
+          <DragOverlay>
+            <DragPreviewOverlay
+              activeId={state.dnd.activeId}
+              blocks={state.weekSessions.flatMap((s) => s.blocks)}
+              exercisesById={state.exercisesById}
+            />
+          </DragOverlay>
+        </DragIndicatorContext.Provider>
       </DndContext>
 
       <SessionModals

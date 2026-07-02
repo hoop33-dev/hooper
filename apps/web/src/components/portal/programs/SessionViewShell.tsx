@@ -9,6 +9,7 @@ import type {
 import { BlockExerciseMeasurementModal } from "./BlockExerciseMeasurementModal";
 import { BlockList } from "./BlockList";
 import { blockDndCollision } from "./dnd/collision";
+import { DragIndicatorContext } from "./dnd/DragIndicatorContext";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
 import { ExerciseLibraryPanel } from "./ExerciseLibraryPanel";
 import {
@@ -36,27 +37,36 @@ export function SessionViewShell({
         sensors={state.dnd.sensors}
         collisionDetection={blockDndCollision}
         onDragStart={state.dnd.handleDragStart}
+        onDragMove={state.dnd.handleDragMove}
         onDragEnd={state.dnd.handleDragEnd}
         onDragCancel={state.dnd.handleDragCancel}>
-        <ExerciseLibraryPanel exercises={exercises} categories={categories} />
-        <BlockList
-          sessionId={session.id}
-          blocks={state.blocks}
-          exercises={exercises}
-          onOpenExercise={state.blockActions.openExerciseEditor}
-          onRemoveExercise={state.blockActions.removeExerciseById}
-          onRenameBlock={state.blockActions.renameBlock}
-          onDeleteBlock={state.blockActions.deleteBlockById}
-          onAddBlock={(name) => state.blockActions.addBlock(session.id, name)}
-          onAddExerciseToBlock={state.blockActions.addExerciseToBlock}
-        />
-        <DragOverlay>
-          <DragPreviewOverlay
-            activeId={state.dnd.activeId}
-            blocks={state.blocks}
-            exercisesById={state.exercisesById}
-          />
-        </DragOverlay>
+        <DragIndicatorContext.Provider value={state.dnd.indicator}>
+          <ExerciseLibraryPanel exercises={exercises} categories={categories} />
+          {/* Column wrapper gives the block list a definite, bounded height
+              so it scrolls vertically instead of overflowing the page. */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <BlockList
+              sessionId={session.id}
+              blocks={state.blocks}
+              exercises={exercises}
+              onOpenExercise={state.blockActions.openExerciseEditor}
+              onRemoveExercise={state.blockActions.removeExerciseById}
+              onRenameBlock={state.blockActions.renameBlock}
+              onDeleteBlock={state.blockActions.deleteBlockById}
+              onAddBlock={(name) =>
+                state.blockActions.addBlock(session.id, name)
+              }
+              onAddExerciseToBlock={state.blockActions.addExerciseToBlock}
+            />
+          </div>
+          <DragOverlay>
+            <DragPreviewOverlay
+              activeId={state.dnd.activeId}
+              blocks={state.blocks}
+              exercisesById={state.exercisesById}
+            />
+          </DragOverlay>
+        </DragIndicatorContext.Provider>
       </DndContext>
 
       {state.blockActions.editingExercise && (

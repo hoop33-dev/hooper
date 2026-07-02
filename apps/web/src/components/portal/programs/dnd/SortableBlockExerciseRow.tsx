@@ -5,24 +5,19 @@ import {
   formatMeasurementCompact,
   measurementStatColumns,
 } from "@/src/lib/measurementFormat";
-import type { Active, Over } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import type { BlockExerciseWithDetails } from "@hooper/db";
-import { isInsertAfter } from "./insertPosition";
+import { useDragIndicator, type DragIndicator } from "./DragIndicatorContext";
 
 /** A row shows an insertion line for exercise reorders and library drops
  * (not block drags, which reorder whole blocks). */
-function computeRowDropIndicator(
-  rowId: string,
-  active: Active | null,
-  over: Over | null,
-) {
-  const activeId = typeof active?.id === "string" ? active.id : "";
+function computeRowDropIndicator(rowId: string, indicator: DragIndicator) {
+  const activeId = indicator.activeId ?? "";
   const isExerciseLike =
     activeId.startsWith("block-exercise:") || activeId.startsWith("library:");
   const isDropTarget =
-    isExerciseLike && over?.id === rowId && activeId !== rowId;
-  return { isDropTarget, after: isDropTarget && isInsertAfter(active, over) };
+    isExerciseLike && indicator.overId === rowId && activeId !== rowId;
+  return { isDropTarget, after: isDropTarget && indicator.after };
 }
 
 function GripIcon() {
@@ -141,12 +136,17 @@ export function SortableBlockExerciseRow({
   onRemove,
 }: SortableBlockExerciseRowProps) {
   const rowId = `block-exercise:${blockExercise.id}`;
-  const { attributes, listeners, setNodeRef, isDragging, over, active } =
-    useSortable({ id: rowId });
+  const { attributes, listeners, setNodeRef, isDragging } = useSortable({
+    id: rowId,
+  });
   // Dragging never depends on readOnly — a coach can always move exercises
   // around, even in a non-focused session on the canvas. readOnly only
-  // gates editing (opening the modal, removing a row).
-  const { isDropTarget, after } = computeRowDropIndicator(rowId, active, over);
+  // gates editing (opening the modal, removing a row). The insertion line is
+  // driven by the shared indicator so it tracks the pointer continuously.
+  const { isDropTarget, after } = computeRowDropIndicator(
+    rowId,
+    useDragIndicator(),
+  );
 
   // No CSS transform is applied: items stay put while dragging so only the
   // insertion line moves (per design), and static rects keep the line stable.

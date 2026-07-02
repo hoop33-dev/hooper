@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/src/lib/cn";
-import type { Active, Over } from "@dnd-kit/core";
 import {
   SortableContext,
   useSortable,
@@ -14,42 +13,45 @@ import type {
 } from "@hooper/db";
 import { useState } from "react";
 import { AddExercisePopover } from "./AddExercisePopover";
+import {
+  useDragIndicator,
+  type DragIndicator,
+} from "./dnd/DragIndicatorContext";
 import { SortableBlockExerciseRow } from "./dnd/SortableBlockExerciseRow";
-import { isInsertAfter } from "./dnd/insertPosition";
 
-type BlockDropIndicator = {
+type BlockDropVisual = {
   lineEdge: "top" | "bottom" | null;
   emptyHighlight: boolean;
 };
 
 /**
  * A block card shows either a block-reorder line (block drag hovering this
- * card), an append line at its bottom (an exercise/library item dropped onto
- * the block body rather than a specific row), or a fill highlight (something
- * dropped onto an empty block, which has no row to anchor a line to).
+ * card), a front-insert line at its top (an exercise/library item dropped on
+ * the block header rather than a specific row → goes first), or a fill
+ * highlight (something dropped onto an empty block, which has no row to
+ * anchor a line to).
  */
-function computeBlockDropIndicator(
+function computeBlockDropVisual(
   blockDomId: string,
   hasExercises: boolean,
-  active: Active | null,
-  over: Over | null,
-): BlockDropIndicator {
-  const activeId = typeof active?.id === "string" ? active.id : "";
-  const isOverThis = over?.id === blockDomId;
-  if (!activeId || !isOverThis)
+  indicator: DragIndicator,
+): BlockDropVisual {
+  const activeId = indicator.activeId ?? "";
+  if (!activeId || indicator.overId !== blockDomId)
     return { lineEdge: null, emptyHighlight: false };
 
   if (activeId.startsWith("block:")) {
     if (activeId === blockDomId)
       return { lineEdge: null, emptyHighlight: false };
     return {
-      lineEdge: isInsertAfter(active, over) ? "bottom" : "top",
+      lineEdge: indicator.after ? "bottom" : "top",
       emptyHighlight: false,
     };
   }
-  // Exercise or library item dropped onto the block itself (not a row).
+  // Exercise or library item dropped onto the block itself (its header) —
+  // it goes to the front, so the line sits at the top.
   return {
-    lineEdge: hasExercises ? "bottom" : null,
+    lineEdge: hasExercises ? "top" : null,
     emptyHighlight: !hasExercises,
   };
 }
@@ -253,13 +255,13 @@ export function BlockCard({
   onDelete,
 }: BlockCardProps) {
   const blockDomId = `block:${block.id}`;
-  const { attributes, listeners, setNodeRef, isDragging, active, over } =
-    useSortable({ id: blockDomId });
-  const { lineEdge, emptyHighlight } = computeBlockDropIndicator(
+  const { attributes, listeners, setNodeRef, isDragging } = useSortable({
+    id: blockDomId,
+  });
+  const { lineEdge, emptyHighlight } = computeBlockDropVisual(
     blockDomId,
     block.exercises.length > 0,
-    active,
-    over,
+    useDragIndicator(),
   );
 
   // No CSS transform is applied: blocks stay put while dragging so only the

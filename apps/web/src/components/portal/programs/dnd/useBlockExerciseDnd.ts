@@ -160,6 +160,7 @@ async function handleBlockDrop(
   activeBlockId: string,
   active: Active,
   over: Over,
+  markCommitted: () => void,
 ) {
   if (!options.reorderBlocksAction) return;
   const target = resolveTargetSession(options.blocks, String(over.id));
@@ -172,6 +173,7 @@ async function handleBlockDrop(
     target.overBlockId ? isInsertAfter(active, over) : false,
   );
   if (!result) return;
+  markCommitted();
   options.setBlocks(result.blocks);
   await options.reorderBlocksAction(result.updates);
 }
@@ -181,6 +183,7 @@ async function handleExerciseDrop(
   activeExerciseId: string,
   active: Active,
   over: Over,
+  markCommitted: () => void,
 ) {
   const sourceBlockId = findBlockIdForExercise(
     options.blocks,
@@ -203,6 +206,7 @@ async function handleExerciseDrop(
     target.insertAfter,
   );
   if (!result) return;
+  markCommitted();
   options.setBlocks(result.blocks);
   await options.reorderBlockExercisesAction(result.updates);
 }
@@ -212,8 +216,10 @@ async function handleLibraryDropOnNewBlock(
   exerciseId: string,
   exercise: ExerciseWithDetails,
   sessionId: string,
+  markCommitted: () => void,
 ) {
   if (!options.createBlockAction) return;
+  markCommitted();
   const blockResult = await options.createBlockAction(sessionId, "New block");
   if (!blockResult.ok || !blockResult.data) return;
 
@@ -233,6 +239,7 @@ async function handleLibraryDrop(
   exerciseId: string,
   active: Active,
   over: Over,
+  markCommitted: () => void,
 ) {
   const exercise = options.exercisesById.get(exerciseId);
   if (!exercise) return;
@@ -244,6 +251,7 @@ async function handleLibraryDrop(
       exerciseId,
       exercise,
       overParsed.value,
+      markCommitted,
     );
     return;
   }
@@ -251,6 +259,7 @@ async function handleLibraryDrop(
   const target = resolveExerciseTarget(options.blocks, active, over);
   if (!target) return;
 
+  markCommitted();
   const result = await options.addExerciseToBlockAction({
     block_id: target.blockId,
     exercise_id: exerciseId,
@@ -291,12 +300,18 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
     overId: string;
     after: boolean;
   } | null>(null);
+  // Suppresses the DragOverlay's snap-back animation once a drop resolves to
+  // a real placement, so the item vanishes and appears at its destination
+  // instead of flying back — the return animation is reserved for drops
+  // somewhere the exercise/block can't actually go.
+  const [suppressDropAnimation, setSuppressDropAnimation] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(event.active.id as string);
+    setSuppressDropAnimation(false);
   }
 
   // Fires continuously as the pointer moves, so the insertion line can track
@@ -322,12 +337,32 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
     const activeParsed = parseId(active.id as string);
     if (!activeParsed) return;
 
+    const markCommitted = () => setSuppressDropAnimation(true);
+
     if (activeParsed.type === "block") {
-      await handleBlockDrop(options, activeParsed.value, active, over);
+      await handleBlockDrop(
+        options,
+        activeParsed.value,
+        active,
+        over,
+        markCommitted,
+      );
     } else if (activeParsed.type === "block-exercise") {
-      await handleExerciseDrop(options, activeParsed.value, active, over);
+      await handleExerciseDrop(
+        options,
+        activeParsed.value,
+        active,
+        over,
+        markCommitted,
+      );
     } else {
-      await handleLibraryDrop(options, activeParsed.value, active, over);
+      await handleLibraryDrop(
+        options,
+        activeParsed.value,
+        active,
+        over,
+        markCommitted,
+      );
     }
   }
 
@@ -344,6 +379,9 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
       overId: dropTarget?.overId ?? null,
       after: dropTarget?.after ?? false,
     },
+    // `null` disables dnd-kit's default snap-back animation for the
+    // DragOverlay; `undefined` leaves its default (animate-back) behavior.
+    dropAnimation: suppressDropAnimation ? null : undefined,
     handleDragStart,
     handleDragMove,
     handleDragEnd,

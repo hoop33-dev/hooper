@@ -75,7 +75,7 @@ export function ProgramCanvasShell({
             onDeleteBlock={state.blockActions.deleteBlockById}
           />
           <ExerciseLibraryShelf exercises={exercises} categories={categories} />
-          <DragOverlay>
+          <DragOverlay dropAnimation={state.dnd.dropAnimation}>
             <DragPreviewOverlay
               activeId={state.dnd.activeId}
               blocks={state.weekSessions.flatMap((s) => s.blocks)}

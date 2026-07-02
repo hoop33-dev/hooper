@@ -59,7 +59,7 @@ export function SessionViewShell({
               onAddExerciseToBlock={state.blockActions.addExerciseToBlock}
             />
           </div>
-          <DragOverlay>
+          <DragOverlay dropAnimation={state.dnd.dropAnimation}>
             <DragPreviewOverlay
               activeId={state.dnd.activeId}
               blocks={state.blocks}

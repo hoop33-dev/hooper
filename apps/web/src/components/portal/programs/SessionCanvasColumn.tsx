@@ -1,9 +1,12 @@
 "use client";
 
+import { cn } from "@/src/lib/cn";
+import { useDroppable } from "@dnd-kit/core";
 import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
 import Link from "next/link";
 import { BlockCard } from "./BlockCard";
 import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
+import { sessionDropId } from "./dnd/useBlockExerciseDnd";
 
 interface SessionCanvasColumnProps {
   programId: string;
@@ -143,26 +146,38 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
     onRenameBlock,
     onDeleteBlock,
   } = props;
+  // Lets a block be dropped into the general column area — the only
+  // registered target when a session has no blocks to hover over yet.
+  const { setNodeRef, isOver } = useDroppable({
+    id: sessionDropId(session.id),
+  });
 
   return (
     <div className="flex w-[220px] flex-shrink-0 flex-col gap-2">
       <ColumnHeader {...props} />
-      {session.blocks.map((block) => (
-        <BlockCard
-          key={block.id}
-          block={block}
-          readOnly={!isFocused}
-          dense
-          onOpenExercise={onOpenExercise}
-          onRemoveExercise={(exerciseRowId) =>
-            onRemoveExercise(block.id, exerciseRowId)
-          }
-          onRename={(name) => onRenameBlock(block.id, name)}
-          onDelete={() => onDeleteBlock(block.id)}
-        />
-      ))}
-      {isFocused && (
-        <NewBlockDropZone className="border-portal-border-mid rounded-lg border border-dashed">
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "flex flex-1 flex-col gap-2 rounded-lg",
+          isOver && "bg-portal-orange-soft",
+        )}>
+        {session.blocks.map((block) => (
+          <BlockCard
+            key={block.id}
+            block={block}
+            readOnly={!isFocused}
+            dense
+            onOpenExercise={onOpenExercise}
+            onRemoveExercise={(exerciseRowId) =>
+              onRemoveExercise(block.id, exerciseRowId)
+            }
+            onRename={(name) => onRenameBlock(block.id, name)}
+            onDelete={() => onDeleteBlock(block.id)}
+          />
+        ))}
+        <NewBlockDropZone
+          sessionId={session.id}
+          className="border-portal-border-mid rounded-lg border border-dashed">
           <button
             type="button"
             onClick={onAddBlock}
@@ -170,7 +185,7 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
             + Add block
           </button>
         </NewBlockDropZone>
-      )}
+      </div>
     </div>
   );
 }

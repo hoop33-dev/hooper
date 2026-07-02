@@ -127,13 +127,14 @@ export async function deleteBlock(id: string): Promise<Result<void>> {
 }
 
 export async function reorderBlocks(
-  updates: { id: string; position: number }[],
+  updates: { id: string; session_id: string; position: number }[],
 ): Promise<Result<void>> {
   try {
     const supabase = await createClient();
     const { error } = await supabase.from("blocks").upsert(
-      updates.map(({ id, position }) => ({
+      updates.map(({ id, session_id, position }) => ({
         id,
+        session_id,
         position,
       })) as unknown as BlockRow[],
       { onConflict: "id" },

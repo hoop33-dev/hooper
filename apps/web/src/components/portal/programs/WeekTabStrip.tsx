@@ -2,12 +2,14 @@ interface WeekTabStripProps {
   totalWeeks: number;
   selectedWeek: number;
   onSelect: (week: number) => void;
+  onAddWeek: () => void;
 }
 
 export function WeekTabStrip({
   totalWeeks,
   selectedWeek,
   onSelect,
+  onAddWeek,
 }: WeekTabStripProps) {
   const weeks = Array.from({ length: totalWeeks }, (_, i) => i + 1);
   return (
@@ -25,6 +27,13 @@ export function WeekTabStrip({
           Wk {w}
         </button>
       ))}
+      <button
+        type="button"
+        onClick={onAddWeek}
+        title="Add week"
+        className="border-portal-border-mid text-portal-text3 h-7 flex-shrink-0 rounded-md border border-dashed px-3 text-xs font-semibold">
+        + Week
+      </button>
     </div>
   );
 }

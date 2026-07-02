@@ -6,6 +6,7 @@ import type {
   UpdateBlockExerciseInput,
   UpdateBlockInput,
 } from "@/src/services/block.service";
+import type { UpdateProgramInput } from "@/src/services/program.service";
 import type {
   CreateSessionInput,
   DuplicateSessionInput,
@@ -15,13 +16,17 @@ import type {
   BlockRow,
   BlockWithExercises,
   ExerciseWithDetails,
+  ProgramRow,
   ProgramWithSessions,
   SessionRow,
   SessionWithBlocks,
 } from "@hooper/db";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { BlockExercisePositionUpdate } from "./dnd/dropComputation";
+import type {
+  BlockExercisePositionUpdate,
+  BlockPositionUpdate,
+} from "./dnd/dropComputation";
 import { useBlockExerciseDnd } from "./dnd/useBlockExerciseDnd";
 import type { SessionCreateData } from "./SessionCreateModal";
 import { useBlockActions } from "./useBlockActions";
@@ -48,6 +53,9 @@ export interface ProgramCanvasActions {
     input: UpdateBlockInput,
   ) => Promise<ActionResult<BlockRow>>;
   deleteBlockAction: (id: string) => Promise<ActionResult>;
+  reorderBlocksAction: (
+    updates: BlockPositionUpdate[],
+  ) => Promise<ActionResult>;
   addExerciseToBlockAction: (
     input: AddExerciseToBlockInput,
   ) => Promise<ActionResult<BlockExerciseRow>>;
@@ -59,6 +67,10 @@ export interface ProgramCanvasActions {
   reorderBlockExercisesAction: (
     updates: BlockExercisePositionUpdate[],
   ) => Promise<ActionResult>;
+  updateProgramAction: (
+    id: string,
+    input: UpdateProgramInput,
+  ) => Promise<ActionResult<ProgramRow>>;
 }
 
 export type SessionModalState =
@@ -138,37 +150,68 @@ function useSessionModalHandlers(
   };
 }
 
+/**
+ * Blocks/exercises can be dragged between any session shown in the current
+ * week, not just the focused one, so the dnd/block-action state spans every
+ * visible session's blocks rather than just the focused session's.
+ */
 function useCanvasBlockState(
-  focusedSession: SessionWithBlocks | null,
-  focusedSessionId: string | null,
+  weekSessions: SessionWithBlocks[],
   actions: ProgramCanvasActions,
-  setFocusedBlocks: (blocks: BlockWithExercises[]) => void,
+  setWeekBlocks: (blocks: BlockWithExercises[]) => void,
   exercisesById: Map<string, ExerciseWithDetails>,
 ) {
+  const weekBlocks = weekSessions.flatMap((s) => s.blocks);
+  const createBlockAction = (sessionId: string, name: string) =>
+    actions.createBlockAction({ session_id: sessionId, name });
+
   const dnd = useBlockExerciseDnd({
-    blocks: focusedSession?.blocks ?? [],
-    setBlocks: setFocusedBlocks,
+    blocks: weekBlocks,
+    setBlocks: setWeekBlocks,
     exercisesById,
     addExerciseToBlockAction: actions.addExerciseToBlockAction,
     reorderBlockExercisesAction: actions.reorderBlockExercisesAction,
-    createBlockAction: focusedSessionId
-      ? (name) =>
-          actions.createBlockAction({ session_id: focusedSessionId, name })
-      : undefined,
+    reorderBlocksAction: actions.reorderBlocksAction,
+    createBlockAction,
   });
 
   const blockActions = useBlockActions({
-    blocks: focusedSession?.blocks ?? [],
-    setBlocks: setFocusedBlocks,
-    createBlockAction: (name) =>
-      actions.createBlockAction({ session_id: focusedSessionId ?? "", name }),
+    blocks: weekBlocks,
+    setBlocks: setWeekBlocks,
+    createBlockAction,
     updateBlockAction: actions.updateBlockAction,
     deleteBlockAction: actions.deleteBlockAction,
     updateBlockExerciseAction: actions.updateBlockExerciseAction,
     removeExerciseFromBlockAction: actions.removeExerciseFromBlockAction,
+    addExerciseToBlockAction: actions.addExerciseToBlockAction,
+    exercisesById,
   });
 
-  return { dnd, blockActions };
+  return { dnd, blockActions, weekBlocks };
+}
+
+/**
+ * `program` is a fresh object every time the server component behind this
+ * page re-renders (navigation or router.refresh()), but `sessions` was only
+ * seeded from it once on mount. Without this, session create/rename/
+ * duplicate/delete — all of which call router.refresh() rather than
+ * patching local state — would silently not show up until a hard reload.
+ */
+function useSyncSessionsFromProgram(
+  program: ProgramWithSessions,
+  selectedWeek: number,
+  setSessions: (sessions: SessionWithBlocks[]) => void,
+  setFocusedSessionId: (fn: (prev: string | null) => string | null) => void,
+) {
+  useEffect(() => {
+    setSessions(program.sessions);
+    setFocusedSessionId((prev) =>
+      prev && program.sessions.some((s) => s.id === prev)
+        ? prev
+        : (firstSessionOfWeek(program.sessions, selectedWeek)?.id ?? null),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [program.sessions]);
 }
 
 export function useProgramCanvasState(
@@ -176,6 +219,7 @@ export function useProgramCanvasState(
   exercises: ExerciseWithDetails[],
   actions: ProgramCanvasActions,
 ) {
+  const router = useRouter();
   const [sessions, setSessions] = useState(program.sessions);
   const [selectedWeek, setSelectedWeek] = useState(
     program.sessions[0]?.week_number ?? 1,
@@ -186,20 +230,12 @@ export function useProgramCanvasState(
   );
   const [sessionModal, setSessionModal] = useState<SessionModalState>(null);
 
-  // `program` is a fresh object every time the server component behind this
-  // page re-renders (navigation or router.refresh()), but `sessions` was
-  // only seeded from it once on mount. Without this, session create/rename/
-  // duplicate/delete — all of which call router.refresh() rather than
-  // patching local state — would silently not show up until a hard reload.
-  useEffect(() => {
-    setSessions(program.sessions);
-    setFocusedSessionId((prev) =>
-      prev && program.sessions.some((s) => s.id === prev)
-        ? prev
-        : (firstSessionOfWeek(program.sessions, selectedWeek)?.id ?? null),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [program.sessions]);
+  useSyncSessionsFromProgram(
+    program,
+    selectedWeek,
+    setSessions,
+    setFocusedSessionId,
+  );
 
   const weekSessions = sessions
     .filter((s) => s.week_number === selectedWeek)
@@ -208,24 +244,38 @@ export function useProgramCanvasState(
     sessions.find((s) => s.id === focusedSessionId) ?? null;
   const exercisesById = new Map(exercises.map((e) => [e.id, e]));
 
-  function setFocusedBlocks(blocks: BlockWithExercises[]) {
-    if (!focusedSessionId) return;
+  function setWeekBlocks(blocks: BlockWithExercises[]) {
+    const weekSessionIds = new Set(weekSessions.map((s) => s.id));
     setSessions((prev) =>
-      prev.map((s) => (s.id === focusedSessionId ? { ...s, blocks } : s)),
+      prev.map((s) =>
+        weekSessionIds.has(s.id)
+          ? { ...s, blocks: blocks.filter((b) => b.session_id === s.id) }
+          : s,
+      ),
     );
   }
 
   const { dnd, blockActions } = useCanvasBlockState(
-    focusedSession,
-    focusedSessionId,
+    weekSessions,
     actions,
-    setFocusedBlocks,
+    setWeekBlocks,
     exercisesById,
   );
 
   function selectWeek(week: number) {
     setSelectedWeek(week);
     setFocusedSessionId(firstSessionOfWeek(sessions, week)?.id ?? null);
+  }
+
+  async function addWeek() {
+    const newWeekCount = program.weeks + 1;
+    const result = await actions.updateProgramAction(program.id, {
+      weeks: newWeekCount,
+    });
+    if (result.ok) {
+      router.refresh();
+      selectWeek(newWeekCount);
+    }
   }
 
   const sessionModalHandlers = useSessionModalHandlers(
@@ -239,6 +289,7 @@ export function useProgramCanvasState(
     sessions,
     selectedWeek,
     selectWeek,
+    addWeek,
     weekSessions,
     focusedSession,
     focusedSessionId,

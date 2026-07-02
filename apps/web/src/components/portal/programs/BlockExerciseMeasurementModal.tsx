@@ -88,9 +88,16 @@ function SetsField({
           className="border-portal-border bg-portal-bg text-portal-text2 h-7 w-7 flex-shrink-0 rounded-lg border">
           −
         </button>
-        <span className="font-title text-portal-text1 flex-1 text-center text-lg font-black">
-          {value}
-        </span>
+        <input
+          type="number"
+          min={1}
+          value={value}
+          onChange={(e) => {
+            const v = e.target.valueAsNumber;
+            if (!Number.isNaN(v)) onChange(Math.max(1, v));
+          }}
+          className="font-title text-portal-text1 w-full flex-1 rounded-lg text-center text-lg font-black outline-none"
+        />
         <button
           type="button"
           onClick={() => onChange(value + 1)}
@@ -130,11 +137,20 @@ function NumberField({
           −
         </button>
         <div className="border-portal-border bg-portal-card flex flex-1 items-center justify-center gap-1 rounded-lg border py-1">
-          <span className="font-title text-portal-orange text-base font-black">
-            {value}
-          </span>
+          <input
+            type="number"
+            min={0}
+            value={value}
+            onChange={(e) => {
+              const v = e.target.valueAsNumber;
+              if (!Number.isNaN(v)) onChange(Math.max(0, v));
+            }}
+            className="font-title text-portal-orange w-full min-w-0 text-center text-base font-black outline-none"
+          />
           {suffix && (
-            <span className="text-portal-text3 text-[11px]">{suffix}</span>
+            <span className="text-portal-text3 flex-shrink-0 text-[11px]">
+              {suffix}
+            </span>
           )}
         </div>
         <button

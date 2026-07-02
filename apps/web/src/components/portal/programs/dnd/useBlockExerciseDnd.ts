@@ -13,10 +13,10 @@ import type {
 } from "@hooper/db";
 import { useState } from "react";
 import {
-  computeBlockReorder,
+  computeBlockMove,
   computeExerciseMove,
   type BlockExercisePositionUpdate,
-  type PositionUpdate,
+  type BlockPositionUpdate,
 } from "./dropComputation";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
@@ -32,18 +32,21 @@ export interface UseBlockExerciseDndOptions {
   reorderBlockExercisesAction: (
     updates: BlockExercisePositionUpdate[],
   ) => Promise<ActionResult>;
-  /** Undefined on the canvas — block reordering is session-view only. */
-  reorderBlocksAction?: (updates: PositionUpdate[]) => Promise<ActionResult>;
+  reorderBlocksAction?: (
+    updates: BlockPositionUpdate[],
+  ) => Promise<ActionResult>;
   /**
-   * Enables dropping a library exercise onto the "add block" zone to create
-   * a new block pre-populated with that exercise, in one motion. Undefined
-   * disables the interaction (e.g. no session focused yet on the canvas).
+   * Enables dropping a library exercise onto a session's "add block" zone
+   * to create a new block pre-populated with that exercise, in one motion.
    */
-  createBlockAction?: (name: string) => Promise<ActionResult<BlockRow>>;
+  createBlockAction?: (
+    sessionId: string,
+    name: string,
+  ) => Promise<ActionResult<BlockRow>>;
 }
 
 type ParsedId = {
-  type: "block" | "block-exercise" | "library" | "new-block";
+  type: "block" | "block-exercise" | "library" | "new-block" | "session";
   value: string;
 };
 
@@ -56,15 +59,25 @@ function parseId(id: string): ParsedId | null {
     type === "block" ||
     type === "block-exercise" ||
     type === "library" ||
-    type === "new-block"
+    type === "new-block" ||
+    type === "session"
   ) {
     return { type, value };
   }
   return null;
 }
 
-/** Fixed id for the drop zone that creates a new block from a dragged exercise. */
-export const NEW_BLOCK_DROP_ID = "new-block:zone";
+/** Id for the "+ Add block" zone that creates a new block from a dragged
+ * exercise, scoped to a specific session so each column targets itself. */
+export function newBlockDropId(sessionId: string): string {
+  return `new-block:${sessionId}`;
+}
+
+/** Id for a session column's own drop zone, used to move/append a whole
+ * block into a session that has no blocks to hover over yet. */
+export function sessionDropId(sessionId: string): string {
+  return `session:${sessionId}`;
+}
 
 function findBlockIdForExercise(
   blocks: BlockWithExercises[],
@@ -91,13 +104,40 @@ function resolveDropTarget(
   return null;
 }
 
+/** Resolves which session a block drop targets, from either a block-level
+ * over-target (use that block's own session) or a session column zone. */
+function resolveTargetSession(
+  blocks: BlockWithExercises[],
+  overId: string,
+): { sessionId: string; overBlockId: string | null } | null {
+  const over = parseId(overId);
+  if (!over) return null;
+  if (over.type === "block") {
+    const overBlock = blocks.find((b) => b.id === over.value);
+    return overBlock
+      ? { sessionId: overBlock.session_id, overBlockId: over.value }
+      : null;
+  }
+  if (over.type === "session") {
+    return { sessionId: over.value, overBlockId: null };
+  }
+  return null;
+}
+
 async function handleBlockDrop(
   options: UseBlockExerciseDndOptions,
   activeBlockId: string,
   overId: string,
 ) {
   if (!options.reorderBlocksAction) return;
-  const result = computeBlockReorder(options.blocks, activeBlockId, overId);
+  const target = resolveTargetSession(options.blocks, overId);
+  if (!target) return;
+  const result = computeBlockMove(
+    options.blocks,
+    activeBlockId,
+    target.sessionId,
+    target.overBlockId,
+  );
   if (!result) return;
   options.setBlocks(result.blocks);
   await options.reorderBlocksAction(result.updates);
@@ -131,9 +171,10 @@ async function handleLibraryDropOnNewBlock(
   options: UseBlockExerciseDndOptions,
   exerciseId: string,
   exercise: ExerciseWithDetails,
+  sessionId: string,
 ) {
   if (!options.createBlockAction) return;
-  const blockResult = await options.createBlockAction("New block");
+  const blockResult = await options.createBlockAction(sessionId, "New block");
   if (!blockResult.ok || !blockResult.data) return;
 
   const exerciseResult = await options.addExerciseToBlockAction({
@@ -155,8 +196,14 @@ async function handleLibraryDrop(
   const exercise = options.exercisesById.get(exerciseId);
   if (!exercise) return;
 
-  if (parseId(overId)?.type === "new-block") {
-    await handleLibraryDropOnNewBlock(options, exerciseId, exercise);
+  const overParsed = parseId(overId);
+  if (overParsed?.type === "new-block") {
+    await handleLibraryDropOnNewBlock(
+      options,
+      exerciseId,
+      exercise,
+      overParsed.value,
+    );
     return;
   }
 

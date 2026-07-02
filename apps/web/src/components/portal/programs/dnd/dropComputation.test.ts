@@ -4,7 +4,7 @@ import type {
   ExerciseWithDetails,
 } from "@hooper/db";
 import { describe, expect, it } from "vitest";
-import { computeBlockReorder, computeExerciseMove } from "./dropComputation";
+import { computeBlockMove, computeExerciseMove } from "./dropComputation";
 
 function makeExercise(id: string): ExerciseWithDetails {
   return {
@@ -44,10 +44,11 @@ function makeBlock(
   id: string,
   position: number,
   exerciseIds: string[],
+  sessionId = "s1",
 ): BlockWithExercises {
   return {
     id,
-    session_id: "s1",
+    session_id: sessionId,
     name: id,
     color: "#000000",
     position,
@@ -60,26 +61,58 @@ function makeBlock(
   };
 }
 
-describe("computeBlockReorder", () => {
-  it("reorders two blocks and resequences positions", () => {
+describe("computeBlockMove", () => {
+  it("reorders two blocks within the same session and resequences positions", () => {
     const blocks = [makeBlock("b1", 0, []), makeBlock("b2", 1, [])];
-    const result = computeBlockReorder(blocks, "b1", "b2");
+    const result = computeBlockMove(blocks, "b1", "s1", "b2");
     expect(result).not.toBeNull();
     expect(result!.blocks.map((b) => b.id)).toEqual(["b2", "b1"]);
     expect(result!.updates).toEqual([
-      { id: "b2", position: 0 },
-      { id: "b1", position: 1 },
+      { id: "b2", session_id: "s1", position: 0 },
+      { id: "b1", session_id: "s1", position: 1 },
     ]);
   });
 
-  it("returns null when active and over are the same block", () => {
+  it("returns null when active and over are the same block in the same session", () => {
     const blocks = [makeBlock("b1", 0, []), makeBlock("b2", 1, [])];
-    expect(computeBlockReorder(blocks, "b1", "b1")).toBeNull();
+    expect(computeBlockMove(blocks, "b1", "s1", "b1")).toBeNull();
   });
 
-  it("returns null when a block id is not found", () => {
+  it("returns null when the active block id is not found", () => {
     const blocks = [makeBlock("b1", 0, [])];
-    expect(computeBlockReorder(blocks, "b1", "missing")).toBeNull();
+    expect(computeBlockMove(blocks, "missing", "s1", null)).toBeNull();
+  });
+
+  it("moves a block into a different session and resequences both sides", () => {
+    const blocks = [
+      makeBlock("b1", 0, [], "s1"),
+      makeBlock("b2", 1, [], "s1"),
+      makeBlock("b3", 0, [], "s2"),
+    ];
+    const result = computeBlockMove(blocks, "b1", "s2", "b3");
+    expect(result).not.toBeNull();
+
+    const s1Blocks = result!.blocks.filter((b) => b.session_id === "s1");
+    const s2Blocks = result!.blocks.filter((b) => b.session_id === "s2");
+    expect(s1Blocks.map((b) => b.id)).toEqual(["b2"]);
+    expect(s2Blocks.map((b) => b.id)).toEqual(["b1", "b3"]);
+    expect(s2Blocks.find((b) => b.id === "b1")!.session_id).toBe("s2");
+
+    expect(result!.updates).toEqual(
+      expect.arrayContaining([
+        { id: "b1", session_id: "s2", position: 0 },
+        { id: "b3", session_id: "s2", position: 1 },
+        { id: "b2", session_id: "s1", position: 0 },
+      ]),
+    );
+    expect(result!.updates).toHaveLength(3);
+  });
+
+  it("appends to the end of a different session when overBlockId is null", () => {
+    const blocks = [makeBlock("b1", 0, [], "s1"), makeBlock("b2", 0, [], "s2")];
+    const result = computeBlockMove(blocks, "b1", "s2", null);
+    const s2Blocks = result!.blocks.filter((b) => b.session_id === "s2");
+    expect(s2Blocks.map((b) => b.id)).toEqual(["b2", "b1"]);
   });
 });
 

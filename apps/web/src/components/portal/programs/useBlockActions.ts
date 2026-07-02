@@ -21,7 +21,10 @@ type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 export interface UseBlockActionsOptions {
   blocks: BlockWithExercises[];
   setBlocks: (blocks: BlockWithExercises[]) => void;
-  createBlockAction: (name: string) => Promise<ActionResult<BlockRow>>;
+  createBlockAction: (
+    sessionId: string,
+    name: string,
+  ) => Promise<ActionResult<BlockRow>>;
   updateBlockAction: (
     id: string,
     data: { name?: string },
@@ -55,8 +58,8 @@ export function useBlockActions(options: UseBlockActionsOptions) {
   const [editingExercise, setEditingExercise] =
     useState<BlockExerciseWithDetails | null>(null);
 
-  async function addBlock(name: string) {
-    const result = await createBlockAction(name);
+  async function addBlock(sessionId: string, name: string) {
+    const result = await createBlockAction(sessionId, name);
     if (result.ok && result.data) {
       setBlocks([...blocks, { ...result.data, exercises: [] }]);
     }

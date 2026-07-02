@@ -35,7 +35,7 @@ export function SessionCanvasRow({
   onDeleteBlock,
 }: SessionCanvasRowProps) {
   return (
-    <div className="flex flex-1 items-start gap-3 overflow-x-auto overflow-y-auto p-4">
+    <div className="flex min-h-0 flex-1 items-start gap-3 overflow-x-auto overflow-y-auto p-4">
       {sessions.map((session) => (
         <SessionCanvasColumn
           key={session.id}

@@ -1,3 +1,4 @@
+import { cn } from "@/src/lib/cn";
 import type { BlockWithExercises, ExerciseWithDetails } from "@hooper/db";
 
 interface DragPreviewOverlayProps {
@@ -14,12 +15,13 @@ function GhostCard({
   accentColor?: string;
 }) {
   return (
-    <div
-      className="border-portal-border bg-portal-card shadow-ambient cursor-grabbing rounded-lg border px-3 py-2 opacity-90"
-      style={
-        accentColor ? { borderLeft: `3px solid ${accentColor}` } : undefined
-      }>
-      <span className="text-portal-text1 text-[13px] font-semibold">
+    <div className="border-portal-border bg-portal-card shadow-ambient cursor-grabbing rounded-lg border px-3 py-2 opacity-90">
+      <span
+        className={cn(
+          "text-[13px] font-semibold",
+          !accentColor && "text-portal-text1",
+        )}
+        style={accentColor ? { color: accentColor } : undefined}>
         {label}
       </span>
     </div>

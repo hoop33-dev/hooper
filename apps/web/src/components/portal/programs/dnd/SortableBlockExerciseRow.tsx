@@ -5,9 +5,24 @@ import {
   formatMeasurementCompact,
   measurementStatColumns,
 } from "@/src/lib/measurementFormat";
+import type { Active, Over } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { BlockExerciseWithDetails } from "@hooper/db";
+import { isInsertAfter } from "./insertPosition";
+
+/** Only an exercise drag (not a block drag) shows this row's insertion line. */
+function computeRowDropIndicator(
+  rowId: string,
+  active: Active | null,
+  over: Over | null,
+) {
+  const isExerciseDrag =
+    typeof active?.id === "string" && active.id.startsWith("block-exercise:");
+  const isDropTarget =
+    isExerciseDrag && over?.id === rowId && active?.id !== rowId;
+  return { isDropTarget, after: isDropTarget && isInsertAfter(active, over) };
+}
 
 function GripIcon() {
   return (
@@ -134,34 +149,39 @@ export function SortableBlockExerciseRow({
     isDragging,
     over,
     active,
-  } = useSortable({
-    id: rowId,
-    disabled: readOnly,
-  });
-  const isDropTarget = over?.id === rowId && active?.id !== rowId;
+  } = useSortable({ id: rowId });
+  // Dragging never depends on readOnly — a coach can always move exercises
+  // around, even in a non-focused session on the canvas. readOnly only
+  // gates editing (opening the modal, removing a row).
+  const { isDropTarget, after } = computeRowDropIndicator(rowId, active, over);
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "border-portal-border flex items-center gap-2 border-t-2 border-b last:border-b-0",
+        "border-portal-border relative flex items-center gap-2 border-b last:border-b-0",
         dense ? "px-3 py-2" : "px-3.5 py-2.5",
-        isDropTarget ? "border-t-portal-orange" : "border-t-transparent",
         isDragging && "opacity-30",
         !readOnly && "hover:bg-portal-bg cursor-pointer",
       )}
       onClick={readOnly ? undefined : onOpen}>
-      {!readOnly && (
-        <button
-          type="button"
-          className="text-portal-text3 flex-shrink-0 cursor-grab touch-none active:cursor-grabbing"
-          onClick={(e) => e.stopPropagation()}
-          {...attributes}
-          {...listeners}>
-          <GripIcon />
-        </button>
+      {isDropTarget && (
+        <div
+          className={cn(
+            "bg-portal-orange absolute inset-x-0 h-0.5",
+            after ? "bottom-0" : "top-0",
+          )}
+        />
       )}
+      <button
+        type="button"
+        className="text-portal-text3 flex-shrink-0 cursor-grab touch-none active:cursor-grabbing"
+        onClick={(e) => e.stopPropagation()}
+        {...attributes}
+        {...listeners}>
+        <GripIcon />
+      </button>
       <RowBody blockExercise={blockExercise} dense={dense} />
       {!readOnly && onRemove && (
         <button

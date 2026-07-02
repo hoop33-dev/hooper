@@ -47,7 +47,7 @@ export function ExerciseLibraryPanel({
           ))}
         </select>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="text-portal-text3 px-3.5 py-6 text-center text-xs">
             No results

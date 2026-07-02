@@ -16,6 +16,7 @@ import { BlockCard } from "./BlockCard";
 import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
 
 interface BlockListProps {
+  sessionId: string;
   blocks: BlockWithExercises[];
   exercises: ExerciseWithDetails[];
   onOpenExercise: (be: BlockExerciseWithDetails) => void;
@@ -26,7 +27,13 @@ interface BlockListProps {
   onAddExerciseToBlock: (blockId: string, exerciseId: string) => void;
 }
 
-function AddBlockForm({ onAdd }: { onAdd: (name: string) => Promise<void> }) {
+function AddBlockForm({
+  sessionId,
+  onAdd,
+}: {
+  sessionId: string;
+  onAdd: (name: string) => Promise<void>;
+}) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -42,7 +49,9 @@ function AddBlockForm({ onAdd }: { onAdd: (name: string) => Promise<void> }) {
 
   if (!adding) {
     return (
-      <NewBlockDropZone className="border-portal-border-mid rounded-xl border border-dashed">
+      <NewBlockDropZone
+        sessionId={sessionId}
+        className="border-portal-border-mid rounded-xl border border-dashed">
         <button
           type="button"
           onClick={() => setAdding(true)}
@@ -85,6 +94,7 @@ function AddBlockForm({ onAdd }: { onAdd: (name: string) => Promise<void> }) {
 }
 
 export function BlockList({
+  sessionId,
   blocks,
   exercises,
   onOpenExercise,
@@ -95,7 +105,7 @@ export function BlockList({
   onAddExerciseToBlock,
 }: BlockListProps) {
   return (
-    <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-5">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
       <SortableContext
         items={blocks.map((b) => `block:${b.id}`)}
         strategy={verticalListSortingStrategy}>
@@ -103,7 +113,6 @@ export function BlockList({
           <BlockCard
             key={block.id}
             block={block}
-            sortableBlock
             exercises={exercises}
             onOpenExercise={onOpenExercise}
             onRemoveExercise={onRemoveExercise}
@@ -115,7 +124,7 @@ export function BlockList({
           />
         ))}
       </SortableContext>
-      <AddBlockForm onAdd={onAddBlock} />
+      <AddBlockForm sessionId={sessionId} onAdd={onAddBlock} />
     </div>
   );
 }

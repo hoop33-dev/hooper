@@ -15,7 +15,7 @@ import type {
 import { useState } from "react";
 import type {
   BlockExercisePositionUpdate,
-  PositionUpdate,
+  BlockPositionUpdate,
 } from "./dnd/dropComputation";
 import { useBlockExerciseDnd } from "./dnd/useBlockExerciseDnd";
 import { useBlockActions } from "./useBlockActions";
@@ -31,7 +31,9 @@ export interface SessionViewActions {
     input: UpdateBlockInput,
   ) => Promise<ActionResult<BlockRow>>;
   deleteBlockAction: (id: string) => Promise<ActionResult>;
-  reorderBlocksAction: (updates: PositionUpdate[]) => Promise<ActionResult>;
+  reorderBlocksAction: (
+    updates: BlockPositionUpdate[],
+  ) => Promise<ActionResult>;
   addExerciseToBlockAction: (
     input: AddExerciseToBlockInput,
   ) => Promise<ActionResult<BlockExerciseRow>>;
@@ -60,15 +62,15 @@ export function useSessionViewState(
     addExerciseToBlockAction: actions.addExerciseToBlockAction,
     reorderBlockExercisesAction: actions.reorderBlockExercisesAction,
     reorderBlocksAction: actions.reorderBlocksAction,
-    createBlockAction: (name) =>
-      actions.createBlockAction({ session_id: session.id, name }),
+    createBlockAction: (sessionId, name) =>
+      actions.createBlockAction({ session_id: sessionId, name }),
   });
 
   const blockActions = useBlockActions({
     blocks,
     setBlocks,
-    createBlockAction: (name) =>
-      actions.createBlockAction({ session_id: session.id, name }),
+    createBlockAction: (sessionId, name) =>
+      actions.createBlockAction({ session_id: sessionId, name }),
     updateBlockAction: actions.updateBlockAction,
     deleteBlockAction: actions.deleteBlockAction,
     updateBlockExerciseAction: actions.updateBlockExerciseAction,

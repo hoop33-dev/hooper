@@ -41,6 +41,7 @@ export function ProgramCanvasShell({
           totalWeeks={program.weeks}
           selectedWeek={state.selectedWeek}
           onSelect={state.selectWeek}
+          onAddWeek={state.addWeek}
         />
         <SessionCanvasRow
           programId={program.id}
@@ -60,7 +61,9 @@ export function ProgramCanvasShell({
               weekNumber: state.selectedWeek,
             })
           }
-          onAddBlock={() => state.blockActions.addBlock("New block")}
+          onAddBlock={(sessionId) =>
+            state.blockActions.addBlock(sessionId, "New block")
+          }
           onOpenExercise={state.blockActions.openExerciseEditor}
           onRemoveExercise={(_blockId, exerciseRowId) =>
             state.blockActions.removeExerciseById(exerciseRowId)
@@ -72,7 +75,7 @@ export function ProgramCanvasShell({
         <DragOverlay>
           <DragPreviewOverlay
             activeId={state.dnd.activeId}
-            blocks={state.focusedSession?.blocks ?? []}
+            blocks={state.weekSessions.flatMap((s) => s.blocks)}
             exercisesById={state.exercisesById}
           />
         </DragOverlay>

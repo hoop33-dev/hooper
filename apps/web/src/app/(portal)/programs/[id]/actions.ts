@@ -2,7 +2,7 @@
 
 import type {
   BlockExercisePositionUpdate,
-  PositionUpdate,
+  BlockPositionUpdate,
 } from "@/src/components/portal/programs/dnd/dropComputation";
 import {
   addExerciseToBlock,
@@ -111,7 +111,7 @@ export async function deleteBlockAction(id: string): Promise<ActionResult> {
 }
 
 export async function reorderBlocksAction(
-  updates: PositionUpdate[],
+  updates: BlockPositionUpdate[],
 ): Promise<ActionResult> {
   const result = await reorderBlocks(updates);
   if (result.ok) revalidateProgramRoutes();

@@ -4,6 +4,7 @@ import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
 import { getProgramById } from "@/src/services/program.service";
 import { notFound } from "next/navigation";
+import { updateProgramAction } from "../actions";
 import {
   addExerciseToBlockAction,
   createBlockAction,
@@ -13,6 +14,7 @@ import {
   duplicateSessionAction,
   removeExerciseFromBlockAction,
   reorderBlockExercisesAction,
+  reorderBlocksAction,
   updateBlockAction,
   updateBlockExerciseAction,
   updateSessionNameAction,
@@ -52,10 +54,12 @@ export default async function ProgramCanvasPage({
         createBlockAction={createBlockAction}
         updateBlockAction={updateBlockAction}
         deleteBlockAction={deleteBlockAction}
+        reorderBlocksAction={reorderBlocksAction}
         addExerciseToBlockAction={addExerciseToBlockAction}
         updateBlockExerciseAction={updateBlockExerciseAction}
         removeExerciseFromBlockAction={removeExerciseFromBlockAction}
         reorderBlockExercisesAction={reorderBlockExercisesAction}
+        updateProgramAction={updateProgramAction}
       />
     </div>
   );

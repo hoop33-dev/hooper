@@ -3,20 +3,24 @@
 import { cn } from "@/src/lib/cn";
 import { useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
-import { NEW_BLOCK_DROP_ID } from "./useBlockExerciseDnd";
+import { newBlockDropId } from "./useBlockExerciseDnd";
 
 interface NewBlockDropZoneProps {
+  sessionId: string;
   children: ReactNode;
   className?: string;
 }
 
 /** Wraps the "+ Add block" trigger so dropping a library exercise onto it
- * creates a new block pre-populated with that exercise. */
+ * creates a new block in this session, pre-populated with that exercise. */
 export function NewBlockDropZone({
+  sessionId,
   children,
   className,
 }: NewBlockDropZoneProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: NEW_BLOCK_DROP_ID });
+  const { setNodeRef, isOver } = useDroppable({
+    id: newBlockDropId(sessionId),
+  });
 
   return (
     <div

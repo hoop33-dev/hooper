@@ -10,9 +10,15 @@ html {
   color-scheme: dark;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   background-color: var(--color-surface, #161213);
   color: #ffffff;
+  overflow: hidden;
 }
 
 /* Tailwind's preflight resets <button> to cursor: default. Every button in

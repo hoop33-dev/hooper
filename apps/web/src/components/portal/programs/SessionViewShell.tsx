@@ -42,9 +42,7 @@ export function SessionViewShell({
         onDragCancel={state.dnd.handleDragCancel}>
         <DragIndicatorContext.Provider value={state.dnd.indicator}>
           <ExerciseLibraryPanel exercises={exercises} categories={categories} />
-          {/* Column wrapper gives the block list a definite, bounded height
-              so it scrolls vertically instead of overflowing the page. */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
             <BlockList
               sessionId={session.id}
               blocks={state.blocks}

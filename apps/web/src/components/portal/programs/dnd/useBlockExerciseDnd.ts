@@ -2,7 +2,6 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  type Active,
   type DragEndEvent,
   type DragMoveEvent,
   type DragStartEvent,
@@ -21,7 +20,7 @@ import {
   type BlockExercisePositionUpdate,
   type BlockPositionUpdate,
 } from "./dropComputation";
-import { isInsertAfter } from "./insertPosition";
+import { isInsertAfter, isInsertAfterForBlockTarget } from "./insertPosition";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
@@ -107,8 +106,8 @@ type ExerciseTarget = {
  */
 function resolveExerciseTarget(
   blocks: BlockWithExercises[],
-  active: Active,
   over: Over,
+  pointerY: number | null,
   excludeId?: string,
 ): ExerciseTarget | null {
   const parsed = parseId(String(over.id));
@@ -119,7 +118,7 @@ function resolveExerciseTarget(
     return {
       blockId,
       overExerciseId: parsed.value,
-      insertAfter: isInsertAfter(active, over),
+      insertAfter: isInsertAfter(pointerY, over),
     };
   }
   if (parsed.type === "block") {
@@ -158,7 +157,7 @@ function resolveTargetSession(
 async function handleBlockDrop(
   options: UseBlockExerciseDndOptions,
   activeBlockId: string,
-  active: Active,
+  pointerY: number | null,
   over: Over,
   markCommitted: () => void,
 ) {
@@ -170,7 +169,7 @@ async function handleBlockDrop(
     activeBlockId,
     target.sessionId,
     target.overBlockId,
-    target.overBlockId ? isInsertAfter(active, over) : false,
+    target.overBlockId ? isInsertAfterForBlockTarget(pointerY, over) : false,
   );
   if (!result) return;
   markCommitted();
@@ -181,7 +180,7 @@ async function handleBlockDrop(
 async function handleExerciseDrop(
   options: UseBlockExerciseDndOptions,
   activeExerciseId: string,
-  active: Active,
+  pointerY: number | null,
   over: Over,
   markCommitted: () => void,
 ) {
@@ -191,8 +190,8 @@ async function handleExerciseDrop(
   );
   const target = resolveExerciseTarget(
     options.blocks,
-    active,
     over,
+    pointerY,
     activeExerciseId,
   );
   if (!sourceBlockId || !target) return;
@@ -237,7 +236,7 @@ async function handleLibraryDropOnNewBlock(
 async function handleLibraryDrop(
   options: UseBlockExerciseDndOptions,
   exerciseId: string,
-  active: Active,
+  pointerY: number | null,
   over: Over,
   markCommitted: () => void,
 ) {
@@ -256,7 +255,7 @@ async function handleLibraryDrop(
     return;
   }
 
-  const target = resolveExerciseTarget(options.blocks, active, over);
+  const target = resolveExerciseTarget(options.blocks, over, pointerY);
   if (!target) return;
 
   markCommitted();
@@ -294,42 +293,74 @@ async function handleLibraryDrop(
   await options.reorderBlockExercisesAction(reordered.updates);
 }
 
-export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [dropTarget, setDropTarget] = useState<{
-    overId: string;
-    after: boolean;
-  } | null>(null);
-  // Suppresses the DragOverlay's snap-back animation once a drop resolves to
-  // a real placement, so the item vanishes and appears at its destination
-  // instead of flying back — the return animation is reserved for drops
-  // somewhere the exercise/block can't actually go.
-  const [suppressDropAnimation, setSuppressDropAnimation] = useState(false);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-  );
-
-  function handleDragStart(event: DragStartEvent) {
-    setActiveId(event.active.id as string);
-    setSuppressDropAnimation(false);
+function getPointerY(event: {
+  activatorEvent: Event | null;
+  delta: { y: number };
+}): number | null {
+  const activatorEvent = event.activatorEvent;
+  if (!activatorEvent) return null;
+  if (
+    "clientY" in activatorEvent &&
+    typeof activatorEvent.clientY === "number"
+  ) {
+    return activatorEvent.clientY + event.delta.y;
   }
+  const touchEvent = activatorEvent as TouchEvent;
+  if (touchEvent.touches.length > 0) {
+    return touchEvent.touches[0].clientY + event.delta.y;
+  }
+  if (touchEvent.changedTouches.length > 0) {
+    return touchEvent.changedTouches[0].clientY + event.delta.y;
+  }
+  return null;
+}
 
-  // Fires continuously as the pointer moves, so the insertion line can track
-  // top-half vs bottom-half of the same item (useSortable's `over` alone can't).
-  function handleDragMove(event: DragMoveEvent) {
-    const { active, over } = event;
+function createDragStartHandler(
+  setActiveId: (value: string | null) => void,
+  setPointerY: (value: number | null) => void,
+  setSuppressDropAnimation: (value: boolean) => void,
+) {
+  return (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+    setPointerY(
+      getPointerY({ activatorEvent: event.activatorEvent, delta: { y: 0 } }),
+    );
+    setSuppressDropAnimation(false);
+  };
+}
+
+function createDragMoveHandler(
+  setPointerY: (value: number | null) => void,
+  setDropTarget: (value: { overId: string; after: boolean } | null) => void,
+) {
+  return (event: DragMoveEvent) => {
+    const { over } = event;
+    const nextPointerY = getPointerY(event);
+    setPointerY(nextPointerY);
     if (!over) {
       setDropTarget(null);
       return;
     }
     setDropTarget({
       overId: String(over.id),
-      after: isInsertAfter(active, over),
+      after: String(over.id).startsWith("block:")
+        ? isInsertAfterForBlockTarget(nextPointerY, over)
+        : isInsertAfter(nextPointerY, over),
     });
-  }
+  };
+}
 
-  async function handleDragEnd(event: DragEndEvent) {
+function createDragEndHandler(
+  options: UseBlockExerciseDndOptions,
+  pointerY: number | null,
+  setActiveId: (value: string | null) => void,
+  setPointerY: (value: number | null) => void,
+  setDropTarget: (value: { overId: string; after: boolean } | null) => void,
+  setSuppressDropAnimation: (value: boolean) => void,
+) {
+  return async (event: DragEndEvent) => {
     setActiveId(null);
+    setPointerY(null);
     setDropTarget(null);
     const { active, over } = event;
     if (!over) return;
@@ -343,7 +374,7 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
       await handleBlockDrop(
         options,
         activeParsed.value,
-        active,
+        pointerY,
         over,
         markCommitted,
       );
@@ -351,7 +382,7 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
       await handleExerciseDrop(
         options,
         activeParsed.value,
-        active,
+        pointerY,
         over,
         markCommitted,
       );
@@ -359,17 +390,62 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
       await handleLibraryDrop(
         options,
         activeParsed.value,
-        active,
+        pointerY,
         over,
         markCommitted,
       );
     }
-  }
+  };
+}
 
-  function handleDragCancel() {
+function createDragCancelHandler(
+  setActiveId: (value: string | null) => void,
+  setPointerY: (value: number | null) => void,
+  setDropTarget: (value: { overId: string; after: boolean } | null) => void,
+) {
+  return () => {
     setActiveId(null);
+    setPointerY(null);
     setDropTarget(null);
-  }
+  };
+}
+
+export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [pointerY, setPointerY] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    overId: string;
+    after: boolean;
+  } | null>(null);
+
+  // Suppresses the DragOverlay's snap-back animation once a drop resolves to
+  // a real placement, so the item vanishes and appears at its destination
+  // instead of flying back — the return animation is reserved for drops
+  // somewhere the exercise/block can't actually go.
+  const [suppressDropAnimation, setSuppressDropAnimation] = useState(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
+
+  const handleDragStart = createDragStartHandler(
+    setActiveId,
+    setPointerY,
+    setSuppressDropAnimation,
+  );
+  const handleDragMove = createDragMoveHandler(setPointerY, setDropTarget);
+  const handleDragEnd = createDragEndHandler(
+    options,
+    pointerY,
+    setActiveId,
+    setPointerY,
+    setDropTarget,
+    setSuppressDropAnimation,
+  );
+  const handleDragCancel = createDragCancelHandler(
+    setActiveId,
+    setPointerY,
+    setDropTarget,
+  );
 
   return {
     sensors,

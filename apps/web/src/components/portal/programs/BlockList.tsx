@@ -110,9 +110,7 @@ export function BlockList({
   // the list (below the last block) even though there's no row to hover.
   const { setNodeRef } = useDroppable({ id: sessionDropId(sessionId) });
   return (
-    <div
-      ref={setNodeRef}
-      className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
+    <div ref={setNodeRef} className="flex flex-col gap-3 p-5">
       <SortableContext
         items={blocks.map((b) => `block:${b.id}`)}
         strategy={verticalListSortingStrategy}>

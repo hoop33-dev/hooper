@@ -34,7 +34,7 @@ export default async function SessionViewPage({
   const categories = categoriesResult.ok ? categoriesResult.data : [];
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <PageHeader
         title={sessionResult.data.name}
         subtitle={`Week ${sessionResult.data.week_number} · Session ${sessionResult.data.position + 1}`}

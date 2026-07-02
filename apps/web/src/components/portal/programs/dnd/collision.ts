@@ -42,9 +42,7 @@ export const blockDndCollision: CollisionDetection = (args) => {
     ...args,
     droppableContainers: containers,
   });
-  if (pointerHits.length === 0) {
-    return closestCenter({ ...args, droppableContainers: containers });
-  }
+  if (pointerHits.length === 0) return [];
 
   const topType = pointerHits
     .map((hit) => idType(hit.id))

@@ -2,6 +2,7 @@ import type { Result } from "@/src/lib/result";
 import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type {
+  BlockExerciseMeasurementRow,
   BlockExerciseRow,
   BlockRow,
   SessionRow,
@@ -131,8 +132,12 @@ export async function deleteSession(id: string): Promise<Result<void>> {
   }
 }
 
+type SourceBlockExercise = BlockExerciseRow & {
+  block_exercise_measurements: BlockExerciseMeasurementRow[];
+};
+
 type SourceSession = SessionRow & {
-  blocks: (BlockRow & { block_exercises: BlockExerciseRow[] })[];
+  blocks: (BlockRow & { block_exercises: SourceBlockExercise[] })[];
 };
 
 async function fetchSourceSession(
@@ -141,7 +146,7 @@ async function fetchSourceSession(
 ): Promise<SourceSession | null> {
   const { data } = await supabase
     .from("sessions")
-    .select("*, blocks(*, block_exercises(*))")
+    .select("*, blocks(*, block_exercises(*, block_exercise_measurements(*)))")
     .eq("id", id)
     .single();
   return (data as unknown as SourceSession) ?? null;
@@ -191,18 +196,37 @@ async function copySessionIntoWeek(
       exercise_id: be.exercise_id,
       position: be.position,
       sets: be.sets,
-      unit_type: be.unit_type,
-      reps: be.reps,
-      value: be.value,
       notes: be.notes,
     })),
   );
 
   if (blockExerciseRows.length > 0) {
-    const { error: exercisesError } = await supabase
+    const { data: newBlockExercises, error: exercisesError } = await supabase
       .from("block_exercises")
-      .insert(blockExerciseRows);
+      .insert(blockExerciseRows)
+      .select();
     if (exercisesError) return err(exercisesError.message);
+
+    const sourceBlockExercises = source.blocks.flatMap(
+      (block) => block.block_exercises,
+    );
+    const measurementRows = sourceBlockExercises.flatMap((be, i) =>
+      be.block_exercise_measurements.map((m) => ({
+        block_exercise_id: newBlockExercises[i].id,
+        position: m.position,
+        unit_type: m.unit_type,
+        value: m.value,
+        value_entered_by: m.value_entered_by,
+        value_unit: m.value_unit,
+      })),
+    );
+
+    if (measurementRows.length > 0) {
+      const { error: measurementsError } = await supabase
+        .from("block_exercise_measurements")
+        .insert(measurementRows);
+      if (measurementsError) return err(measurementsError.message);
+    }
   }
 
   return ok(newSession);

@@ -72,16 +72,22 @@ export type ExerciseWithDetails = ExerciseRow & {
 };
 
 import type {
+  BlockExerciseMeasurementRow,
   BlockExerciseRow,
   BlockRow,
   ProgramRow,
   SessionRow,
 } from "./schema";
 
+export type { BlockExerciseMeasurementRow, EnteredBy } from "./schema";
+
 // `exercise` carries its own unitTypes (not just the raw row) so the
 // measurement modal can offer only that exercise's configured unit types.
+// `measurements` (sorted by position) is the placement's own active
+// measurements — one per unit type the coach has enabled for this exercise.
 export type BlockExerciseWithDetails = BlockExerciseRow & {
   exercise: ExerciseWithDetails;
+  measurements: BlockExerciseMeasurementRow[];
 };
 
 export type BlockWithExercises = BlockRow & {

@@ -2,12 +2,12 @@
 
 import type {
   AddExerciseToBlockInput,
+  BlockExerciseWithMeasurements,
   CreateBlockInput,
   UpdateBlockExerciseInput,
   UpdateBlockInput,
 } from "@/src/services/block.service";
 import type {
-  BlockExerciseRow,
   BlockRow,
   ExerciseWithDetails,
   SessionWithBlocks,
@@ -36,11 +36,11 @@ export interface SessionViewActions {
   ) => Promise<ActionResult>;
   addExerciseToBlockAction: (
     input: AddExerciseToBlockInput,
-  ) => Promise<ActionResult<BlockExerciseRow>>;
+  ) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
   updateBlockExerciseAction: (
     id: string,
     input: UpdateBlockExerciseInput,
-  ) => Promise<ActionResult<BlockExerciseRow>>;
+  ) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
   removeExerciseFromBlockAction: (id: string) => Promise<ActionResult>;
   reorderBlockExercisesAction: (
     updates: BlockExercisePositionUpdate[],

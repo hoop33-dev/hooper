@@ -30,13 +30,22 @@ function makeBlockExercise(
     exercise_id: id,
     position,
     sets: 3,
-    unit_type: "Reps",
-    reps: 10,
-    value: null,
     notes: null,
     created_at: "",
     updated_at: "",
     exercise: makeExercise(id),
+    measurements: [
+      {
+        block_exercise_id: id,
+        position: 0,
+        unit_type: "Reps",
+        value: 10,
+        value_entered_by: "coach",
+        value_unit: null,
+        created_at: "",
+        updated_at: "",
+      },
+    ],
   };
 }
 

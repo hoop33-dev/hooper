@@ -14,6 +14,7 @@ import {
   updateBlock,
   updateBlockExercise,
   type AddExerciseToBlockInput,
+  type BlockExerciseWithMeasurements,
   type CreateBlockInput,
   type UpdateBlockExerciseInput,
   type UpdateBlockInput,
@@ -27,7 +28,7 @@ import {
   type CreateSessionInput,
   type DuplicateSessionInput,
 } from "@/src/services/session.service";
-import type { BlockExerciseRow, BlockRow, SessionRow } from "@hooper/db";
+import type { BlockRow, SessionRow } from "@hooper/db";
 import { revalidatePath } from "next/cache";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
@@ -120,7 +121,7 @@ export async function reorderBlocksAction(
 
 export async function addExerciseToBlockAction(
   input: AddExerciseToBlockInput,
-): Promise<ActionResult<BlockExerciseRow>> {
+): Promise<ActionResult<BlockExerciseWithMeasurements>> {
   const result = await addExerciseToBlock(input);
   if (result.ok) revalidateProgramRoutes();
   return result.ok
@@ -131,7 +132,7 @@ export async function addExerciseToBlockAction(
 export async function updateBlockExerciseAction(
   id: string,
   input: UpdateBlockExerciseInput,
-): Promise<ActionResult<BlockExerciseRow>> {
+): Promise<ActionResult<BlockExerciseWithMeasurements>> {
   const result = await updateBlockExercise(id, input);
   if (result.ok) revalidateProgramRoutes();
   return result.ok

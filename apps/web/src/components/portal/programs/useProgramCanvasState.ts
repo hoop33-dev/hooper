@@ -2,6 +2,7 @@
 
 import type {
   AddExerciseToBlockInput,
+  BlockExerciseWithMeasurements,
   CreateBlockInput,
   UpdateBlockExerciseInput,
   UpdateBlockInput,
@@ -12,7 +13,6 @@ import type {
   DuplicateSessionInput,
 } from "@/src/services/session.service";
 import type {
-  BlockExerciseRow,
   BlockRow,
   BlockWithExercises,
   ExerciseWithDetails,
@@ -23,6 +23,7 @@ import type {
 } from "@hooper/db";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useToast } from "../ui/Toast";
 import type {
   BlockExercisePositionUpdate,
   BlockPositionUpdate,
@@ -58,11 +59,11 @@ export interface ProgramCanvasActions {
   ) => Promise<ActionResult>;
   addExerciseToBlockAction: (
     input: AddExerciseToBlockInput,
-  ) => Promise<ActionResult<BlockExerciseRow>>;
+  ) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
   updateBlockExerciseAction: (
     id: string,
     input: UpdateBlockExerciseInput,
-  ) => Promise<ActionResult<BlockExerciseRow>>;
+  ) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
   removeExerciseFromBlockAction: (id: string) => Promise<ActionResult>;
   reorderBlockExercisesAction: (
     updates: BlockExercisePositionUpdate[],
@@ -86,11 +87,14 @@ function useSessionModalHandlers(
   setSessionModal: (state: SessionModalState) => void,
 ) {
   const router = useRouter();
+  const { showError } = useToast();
 
-  function finish(result: { ok: boolean }) {
+  function finish(result: { ok: boolean; error?: string }) {
     if (result.ok) {
       setSessionModal(null);
       router.refresh();
+    } else {
+      showError(result.error ?? "Something went wrong.");
     }
   }
 
@@ -131,6 +135,7 @@ function useSessionModalHandlers(
   async function handleDeleteSession(id: string) {
     const result = await actions.deleteSessionAction(id);
     if (result.ok) router.refresh();
+    else showError(result.error ?? "Something went wrong.");
   }
 
   return {
@@ -204,6 +209,7 @@ export function useProgramCanvasState(
   actions: ProgramCanvasActions,
 ) {
   const router = useRouter();
+  const { showError } = useToast();
   const [sessions, setSessions] = useState(program.sessions);
   const [selectedWeek, setSelectedWeek] = useState(
     program.sessions[0]?.week_number ?? 1,
@@ -247,6 +253,8 @@ export function useProgramCanvasState(
     if (result.ok) {
       router.refresh();
       selectWeek(newWeekCount);
+    } else {
+      showError(result.error ?? "Something went wrong.");
     }
   }
 

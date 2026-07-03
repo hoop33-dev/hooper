@@ -113,10 +113,20 @@ export type BlockExerciseRow = {
   exercise_id: string;
   position: number;
   sets: number;
-  unit_type: string;
-  reps: number | null;
-  value: number | null;
   notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EnteredBy = "coach" | "athlete";
+
+export type BlockExerciseMeasurementRow = {
+  block_exercise_id: string;
+  position: number;
+  unit_type: string;
+  value: number | null;
+  value_entered_by: EnteredBy;
+  value_unit: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -188,8 +198,18 @@ export type Database = {
       block_exercises: {
         Row: BlockExerciseRow;
         Insert: Partial<BlockExerciseRow> &
-          Pick<BlockExerciseRow, "block_id" | "exercise_id" | "unit_type">;
+          Pick<BlockExerciseRow, "block_id" | "exercise_id">;
         Update: Partial<BlockExerciseRow>;
+        Relationships: [];
+      };
+      block_exercise_measurements: {
+        Row: BlockExerciseMeasurementRow;
+        Insert: Partial<BlockExerciseMeasurementRow> &
+          Pick<
+            BlockExerciseMeasurementRow,
+            "block_exercise_id" | "position" | "unit_type"
+          >;
+        Update: Partial<BlockExerciseMeasurementRow>;
         Relationships: [];
       };
     };

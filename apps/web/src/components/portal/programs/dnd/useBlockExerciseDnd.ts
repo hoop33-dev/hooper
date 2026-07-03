@@ -1,3 +1,4 @@
+import type { BlockExerciseWithMeasurements } from "@/src/services/block.service";
 import {
   PointerSensor,
   useSensor,
@@ -8,12 +9,12 @@ import {
   type Over,
 } from "@dnd-kit/core";
 import type {
-  BlockExerciseRow,
   BlockRow,
   BlockWithExercises,
   ExerciseWithDetails,
 } from "@hooper/db";
 import { useState } from "react";
+import { useToast } from "../../ui/Toast";
 import {
   computeBlockMove,
   computeExerciseMove,
@@ -21,6 +22,13 @@ import {
   type BlockPositionUpdate,
 } from "./dropComputation";
 import { isInsertAfter, isInsertAfterForBlockTarget } from "./insertPosition";
+
+function reportIfFailed(
+  onError: (message: string) => void,
+  result: { ok: boolean; error?: string },
+) {
+  if (!result.ok) onError(result.error ?? "Something went wrong.");
+}
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
@@ -31,7 +39,7 @@ export interface UseBlockExerciseDndOptions {
   addExerciseToBlockAction: (input: {
     block_id: string;
     exercise_id: string;
-  }) => Promise<ActionResult<BlockExerciseRow>>;
+  }) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
   reorderBlockExercisesAction: (
     updates: BlockExercisePositionUpdate[],
   ) => Promise<ActionResult>;
@@ -160,6 +168,7 @@ async function handleBlockDrop(
   pointerY: number | null,
   over: Over,
   markCommitted: () => void,
+  onError: (message: string) => void,
 ) {
   if (!options.reorderBlocksAction) return;
   const target = resolveTargetSession(options.blocks, String(over.id));
@@ -174,7 +183,7 @@ async function handleBlockDrop(
   if (!result) return;
   markCommitted();
   options.setBlocks(result.blocks);
-  await options.reorderBlocksAction(result.updates);
+  reportIfFailed(onError, await options.reorderBlocksAction(result.updates));
 }
 
 async function handleExerciseDrop(
@@ -183,6 +192,7 @@ async function handleExerciseDrop(
   pointerY: number | null,
   over: Over,
   markCommitted: () => void,
+  onError: (message: string) => void,
 ) {
   const sourceBlockId = findBlockIdForExercise(
     options.blocks,
@@ -207,7 +217,10 @@ async function handleExerciseDrop(
   if (!result) return;
   markCommitted();
   options.setBlocks(result.blocks);
-  await options.reorderBlockExercisesAction(result.updates);
+  reportIfFailed(
+    onError,
+    await options.reorderBlockExercisesAction(result.updates),
+  );
 }
 
 async function handleLibraryDropOnNewBlock(
@@ -216,16 +229,21 @@ async function handleLibraryDropOnNewBlock(
   exercise: ExerciseWithDetails,
   sessionId: string,
   markCommitted: () => void,
+  onError: (message: string) => void,
 ) {
   if (!options.createBlockAction) return;
   markCommitted();
   const blockResult = await options.createBlockAction(sessionId, "New block");
-  if (!blockResult.ok || !blockResult.data) return;
+  if (!blockResult.ok || !blockResult.data) {
+    reportIfFailed(onError, blockResult);
+    return;
+  }
 
   const exerciseResult = await options.addExerciseToBlockAction({
     block_id: blockResult.data.id,
     exercise_id: exerciseId,
   });
+  reportIfFailed(onError, exerciseResult);
   const exercises =
     exerciseResult.ok && exerciseResult.data
       ? [{ ...exerciseResult.data, exercise }]
@@ -239,6 +257,7 @@ async function handleLibraryDrop(
   pointerY: number | null,
   over: Over,
   markCommitted: () => void,
+  onError: (message: string) => void,
 ) {
   const exercise = options.exercisesById.get(exerciseId);
   if (!exercise) return;
@@ -251,6 +270,7 @@ async function handleLibraryDrop(
       exercise,
       overParsed.value,
       markCommitted,
+      onError,
     );
     return;
   }
@@ -263,7 +283,10 @@ async function handleLibraryDrop(
     block_id: target.blockId,
     exercise_id: exerciseId,
   });
-  if (!result.ok || !result.data) return;
+  if (!result.ok || !result.data) {
+    reportIfFailed(onError, result);
+    return;
+  }
 
   const newRow = { ...result.data, exercise };
   const appended = options.blocks.map((b) =>
@@ -290,7 +313,10 @@ async function handleLibraryDrop(
     return;
   }
   options.setBlocks(reordered.blocks);
-  await options.reorderBlockExercisesAction(reordered.updates);
+  reportIfFailed(
+    onError,
+    await options.reorderBlockExercisesAction(reordered.updates),
+  );
 }
 
 function getPointerY(event: {
@@ -357,6 +383,7 @@ function createDragEndHandler(
   setPointerY: (value: number | null) => void,
   setDropTarget: (value: { overId: string; after: boolean } | null) => void,
   setSuppressDropAnimation: (value: boolean) => void,
+  onError: (message: string) => void,
 ) {
   return async (event: DragEndEvent) => {
     setActiveId(null);
@@ -377,6 +404,7 @@ function createDragEndHandler(
         pointerY,
         over,
         markCommitted,
+        onError,
       );
     } else if (activeParsed.type === "block-exercise") {
       await handleExerciseDrop(
@@ -385,6 +413,7 @@ function createDragEndHandler(
         pointerY,
         over,
         markCommitted,
+        onError,
       );
     } else {
       await handleLibraryDrop(
@@ -393,6 +422,7 @@ function createDragEndHandler(
         pointerY,
         over,
         markCommitted,
+        onError,
       );
     }
   };
@@ -411,6 +441,7 @@ function createDragCancelHandler(
 }
 
 export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
+  const { showError } = useToast();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pointerY, setPointerY] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{
@@ -440,6 +471,7 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
     setPointerY,
     setDropTarget,
     setSuppressDropAnimation,
+    showError,
   );
   const handleDragCancel = createDragCancelHandler(
     setActiveId,

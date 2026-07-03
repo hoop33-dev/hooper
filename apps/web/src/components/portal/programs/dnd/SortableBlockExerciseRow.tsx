@@ -113,7 +113,7 @@ function RowBody({
       </div>
       <div className="flex flex-shrink-0 items-center gap-3">
         {measurementStatColumns(blockExercise).map((col) => (
-          <StatColumn key={col.label} label={col.label} value={col.value} />
+          <StatColumn key={col.key} label={col.label} value={col.value} />
         ))}
       </div>
     </>

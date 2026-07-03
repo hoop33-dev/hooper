@@ -29,7 +29,8 @@ describe("isInsertAfterForBlockTarget", () => {
   });
 
   it("falls back to midpoint logic below the header", () => {
+    // header zone here is top+min(44, 80*0.4) = 132; midpoint is 140.
     expect(isInsertAfterForBlockTarget(150, makeOver(100, 80))).toBe(true);
-    expect(isInsertAfterForBlockTarget(130, makeOver(100, 80))).toBe(false);
+    expect(isInsertAfterForBlockTarget(135, makeOver(100, 80))).toBe(false);
   });
 });

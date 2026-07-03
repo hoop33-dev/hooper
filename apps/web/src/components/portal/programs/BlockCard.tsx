@@ -21,15 +21,15 @@ import { SortableBlockExerciseRow } from "./dnd/SortableBlockExerciseRow";
 
 type BlockDropVisual = {
   lineEdge: "top" | "bottom" | null;
+  headerLineEdge: "bottom" | null;
   emptyHighlight: boolean;
 };
 
 /**
  * A block card shows either a block-reorder line (block drag hovering this
- * card), a front-insert line at its top (an exercise/library item dropped on
- * the block header rather than a specific row → goes first), or a fill
- * highlight (something dropped onto an empty block, which has no row to
- * anchor a line to).
+ * card), a header-bottom line for an exercise/library drop on the block
+ * header (it goes first in the block), or a fill highlight (something dropped
+ * onto an empty block, which has no row to anchor a line to).
  */
 function computeBlockDropVisual(
   blockDomId: string,
@@ -38,20 +38,22 @@ function computeBlockDropVisual(
 ): BlockDropVisual {
   const activeId = indicator.activeId ?? "";
   if (!activeId || indicator.overId !== blockDomId)
-    return { lineEdge: null, emptyHighlight: false };
+    return { lineEdge: null, headerLineEdge: null, emptyHighlight: false };
 
   if (activeId.startsWith("block:")) {
     if (activeId === blockDomId)
-      return { lineEdge: null, emptyHighlight: false };
+      return { lineEdge: null, headerLineEdge: null, emptyHighlight: false };
     return {
       lineEdge: indicator.after ? "bottom" : "top",
+      headerLineEdge: null,
       emptyHighlight: false,
     };
   }
   // Exercise or library item dropped onto the block itself (its header) —
-  // it goes to the front, so the line sits at the top.
+  // show the cue on the header bottom so it reads as "insert first".
   return {
-    lineEdge: hasExercises ? "top" : null,
+    lineEdge: null,
+    headerLineEdge: hasExercises ? "bottom" : null,
     emptyHighlight: !hasExercises,
   };
 }
@@ -140,6 +142,7 @@ interface BlockCardHeaderProps {
   block: BlockWithExercises;
   readOnly?: boolean;
   dragHandleProps?: Record<string, unknown>;
+  dropLineEdge?: "bottom" | null;
   onRename: (name: string) => void;
   onDelete: () => void;
   addExercise?: {
@@ -152,6 +155,7 @@ function BlockCardHeader({
   block,
   readOnly,
   dragHandleProps,
+  dropLineEdge,
   onRename,
   onDelete,
   addExercise,
@@ -160,8 +164,11 @@ function BlockCardHeader({
   // renames — the pointer sensor only starts a drag past an 8px threshold).
   return (
     <div
-      className="border-portal-border bg-portal-bg flex touch-none items-center gap-2 border-b px-3 py-2"
+      className="border-portal-border bg-portal-bg relative flex touch-none items-center gap-2 border-b px-3 py-2"
       {...dragHandleProps}>
+      {dropLineEdge && (
+        <div className="bg-portal-orange pointer-events-none absolute inset-x-0 bottom-0 z-10 h-0.5" />
+      )}
       <span className="text-portal-text3 flex-shrink-0 cursor-grab active:cursor-grabbing">
         <GripIcon />
       </span>
@@ -258,7 +265,7 @@ export function BlockCard({
   const { attributes, listeners, setNodeRef, isDragging } = useSortable({
     id: blockDomId,
   });
-  const { lineEdge, emptyHighlight } = computeBlockDropVisual(
+  const { lineEdge, headerLineEdge, emptyHighlight } = computeBlockDropVisual(
     blockDomId,
     block.exercises.length > 0,
     useDragIndicator(),
@@ -286,6 +293,7 @@ export function BlockCard({
         block={block}
         readOnly={readOnly}
         dragHandleProps={{ ...attributes, ...listeners }}
+        dropLineEdge={headerLineEdge}
         onRename={onRename}
         onDelete={onDelete}
         addExercise={

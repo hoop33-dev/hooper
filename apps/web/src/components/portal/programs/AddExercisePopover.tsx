@@ -1,7 +1,8 @@
 "use client";
 
 import type { ExerciseWithDetails } from "@hooper/db";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { filterExercises } from "./exerciseFilter";
 
 interface AddExercisePopoverProps {
@@ -47,7 +48,34 @@ export function AddExercisePopover({
 }: AddExercisePopoverProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [position, setPosition] = useState<{
+    top: number;
+    right: number;
+  } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const filtered = filterExercises(exercises, search, "");
+
+  // Blocks clip overflow, so a normal absolutely-positioned dropdown gets cut
+  // off at the card's edge. Portal it to the body and position it against the
+  // trigger's live screen coordinates instead, so it escapes that clipping.
+  useEffect(() => {
+    if (!open) return;
+    function updatePosition() {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPosition({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [open]);
 
   function handleSelect(id: string) {
     onAdd(id);
@@ -56,8 +84,9 @@ export function AddExercisePopover({
   }
 
   return (
-    <div className="relative flex-shrink-0">
+    <div className="flex-shrink-0">
       <button
+        ref={buttonRef}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -66,30 +95,35 @@ export function AddExercisePopover({
         className="border-portal-border text-portal-text2 hover:bg-portal-bg rounded-full border px-2.5 py-1 text-[11px] font-semibold">
         + Add
       </button>
-      {open && (
-        <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpen(false);
-            }}
-          />
-          <div className="border-portal-border bg-portal-card absolute top-full right-0 z-20 mt-1 w-64 overflow-hidden rounded-lg border shadow-lg">
-            <input
-              autoFocus
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-              placeholder="Search exercises…"
-              className="border-portal-border text-portal-text1 w-full border-b px-2.5 py-2 text-xs outline-none"
+      {open &&
+        position &&
+        createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+              }}
             />
-            <div className="max-h-56 overflow-y-auto">
-              <ResultsList exercises={filtered} onSelect={handleSelect} />
+            <div
+              style={{ top: position.top, right: position.right }}
+              className="border-portal-border bg-portal-card fixed z-41 w-64 overflow-hidden rounded-lg border shadow-lg">
+              <input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="Search exercises…"
+                className="border-portal-border text-portal-text1 w-full border-b px-2.5 py-2 text-xs outline-none"
+              />
+              <div className="max-h-56 overflow-y-auto">
+                <ResultsList exercises={filtered} onSelect={handleSelect} />
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body,
+        )}
     </div>
   );
 }

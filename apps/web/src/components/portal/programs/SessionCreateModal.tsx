@@ -4,6 +4,7 @@ import type { SessionRow } from "@hooper/db";
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
+import { XIcon } from "../ui/icons";
 
 export type SessionCreateData =
   | { mode: "blank"; name: string; week_number: number }
@@ -104,7 +105,7 @@ function ModalHeader({
         type="button"
         onClick={onClose}
         className="border-portal-border text-portal-text2 flex h-7 w-7 items-center justify-center rounded-full border">
-        ×
+        <XIcon />
       </button>
     </div>
   );

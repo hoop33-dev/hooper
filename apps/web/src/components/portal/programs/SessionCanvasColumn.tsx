@@ -4,6 +4,7 @@ import { cn } from "@/src/lib/cn";
 import { useDroppable } from "@dnd-kit/core";
 import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
 import Link from "next/link";
+import { DuplicateIcon, PencilIcon, XIcon } from "../ui/icons";
 import { BlockCard } from "./BlockCard";
 import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
 import { sessionDropId } from "./dnd/useBlockExerciseDnd";
@@ -35,7 +36,7 @@ function ColumnHeaderActions({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex flex-shrink-0 items-center gap-1.5">
+    <div className="flex flex-shrink-0 items-center gap-1.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
       <button
         type="button"
         onClick={(e) => {
@@ -44,7 +45,7 @@ function ColumnHeaderActions({
         }}
         className="text-portal-text3 hover:text-portal-text1"
         title="Rename">
-        ✎
+        <PencilIcon />
       </button>
       <button
         type="button"
@@ -54,7 +55,7 @@ function ColumnHeaderActions({
         }}
         className="text-portal-text3 hover:text-portal-text1"
         title="Duplicate">
-        ⧉
+        <DuplicateIcon />
       </button>
       <button
         type="button"
@@ -64,7 +65,7 @@ function ColumnHeaderActions({
         }}
         className="text-portal-text3 hover:text-red-500"
         title="Delete">
-        ×
+        <XIcon />
       </button>
     </div>
   );
@@ -81,7 +82,7 @@ function ColumnHeader({
   "programId" | "session" | "onRename" | "onDuplicate" | "onDelete"
 >) {
   return (
-    <div className="border-portal-border bg-portal-card rounded-lg border p-2.5">
+    <div className="border-portal-border bg-portal-card group rounded-lg border p-2.5">
       <div className="flex items-start justify-between gap-1.5">
         <Link
           href={`/programs/${programId}/sessions/${session.id}`}

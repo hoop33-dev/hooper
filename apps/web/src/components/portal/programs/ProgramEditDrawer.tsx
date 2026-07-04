@@ -4,6 +4,7 @@ import type { ProgramSummary } from "@hooper/db";
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
+import { XIcon } from "../ui/icons";
 import { NumberStepper } from "./NumberStepper";
 
 export type ProgramEditFormData = {
@@ -91,7 +92,7 @@ function DrawerHeader({
         type="button"
         onClick={onClose}
         className="border-portal-border text-portal-text2 flex h-8 w-8 items-center justify-center rounded-full border">
-        ×
+        <XIcon />
       </button>
     </div>
   );

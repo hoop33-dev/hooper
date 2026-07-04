@@ -7,6 +7,7 @@ import {
 } from "@/src/lib/measurementFormat";
 import { useSortable } from "@dnd-kit/sortable";
 import type { BlockExerciseWithDetails } from "@hooper/db";
+import { XIcon } from "../../ui/icons";
 import { useDragIndicator, type DragIndicator } from "./DragIndicatorContext";
 
 /** A row shows an insertion line for exercise reorders and library drops
@@ -29,21 +30,6 @@ function GripIcon() {
       <circle cx="6" cy="2" r="1.2" />
       <circle cx="6" cy="6" r="1.2" />
       <circle cx="6" cy="10" r="1.2" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round">
-      <path d="M18 6L6 18M6 6l12 12" />
     </svg>
   );
 }
@@ -154,7 +140,7 @@ export function SortableBlockExerciseRow({
     <div
       ref={setNodeRef}
       className={cn(
-        "border-portal-border relative flex touch-none items-center gap-2 border-b select-none last:border-b-0",
+        "border-portal-border group relative flex touch-none items-center gap-2 border-b select-none last:border-b-0",
         dense ? "px-3 py-2" : "px-3.5 py-2.5",
         isDragging && "opacity-30",
         !readOnly && "hover:bg-portal-bg cursor-grab active:cursor-grabbing",
@@ -182,7 +168,7 @@ export function SortableBlockExerciseRow({
             onRemove();
           }}
           onPointerDown={(e) => e.stopPropagation()}
-          className="text-portal-text3 hover:text-portal-text1 flex-shrink-0">
+          className="text-portal-text3 hover:text-portal-text1 flex-shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
           <XIcon />
         </button>
       )}

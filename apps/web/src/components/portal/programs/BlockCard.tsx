@@ -12,6 +12,7 @@ import type {
   ExerciseWithDetails,
 } from "@hooper/db";
 import { useState } from "react";
+import { XIcon } from "../ui/icons";
 import { AddExercisePopover } from "./AddExercisePopover";
 import {
   useDragIndicator,
@@ -67,21 +68,6 @@ function GripIcon() {
       <circle cx="7.5" cy="2.5" r="1.3" />
       <circle cx="7.5" cy="7" r="1.3" />
       <circle cx="7.5" cy="11.5" r="1.3" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round">
-      <path d="M18 6L6 18M6 6l12 12" />
     </svg>
   );
 }
@@ -191,7 +177,7 @@ function BlockCardHeader({
           type="button"
           onClick={onDelete}
           onPointerDown={(e) => e.stopPropagation()}
-          className="text-portal-text3 flex-shrink-0 hover:text-red-500">
+          className="text-portal-text3 flex-shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:text-red-500">
           <XIcon />
         </button>
       )}
@@ -277,7 +263,7 @@ export function BlockCard({
     <div
       ref={setNodeRef}
       className={cn(
-        "bg-portal-card border-portal-border relative overflow-hidden rounded-xl border",
+        "bg-portal-card border-portal-border group relative overflow-hidden rounded-xl border",
         emptyHighlight && "bg-portal-orange-soft",
         isDragging && "opacity-40",
       )}>

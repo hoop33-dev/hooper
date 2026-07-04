@@ -11,6 +11,7 @@ import type { BlockExerciseWithDetails, EnteredBy } from "@hooper/db";
 import { useEffect, useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalTextarea } from "../ui/PortalInput";
+import { XIcon } from "../ui/icons";
 
 /**
  * Number entry that allows the field to be blank while typing and coerces to
@@ -104,7 +105,7 @@ function ModalHeader({ name, onClose }: { name: string; onClose: () => void }) {
         type="button"
         onClick={onClose}
         className="border-portal-border text-portal-text2 flex h-7 w-7 items-center justify-center rounded-full border">
-        ×
+        <XIcon />
       </button>
     </div>
   );

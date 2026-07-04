@@ -47,6 +47,17 @@ export const blockDndCollision: CollisionDetection = (args) => {
   const topType = pointerHits
     .map((hit) => idType(hit.id))
     .sort((a, b) => TYPE_PRIORITY.indexOf(a) - TYPE_PRIORITY.indexOf(b))[0];
-  const topContainers = containers.filter((c) => idType(c.id) === topType);
+  // Restrict closestCenter to containers the pointer is actually within — not
+  // every container of the winning type. closestCenter ranks by distance to
+  // the container's own center, so given e.g. two blocks of very different
+  // heights, a sibling the pointer never touched can have a numerically
+  // closer center than the (taller) block it's really hovering, especially
+  // near that block's near edge, causing the wrong one to win.
+  const topHitIds = new Set(
+    pointerHits
+      .filter((hit) => idType(hit.id) === topType)
+      .map((hit) => hit.id),
+  );
+  const topContainers = containers.filter((c) => topHitIds.has(c.id));
   return closestCenter({ ...args, droppableContainers: topContainers });
 };

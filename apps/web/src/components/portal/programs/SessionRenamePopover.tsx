@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
+import { XIcon } from "../ui/icons";
 
 interface SessionRenamePopoverProps {
   currentName: string;
@@ -36,7 +37,7 @@ export function SessionRenamePopover({
             type="button"
             onClick={onClose}
             className="border-portal-border text-portal-text2 flex h-6 w-6 items-center justify-center rounded-full border">
-            ×
+            <XIcon size={9} />
           </button>
         </div>
         <PortalInput

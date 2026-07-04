@@ -93,6 +93,9 @@ export type SessionRow = {
   week_number: number;
   name: string;
   position: number;
+  /** Shared across sessions duplicated together across weeks — null when
+   * this session isn't linked to any others. */
+  link_group_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -103,6 +106,8 @@ export type BlockRow = {
   name: string;
   color: string;
   position: number;
+  /** Shared across the corresponding block in each linked sibling session. */
+  link_group_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -114,6 +119,8 @@ export type BlockExerciseRow = {
   position: number;
   sets: number;
   notes: string | null;
+  /** Shared across the corresponding placement in each linked sibling block. */
+  link_group_id: string | null;
   created_at: string;
   updated_at: string;
 };

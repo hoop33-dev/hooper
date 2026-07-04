@@ -9,6 +9,7 @@ import {
   type Over,
 } from "@dnd-kit/core";
 import type {
+  BlockExerciseWithDetails,
   BlockRow,
   BlockWithExercises,
   ExerciseWithDetails,
@@ -22,6 +23,7 @@ import {
   type BlockPositionUpdate,
 } from "./dropComputation";
 import { isInsertAfter, isInsertAfterForBlockTarget } from "./insertPosition";
+import { createPendingBlock, createPendingExercise } from "./pendingRows";
 
 function reportIfFailed(
   onError: (message: string) => void,
@@ -223,6 +225,38 @@ async function handleExerciseDrop(
   );
 }
 
+/** Appends a freshly-created row to a block's exercise list, unordered —
+ * callers reposition it afterward if it wasn't dropped at the end. */
+function appendExerciseToBlock(
+  blocks: BlockWithExercises[],
+  blockId: string,
+  row: BlockExerciseWithDetails,
+): BlockWithExercises[] {
+  return blocks.map((b) =>
+    b.id === blockId ? { ...b, exercises: [...b.exercises, row] } : b,
+  );
+}
+
+/** Appends `row` to its block, then — if it was dropped over a specific row
+ * rather than at the end — repositions it there via computeExerciseMove. */
+function placeExercise(
+  blocks: BlockWithExercises[],
+  target: ExerciseTarget,
+  row: BlockExerciseWithDetails,
+): BlockWithExercises[] {
+  const appended = appendExerciseToBlock(blocks, target.blockId, row);
+  if (!target.overExerciseId) return appended;
+  const moved = computeExerciseMove(
+    appended,
+    row.id,
+    target.blockId,
+    target.blockId,
+    target.overExerciseId,
+    target.insertAfter,
+  );
+  return moved ? moved.blocks : appended;
+}
+
 async function handleLibraryDropOnNewBlock(
   options: UseBlockExerciseDndOptions,
   exerciseId: string,
@@ -233,8 +267,19 @@ async function handleLibraryDropOnNewBlock(
 ) {
   if (!options.createBlockAction) return;
   markCommitted();
+
+  // Show the new block (and its pending row) immediately instead of waiting
+  // on two round trips (create block, then add the exercise to it) — it's
+  // dimmed and non-interactive until the real data swaps in.
+  const originalBlocks = options.blocks;
+  options.setBlocks([
+    ...originalBlocks,
+    createPendingBlock(sessionId, exercise),
+  ]);
+
   const blockResult = await options.createBlockAction(sessionId, "New block");
   if (!blockResult.ok || !blockResult.data) {
+    options.setBlocks(originalBlocks);
     reportIfFailed(onError, blockResult);
     return;
   }
@@ -248,7 +293,7 @@ async function handleLibraryDropOnNewBlock(
     exerciseResult.ok && exerciseResult.data
       ? [{ ...exerciseResult.data, exercise }]
       : [];
-  options.setBlocks([...options.blocks, { ...blockResult.data, exercises }]);
+  options.setBlocks([...originalBlocks, { ...blockResult.data, exercises }]);
 }
 
 async function handleLibraryDrop(
@@ -279,18 +324,29 @@ async function handleLibraryDrop(
   if (!target) return;
 
   markCommitted();
+  const originalBlocks = options.blocks;
+
+  // Show the row immediately (dimmed/pending) rather than waiting on the
+  // network round trip — placeExercise puts it exactly where it'll end up,
+  // so nothing visibly reshuffles once the real row swaps in below.
+  const pendingRow = createPendingExercise(target.blockId, exercise);
+  options.setBlocks(placeExercise(originalBlocks, target, pendingRow));
+
   const result = await options.addExerciseToBlockAction({
     block_id: target.blockId,
     exercise_id: exerciseId,
   });
   if (!result.ok || !result.data) {
+    options.setBlocks(originalBlocks);
     reportIfFailed(onError, result);
     return;
   }
 
   const newRow = { ...result.data, exercise };
-  const appended = options.blocks.map((b) =>
-    b.id === target.blockId ? { ...b, exercises: [...b.exercises, newRow] } : b,
+  const appended = appendExerciseToBlock(
+    originalBlocks,
+    target.blockId,
+    newRow,
   );
 
   if (!target.overExerciseId) {

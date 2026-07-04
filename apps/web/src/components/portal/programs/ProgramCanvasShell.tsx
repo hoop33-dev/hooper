@@ -90,10 +90,12 @@ export function ProgramCanvasShell({
         onCloseSessionModal={() => state.setSessionModal(null)}
         existingSessions={state.sessions}
         totalWeeks={program.weeks}
+        linkedWeeks={state.linkedWeeksForSessionModal}
         onCreateSession={state.handleCreateSession}
         onRenameSession={state.handleRenameSession}
         onDuplicateSession={state.handleDuplicateSession}
         editingExercise={state.blockActions.editingExercise}
+        editingExerciseLinkedWeeks={state.linkedWeeksForEditingExercise}
         onCloseExerciseEditor={state.blockActions.closeExerciseEditor}
         onSaveExerciseMeasurement={state.blockActions.saveExerciseMeasurement}
       />

@@ -4,7 +4,7 @@ import { cn } from "@/src/lib/cn";
 import { useDroppable } from "@dnd-kit/core";
 import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
 import Link from "next/link";
-import { DuplicateIcon, PencilIcon, XIcon } from "../ui/icons";
+import { DuplicateIcon, LinkIcon, PencilIcon, XIcon } from "../ui/icons";
 import { BlockCard } from "./BlockCard";
 import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
 import { sessionDropId } from "./dnd/useBlockExerciseDnd";
@@ -94,9 +94,16 @@ function ColumnHeader({
           <div className="text-portal-text1 truncate text-[13px] font-bold hover:underline">
             {session.name}
           </div>
-          <div className="text-portal-text3 mt-0.5 text-[10px]">
+          <div className="text-portal-text3 mt-0.5 flex items-center gap-1 text-[10px]">
             {session.blocks.length} block
             {session.blocks.length === 1 ? "" : "s"}
+            {session.link_group_id && (
+              <span
+                className="text-portal-orange flex-shrink-0"
+                title="Linked across weeks — editing it updates every linked week">
+                <LinkIcon size={9} />
+              </span>
+            )}
           </div>
         </Link>
         <ColumnHeaderActions

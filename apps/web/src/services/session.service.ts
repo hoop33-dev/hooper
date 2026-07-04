@@ -8,6 +8,7 @@ import type {
   SessionRow,
   SessionWithBlocks,
 } from "@hooper/db";
+import { randomUUID } from "node:crypto";
 import {
   SESSION_SELECT,
   shapeBlocksWithExercises,
@@ -115,6 +116,16 @@ export async function updateSessionName(
       .single();
 
     if (error) return err(error.message);
+
+    if (data.link_group_id) {
+      const { error: siblingError } = await supabase
+        .from("sessions")
+        .update({ name })
+        .eq("link_group_id", data.link_group_id)
+        .neq("id", id);
+      if (siblingError) return err(siblingError.message);
+    }
+
     return ok(data);
   } catch (e) {
     return err(toErrorMessage(e));
@@ -152,10 +163,19 @@ async function fetchSourceSession(
   return (data as unknown as SourceSession) ?? null;
 }
 
+/** Group ids to stamp onto a copy so it joins an existing link group instead
+ * of being an independent, unlinked duplicate (see `setLinkedWeeks`). */
+type LinkedGroupIds = {
+  sessionGroupId: string;
+  blockGroupIds: Map<string, string>;
+  exerciseGroupIds: Map<string, string>;
+};
+
 async function copySessionIntoWeek(
   supabase: SupabaseClient,
   source: SourceSession,
   targetWeek: number,
+  groupIds?: LinkedGroupIds,
 ): Promise<Result<SessionRow>> {
   const position = await nextSessionPosition(
     supabase,
@@ -170,6 +190,7 @@ async function copySessionIntoWeek(
       week_number: targetWeek,
       name: source.name,
       position,
+      link_group_id: groupIds?.sessionGroupId ?? null,
     })
     .select()
     .single();
@@ -185,6 +206,7 @@ async function copySessionIntoWeek(
         name: block.name,
         color: block.color,
         position: block.position,
+        link_group_id: groupIds?.blockGroupIds.get(block.id) ?? null,
       })),
     )
     .select();
@@ -197,6 +219,7 @@ async function copySessionIntoWeek(
       position: be.position,
       sets: be.sets,
       notes: be.notes,
+      link_group_id: groupIds?.exerciseGroupIds.get(be.id) ?? null,
     })),
   );
 
@@ -248,6 +271,200 @@ export async function duplicateSession(
     }
 
     return ok(created);
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
+export type SetLinkedWeeksInput = {
+  sessionId: string;
+  /** The full desired set of linked weeks, including the session's own —
+   * weeks missing from this list are removed (their session deleted),
+   * weeks present but not yet linked are added (a fresh linked copy). */
+  targetWeeks: number[];
+};
+
+/** Returns a row's existing link_group_id, or generates and persists a
+ * fresh one if it doesn't have one yet. */
+async function ensureGroupId(
+  supabase: SupabaseClient,
+  table: "sessions" | "blocks" | "block_exercises",
+  id: string,
+  existingGroupId: string | null,
+): Promise<Result<string>> {
+  if (existingGroupId) return ok(existingGroupId);
+  const groupId = randomUUID();
+  const { error } = await supabase
+    .from(table)
+    .update({ link_group_id: groupId })
+    .eq("id", id);
+  if (error) return err(error.message);
+  return ok(groupId);
+}
+
+/** Assigns fresh link_group_ids (session, and each of its blocks/
+ * block-exercises) to a session that isn't linked to anything yet — the
+ * first time a session gets linked, it becomes "the source" of a new
+ * group of one, ready to gain siblings. Rows that already have a group id
+ * (already linked) keep it untouched. */
+async function ensureLinkGroups(
+  supabase: SupabaseClient,
+  source: SourceSession,
+): Promise<Result<LinkedGroupIds>> {
+  const sessionGroupResult = await ensureGroupId(
+    supabase,
+    "sessions",
+    source.id,
+    source.link_group_id,
+  );
+  if (!sessionGroupResult.ok) return err(sessionGroupResult.error);
+
+  const blockGroupIds = new Map<string, string>();
+  const exerciseGroupIds = new Map<string, string>();
+
+  for (const block of source.blocks) {
+    const blockGroupResult = await ensureGroupId(
+      supabase,
+      "blocks",
+      block.id,
+      block.link_group_id,
+    );
+    if (!blockGroupResult.ok) return err(blockGroupResult.error);
+    blockGroupIds.set(block.id, blockGroupResult.data);
+
+    for (const be of block.block_exercises) {
+      const exerciseGroupResult = await ensureGroupId(
+        supabase,
+        "block_exercises",
+        be.id,
+        be.link_group_id,
+      );
+      if (!exerciseGroupResult.ok) return err(exerciseGroupResult.error);
+      exerciseGroupIds.set(be.id, exerciseGroupResult.data);
+    }
+  }
+
+  return ok({
+    sessionGroupId: sessionGroupResult.data,
+    blockGroupIds,
+    exerciseGroupIds,
+  });
+}
+
+/** A group of one isn't meaningfully linked — clears the tag back off the
+ * source (and its blocks/block-exercises) when a removal leaves it alone. */
+async function unlinkIfAlone(
+  supabase: SupabaseClient,
+  source: SourceSession,
+  sessionGroupId: string,
+): Promise<Result<void>> {
+  const { data: remaining, error } = await supabase
+    .from("sessions")
+    .select("id")
+    .eq("link_group_id", sessionGroupId);
+  if (error) return err(error.message);
+  if ((remaining ?? []).length > 1) return ok(undefined);
+
+  const { error: sessionError } = await supabase
+    .from("sessions")
+    .update({ link_group_id: null })
+    .eq("id", source.id);
+  if (sessionError) return err(sessionError.message);
+
+  if (source.blocks.length > 0) {
+    const { error: blocksError } = await supabase
+      .from("blocks")
+      .update({ link_group_id: null })
+      .in(
+        "id",
+        source.blocks.map((b) => b.id),
+      );
+    if (blocksError) return err(blocksError.message);
+  }
+
+  const exerciseIds = source.blocks.flatMap((b) =>
+    b.block_exercises.map((be) => be.id),
+  );
+  if (exerciseIds.length > 0) {
+    const { error: exercisesError } = await supabase
+      .from("block_exercises")
+      .update({ link_group_id: null })
+      .in("id", exerciseIds);
+    if (exercisesError) return err(exercisesError.message);
+  }
+
+  return ok(undefined);
+}
+
+/** Which currently-linked sessions to drop and which weeks to add a fresh
+ * copy for, given the full desired set of weeks — pulled out as a pure
+ * function since it's the one bit of real decision-making in
+ * `setLinkedWeeks` and is easy to get subtly wrong (the session's own week
+ * must never be treated as addable/removable). */
+export function computeWeekDiff(
+  currentMembers: { id: string; week_number: number }[],
+  targetWeeks: number[],
+  ownWeek: number,
+): { toAddWeeks: number[]; toRemoveIds: string[] } {
+  const target = new Set(targetWeeks);
+  target.add(ownWeek);
+  const current = new Set(currentMembers.map((m) => m.week_number));
+
+  const toRemoveIds = currentMembers
+    .filter((m) => m.week_number !== ownWeek && !target.has(m.week_number))
+    .map((m) => m.id);
+  const toAddWeeks = [...target].filter(
+    (w) => w !== ownWeek && !current.has(w),
+  );
+  return { toAddWeeks, toRemoveIds };
+}
+
+export async function setLinkedWeeks(
+  input: SetLinkedWeeksInput,
+): Promise<Result<void>> {
+  try {
+    const supabase = await createClient();
+    const source = await fetchSourceSession(supabase, input.sessionId);
+    if (!source) return err("Session not found.");
+
+    const groupIdsResult = await ensureLinkGroups(supabase, source);
+    if (!groupIdsResult.ok) return err(groupIdsResult.error);
+    const { sessionGroupId } = groupIdsResult.data;
+
+    const { data: currentMembers, error: membersError } = await supabase
+      .from("sessions")
+      .select("id, week_number")
+      .eq("link_group_id", sessionGroupId);
+    if (membersError) return err(membersError.message);
+
+    const { toAddWeeks, toRemoveIds } = computeWeekDiff(
+      currentMembers ?? [],
+      input.targetWeeks,
+      source.week_number,
+    );
+
+    if (toRemoveIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("sessions")
+        .delete()
+        .in("id", toRemoveIds);
+      if (deleteError) return err(deleteError.message);
+    }
+
+    for (const week of toAddWeeks) {
+      const result = await copySessionIntoWeek(
+        supabase,
+        source,
+        week,
+        groupIdsResult.data,
+      );
+      if (!result.ok) return err(result.error);
+    }
+
+    const unlinkResult = await unlinkIfAlone(supabase, source, sessionGroupId);
+    if (!unlinkResult.ok) return err(unlinkResult.error);
+
+    return ok(undefined);
   } catch (e) {
     return err(toErrorMessage(e));
   }

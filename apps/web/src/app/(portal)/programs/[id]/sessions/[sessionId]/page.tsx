@@ -9,6 +9,7 @@ import {
   addExerciseToBlockAction,
   createBlockAction,
   deleteBlockAction,
+  getLinkedWeeksForExerciseAction,
   removeExerciseFromBlockAction,
   reorderBlockExercisesAction,
   reorderBlocksAction,
@@ -58,6 +59,7 @@ export default async function SessionViewPage({
         updateBlockExerciseAction={updateBlockExerciseAction}
         removeExerciseFromBlockAction={removeExerciseFromBlockAction}
         reorderBlockExercisesAction={reorderBlockExercisesAction}
+        getLinkedWeeksForExerciseAction={getLinkedWeeksForExerciseAction}
       />
     </div>
   );

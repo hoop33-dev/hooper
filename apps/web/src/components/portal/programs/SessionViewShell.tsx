@@ -70,6 +70,7 @@ export function SessionViewShell({
       {state.blockActions.editingExercise && (
         <BlockExerciseMeasurementModal
           blockExercise={state.blockActions.editingExercise}
+          linkedWeeks={state.editingExerciseLinkedWeeks}
           onClose={state.blockActions.closeExerciseEditor}
           onSave={state.blockActions.saveExerciseMeasurement}
         />

@@ -8,6 +8,7 @@ import {
   addExerciseToBlock,
   createBlock,
   deleteBlock,
+  getLinkedWeeksForExercise,
   removeExerciseFromBlock,
   reorderBlockExercises,
   reorderBlocks,
@@ -16,6 +17,7 @@ import {
   type AddExerciseToBlockInput,
   type BlockExerciseWithMeasurements,
   type CreateBlockInput,
+  type LinkScope,
   type UpdateBlockExerciseInput,
   type UpdateBlockInput,
 } from "@/src/services/block.service";
@@ -24,9 +26,11 @@ import {
   deleteSession,
   duplicateSession,
   reorderSessions,
+  setLinkedWeeks,
   updateSessionName,
   type CreateSessionInput,
   type DuplicateSessionInput,
+  type SetLinkedWeeksInput,
 } from "@/src/services/session.service";
 import type { BlockRow, SessionRow } from "@hooper/db";
 import { revalidatePath } from "next/cache";
@@ -74,6 +78,14 @@ export async function duplicateSessionAction(
   return result.ok
     ? { ok: true, data: result.data }
     : { ok: false, error: result.error };
+}
+
+export async function setLinkedWeeksAction(
+  input: SetLinkedWeeksInput,
+): Promise<ActionResult> {
+  const result = await setLinkedWeeks(input);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
 }
 
 export async function reorderSessionsAction(
@@ -132,9 +144,19 @@ export async function addExerciseToBlockAction(
 export async function updateBlockExerciseAction(
   id: string,
   input: UpdateBlockExerciseInput,
+  scope: LinkScope = "this",
 ): Promise<ActionResult<BlockExerciseWithMeasurements>> {
-  const result = await updateBlockExercise(id, input);
+  const result = await updateBlockExercise(id, input, scope);
   if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function getLinkedWeeksForExerciseAction(
+  id: string,
+): Promise<ActionResult<number[]>> {
+  const result = await getLinkedWeeksForExercise(id);
   return result.ok
     ? { ok: true, data: result.data }
     : { ok: false, error: result.error };

@@ -7,8 +7,9 @@ import {
 } from "@/src/lib/measurementFormat";
 import { useSortable } from "@dnd-kit/sortable";
 import type { BlockExerciseWithDetails } from "@hooper/db";
-import { XIcon } from "../../ui/icons";
+import { SpinnerIcon, XIcon } from "../../ui/icons";
 import { useDragIndicator, type DragIndicator } from "./DragIndicatorContext";
+import { isPending } from "./pendingRows";
 
 /** A row shows an insertion line for exercise reorders and library drops
  * (not block drags, which reorder whole blocks). */
@@ -121,9 +122,11 @@ export function SortableBlockExerciseRow({
   onOpen,
   onRemove,
 }: SortableBlockExerciseRowProps) {
+  const pending = isPending(blockExercise);
   const rowId = `block-exercise:${blockExercise.id}`;
   const { attributes, listeners, setNodeRef, isDragging } = useSortable({
     id: rowId,
+    disabled: pending,
   });
   // Dragging never depends on readOnly — a coach can always move exercises
   // around, even in a non-focused session on the canvas. readOnly only
@@ -141,11 +144,18 @@ export function SortableBlockExerciseRow({
       ref={setNodeRef}
       className={cn(
         "border-portal-border group relative flex touch-none items-center gap-2 border-b select-none last:border-b-0",
-        dense ? "px-3 py-2" : "px-3.5 py-2.5",
+        // Pinned so a pending row (fewer/shorter contents — no icon, no
+        // remove button, a short "1×" instead of a full measurement string)
+        // renders at the exact same height as a real one instead of
+        // shrinking to fit less content.
+        dense ? "min-h-9 px-3 py-2" : "min-h-14 px-3.5 py-2.5",
         isDragging && "opacity-30",
-        !readOnly && "hover:bg-portal-bg cursor-grab active:cursor-grabbing",
+        pending && "opacity-50",
+        !readOnly &&
+          !pending &&
+          "hover:bg-portal-bg cursor-grab active:cursor-grabbing",
       )}
-      onClick={readOnly ? undefined : onOpen}
+      onClick={readOnly || pending ? undefined : onOpen}
       {...attributes}
       {...listeners}>
       {isDropTarget && (
@@ -157,10 +167,10 @@ export function SortableBlockExerciseRow({
         />
       )}
       <span className="text-portal-text3 flex-shrink-0">
-        <GripIcon />
+        {pending ? <SpinnerIcon size={10} /> : <GripIcon />}
       </span>
       <RowBody blockExercise={blockExercise} dense={dense} />
-      {!readOnly && onRemove && (
+      {!readOnly && !pending && onRemove && (
         <button
           type="button"
           onClick={(e) => {

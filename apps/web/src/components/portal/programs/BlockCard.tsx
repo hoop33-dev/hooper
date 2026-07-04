@@ -12,13 +12,14 @@ import type {
   ExerciseWithDetails,
 } from "@hooper/db";
 import { useState } from "react";
-import { XIcon } from "../ui/icons";
+import { SpinnerIcon, XIcon } from "../ui/icons";
 import { AddExercisePopover } from "./AddExercisePopover";
 import {
   useDragIndicator,
   type DragIndicator,
 } from "./dnd/DragIndicatorContext";
 import { SortableBlockExerciseRow } from "./dnd/SortableBlockExerciseRow";
+import { isPending } from "./dnd/pendingRows";
 
 type BlockDropVisual = {
   lineEdge: "top" | "bottom" | null;
@@ -127,6 +128,7 @@ function BlockNameField({
 interface BlockCardHeaderProps {
   block: BlockWithExercises;
   readOnly?: boolean;
+  pending?: boolean;
   dragHandleProps?: Record<string, unknown>;
   dropLineEdge?: "bottom" | null;
   onRename: (name: string) => void;
@@ -140,6 +142,7 @@ interface BlockCardHeaderProps {
 function BlockCardHeader({
   block,
   readOnly,
+  pending,
   dragHandleProps,
   dropLineEdge,
   onRename,
@@ -156,15 +159,15 @@ function BlockCardHeader({
         <div className="bg-portal-orange pointer-events-none absolute inset-x-0 bottom-0 z-10 h-0.5" />
       )}
       <span className="text-portal-text3 flex-shrink-0 cursor-grab active:cursor-grabbing">
-        <GripIcon />
+        {pending ? <SpinnerIcon size={11} /> : <GripIcon />}
       </span>
       <BlockNameField
         name={block.name}
         color={block.color}
-        readOnly={readOnly}
+        readOnly={readOnly || pending}
         onRename={onRename}
       />
-      {!readOnly && addExercise && (
+      {!readOnly && !pending && addExercise && (
         <div onPointerDown={(e) => e.stopPropagation()}>
           <AddExercisePopover
             exercises={addExercise.exercises}
@@ -172,7 +175,7 @@ function BlockCardHeader({
           />
         </div>
       )}
-      {!readOnly && (
+      {!readOnly && !pending && (
         <button
           type="button"
           onClick={onDelete}
@@ -247,9 +250,11 @@ export function BlockCard({
   onRename,
   onDelete,
 }: BlockCardProps) {
+  const pending = isPending(block);
   const blockDomId = `block:${block.id}`;
   const { attributes, listeners, setNodeRef, isDragging } = useSortable({
     id: blockDomId,
+    disabled: pending,
   });
   const { lineEdge, headerLineEdge, emptyHighlight } = computeBlockDropVisual(
     blockDomId,
@@ -266,6 +271,7 @@ export function BlockCard({
         "bg-portal-card border-portal-border group relative overflow-hidden rounded-xl border",
         emptyHighlight && "bg-portal-orange-soft",
         isDragging && "opacity-40",
+        pending && "opacity-60",
       )}>
       {lineEdge && (
         <div
@@ -278,6 +284,7 @@ export function BlockCard({
       <BlockCardHeader
         block={block}
         readOnly={readOnly}
+        pending={pending}
         dragHandleProps={{ ...attributes, ...listeners }}
         dropLineEdge={headerLineEdge}
         onRename={onRename}

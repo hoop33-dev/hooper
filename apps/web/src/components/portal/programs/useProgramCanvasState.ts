@@ -4,6 +4,7 @@ import type {
   AddExerciseToBlockInput,
   BlockExerciseWithMeasurements,
   CreateBlockInput,
+  LinkScope,
   UpdateBlockExerciseInput,
   UpdateBlockInput,
 } from "@/src/services/block.service";
@@ -11,8 +12,10 @@ import type { UpdateProgramInput } from "@/src/services/program.service";
 import type {
   CreateSessionInput,
   DuplicateSessionInput,
+  SetLinkedWeeksInput,
 } from "@/src/services/session.service";
 import type {
+  BlockExerciseWithDetails,
   BlockRow,
   BlockWithExercises,
   ExerciseWithDetails,
@@ -46,6 +49,7 @@ export interface ProgramCanvasActions {
   duplicateSessionAction: (
     input: DuplicateSessionInput,
   ) => Promise<ActionResult<SessionRow[]>>;
+  setLinkedWeeksAction: (input: SetLinkedWeeksInput) => Promise<ActionResult>;
   createBlockAction: (
     input: CreateBlockInput,
   ) => Promise<ActionResult<BlockRow>>;
@@ -63,6 +67,7 @@ export interface ProgramCanvasActions {
   updateBlockExerciseAction: (
     id: string,
     input: UpdateBlockExerciseInput,
+    scope?: LinkScope,
   ) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
   removeExerciseFromBlockAction: (id: string) => Promise<ActionResult>;
   reorderBlockExercisesAction: (
@@ -124,9 +129,8 @@ function useSessionModalHandlers(
   async function handleDuplicateSession(targetWeeks: number[]) {
     if (sessionModal?.type !== "duplicate") return;
     finish(
-      await actions.duplicateSessionAction({
-        sourceSessionId: sessionModal.session.id,
-        pattern: "manual",
+      await actions.setLinkedWeeksAction({
+        sessionId: sessionModal.session.id,
         targetWeeks,
       }),
     );
@@ -146,6 +150,119 @@ function useSessionModalHandlers(
   };
 }
 
+/** All weeks a session is currently linked to (including its own), sorted —
+ * just its own week if it isn't linked to anything. */
+export function linkedWeeksOfSession(
+  session: SessionWithBlocks,
+  allSessions: SessionWithBlocks[],
+): number[] {
+  if (!session.link_group_id) return [session.week_number];
+  return allSessions
+    .filter((s) => s.link_group_id === session.link_group_id)
+    .map((s) => s.week_number)
+    .sort((a, b) => a - b);
+}
+
+/** Every week that has a placement sharing this exercise's link group —
+ * undefined when it isn't linked (or the group has shrunk to just itself),
+ * so the measurement modal knows not to show a scope choice. */
+export function linkedWeeksOfExercise(
+  exercise: BlockExerciseWithDetails | null,
+  allSessions: SessionWithBlocks[],
+): number[] | undefined {
+  if (!exercise?.link_group_id) return undefined;
+  const weeks = new Set<number>();
+  for (const session of allSessions) {
+    for (const block of session.blocks) {
+      if (
+        block.exercises.some((e) => e.link_group_id === exercise.link_group_id)
+      ) {
+        weeks.add(session.week_number);
+      }
+    }
+  }
+  return weeks.size > 1 ? [...weeks].sort((a, b) => a - b) : undefined;
+}
+
+/**
+ * Block/exercise edits patch local state instantly and never call
+ * router.refresh() themselves (that's what makes them feel instant) — but a
+ * linked edit also writes to sibling rows in *other* weeks, which aren't in
+ * `weekBlocks` and so can't be patched locally. Wraps the action props to
+ * trigger a background refresh specifically when the edited block/exercise
+ * is linked, keeping that one exception without touching the
+ * optimistic-update code in useBlockExerciseDnd.ts/useBlockActions.ts at all.
+ */
+function useLinkAwareActions(
+  weekBlocks: BlockWithExercises[],
+  actions: ProgramCanvasActions,
+  router: ReturnType<typeof useRouter>,
+) {
+  function blockLinkGroup(blockId: string): string | null {
+    return weekBlocks.find((b) => b.id === blockId)?.link_group_id ?? null;
+  }
+  function exerciseLinkGroup(exerciseId: string): string | null {
+    for (const block of weekBlocks) {
+      const match = block.exercises.find((e) => e.id === exerciseId);
+      if (match) return match.link_group_id;
+    }
+    return null;
+  }
+
+  function refreshIfLinked<A extends unknown[], R extends { ok: boolean }>(
+    action: (...args: A) => Promise<R>,
+    isLinked: (...args: A) => boolean,
+  ) {
+    return async (...args: A) => {
+      const result = await action(...args);
+      if (result.ok && isLinked(...args)) router.refresh();
+      return result;
+    };
+  }
+
+  // A "this"-scoped save never touches siblings, so it's the one case with
+  // nothing to refresh even when the placement is linked.
+  async function updateBlockExerciseAction(
+    id: string,
+    input: UpdateBlockExerciseInput,
+    scope: LinkScope = "this",
+  ) {
+    const result = await actions.updateBlockExerciseAction(id, input, scope);
+    if (result.ok && scope !== "this" && exerciseLinkGroup(id) !== null) {
+      router.refresh();
+    }
+    return result;
+  }
+
+  return {
+    updateBlockAction: refreshIfLinked(
+      actions.updateBlockAction,
+      (id) => blockLinkGroup(id) !== null,
+    ),
+    deleteBlockAction: refreshIfLinked(
+      actions.deleteBlockAction,
+      (id) => blockLinkGroup(id) !== null,
+    ),
+    addExerciseToBlockAction: refreshIfLinked(
+      actions.addExerciseToBlockAction,
+      (input) => blockLinkGroup(input.block_id) !== null,
+    ),
+    removeExerciseFromBlockAction: refreshIfLinked(
+      actions.removeExerciseFromBlockAction,
+      (id) => exerciseLinkGroup(id) !== null,
+    ),
+    reorderBlocksAction: refreshIfLinked(
+      actions.reorderBlocksAction,
+      (updates) => updates.some((u) => blockLinkGroup(u.id) !== null),
+    ),
+    reorderBlockExercisesAction: refreshIfLinked(
+      actions.reorderBlockExercisesAction,
+      (updates) => updates.some((u) => exerciseLinkGroup(u.id) !== null),
+    ),
+    updateBlockExerciseAction,
+  };
+}
+
 /**
  * Blocks/exercises can be dragged between any session shown in the current
  * week, not just the focused one, so the dnd/block-action state spans every
@@ -156,8 +273,10 @@ function useCanvasBlockState(
   actions: ProgramCanvasActions,
   setWeekBlocks: (blocks: BlockWithExercises[]) => void,
   exercisesById: Map<string, ExerciseWithDetails>,
+  router: ReturnType<typeof useRouter>,
 ) {
   const weekBlocks = weekSessions.flatMap((s) => s.blocks);
+  const linkAware = useLinkAwareActions(weekBlocks, actions, router);
   const createBlockAction = (sessionId: string, name: string) =>
     actions.createBlockAction({ session_id: sessionId, name });
 
@@ -165,9 +284,9 @@ function useCanvasBlockState(
     blocks: weekBlocks,
     setBlocks: setWeekBlocks,
     exercisesById,
-    addExerciseToBlockAction: actions.addExerciseToBlockAction,
-    reorderBlockExercisesAction: actions.reorderBlockExercisesAction,
-    reorderBlocksAction: actions.reorderBlocksAction,
+    addExerciseToBlockAction: linkAware.addExerciseToBlockAction,
+    reorderBlockExercisesAction: linkAware.reorderBlockExercisesAction,
+    reorderBlocksAction: linkAware.reorderBlocksAction,
     createBlockAction,
   });
 
@@ -175,11 +294,11 @@ function useCanvasBlockState(
     blocks: weekBlocks,
     setBlocks: setWeekBlocks,
     createBlockAction,
-    updateBlockAction: actions.updateBlockAction,
-    deleteBlockAction: actions.deleteBlockAction,
-    updateBlockExerciseAction: actions.updateBlockExerciseAction,
-    removeExerciseFromBlockAction: actions.removeExerciseFromBlockAction,
-    addExerciseToBlockAction: actions.addExerciseToBlockAction,
+    updateBlockAction: linkAware.updateBlockAction,
+    deleteBlockAction: linkAware.deleteBlockAction,
+    updateBlockExerciseAction: linkAware.updateBlockExerciseAction,
+    removeExerciseFromBlockAction: linkAware.removeExerciseFromBlockAction,
+    addExerciseToBlockAction: linkAware.addExerciseToBlockAction,
     exercisesById,
   });
 
@@ -239,6 +358,7 @@ export function useProgramCanvasState(
     actions,
     setWeekBlocks,
     exercisesById,
+    router,
   );
 
   function selectWeek(week: number) {
@@ -265,6 +385,15 @@ export function useProgramCanvasState(
     setSessionModal,
   );
 
+  const linkedWeeksForSessionModal =
+    sessionModal?.type === "duplicate"
+      ? linkedWeeksOfSession(sessionModal.session, sessions)
+      : [];
+  const linkedWeeksForEditingExercise = linkedWeeksOfExercise(
+    blockActions.editingExercise,
+    sessions,
+  );
+
   return {
     sessions,
     selectedWeek,
@@ -276,6 +405,8 @@ export function useProgramCanvasState(
     blockActions,
     sessionModal,
     setSessionModal,
+    linkedWeeksForSessionModal,
+    linkedWeeksForEditingExercise,
     ...sessionModalHandlers,
   };
 }

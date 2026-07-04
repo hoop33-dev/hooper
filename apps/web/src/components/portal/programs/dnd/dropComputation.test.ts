@@ -31,6 +31,7 @@ function makeBlockExercise(
     position,
     sets: 3,
     notes: null,
+    link_group_id: null,
     created_at: "",
     updated_at: "",
     exercise: makeExercise(id),
@@ -61,6 +62,7 @@ function makeBlock(
     name: id,
     color: "#000000",
     position,
+    link_group_id: null,
     created_at: "",
     updated_at: "",
     exercises: exerciseIds.map((exId, i) => ({

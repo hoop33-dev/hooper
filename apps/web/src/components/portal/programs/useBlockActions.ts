@@ -1,6 +1,9 @@
 "use client";
 
-import type { BlockExerciseWithMeasurements } from "@/src/services/block.service";
+import type {
+  BlockExerciseWithMeasurements,
+  LinkScope,
+} from "@/src/services/block.service";
 import type {
   BlockExerciseWithDetails,
   BlockRow,
@@ -67,6 +70,7 @@ export interface UseBlockActionsOptions {
   updateBlockExerciseAction: (
     id: string,
     data: BlockExerciseUpdateData,
+    scope?: LinkScope,
   ) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
   removeExerciseFromBlockAction: (id: string) => Promise<ActionResult>;
   /** Only needed to power the block header's "+ Add" exercise picker. */
@@ -119,9 +123,16 @@ export function useBlockActions(options: UseBlockActionsOptions) {
     else reportError(showError, result);
   }
 
-  async function saveExerciseMeasurement(data: BlockExerciseUpdateData) {
+  async function saveExerciseMeasurement(
+    data: BlockExerciseUpdateData,
+    scope?: LinkScope,
+  ) {
     if (!editingExercise) return;
-    const result = await updateBlockExerciseAction(editingExercise.id, data);
+    const result = await updateBlockExerciseAction(
+      editingExercise.id,
+      data,
+      scope,
+    );
     if (result.ok && result.data) {
       setBlocks(patchExercise(blocks, editingExercise.id, result.data));
       setEditingExercise(null);

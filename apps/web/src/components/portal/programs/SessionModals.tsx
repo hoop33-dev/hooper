@@ -1,3 +1,4 @@
+import type { LinkScope } from "@/src/services/block.service";
 import type { BlockExerciseWithDetails, SessionRow } from "@hooper/db";
 import {
   BlockExerciseMeasurementModal,
@@ -16,12 +17,21 @@ interface SessionModalsProps {
   onCloseSessionModal: () => void;
   existingSessions: SessionRow[];
   totalWeeks: number;
+  /** The duplicate modal's session's current linked weeks (its own week
+   * only, if it isn't linked to anything). */
+  linkedWeeks: number[];
   onCreateSession: (data: SessionCreateData) => Promise<void>;
   onRenameSession: (name: string) => Promise<void>;
   onDuplicateSession: (targetWeeks: number[]) => Promise<void>;
   editingExercise: BlockExerciseWithDetails | null;
+  /** Every week the exercise being edited is linked across, when it's more
+   * than just itself — enables the measurement modal's scope choice. */
+  editingExerciseLinkedWeeks?: number[];
   onCloseExerciseEditor: () => void;
-  onSaveExerciseMeasurement: (data: BlockExerciseUpdateData) => Promise<void>;
+  onSaveExerciseMeasurement: (
+    data: BlockExerciseUpdateData,
+    scope?: LinkScope,
+  ) => Promise<void>;
 }
 
 export function SessionModals({
@@ -29,10 +39,12 @@ export function SessionModals({
   onCloseSessionModal,
   existingSessions,
   totalWeeks,
+  linkedWeeks,
   onCreateSession,
   onRenameSession,
   onDuplicateSession,
   editingExercise,
+  editingExerciseLinkedWeeks,
   onCloseExerciseEditor,
   onSaveExerciseMeasurement,
 }: SessionModalsProps) {
@@ -58,6 +70,7 @@ export function SessionModals({
           sessionName={sessionModal.session.name}
           sourceWeek={sessionModal.session.week_number}
           totalWeeks={totalWeeks}
+          linkedWeeks={linkedWeeks}
           onClose={onCloseSessionModal}
           onDuplicate={onDuplicateSession}
         />
@@ -65,6 +78,7 @@ export function SessionModals({
       {editingExercise && (
         <BlockExerciseMeasurementModal
           blockExercise={editingExercise}
+          linkedWeeks={editingExerciseLinkedWeeks}
           onClose={onCloseExerciseEditor}
           onSave={onSaveExerciseMeasurement}
         />

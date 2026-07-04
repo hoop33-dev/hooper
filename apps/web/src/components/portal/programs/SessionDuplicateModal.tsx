@@ -14,6 +14,9 @@ interface SessionDuplicateModalProps {
   sessionName: string;
   sourceWeek: number;
   totalWeeks: number;
+  /** The session's current linked weeks, including its own — just
+   * `[sourceWeek]` when it isn't linked to anything yet. */
+  linkedWeeks: number[];
   onClose: () => void;
   onDuplicate: (targetWeeks: number[]) => Promise<void>;
 }
@@ -84,11 +87,13 @@ function WeekGrid({
             key={w}
             type="button"
             onClick={() => onToggle(w)}
+            disabled={isSource}
+            title={isSource ? "This session's own week" : undefined}
             className={`relative h-11 rounded-lg border text-xs font-bold ${
               isSelected
                 ? "border-portal-orange bg-portal-orange-soft text-portal-orange"
                 : "border-portal-border text-portal-text2"
-            }`}>
+            } ${isSource ? "cursor-default" : ""}`}>
             {isSource && (
               <span className="bg-portal-orange absolute top-1 right-1 h-1 w-1 rounded-full" />
             )}
@@ -103,14 +108,16 @@ function WeekGrid({
 function ModalHeader({
   sessionName,
   sourceWeek,
+  alreadyLinked,
 }: {
   sessionName: string;
   sourceWeek: number;
+  alreadyLinked: boolean;
 }) {
   return (
     <div className="border-portal-border border-b px-5 py-4">
       <h2 className="font-title text-portal-text1 text-base font-extrabold tracking-wide">
-        Duplicate session
+        {alreadyLinked ? "Linked weeks" : "Duplicate session"}
       </h2>
       <p className="text-portal-text3 mt-0.5 text-xs">
         {sessionName} · Week {sourceWeek}
@@ -173,11 +180,13 @@ function ModalBody({
 
 function ModalFooter({
   selectedCount,
+  alreadyLinked,
   onClose,
   onSubmit,
   saving,
 }: {
   selectedCount: number;
+  alreadyLinked: boolean;
   onClose: () => void;
   onSubmit: () => void;
   saving: boolean;
@@ -185,7 +194,9 @@ function ModalFooter({
   return (
     <div className="border-portal-border flex items-center gap-2 border-t px-5 py-4">
       <span className="text-portal-text3 flex-1 text-xs">
-        {selectedCount} cop{selectedCount !== 1 ? "ies" : "y"} will be created
+        {alreadyLinked
+          ? `Linked across ${selectedCount} week${selectedCount !== 1 ? "s" : ""}`
+          : `${selectedCount} cop${selectedCount !== 1 ? "ies" : "y"} will be created`}
       </span>
       <PortalButton variant="ghost" onClick={onClose} disabled={saving}>
         Cancel
@@ -195,32 +206,55 @@ function ModalFooter({
         onClick={onSubmit}
         disabled={saving || selectedCount === 0}>
         {saving
-          ? "Duplicating…"
-          : `Duplicate to ${selectedCount} week${selectedCount !== 1 ? "s" : ""}`}
+          ? alreadyLinked
+            ? "Updating…"
+            : "Duplicating…"
+          : alreadyLinked
+            ? "Update linked weeks"
+            : `Duplicate to ${selectedCount} week${selectedCount !== 1 ? "s" : ""}`}
       </PortalButton>
     </div>
   );
+}
+
+// Whatever pattern/manual selection produces, the session's own week always
+// stays part of it — it can't be removed through this modal (that's what
+// the session's own delete button is for).
+function withSourceWeek(weeks: number[], sourceWeek: number): number[] {
+  return weeks.includes(sourceWeek)
+    ? weeks
+    : [...weeks, sourceWeek].sort((a, b) => a - b);
 }
 
 export function SessionDuplicateModal({
   sessionName,
   sourceWeek,
   totalWeeks,
+  linkedWeeks,
   onClose,
   onDuplicate,
 }: SessionDuplicateModalProps) {
+  const alreadyLinked = linkedWeeks.length > 1;
   const [pattern, setPattern] = useState<DuplicatePattern>("every2");
   const [selected, setSelected] = useState<number[]>(() =>
-    weeksForPattern("every2", totalWeeks, sourceWeek),
+    alreadyLinked
+      ? linkedWeeks
+      : withSourceWeek(
+          weeksForPattern("every2", totalWeeks, sourceWeek),
+          sourceWeek,
+        ),
   );
   const [saving, setSaving] = useState(false);
 
   function handlePattern(p: DuplicatePattern) {
     setPattern(p);
-    setSelected(weeksForPattern(p, totalWeeks, sourceWeek));
+    setSelected(
+      withSourceWeek(weeksForPattern(p, totalWeeks, sourceWeek), sourceWeek),
+    );
   }
 
   function toggleWeek(w: number) {
+    if (w === sourceWeek) return;
     setPattern("manual");
     setSelected((s) =>
       s.includes(w)
@@ -239,7 +273,11 @@ export function SessionDuplicateModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-portal-card w-full max-w-lg rounded-2xl shadow-2xl">
-        <ModalHeader sessionName={sessionName} sourceWeek={sourceWeek} />
+        <ModalHeader
+          sessionName={sessionName}
+          sourceWeek={sourceWeek}
+          alreadyLinked={alreadyLinked}
+        />
         <ModalBody
           pattern={pattern}
           onPattern={handlePattern}
@@ -250,6 +288,7 @@ export function SessionDuplicateModal({
         />
         <ModalFooter
           selectedCount={selected.length}
+          alreadyLinked={alreadyLinked}
           onClose={onClose}
           onSubmit={handleSubmit}
           saving={saving}

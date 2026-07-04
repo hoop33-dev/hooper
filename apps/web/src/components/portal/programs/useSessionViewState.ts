@@ -12,7 +12,7 @@ import type {
   ExerciseWithDetails,
   SessionWithBlocks,
 } from "@hooper/db";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   BlockExercisePositionUpdate,
   BlockPositionUpdate,
@@ -45,6 +45,51 @@ export interface SessionViewActions {
   reorderBlockExercisesAction: (
     updates: BlockExercisePositionUpdate[],
   ) => Promise<ActionResult>;
+  /** Unlike the program canvas, this page only ever loads its own session,
+   * so it can't tell locally which other weeks a linked exercise spans —
+   * this is a real lookup so the measurement modal can still show the
+   * "this / future / all" scope choice. */
+  getLinkedWeeksForExerciseAction: (
+    id: string,
+  ) => Promise<ActionResult<number[]>>;
+}
+
+/** The single-session page has no local visibility into other weeks, so
+ * whether the exercise currently being edited is linked (and to which
+ * weeks) has to be fetched on demand instead of computed client-side like
+ * the program canvas does (see linkedWeeksOfExercise in
+ * useProgramCanvasState.ts). */
+function useEditingExerciseLinkedWeeks(
+  editingExerciseId: string | undefined,
+  getLinkedWeeksForExerciseAction: SessionViewActions["getLinkedWeeksForExerciseAction"],
+) {
+  const [linkedWeeks, setLinkedWeeks] = useState<number[] | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    if (!editingExerciseId) {
+      setLinkedWeeks(undefined);
+      return;
+    }
+    const id = editingExerciseId;
+    let cancelled = false;
+    async function load() {
+      const result = await getLinkedWeeksForExerciseAction(id);
+      if (cancelled) return;
+      setLinkedWeeks(
+        result.ok && result.data && result.data.length > 1
+          ? result.data
+          : undefined,
+      );
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [editingExerciseId, getLinkedWeeksForExerciseAction]);
+
+  return linkedWeeks;
 }
 
 export function useSessionViewState(
@@ -79,5 +124,16 @@ export function useSessionViewState(
     exercisesById,
   });
 
-  return { blocks, exercisesById, dnd, blockActions };
+  const editingExerciseLinkedWeeks = useEditingExerciseLinkedWeeks(
+    blockActions.editingExercise?.id,
+    actions.getLinkedWeeksForExerciseAction,
+  );
+
+  return {
+    blocks,
+    exercisesById,
+    dnd,
+    blockActions,
+    editingExerciseLinkedWeeks,
+  };
 }

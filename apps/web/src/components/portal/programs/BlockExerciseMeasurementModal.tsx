@@ -7,6 +7,7 @@ import {
   formatMeasurementSummary,
   unitOptionsFor,
 } from "@/src/lib/measurementFormat";
+import type { LinkScope } from "@/src/services/block.service";
 import type { BlockExerciseWithDetails, EnteredBy } from "@hooper/db";
 import { useEffect, useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
@@ -84,7 +85,12 @@ export type BlockExerciseUpdateData = {
 interface BlockExerciseMeasurementModalProps {
   blockExercise: BlockExerciseWithDetails;
   onClose: () => void;
-  onSave: (data: BlockExerciseUpdateData) => Promise<void>;
+  onSave: (data: BlockExerciseUpdateData, scope?: LinkScope) => Promise<void>;
+  /** Every week this placement is linked across, when it's linked to more
+   * than just itself — enables the "apply to" scope choice on save,
+   * Calendar-style, since target numbers often intentionally differ week to
+   * week and don't fit a single always/never sync rule. */
+  linkedWeeks?: number[];
 }
 
 /** How much each +/- tap changes a unit type's value by. */
@@ -418,6 +424,62 @@ function ModalFooter({
   );
 }
 
+/** Shown instead of the normal footer once "Save" is clicked on a linked
+ * placement — mirrors a calendar app's this-event/this-and-following/
+ * all-events choice for editing a recurring event. */
+function ScopeChoiceFooter({
+  linkedWeeks,
+  onChoose,
+  onBack,
+  saving,
+}: {
+  linkedWeeks: number[];
+  onChoose: (scope: LinkScope) => void;
+  onBack: () => void;
+  saving: boolean;
+}) {
+  return (
+    <div className="border-portal-border bg-portal-bg flex flex-shrink-0 flex-col gap-2 border-t px-4 py-3">
+      <span className="text-portal-text2 text-xs font-semibold">
+        Linked across weeks {linkedWeeks.join(", ")} — apply this change to:
+      </span>
+      <div className="flex flex-col gap-1.5">
+        <PortalButton
+          variant="secondary"
+          size="sm"
+          className="w-full"
+          onClick={() => onChoose("this")}
+          disabled={saving}>
+          Just this week
+        </PortalButton>
+        <PortalButton
+          variant="secondary"
+          size="sm"
+          className="w-full"
+          onClick={() => onChoose("future")}
+          disabled={saving}>
+          This and future weeks
+        </PortalButton>
+        <PortalButton
+          variant="primary"
+          size="sm"
+          className="w-full"
+          onClick={() => onChoose("all")}
+          disabled={saving}>
+          All {linkedWeeks.length} linked weeks
+        </PortalButton>
+      </div>
+      <PortalButton
+        variant="ghost"
+        size="sm"
+        onClick={onBack}
+        disabled={saving}>
+        Back
+      </PortalButton>
+    </div>
+  );
+}
+
 // Always show every unit type the exercise is currently configured with;
 // fall back to whatever this placement already had if the exercise has
 // since been reconfigured down to zero configured types.
@@ -479,6 +541,7 @@ export function BlockExerciseMeasurementModal({
   blockExercise,
   onClose,
   onSave,
+  linkedWeeks,
 }: BlockExerciseMeasurementModalProps) {
   const { exercise } = blockExercise;
   const unitTypes = resolveUnitTypes(blockExercise);
@@ -489,6 +552,7 @@ export function BlockExerciseMeasurementModal({
   );
   const [notes, setNotes] = useState(blockExercise.notes ?? "");
   const [saving, setSaving] = useState(false);
+  const [choosingScope, setChoosingScope] = useState(false);
 
   function updateMeasurement(index: number, patch: Partial<MeasurementState>) {
     setMeasurements((prev) =>
@@ -501,10 +565,18 @@ export function BlockExerciseMeasurementModal({
     measurements: toSummaryMeasurements(measurements),
   });
 
-  async function handleSave() {
+  async function commit(scope?: LinkScope) {
     setSaving(true);
-    await onSave(toSavePayload(sets, notes, measurements));
+    await onSave(toSavePayload(sets, notes, measurements), scope);
     setSaving(false);
+  }
+
+  function handleSaveClick() {
+    if (linkedWeeks && linkedWeeks.length > 1) {
+      setChoosingScope(true);
+      return;
+    }
+    void commit();
   }
 
   return (
@@ -519,12 +591,21 @@ export function BlockExerciseMeasurementModal({
           notes={notes}
           onNotes={setNotes}
         />
-        <ModalFooter
-          summary={summary}
-          onClose={onClose}
-          onSave={handleSave}
-          saving={saving}
-        />
+        {choosingScope && linkedWeeks ? (
+          <ScopeChoiceFooter
+            linkedWeeks={linkedWeeks}
+            onChoose={(scope) => void commit(scope)}
+            onBack={() => setChoosingScope(false)}
+            saving={saving}
+          />
+        ) : (
+          <ModalFooter
+            summary={summary}
+            onClose={onClose}
+            onSave={handleSaveClick}
+            saving={saving}
+          />
+        )}
       </div>
     </div>
   );

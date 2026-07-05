@@ -1,6 +1,6 @@
 "use client";
 
-import type { SessionRow } from "@hooper/db";
+import type { SessionRow, SessionTemplateSummary } from "@hooper/db";
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
@@ -8,14 +8,18 @@ import { XIcon } from "../ui/icons";
 
 export type SessionCreateData =
   | { mode: "blank"; name: string; week_number: number }
-  | { mode: "copy"; sourceSessionId: string; week_number: number };
+  | { mode: "copy"; sourceSessionId: string; week_number: number }
+  | { mode: "template"; sessionTemplateId: string; week_number: number };
 
 interface SessionCreateModalProps {
   weekNumber: number;
   existingSessions: SessionRow[];
+  sessionTemplates?: SessionTemplateSummary[];
   onClose: () => void;
   onCreate: (data: SessionCreateData) => Promise<void>;
 }
+
+type Mode = "blank" | "copy" | "template";
 
 function StartModeOption({
   label,
@@ -84,6 +88,44 @@ function CopySourceList({
   );
 }
 
+function TemplateSourceList({
+  templates,
+  templateId,
+  onSelect,
+}: {
+  templates: SessionTemplateSummary[];
+  templateId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  if (templates.length === 0) {
+    return (
+      <div className="border-portal-border text-portal-text3 rounded-lg border p-3 text-center text-xs">
+        No saved templates yet — save a block or session from a program first
+      </div>
+    );
+  }
+  return (
+    <div className="border-portal-border max-h-40 overflow-y-auto rounded-lg border">
+      {templates.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          onClick={() => onSelect(t.id)}
+          className={`border-portal-border flex w-full items-center gap-2 border-b px-3 py-2 text-left last:border-b-0 ${
+            templateId === t.id ? "bg-portal-orange-soft" : ""
+          }`}>
+          <span className="text-portal-text1 text-xs font-semibold">
+            {t.name}
+          </span>
+          <span className="text-portal-text3 ml-auto flex-shrink-0 text-[10px]">
+            {t.blocks.length === 1 ? "1 block" : `${t.blocks.length} blocks`}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ModalHeader({
   weekNumber,
   onClose,
@@ -112,13 +154,16 @@ function ModalHeader({
 }
 
 interface ModalBodyProps {
-  mode: "blank" | "copy";
-  onMode: (m: "blank" | "copy") => void;
+  mode: Mode;
+  onMode: (m: Mode) => void;
   name: string;
   onName: (v: string) => void;
   existingSessions: SessionRow[];
   sourceId: string | null;
   onSourceId: (id: string) => void;
+  sessionTemplates: SessionTemplateSummary[];
+  templateId: string | null;
+  onTemplateId: (id: string) => void;
 }
 
 function ModalBody({
@@ -129,10 +174,13 @@ function ModalBody({
   existingSessions,
   sourceId,
   onSourceId,
+  sessionTemplates,
+  templateId,
+  onTemplateId,
 }: ModalBodyProps) {
   return (
     <div className="flex flex-col gap-3.5 px-5 py-4">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <StartModeOption
           label="Blank session"
           description="Start with empty blocks"
@@ -145,8 +193,14 @@ function ModalBody({
           active={mode === "copy"}
           onClick={() => onMode("copy")}
         />
+        <StartModeOption
+          label="From template"
+          description="Load a saved Block Library session"
+          active={mode === "template"}
+          onClick={() => onMode("template")}
+        />
       </div>
-      {mode === "blank" ? (
+      {mode === "blank" && (
         <PortalInput
           label="Session name"
           value={name}
@@ -154,11 +208,19 @@ function ModalBody({
           placeholder="e.g. Upper Body Power"
           autoFocus
         />
-      ) : (
+      )}
+      {mode === "copy" && (
         <CopySourceList
           sessions={existingSessions}
           sourceId={sourceId}
           onSelect={onSourceId}
+        />
+      )}
+      {mode === "template" && (
+        <TemplateSourceList
+          templates={sessionTemplates}
+          templateId={templateId}
+          onSelect={onTemplateId}
         />
       )}
     </div>
@@ -168,16 +230,22 @@ function ModalBody({
 export function SessionCreateModal({
   weekNumber,
   existingSessions,
+  sessionTemplates = [],
   onClose,
   onCreate,
 }: SessionCreateModalProps) {
-  const [mode, setMode] = useState<"blank" | "copy">("blank");
+  const [mode, setMode] = useState<Mode>("blank");
   const [name, setName] = useState("");
   const [sourceId, setSourceId] = useState<string | null>(null);
+  const [templateId, setTemplateId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const canSubmit =
-    mode === "blank" ? name.trim().length > 0 : sourceId !== null;
+    mode === "blank"
+      ? name.trim().length > 0
+      : mode === "copy"
+        ? sourceId !== null
+        : templateId !== null;
 
   async function handleCreate() {
     if (!canSubmit || saving) return;
@@ -188,10 +256,16 @@ export function SessionCreateModal({
         name: name.trim(),
         week_number: weekNumber,
       });
-    } else if (sourceId) {
+    } else if (mode === "copy" && sourceId) {
       await onCreate({
         mode: "copy",
         sourceSessionId: sourceId,
+        week_number: weekNumber,
+      });
+    } else if (mode === "template" && templateId) {
+      await onCreate({
+        mode: "template",
+        sessionTemplateId: templateId,
         week_number: weekNumber,
       });
     }
@@ -210,6 +284,9 @@ export function SessionCreateModal({
           existingSessions={existingSessions}
           sourceId={sourceId}
           onSourceId={setSourceId}
+          sessionTemplates={sessionTemplates}
+          templateId={templateId}
+          onTemplateId={setTemplateId}
         />
         <div className="border-portal-border flex justify-end gap-2 border-t px-5 py-4">
           <PortalButton variant="ghost" onClick={onClose} disabled={saving}>

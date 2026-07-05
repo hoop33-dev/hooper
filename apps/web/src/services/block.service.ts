@@ -48,7 +48,7 @@ export type UpdateBlockExerciseInput = {
   measurements?: MeasurementInput[];
 };
 
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+export type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 async function nextBlockPosition(
   supabase: SupabaseClient,
@@ -78,7 +78,7 @@ async function nextBlockExercisePosition(
 
 /** All of the exercise's configured unit types, in order, falling back to
  * "Reps" if none are configured. */
-async function resolveConfiguredUnitTypes(
+export async function resolveConfiguredUnitTypes(
   supabase: SupabaseClient,
   exerciseId: string,
 ): Promise<string[]> {
@@ -99,7 +99,7 @@ function defaultValueFor(unitType: string): number {
 
 /** Sensible starting values for a freshly-placed measurement: coach-entered,
  * with a default value and default display unit for this unit type. */
-function defaultMeasurementRow(unitType: string, position: number) {
+export function defaultMeasurementRow(unitType: string, position: number) {
   return {
     position,
     unit_type: unitType,

@@ -138,6 +138,46 @@ export type BlockExerciseMeasurementRow = {
   updated_at: string;
 };
 
+export type SessionTemplateRow = {
+  id: string;
+  name: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BlockTemplateRow = {
+  id: string;
+  session_template_id: string;
+  name: string;
+  color: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BlockTemplateExerciseRow = {
+  id: string;
+  block_template_id: string;
+  exercise_id: string;
+  position: number;
+  sets: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BlockTemplateExerciseMeasurementRow = {
+  block_template_exercise_id: string;
+  position: number;
+  unit_type: string;
+  value: number | null;
+  value_entered_by: EnteredBy;
+  value_unit: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -217,6 +257,37 @@ export type Database = {
             "block_exercise_id" | "position" | "unit_type"
           >;
         Update: Partial<BlockExerciseMeasurementRow>;
+        Relationships: [];
+      };
+      session_templates: {
+        Row: SessionTemplateRow;
+        Insert: Partial<SessionTemplateRow> &
+          Pick<SessionTemplateRow, "name" | "created_by">;
+        Update: Partial<SessionTemplateRow>;
+        Relationships: [];
+      };
+      block_templates: {
+        Row: BlockTemplateRow;
+        Insert: Partial<BlockTemplateRow> &
+          Pick<BlockTemplateRow, "session_template_id" | "name" | "color">;
+        Update: Partial<BlockTemplateRow>;
+        Relationships: [];
+      };
+      block_template_exercises: {
+        Row: BlockTemplateExerciseRow;
+        Insert: Partial<BlockTemplateExerciseRow> &
+          Pick<BlockTemplateExerciseRow, "block_template_id" | "exercise_id">;
+        Update: Partial<BlockTemplateExerciseRow>;
+        Relationships: [];
+      };
+      block_template_exercise_measurements: {
+        Row: BlockTemplateExerciseMeasurementRow;
+        Insert: Partial<BlockTemplateExerciseMeasurementRow> &
+          Pick<
+            BlockTemplateExerciseMeasurementRow,
+            "block_template_exercise_id" | "position" | "unit_type"
+          >;
+        Update: Partial<BlockTemplateExerciseMeasurementRow>;
         Relationships: [];
       };
     };

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { DraggableLibraryRow } from "./dnd/DraggableLibraryRow";
 import { filterExercises } from "./exerciseFilter";
@@ -8,11 +9,15 @@ import { filterExercises } from "./exerciseFilter";
 interface ExerciseLibraryPanelProps {
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
+  /** Replaces the plain "Exercise Library" title — used to show the
+   * Exercises/Blocks tab switcher when a Block Library exists too. */
+  tabs?: ReactNode;
 }
 
 export function ExerciseLibraryPanel({
   exercises,
   categories,
+  tabs,
 }: ExerciseLibraryPanelProps) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -21,10 +26,12 @@ export function ExerciseLibraryPanel({
   return (
     <div className="border-portal-border bg-portal-card flex w-[280px] flex-shrink-0 flex-col border-r">
       <div className="border-portal-border border-b px-3.5 py-3">
-        <div className="mb-2.5 flex items-center justify-between">
-          <span className="text-portal-text3 text-[11px] font-bold tracking-wide uppercase">
-            Exercise Library
-          </span>
+        <div className="mb-2.5 flex items-center justify-between gap-2">
+          {tabs ?? (
+            <span className="text-portal-text3 text-[11px] font-bold tracking-wide uppercase">
+              Exercise Library
+            </span>
+          )}
           <span className="text-portal-text3 text-[11px]">
             {filtered.length}
           </span>

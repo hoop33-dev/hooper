@@ -12,7 +12,7 @@ import type {
   ExerciseWithDetails,
 } from "@hooper/db";
 import { useState } from "react";
-import { SpinnerIcon, XIcon } from "../ui/icons";
+import { BookmarkIcon, SpinnerIcon, XIcon } from "../ui/icons";
 import { AddExercisePopover } from "./AddExercisePopover";
 import {
   useDragIndicator,
@@ -28,10 +28,12 @@ type BlockDropVisual = {
 };
 
 /**
- * A block card shows either a block-reorder line (block drag hovering this
- * card), a header-bottom line for an exercise/library drop on the block
- * header (it goes first in the block), or a fill highlight (something dropped
- * onto an empty block, which has no row to anchor a line to).
+ * A block card shows either a block-reorder line (a block, or a block
+ * template about to become one, hovering this card — it'll land as a
+ * sibling block, before/after this one), a header-bottom line for an
+ * exercise/library drop on the block header (it goes first in the block),
+ * or a fill highlight (something dropped onto an empty block, which has no
+ * row to anchor a line to).
  */
 function computeBlockDropVisual(
   blockDomId: string,
@@ -42,7 +44,7 @@ function computeBlockDropVisual(
   if (!activeId || indicator.overId !== blockDomId)
     return { lineEdge: null, headerLineEdge: null, emptyHighlight: false };
 
-  if (activeId.startsWith("block:")) {
+  if (activeId.startsWith("block:") || activeId.startsWith("block-template:")) {
     if (activeId === blockDomId)
       return { lineEdge: null, headerLineEdge: null, emptyHighlight: false };
     return {
@@ -133,6 +135,7 @@ interface BlockCardHeaderProps {
   dropLineEdge?: "bottom" | null;
   onRename: (name: string) => void;
   onDelete: () => void;
+  onSaveAsTemplate?: () => void;
   addExercise?: {
     exercises: ExerciseWithDetails[];
     onAdd: (id: string) => void;
@@ -147,6 +150,7 @@ function BlockCardHeader({
   dropLineEdge,
   onRename,
   onDelete,
+  onSaveAsTemplate,
   addExercise,
 }: BlockCardHeaderProps) {
   // The whole header is the block's grab area (a click on the name still
@@ -174,6 +178,16 @@ function BlockCardHeader({
             onAdd={addExercise.onAdd}
           />
         </div>
+      )}
+      {!readOnly && !pending && onSaveAsTemplate && (
+        <button
+          type="button"
+          onClick={onSaveAsTemplate}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Save as template"
+          className="text-portal-text3 hover:text-portal-orange flex-shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+          <BookmarkIcon />
+        </button>
       )}
       {!readOnly && !pending && (
         <button
@@ -237,6 +251,7 @@ interface BlockCardProps {
   onRemoveExercise: (id: string) => void;
   onRename: (name: string) => void;
   onDelete: () => void;
+  onSaveAsTemplate?: () => void;
 }
 
 export function BlockCard({
@@ -249,6 +264,7 @@ export function BlockCard({
   onRemoveExercise,
   onRename,
   onDelete,
+  onSaveAsTemplate,
 }: BlockCardProps) {
   const pending = isPending(block);
   const blockDomId = `block:${block.id}`;
@@ -289,6 +305,7 @@ export function BlockCard({
         dropLineEdge={headerLineEdge}
         onRename={onRename}
         onDelete={onDelete}
+        onSaveAsTemplate={onSaveAsTemplate}
         addExercise={
           !dense && exercises && onAddExercise
             ? { exercises, onAdd: onAddExercise }

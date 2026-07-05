@@ -14,6 +14,7 @@ import type {
   DuplicateSessionInput,
   SetLinkedWeeksInput,
 } from "@/src/services/session.service";
+import type { CreateSessionFromTemplateInput } from "@/src/services/sessionTemplate.service";
 import type {
   BlockExerciseWithDetails,
   BlockRow,
@@ -22,6 +23,7 @@ import type {
   ProgramRow,
   ProgramWithSessions,
   SessionRow,
+  SessionTemplateSummary,
   SessionWithBlocks,
 } from "@hooper/db";
 import { useRouter } from "next/navigation";
@@ -77,13 +79,85 @@ export interface ProgramCanvasActions {
     id: string,
     input: UpdateProgramInput,
   ) => Promise<ActionResult<ProgramRow>>;
+  /** Only needed to power the block header's "Save as template" button. */
+  saveBlockAsTemplateAction?: (
+    blockId: string,
+    name: string,
+  ) => Promise<ActionResult>;
+  /** Only needed to power the session column's "Save as template" button. */
+  saveSessionAsTemplateAction?: (
+    sessionId: string,
+    name: string,
+  ) => Promise<ActionResult>;
+  /** Only needed to power dragging a Block Library template into a block. */
+  createBlockFromTemplateAction?: (input: {
+    session_id: string;
+    block_template_id: string;
+  }) => Promise<ActionResult<BlockWithExercises>>;
+  /** Only needed to power "+ Add session > From template". */
+  createSessionFromTemplateAction?: (
+    input: CreateSessionFromTemplateInput,
+  ) => Promise<ActionResult<SessionRow>>;
 }
 
 export type SessionModalState =
   | { type: "create"; weekNumber: number }
   | { type: "rename"; session: SessionWithBlocks }
   | { type: "duplicate"; session: SessionWithBlocks }
+  | { type: "saveAsTemplate"; session: SessionWithBlocks }
   | null;
+
+/** Resolves the create-session request against whichever backing action its
+ * mode calls for — a blank session, a copy of an existing one, or a copy of
+ * a Block Library template. */
+async function resolveCreateSession(
+  data: SessionCreateData,
+  program: ProgramWithSessions,
+  actions: ProgramCanvasActions,
+): Promise<{ ok: boolean; error?: string }> {
+  if (data.mode === "template") {
+    if (!actions.createSessionFromTemplateAction) return { ok: false };
+    return actions.createSessionFromTemplateAction({
+      session_template_id: data.sessionTemplateId,
+      program_id: program.id,
+      week_number: data.week_number,
+    });
+  }
+  if (data.mode === "blank") {
+    return actions.createSessionAction({
+      program_id: program.id,
+      week_number: data.week_number,
+      name: data.name,
+    });
+  }
+  return actions.duplicateSessionAction({
+    sourceSessionId: data.sourceSessionId,
+    pattern: "manual",
+    targetWeeks: [data.week_number],
+  });
+}
+
+async function runSaveSessionAsTemplate(
+  name: string,
+  sessionModal: SessionModalState,
+  saveSessionAsTemplateAction: ProgramCanvasActions["saveSessionAsTemplateAction"],
+  onDone: () => void,
+  showError: (message: string) => void,
+  showSuccess: (message: string) => void,
+) {
+  if (sessionModal?.type !== "saveAsTemplate" || !saveSessionAsTemplateAction)
+    return;
+  const result = await saveSessionAsTemplateAction(
+    sessionModal.session.id,
+    name,
+  );
+  if (result.ok) {
+    onDone();
+    showSuccess(`Saved "${name}" to the Block Library.`);
+  } else {
+    showError(result.error ?? "Something went wrong.");
+  }
+}
 
 function useSessionModalHandlers(
   program: ProgramWithSessions,
@@ -92,7 +166,7 @@ function useSessionModalHandlers(
   setSessionModal: (state: SessionModalState) => void,
 ) {
   const router = useRouter();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
 
   function finish(result: { ok: boolean; error?: string }) {
     if (result.ok) {
@@ -104,19 +178,7 @@ function useSessionModalHandlers(
   }
 
   async function handleCreateSession(data: SessionCreateData) {
-    const result =
-      data.mode === "blank"
-        ? await actions.createSessionAction({
-            program_id: program.id,
-            week_number: data.week_number,
-            name: data.name,
-          })
-        : await actions.duplicateSessionAction({
-            sourceSessionId: data.sourceSessionId,
-            pattern: "manual",
-            targetWeeks: [data.week_number],
-          });
-    finish(result);
+    finish(await resolveCreateSession(data, program, actions));
   }
 
   async function handleRenameSession(name: string) {
@@ -142,11 +204,23 @@ function useSessionModalHandlers(
     else showError(result.error ?? "Something went wrong.");
   }
 
+  async function handleSaveSessionAsTemplate(name: string) {
+    await runSaveSessionAsTemplate(
+      name,
+      sessionModal,
+      actions.saveSessionAsTemplateAction,
+      () => setSessionModal(null),
+      showError,
+      showSuccess,
+    );
+  }
+
   return {
     handleCreateSession,
     handleRenameSession,
     handleDuplicateSession,
     handleDeleteSession,
+    handleSaveSessionAsTemplate,
   };
 }
 
@@ -273,6 +347,7 @@ function useCanvasBlockState(
   actions: ProgramCanvasActions,
   setWeekBlocks: (blocks: BlockWithExercises[]) => void,
   exercisesById: Map<string, ExerciseWithDetails>,
+  blockTemplateNamesById: Map<string, string>,
   router: ReturnType<typeof useRouter>,
 ) {
   const weekBlocks = weekSessions.flatMap((s) => s.blocks);
@@ -288,6 +363,8 @@ function useCanvasBlockState(
     reorderBlockExercisesAction: linkAware.reorderBlockExercisesAction,
     reorderBlocksAction: linkAware.reorderBlocksAction,
     createBlockAction,
+    createBlockFromTemplateAction: actions.createBlockFromTemplateAction,
+    blockTemplateNamesById,
   });
 
   const blockActions = useBlockActions({
@@ -299,6 +376,7 @@ function useCanvasBlockState(
     updateBlockExerciseAction: linkAware.updateBlockExerciseAction,
     removeExerciseFromBlockAction: linkAware.removeExerciseFromBlockAction,
     addExerciseToBlockAction: linkAware.addExerciseToBlockAction,
+    saveBlockAsTemplateAction: actions.saveBlockAsTemplateAction,
     exercisesById,
   });
 
@@ -322,10 +400,40 @@ function useSyncSessionsFromProgram(
   }, [program.sessions]);
 }
 
+/** Patches only the sessions visible in the current week — dnd/block-action
+ * state spans every visible session's blocks (see useCanvasBlockState), so
+ * a single flat blocks array has to be redistributed back across them. */
+function patchWeekBlocks(
+  prevSessions: SessionWithBlocks[],
+  weekSessionIds: Set<string>,
+  blocks: BlockWithExercises[],
+): SessionWithBlocks[] {
+  return prevSessions.map((s) =>
+    weekSessionIds.has(s.id)
+      ? { ...s, blocks: blocks.filter((b) => b.session_id === s.id) }
+      : s,
+  );
+}
+
+async function runAddWeek(
+  program: ProgramWithSessions,
+  updateProgramAction: ProgramCanvasActions["updateProgramAction"],
+  onSuccess: (newWeekCount: number) => void,
+  showError: (message: string) => void,
+) {
+  const newWeekCount = program.weeks + 1;
+  const result = await updateProgramAction(program.id, {
+    weeks: newWeekCount,
+  });
+  if (result.ok) onSuccess(newWeekCount);
+  else showError(result.error ?? "Something went wrong.");
+}
+
 export function useProgramCanvasState(
   program: ProgramWithSessions,
   exercises: ExerciseWithDetails[],
   actions: ProgramCanvasActions,
+  sessionTemplates: SessionTemplateSummary[] = [],
 ) {
   const router = useRouter();
   const { showError } = useToast();
@@ -341,16 +449,13 @@ export function useProgramCanvasState(
     .filter((s) => s.week_number === selectedWeek)
     .sort((a, b) => a.position - b.position);
   const exercisesById = new Map(exercises.map((e) => [e.id, e]));
+  const blockTemplateNamesById = new Map(
+    sessionTemplates.flatMap((t) => t.blocks).map((b) => [b.id, b.name]),
+  );
 
   function setWeekBlocks(blocks: BlockWithExercises[]) {
     const weekSessionIds = new Set(weekSessions.map((s) => s.id));
-    setSessions((prev) =>
-      prev.map((s) =>
-        weekSessionIds.has(s.id)
-          ? { ...s, blocks: blocks.filter((b) => b.session_id === s.id) }
-          : s,
-      ),
-    );
+    setSessions((prev) => patchWeekBlocks(prev, weekSessionIds, blocks));
   }
 
   const { dnd, blockActions } = useCanvasBlockState(
@@ -358,6 +463,7 @@ export function useProgramCanvasState(
     actions,
     setWeekBlocks,
     exercisesById,
+    blockTemplateNamesById,
     router,
   );
 
@@ -366,16 +472,15 @@ export function useProgramCanvasState(
   }
 
   async function addWeek() {
-    const newWeekCount = program.weeks + 1;
-    const result = await actions.updateProgramAction(program.id, {
-      weeks: newWeekCount,
-    });
-    if (result.ok) {
-      router.refresh();
-      selectWeek(newWeekCount);
-    } else {
-      showError(result.error ?? "Something went wrong.");
-    }
+    await runAddWeek(
+      program,
+      actions.updateProgramAction,
+      (newWeekCount) => {
+        router.refresh();
+        selectWeek(newWeekCount);
+      },
+      showError,
+    );
   }
 
   const sessionModalHandlers = useSessionModalHandlers(
@@ -401,6 +506,8 @@ export function useProgramCanvasState(
     addWeek,
     weekSessions,
     exercisesById,
+    blockTemplateNamesById,
+    sessionTemplates,
     dnd,
     blockActions,
     sessionModal,

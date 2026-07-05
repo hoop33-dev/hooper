@@ -52,6 +52,31 @@ function LayersIcon({
   );
 }
 
+function StackIcon({
+  size = 15,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round">
+      <rect x="3" y="3" width="8" height="8" rx="1.5" />
+      <rect x="13" y="3" width="8" height="8" rx="1.5" />
+      <rect x="3" y="13" width="8" height="8" rx="1.5" />
+      <rect x="13" y="13" width="8" height="8" rx="1.5" />
+    </svg>
+  );
+}
+
 function UsersIcon({
   size = 15,
   color = "currentColor",
@@ -90,6 +115,13 @@ const NAV_ITEMS = [
     label: "Programs",
     href: "/programs",
     Icon: LayersIcon,
+    active: true,
+  },
+  {
+    id: "blocks",
+    label: "Block Library",
+    href: "/blocks",
+    Icon: StackIcon,
     active: true,
   },
   {

@@ -27,6 +27,7 @@ interface BlockListProps {
   onDeleteBlock: (blockId: string) => void;
   onAddBlock: (name: string) => Promise<void>;
   onAddExerciseToBlock: (blockId: string, exerciseId: string) => void;
+  onSaveBlockAsTemplate?: (blockId: string) => void;
 }
 
 function AddBlockForm({
@@ -105,6 +106,7 @@ export function BlockList({
   onDeleteBlock,
   onAddBlock,
   onAddExerciseToBlock,
+  onSaveBlockAsTemplate,
 }: BlockListProps) {
   // Session-level drop target so a whole block can be dragged to the end of
   // the list (below the last block) even though there's no row to hover.
@@ -123,6 +125,11 @@ export function BlockList({
             onRemoveExercise={onRemoveExercise}
             onRename={(name) => onRenameBlock(block.id, name)}
             onDelete={() => onDeleteBlock(block.id)}
+            onSaveAsTemplate={
+              onSaveBlockAsTemplate
+                ? () => onSaveBlockAsTemplate(block.id)
+                : undefined
+            }
             onAddExercise={(exerciseId) =>
               onAddExerciseToBlock(block.id, exerciseId)
             }

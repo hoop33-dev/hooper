@@ -23,7 +23,11 @@ import {
   type BlockPositionUpdate,
 } from "./dropComputation";
 import { isInsertAfter, isInsertAfterForBlockTarget } from "./insertPosition";
-import { createPendingBlock, createPendingExercise } from "./pendingRows";
+import {
+  createPendingBlock,
+  createPendingBlockFromTemplate,
+  createPendingExercise,
+} from "./pendingRows";
 
 function reportIfFailed(
   onError: (message: string) => void,
@@ -56,10 +60,26 @@ export interface UseBlockExerciseDndOptions {
     sessionId: string,
     name: string,
   ) => Promise<ActionResult<BlockRow>>;
+  /** Enables dropping a Block Library template onto any block/session drop
+   * zone, copying its exercises/measurements into a brand-new block. */
+  createBlockFromTemplateAction?: (input: {
+    session_id: string;
+    block_template_id: string;
+  }) => Promise<ActionResult<BlockWithExercises>>;
+  /** Block name for each single-block template shown in the Block Library
+   * panel, keyed by its block_template id — used for the pending placeholder
+   * shown while createBlockFromTemplateAction resolves. */
+  blockTemplateNamesById?: Map<string, string>;
 }
 
 type ParsedId = {
-  type: "block" | "block-exercise" | "library" | "new-block" | "session";
+  type:
+    | "block"
+    | "block-exercise"
+    | "library"
+    | "block-template"
+    | "new-block"
+    | "session";
   value: string;
 };
 
@@ -72,6 +92,7 @@ function parseId(id: string): ParsedId | null {
     type === "block" ||
     type === "block-exercise" ||
     type === "library" ||
+    type === "block-template" ||
     type === "new-block" ||
     type === "session"
   ) {
@@ -145,7 +166,9 @@ function resolveExerciseTarget(
 }
 
 /** Resolves which session a block drop targets, from either a block-level
- * over-target (use that block's own session) or a session column zone. */
+ * over-target (use that block's own session), a session column zone, or the
+ * "+ Add block" zone (equivalent to its session — there's no block to
+ * anchor a position to yet). */
 function resolveTargetSession(
   blocks: BlockWithExercises[],
   overId: string,
@@ -158,7 +181,7 @@ function resolveTargetSession(
       ? { sessionId: overBlock.session_id, overBlockId: over.value }
       : null;
   }
-  if (over.type === "session") {
+  if (over.type === "session" || over.type === "new-block") {
     return { sessionId: over.value, overBlockId: null };
   }
   return null;
@@ -375,6 +398,69 @@ async function handleLibraryDrop(
   );
 }
 
+/** Copies a Block Library template into a new block wherever it's dropped —
+ * any block/session/"+ Add block" zone all resolve to a target session via
+ * resolveTargetSession, since a template always creates a whole new block
+ * rather than placing a single exercise. */
+async function handleBlockTemplateDrop(
+  options: UseBlockExerciseDndOptions,
+  blockTemplateId: string,
+  pointerY: number | null,
+  over: Over,
+  markCommitted: () => void,
+  onError: (message: string) => void,
+) {
+  if (!options.createBlockFromTemplateAction) return;
+  const target = resolveTargetSession(options.blocks, String(over.id));
+  if (!target) return;
+
+  markCommitted();
+  const originalBlocks = options.blocks;
+  const name =
+    options.blockTemplateNamesById?.get(blockTemplateId) ?? "New block";
+  options.setBlocks([
+    ...originalBlocks,
+    createPendingBlockFromTemplate(target.sessionId, name),
+  ]);
+
+  const result = await options.createBlockFromTemplateAction({
+    session_id: target.sessionId,
+    block_template_id: blockTemplateId,
+  });
+  if (!result.ok || !result.data) {
+    options.setBlocks(originalBlocks);
+    reportIfFailed(onError, result);
+    return;
+  }
+
+  const withReal = [...originalBlocks, result.data];
+  if (!target.overBlockId) {
+    options.setBlocks(withReal);
+    return;
+  }
+
+  // Dropped over a specific block — reposition the newly-created block there
+  // (it's already in its target session, so this only resequences).
+  const reordered = computeBlockMove(
+    withReal,
+    result.data.id,
+    target.sessionId,
+    target.overBlockId,
+    isInsertAfterForBlockTarget(pointerY, over),
+  );
+  if (!reordered) {
+    options.setBlocks(withReal);
+    return;
+  }
+  options.setBlocks(reordered.blocks);
+  if (options.reorderBlocksAction) {
+    reportIfFailed(
+      onError,
+      await options.reorderBlocksAction(reordered.updates),
+    );
+  }
+}
+
 function getPointerY(event: {
   activatorEvent: Event | null;
   delta: { y: number };
@@ -464,6 +550,15 @@ function createDragEndHandler(
       );
     } else if (activeParsed.type === "block-exercise") {
       await handleExerciseDrop(
+        options,
+        activeParsed.value,
+        pointerY,
+        over,
+        markCommitted,
+        onError,
+      );
+    } else if (activeParsed.type === "block-template") {
+      await handleBlockTemplateDrop(
         options,
         activeParsed.value,
         pointerY,

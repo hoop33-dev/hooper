@@ -4,6 +4,7 @@ import { DndContext, DragOverlay } from "@dnd-kit/core";
 import type {
   ExerciseCategoryRow,
   ExerciseWithDetails,
+  SessionTemplateSummary,
   SessionWithBlocks,
 } from "@hooper/db";
 import { BlockExerciseMeasurementModal } from "./BlockExerciseMeasurementModal";
@@ -11,7 +12,8 @@ import { BlockList } from "./BlockList";
 import { blockDndCollision } from "./dnd/collision";
 import { DragIndicatorContext } from "./dnd/DragIndicatorContext";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
-import { ExerciseLibraryPanel } from "./ExerciseLibraryPanel";
+import { SaveAsTemplatePopover } from "./SaveAsTemplatePopover";
+import { SessionLibrarySidebar } from "./SessionLibrarySidebar";
 import {
   useSessionViewState,
   type SessionViewActions,
@@ -21,15 +23,22 @@ interface SessionViewShellProps extends SessionViewActions {
   session: SessionWithBlocks;
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
+  sessionTemplates?: SessionTemplateSummary[];
 }
 
 export function SessionViewShell({
   session,
   exercises,
   categories,
+  sessionTemplates = [],
   ...actions
 }: SessionViewShellProps) {
-  const state = useSessionViewState(session, exercises, actions);
+  const state = useSessionViewState(
+    session,
+    exercises,
+    actions,
+    sessionTemplates,
+  );
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -41,7 +50,11 @@ export function SessionViewShell({
         onDragEnd={state.dnd.handleDragEnd}
         onDragCancel={state.dnd.handleDragCancel}>
         <DragIndicatorContext.Provider value={state.dnd.indicator}>
-          <ExerciseLibraryPanel exercises={exercises} categories={categories} />
+          <SessionLibrarySidebar
+            exercises={exercises}
+            categories={categories}
+            sessionTemplates={sessionTemplates}
+          />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
             <BlockList
               sessionId={session.id}
@@ -55,6 +68,14 @@ export function SessionViewShell({
                 state.blockActions.addBlock(session.id, name)
               }
               onAddExerciseToBlock={state.blockActions.addExerciseToBlock}
+              onSaveBlockAsTemplate={
+                actions.saveBlockAsTemplateAction
+                  ? (blockId) =>
+                      state.blockActions.openSaveBlockAsTemplate(
+                        state.blocks.find((b) => b.id === blockId) ?? null,
+                      )
+                  : undefined
+              }
             />
           </div>
           <DragOverlay dropAnimation={state.dnd.dropAnimation}>
@@ -62,6 +83,7 @@ export function SessionViewShell({
               activeId={state.dnd.activeId}
               blocks={state.blocks}
               exercisesById={state.exercisesById}
+              blockTemplateNamesById={state.blockTemplateNamesById}
             />
           </DragOverlay>
         </DragIndicatorContext.Provider>
@@ -73,6 +95,15 @@ export function SessionViewShell({
           linkedWeeks={state.editingExerciseLinkedWeeks}
           onClose={state.blockActions.closeExerciseEditor}
           onSave={state.blockActions.saveExerciseMeasurement}
+        />
+      )}
+
+      {state.blockActions.savingAsTemplateBlock && (
+        <SaveAsTemplatePopover
+          title="Save block as template"
+          defaultName={state.blockActions.savingAsTemplateBlock.name}
+          onClose={state.blockActions.closeSaveBlockAsTemplate}
+          onSave={state.blockActions.submitSaveBlockAsTemplate}
         />
       )}
     </div>

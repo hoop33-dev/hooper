@@ -4,7 +4,13 @@ import { cn } from "@/src/lib/cn";
 import { useDroppable } from "@dnd-kit/core";
 import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
 import Link from "next/link";
-import { DuplicateIcon, LinkIcon, PencilIcon, XIcon } from "../ui/icons";
+import {
+  BookmarkIcon,
+  DuplicateIcon,
+  LinkIcon,
+  PencilIcon,
+  XIcon,
+} from "../ui/icons";
 import { BlockCard } from "./BlockCard";
 import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
 import { sessionDropId } from "./dnd/useBlockExerciseDnd";
@@ -15,11 +21,13 @@ interface SessionCanvasColumnProps {
   onRename: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onSaveAsTemplate?: () => void;
   onAddBlock: () => void;
   onOpenExercise: (blockExercise: BlockExerciseWithDetails) => void;
   onRemoveExercise: (blockId: string, exerciseRowId: string) => void;
   onRenameBlock: (blockId: string, name: string) => void;
   onDeleteBlock: (blockId: string) => void;
+  onSaveBlockAsTemplate?: (blockId: string) => void;
 }
 
 function stop(e: React.MouseEvent) {
@@ -30,10 +38,12 @@ function ColumnHeaderActions({
   onRename,
   onDuplicate,
   onDelete,
+  onSaveAsTemplate,
 }: {
   onRename: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onSaveAsTemplate?: () => void;
 }) {
   return (
     <div className="flex flex-shrink-0 items-center gap-1.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
@@ -57,6 +67,18 @@ function ColumnHeaderActions({
         title="Duplicate">
         <DuplicateIcon />
       </button>
+      {onSaveAsTemplate && (
+        <button
+          type="button"
+          onClick={(e) => {
+            stop(e);
+            onSaveAsTemplate();
+          }}
+          className="text-portal-text3 hover:text-portal-orange"
+          title="Save as template">
+          <BookmarkIcon />
+        </button>
+      )}
       <button
         type="button"
         onClick={(e) => {
@@ -77,9 +99,15 @@ function ColumnHeader({
   onRename,
   onDuplicate,
   onDelete,
+  onSaveAsTemplate,
 }: Pick<
   SessionCanvasColumnProps,
-  "programId" | "session" | "onRename" | "onDuplicate" | "onDelete"
+  | "programId"
+  | "session"
+  | "onRename"
+  | "onDuplicate"
+  | "onDelete"
+  | "onSaveAsTemplate"
 >) {
   return (
     <div className="border-portal-border bg-portal-card group rounded-lg border p-2.5">
@@ -110,6 +138,7 @@ function ColumnHeader({
           onRename={onRename}
           onDuplicate={onDuplicate}
           onDelete={onDelete}
+          onSaveAsTemplate={onSaveAsTemplate}
         />
       </div>
     </div>
@@ -124,6 +153,7 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
     onRemoveExercise,
     onRenameBlock,
     onDeleteBlock,
+    onSaveBlockAsTemplate,
   } = props;
   // Lets a block be dropped into the general column area — the only
   // registered target when a session has no blocks to hover over yet.
@@ -151,6 +181,11 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
             }
             onRename={(name) => onRenameBlock(block.id, name)}
             onDelete={() => onDeleteBlock(block.id)}
+            onSaveAsTemplate={
+              onSaveBlockAsTemplate
+                ? () => onSaveBlockAsTemplate(block.id)
+                : undefined
+            }
           />
         ))}
         <NewBlockDropZone

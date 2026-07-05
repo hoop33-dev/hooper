@@ -55,6 +55,114 @@ async function runAddExerciseToBlock(
   );
 }
 
+async function runAddBlock(
+  sessionId: string,
+  name: string,
+  ctx: Pick<
+    UseBlockActionsOptions,
+    "blocks" | "setBlocks" | "createBlockAction"
+  > & {
+    showError: (message: string) => void;
+  },
+) {
+  const result = await ctx.createBlockAction(sessionId, name);
+  if (result.ok && result.data) {
+    ctx.setBlocks([...ctx.blocks, { ...result.data, exercises: [] }]);
+  } else {
+    reportError(ctx.showError, result);
+  }
+}
+
+async function runRenameBlock(
+  blockId: string,
+  name: string,
+  ctx: Pick<
+    UseBlockActionsOptions,
+    "blocks" | "setBlocks" | "updateBlockAction"
+  > & {
+    showError: (message: string) => void;
+  },
+) {
+  const result = await ctx.updateBlockAction(blockId, { name });
+  // color is server-derived from the new name, so patch from the returned
+  // row rather than assuming only `name` changed.
+  if (result.ok && result.data) {
+    ctx.setBlocks(patchBlock(ctx.blocks, blockId, result.data));
+  } else {
+    reportError(ctx.showError, result);
+  }
+}
+
+async function runSaveExerciseMeasurement(
+  data: BlockExerciseUpdateData,
+  scope: LinkScope | undefined,
+  editingExercise: BlockExerciseWithDetails | null,
+  ctx: Pick<
+    UseBlockActionsOptions,
+    "blocks" | "setBlocks" | "updateBlockExerciseAction"
+  > & {
+    showError: (message: string) => void;
+    onSaved: () => void;
+  },
+) {
+  if (!editingExercise) return;
+  const result = await ctx.updateBlockExerciseAction(
+    editingExercise.id,
+    data,
+    scope,
+  );
+  if (result.ok && result.data) {
+    ctx.setBlocks(patchExercise(ctx.blocks, editingExercise.id, result.data));
+    ctx.onSaved();
+  } else {
+    reportError(ctx.showError, result);
+  }
+}
+
+async function runDeleteBlock(
+  blockId: string,
+  ctx: Pick<
+    UseBlockActionsOptions,
+    "blocks" | "setBlocks" | "deleteBlockAction"
+  > & {
+    showError: (message: string) => void;
+  },
+) {
+  const result = await ctx.deleteBlockAction(blockId);
+  if (result.ok) ctx.setBlocks(removeBlock(ctx.blocks, blockId));
+  else reportError(ctx.showError, result);
+}
+
+async function runRemoveExerciseFromBlock(
+  exerciseRowId: string,
+  ctx: Pick<
+    UseBlockActionsOptions,
+    "blocks" | "setBlocks" | "removeExerciseFromBlockAction"
+  > & { showError: (message: string) => void },
+) {
+  const result = await ctx.removeExerciseFromBlockAction(exerciseRowId);
+  if (result.ok) ctx.setBlocks(removeExercise(ctx.blocks, exerciseRowId));
+  else reportError(ctx.showError, result);
+}
+
+async function runSaveBlockAsTemplate(
+  name: string,
+  block: BlockWithExercises | null,
+  saveBlockAsTemplateAction: UseBlockActionsOptions["saveBlockAsTemplateAction"],
+  onDone: () => void,
+  showError: (message: string) => void,
+  showSuccess: (message: string) => void,
+) {
+  if (!block || !saveBlockAsTemplateAction) return;
+  const result = await saveBlockAsTemplateAction(block.id, name);
+  if (result.ok) {
+    showSuccess(`Saved "${name}" to the Block Library.`);
+    onDone();
+  } else {
+    reportError(showError, result);
+  }
+}
+
 export interface UseBlockActionsOptions {
   blocks: BlockWithExercises[];
   setBlocks: (blocks: BlockWithExercises[]) => void;
@@ -78,94 +186,54 @@ export interface UseBlockActionsOptions {
     block_id: string;
     exercise_id: string;
   }) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
+  /** Only needed to power the block header's "Save as template" button. */
+  saveBlockAsTemplateAction?: (
+    blockId: string,
+    name: string,
+  ) => Promise<ActionResult>;
   exercisesById?: Map<string, ExerciseWithDetails>;
 }
 
 export function useBlockActions(options: UseBlockActionsOptions) {
-  const {
-    blocks,
-    setBlocks,
-    createBlockAction,
-    updateBlockAction,
-    deleteBlockAction,
-    updateBlockExerciseAction,
-    removeExerciseFromBlockAction,
-    addExerciseToBlockAction,
-    exercisesById,
-  } = options;
   const [editingExercise, setEditingExercise] =
     useState<BlockExerciseWithDetails | null>(null);
-  const { showError } = useToast();
-
-  async function addBlock(sessionId: string, name: string) {
-    const result = await createBlockAction(sessionId, name);
-    if (result.ok && result.data) {
-      setBlocks([...blocks, { ...result.data, exercises: [] }]);
-    } else {
-      reportError(showError, result);
-    }
-  }
-
-  async function renameBlock(blockId: string, name: string) {
-    const result = await updateBlockAction(blockId, { name });
-    // color is server-derived from the new name, so patch from the
-    // returned row rather than assuming only `name` changed.
-    if (result.ok && result.data) {
-      setBlocks(patchBlock(blocks, blockId, result.data));
-    } else {
-      reportError(showError, result);
-    }
-  }
-
-  async function deleteBlockById(blockId: string) {
-    const result = await deleteBlockAction(blockId);
-    if (result.ok) setBlocks(removeBlock(blocks, blockId));
-    else reportError(showError, result);
-  }
-
-  async function saveExerciseMeasurement(
-    data: BlockExerciseUpdateData,
-    scope?: LinkScope,
-  ) {
-    if (!editingExercise) return;
-    const result = await updateBlockExerciseAction(
-      editingExercise.id,
-      data,
-      scope,
-    );
-    if (result.ok && result.data) {
-      setBlocks(patchExercise(blocks, editingExercise.id, result.data));
-      setEditingExercise(null);
-    } else {
-      reportError(showError, result);
-    }
-  }
-
-  async function removeExerciseById(exerciseRowId: string) {
-    const result = await removeExerciseFromBlockAction(exerciseRowId);
-    if (result.ok) setBlocks(removeExercise(blocks, exerciseRowId));
-    else reportError(showError, result);
-  }
-
-  async function addExerciseToBlock(blockId: string, exerciseId: string) {
-    await runAddExerciseToBlock(blockId, exerciseId, {
-      blocks,
-      setBlocks,
-      addExerciseToBlockAction,
-      exercisesById,
-      showError,
-    });
-  }
+  const [savingAsTemplateBlock, setSavingAsTemplateBlock] =
+    useState<BlockWithExercises | null>(null);
+  const { showError, showSuccess } = useToast();
+  const ctx = { ...options, showError };
 
   return {
     editingExercise,
     openExerciseEditor: setEditingExercise,
     closeExerciseEditor: () => setEditingExercise(null),
-    addBlock,
-    renameBlock,
-    deleteBlockById,
-    saveExerciseMeasurement,
-    removeExerciseById,
-    addExerciseToBlock,
+    addBlock: (sessionId: string, name: string) =>
+      runAddBlock(sessionId, name, ctx),
+    renameBlock: (blockId: string, name: string) =>
+      runRenameBlock(blockId, name, ctx),
+    deleteBlockById: (blockId: string) => runDeleteBlock(blockId, ctx),
+    saveExerciseMeasurement: (
+      data: BlockExerciseUpdateData,
+      scope?: LinkScope,
+    ) =>
+      runSaveExerciseMeasurement(data, scope, editingExercise, {
+        ...ctx,
+        onSaved: () => setEditingExercise(null),
+      }),
+    removeExerciseById: (exerciseRowId: string) =>
+      runRemoveExerciseFromBlock(exerciseRowId, ctx),
+    addExerciseToBlock: (blockId: string, exerciseId: string) =>
+      runAddExerciseToBlock(blockId, exerciseId, ctx),
+    savingAsTemplateBlock,
+    openSaveBlockAsTemplate: setSavingAsTemplateBlock,
+    closeSaveBlockAsTemplate: () => setSavingAsTemplateBlock(null),
+    submitSaveBlockAsTemplate: (name: string) =>
+      runSaveBlockAsTemplate(
+        name,
+        savingAsTemplateBlock,
+        options.saveBlockAsTemplateAction,
+        () => setSavingAsTemplateBlock(null),
+        showError,
+        showSuccess,
+      ),
   };
 }

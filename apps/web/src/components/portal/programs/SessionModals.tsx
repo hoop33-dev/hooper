@@ -1,9 +1,14 @@
 import type { LinkScope } from "@/src/services/block.service";
-import type { BlockExerciseWithDetails, SessionRow } from "@hooper/db";
+import type {
+  BlockExerciseWithDetails,
+  SessionRow,
+  SessionTemplateSummary,
+} from "@hooper/db";
 import {
   BlockExerciseMeasurementModal,
   type BlockExerciseUpdateData,
 } from "./BlockExerciseMeasurementModal";
+import { SaveAsTemplatePopover } from "./SaveAsTemplatePopover";
 import {
   SessionCreateModal,
   type SessionCreateData,
@@ -16,6 +21,7 @@ interface SessionModalsProps {
   sessionModal: SessionModalState;
   onCloseSessionModal: () => void;
   existingSessions: SessionRow[];
+  sessionTemplates?: SessionTemplateSummary[];
   totalWeeks: number;
   /** The duplicate modal's session's current linked weeks (its own week
    * only, if it isn't linked to anything). */
@@ -23,6 +29,7 @@ interface SessionModalsProps {
   onCreateSession: (data: SessionCreateData) => Promise<void>;
   onRenameSession: (name: string) => Promise<void>;
   onDuplicateSession: (targetWeeks: number[]) => Promise<void>;
+  onSaveSessionAsTemplate: (name: string) => Promise<void>;
   editingExercise: BlockExerciseWithDetails | null;
   /** Every week the exercise being edited is linked across, when it's more
    * than just itself — enables the measurement modal's scope choice. */
@@ -38,11 +45,13 @@ export function SessionModals({
   sessionModal,
   onCloseSessionModal,
   existingSessions,
+  sessionTemplates,
   totalWeeks,
   linkedWeeks,
   onCreateSession,
   onRenameSession,
   onDuplicateSession,
+  onSaveSessionAsTemplate,
   editingExercise,
   editingExerciseLinkedWeeks,
   onCloseExerciseEditor,
@@ -54,6 +63,7 @@ export function SessionModals({
         <SessionCreateModal
           weekNumber={sessionModal.weekNumber}
           existingSessions={existingSessions}
+          sessionTemplates={sessionTemplates}
           onClose={onCloseSessionModal}
           onCreate={onCreateSession}
         />
@@ -73,6 +83,14 @@ export function SessionModals({
           linkedWeeks={linkedWeeks}
           onClose={onCloseSessionModal}
           onDuplicate={onDuplicateSession}
+        />
+      )}
+      {sessionModal?.type === "saveAsTemplate" && (
+        <SaveAsTemplatePopover
+          title="Save session as template"
+          defaultName={sessionModal.session.name}
+          onClose={onCloseSessionModal}
+          onSave={onSaveSessionAsTemplate}
         />
       )}
       {editingExercise && (

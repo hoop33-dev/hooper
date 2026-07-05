@@ -44,6 +44,28 @@ async function nextSessionPosition(
   return data && data.length > 0 ? data[0].position + 1 : 0;
 }
 
+/** Every session in a program, ordered week-then-position — the same
+ * sequence the program canvas renders sessions in. Deliberately shallow (no
+ * nested blocks) since this only powers prev/next navigation on the
+ * single-session page. */
+export async function listSessionsForProgram(
+  programId: string,
+): Promise<Result<SessionRow[]>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("program_id", programId)
+      .order("week_number", { ascending: true })
+      .order("position", { ascending: true });
+    if (error) return err(error.message);
+    return ok(data ?? []);
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
 export async function getSessionById(
   id: string,
 ): Promise<Result<SessionWithBlocks>> {

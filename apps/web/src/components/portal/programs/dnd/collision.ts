@@ -15,6 +15,10 @@ function allowedTargets(activeType: string): string[] {
   if (activeType === "block-exercise") return ["block-exercise", "block"];
   if (activeType === "block") return ["block", "session"];
   if (activeType === "library") return ["block-exercise", "block", "new-block"];
+  // A block template always creates a whole new block, so it targets the
+  // same zones a whole block does, plus "+ Add block" (equivalent to its
+  // session — see resolveTargetSession in useBlockExerciseDnd.ts).
+  if (activeType === "block-template") return ["block", "session", "new-block"];
   return [];
 }
 

@@ -10,31 +10,6 @@ interface ExerciseLibraryShelfProps {
   categories: ExerciseCategoryRow[];
 }
 
-function ShelfToggle({
-  open,
-  count,
-  onToggle,
-}: {
-  open: boolean;
-  count: number;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="border-portal-border bg-portal-card flex h-9 w-full flex-shrink-0 items-center gap-2 border-t px-4 text-left">
-      <span className="text-portal-text1 text-[12px] font-bold">
-        Exercise Library
-      </span>
-      <span className="text-portal-text3 text-[11px]">— {count} exercises</span>
-      <span className="text-portal-text3 ml-auto text-[10px]">
-        {open ? "Collapse" : "Expand"}
-      </span>
-    </button>
-  );
-}
-
 function ShelfSidebar({
   search,
   onSearch,
@@ -74,38 +49,31 @@ function ShelfSidebar({
   );
 }
 
-export function ExerciseLibraryShelf({
+/** The shelf's expandable content — mounted only while the containing
+ * ProgramLibraryShelf toggle is open (see ProgramLibraryShelf.tsx, which
+ * owns the shared open/collapsed + Exercises/Blocks tab chrome). */
+export function ExerciseLibraryShelfBody({
   exercises,
   categories,
 }: ExerciseLibraryShelfProps) {
-  const [open, setOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const filtered = filterExercises(exercises, search, categoryId);
 
   return (
-    <div className="bg-portal-card flex-shrink-0">
-      <ShelfToggle
-        open={open}
-        count={exercises.length}
-        onToggle={() => setOpen((o) => !o)}
+    <div className="flex h-[190px]">
+      <ShelfSidebar
+        search={search}
+        onSearch={setSearch}
+        categoryId={categoryId}
+        onCategory={setCategoryId}
+        categories={categories}
       />
-      {open && (
-        <div className="border-portal-border flex h-[190px] border-t">
-          <ShelfSidebar
-            search={search}
-            onSearch={setSearch}
-            categoryId={categoryId}
-            onCategory={setCategoryId}
-            categories={categories}
-          />
-          <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto p-2.5">
-            {filtered.map((ex) => (
-              <DraggableLibraryRow key={ex.id} exercise={ex} variant="card" />
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto p-2.5">
+        {filtered.map((ex) => (
+          <DraggableLibraryRow key={ex.id} exercise={ex} variant="card" />
+        ))}
+      </div>
     </div>
   );
 }

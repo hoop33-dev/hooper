@@ -1,10 +1,18 @@
 import { ProgramCanvasShell } from "@/src/components/portal/programs/ProgramCanvasShell";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
+import { getCoachProfile } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
 import { getProgramById } from "@/src/services/program.service";
+import { listSessionTemplates } from "@/src/services/sessionTemplate.service";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import {
+  createBlockFromTemplateAction,
+  createSessionFromTemplateAction,
+  saveBlockAsTemplateAction,
+  saveSessionAsTemplateAction,
+} from "../../blocks/actions";
 import { updateProgramAction } from "../actions";
 import {
   addExerciseToBlockAction,
@@ -28,16 +36,38 @@ export default async function ProgramCanvasPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [programResult, exercisesResult, categoriesResult] = await Promise.all([
+  const [
+    programResult,
+    exercisesResult,
+    categoriesResult,
+    profileResult,
+    sessionTemplatesResult,
+  ] = await Promise.all([
     getProgramById(id),
     listExercises(),
     listCategories(),
+    getCoachProfile(),
+    listSessionTemplates(),
   ]);
 
   if (!programResult.ok) notFound();
 
   const exercises = exercisesResult.ok ? exercisesResult.data : [];
   const categories = categoriesResult.ok ? categoriesResult.data : [];
+  const profileId = profileResult.ok ? profileResult.data.id : "";
+  const sessionTemplates = sessionTemplatesResult.ok
+    ? sessionTemplatesResult.data
+    : [];
+
+  async function wrappedSaveBlockAsTemplate(blockId: string, name: string) {
+    "use server";
+    return saveBlockAsTemplateAction(blockId, name, profileId);
+  }
+
+  async function wrappedSaveSessionAsTemplate(sessionId: string, name: string) {
+    "use server";
+    return saveSessionAsTemplateAction(sessionId, name, profileId);
+  }
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -56,6 +86,7 @@ export default async function ProgramCanvasPage({
         program={programResult.data}
         exercises={exercises}
         categories={categories}
+        sessionTemplates={sessionTemplates}
         createSessionAction={createSessionAction}
         updateSessionNameAction={updateSessionNameAction}
         deleteSessionAction={deleteSessionAction}
@@ -70,6 +101,10 @@ export default async function ProgramCanvasPage({
         removeExerciseFromBlockAction={removeExerciseFromBlockAction}
         reorderBlockExercisesAction={reorderBlockExercisesAction}
         updateProgramAction={updateProgramAction}
+        saveBlockAsTemplateAction={wrappedSaveBlockAsTemplate}
+        saveSessionAsTemplateAction={wrappedSaveSessionAsTemplate}
+        createBlockFromTemplateAction={createBlockFromTemplateAction}
+        createSessionFromTemplateAction={createSessionFromTemplateAction}
       />
     </div>
   );

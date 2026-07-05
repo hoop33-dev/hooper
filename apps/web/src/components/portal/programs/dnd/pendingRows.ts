@@ -71,3 +71,25 @@ export function createPendingBlock(
     pending: true,
   };
 }
+
+/** Placeholder shown while a Block Library template is being copied into a
+ * new block (its exercises/measurements come back in one round trip, so
+ * there's nothing to preview row-by-row — just the block itself, pending). */
+export function createPendingBlockFromTemplate(
+  sessionId: string,
+  name: string,
+): Pending<BlockWithExercises> {
+  const now = new Date().toISOString();
+  return {
+    id: nextPendingId("block-template"),
+    session_id: sessionId,
+    name,
+    color: defaultBlockColor(name),
+    position: 0,
+    link_group_id: null,
+    created_at: now,
+    updated_at: now,
+    exercises: [],
+    pending: true,
+  };
+}

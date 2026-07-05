@@ -9,7 +9,9 @@ import type {
 } from "@/src/services/block.service";
 import type {
   BlockRow,
+  BlockWithExercises,
   ExerciseWithDetails,
+  SessionTemplateSummary,
   SessionWithBlocks,
 } from "@hooper/db";
 import { useEffect, useState } from "react";
@@ -45,6 +47,19 @@ export interface SessionViewActions {
   reorderBlockExercisesAction: (
     updates: BlockExercisePositionUpdate[],
   ) => Promise<ActionResult>;
+  /** Only needed to power the block header's "Save as template" button —
+   * omitted entirely by the Block Library's own template editor page, since
+   * a template block can't be saved into another template. */
+  saveBlockAsTemplateAction?: (
+    blockId: string,
+    name: string,
+  ) => Promise<ActionResult>;
+  /** Only needed to power dragging a Block Library template into this
+   * session (see the sessionTemplates param below). */
+  createBlockFromTemplateAction?: (input: {
+    session_id: string;
+    block_template_id: string;
+  }) => Promise<ActionResult<BlockWithExercises>>;
   /** Unlike the program canvas, this page only ever loads its own session,
    * so it can't tell locally which other weeks a linked exercise spans —
    * this is a real lookup so the measurement modal can still show the
@@ -96,9 +111,13 @@ export function useSessionViewState(
   session: SessionWithBlocks,
   exercises: ExerciseWithDetails[],
   actions: SessionViewActions,
+  sessionTemplates: SessionTemplateSummary[] = [],
 ) {
   const [blocks, setBlocks] = useState(session.blocks);
   const exercisesById = new Map(exercises.map((e) => [e.id, e]));
+  const blockTemplateNamesById = new Map(
+    sessionTemplates.flatMap((t) => t.blocks).map((b) => [b.id, b.name]),
+  );
 
   const dnd = useBlockExerciseDnd({
     blocks,
@@ -109,6 +128,8 @@ export function useSessionViewState(
     reorderBlocksAction: actions.reorderBlocksAction,
     createBlockAction: (sessionId, name) =>
       actions.createBlockAction({ session_id: sessionId, name }),
+    createBlockFromTemplateAction: actions.createBlockFromTemplateAction,
+    blockTemplateNamesById,
   });
 
   const blockActions = useBlockActions({
@@ -121,6 +142,7 @@ export function useSessionViewState(
     updateBlockExerciseAction: actions.updateBlockExerciseAction,
     removeExerciseFromBlockAction: actions.removeExerciseFromBlockAction,
     addExerciseToBlockAction: actions.addExerciseToBlockAction,
+    saveBlockAsTemplateAction: actions.saveBlockAsTemplateAction,
     exercisesById,
   });
 
@@ -132,6 +154,7 @@ export function useSessionViewState(
   return {
     blocks,
     exercisesById,
+    blockTemplateNamesById,
     dnd,
     blockActions,
     editingExerciseLinkedWeeks,

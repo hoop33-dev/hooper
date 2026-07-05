@@ -5,26 +5,26 @@ import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
 import { XIcon } from "../ui/icons";
 
-interface SessionRenamePopoverProps {
-  currentName: string;
-  title?: string;
+interface SaveAsTemplatePopoverProps {
+  title: string;
+  defaultName: string;
   onClose: () => void;
-  onRename: (name: string) => Promise<void>;
+  onSave: (name: string) => Promise<void>;
 }
 
-export function SessionRenamePopover({
-  currentName,
-  title = "Rename session",
+export function SaveAsTemplatePopover({
+  title,
+  defaultName,
   onClose,
-  onRename,
-}: SessionRenamePopoverProps) {
-  const [name, setName] = useState(currentName);
+  onSave,
+}: SaveAsTemplatePopoverProps) {
+  const [name, setName] = useState(defaultName);
   const [saving, setSaving] = useState(false);
 
-  async function handleRename() {
+  async function handleSave() {
     if (!name.trim() || saving) return;
     setSaving(true);
-    await onRename(name.trim());
+    await onSave(name.trim());
     setSaving(false);
   }
 
@@ -43,9 +43,11 @@ export function SessionRenamePopover({
           </button>
         </div>
         <PortalInput
+          label="Template name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           autoFocus
+          onKeyDown={(e) => e.key === "Enter" && handleSave()}
         />
         <div className="mt-3 flex justify-end gap-2">
           <PortalButton
@@ -58,9 +60,9 @@ export function SessionRenamePopover({
           <PortalButton
             variant="primary"
             size="sm"
-            onClick={handleRename}
+            onClick={handleSave}
             disabled={saving || !name.trim()}>
-            {saving ? "Renaming…" : "Rename"}
+            {saving ? "Saving…" : "Save to library"}
           </PortalButton>
         </div>
       </div>

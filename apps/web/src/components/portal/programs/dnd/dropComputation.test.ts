@@ -12,6 +12,7 @@ function makeExercise(id: string): ExerciseWithDetails {
     name: id,
     description: null,
     video_url: null,
+    video_source: null,
     created_by: "coach1",
     created_at: "",
     updated_at: "",

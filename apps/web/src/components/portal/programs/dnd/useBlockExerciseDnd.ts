@@ -398,6 +398,30 @@ async function handleLibraryDrop(
   );
 }
 
+/** Appends `block` to its (already-correct) session, then — if it was
+ * dropped over a specific sibling rather than at the end — repositions it
+ * there via computeBlockMove. Mirrors placeExercise's append-then-move
+ * shape so both the pending placeholder and the eventual real block land in
+ * the same spot without a visible jump. */
+function placeBlock(
+  blocks: BlockWithExercises[],
+  sessionId: string,
+  overBlockId: string | null,
+  insertAfter: boolean,
+  block: BlockWithExercises,
+): { blocks: BlockWithExercises[]; updates: BlockPositionUpdate[] } {
+  const appended = [...blocks, block];
+  if (!overBlockId) return { blocks: appended, updates: [] };
+  const moved = computeBlockMove(
+    appended,
+    block.id,
+    sessionId,
+    overBlockId,
+    insertAfter,
+  );
+  return moved ?? { blocks: appended, updates: [] };
+}
+
 /** Copies a Block Library template into a new block wherever it's dropped —
  * any block/session/"+ Add block" zone all resolve to a target session via
  * resolveTargetSession, since a template always creates a whole new block
@@ -416,12 +440,25 @@ async function handleBlockTemplateDrop(
 
   markCommitted();
   const originalBlocks = options.blocks;
+  const insertAfter = target.overBlockId
+    ? isInsertAfterForBlockTarget(pointerY, over)
+    : false;
+
+  // Show the new block immediately at the exact spot it'll end up — not
+  // appended at the end — so nothing visibly jumps once the real data
+  // swaps in below.
   const name =
     options.blockTemplateNamesById?.get(blockTemplateId) ?? "New block";
-  options.setBlocks([
-    ...originalBlocks,
-    createPendingBlockFromTemplate(target.sessionId, name),
-  ]);
+  const pendingBlock = createPendingBlockFromTemplate(target.sessionId, name);
+  options.setBlocks(
+    placeBlock(
+      originalBlocks,
+      target.sessionId,
+      target.overBlockId,
+      insertAfter,
+      pendingBlock,
+    ).blocks,
+  );
 
   const result = await options.createBlockFromTemplateAction({
     session_id: target.sessionId,
@@ -433,31 +470,16 @@ async function handleBlockTemplateDrop(
     return;
   }
 
-  const withReal = [...originalBlocks, result.data];
-  if (!target.overBlockId) {
-    options.setBlocks(withReal);
-    return;
-  }
-
-  // Dropped over a specific block — reposition the newly-created block there
-  // (it's already in its target session, so this only resequences).
-  const reordered = computeBlockMove(
-    withReal,
-    result.data.id,
+  const placed = placeBlock(
+    originalBlocks,
     target.sessionId,
     target.overBlockId,
-    isInsertAfterForBlockTarget(pointerY, over),
+    insertAfter,
+    result.data,
   );
-  if (!reordered) {
-    options.setBlocks(withReal);
-    return;
-  }
-  options.setBlocks(reordered.blocks);
-  if (options.reorderBlocksAction) {
-    reportIfFailed(
-      onError,
-      await options.reorderBlocksAction(reordered.updates),
-    );
+  options.setBlocks(placed.blocks);
+  if (placed.updates.length > 0 && options.reorderBlocksAction) {
+    reportIfFailed(onError, await options.reorderBlocksAction(placed.updates));
   }
 }
 

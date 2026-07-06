@@ -10,6 +10,7 @@ const exercise = {
   name: "Bench Press",
   description: null,
   video_url: null,
+  video_source: null,
   created_by: "coach-1",
   created_at: "",
   updated_at: "",

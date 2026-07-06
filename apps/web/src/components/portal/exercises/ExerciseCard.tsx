@@ -14,8 +14,10 @@ function ExerciseInitials({ name }: { name: string }) {
     .join("")
     .toUpperCase();
   return (
-    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-portal-orange-soft">
-      <span className="text-xs font-extrabold text-portal-orange">{initials}</span>
+    <div className="bg-portal-orange-soft flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
+      <span className="text-portal-orange text-xs font-extrabold">
+        {initials}
+      </span>
     </div>
   );
 }
@@ -24,12 +26,27 @@ export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
   const visibleCategories = exercise.categories.slice(0, 3);
   const overflow = exercise.categories.length - 3;
 
+  function openEdit() {
+    onEdit(exercise);
+  }
+
   return (
-    <tr className="group border-b border-portal-border hover:bg-portal-bg">
+    <tr
+      onClick={openEdit}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        openEdit();
+      }}
+      role="button"
+      tabIndex={0}
+      className="border-portal-border hover:bg-portal-bg cursor-pointer border-b">
       <td className="py-3 pr-4">
         <div className="flex items-center gap-3">
           <ExerciseInitials name={exercise.name} />
-          <span className="text-sm font-semibold text-portal-text1">{exercise.name}</span>
+          <span className="text-portal-text1 text-sm font-semibold">
+            {exercise.name}
+          </span>
         </div>
       </td>
       <td className="py-3 pr-4">
@@ -53,17 +70,8 @@ export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
           ))}
         </div>
       </td>
-      <td className="py-3 text-xs text-portal-text3">
+      <td className="text-portal-text3 py-3 text-xs">
         {new Date(exercise.created_at).toLocaleDateString()}
-      </td>
-      <td className="py-3 text-right">
-        <button
-          type="button"
-          onClick={() => onEdit(exercise)}
-          className="rounded-lg border border-portal-border bg-portal-card px-3 py-1.5 text-xs font-semibold text-portal-text2 opacity-0 transition hover:bg-portal-bg group-hover:opacity-100"
-        >
-          Edit
-        </button>
       </td>
     </tr>
   );

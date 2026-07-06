@@ -52,11 +52,15 @@ export type ExerciseCategoryRow = {
   updated_at: string;
 };
 
+export type ExerciseVideoSource = "upload" | "link";
+
 export type ExerciseRow = {
   id: string;
   name: string;
   description: string | null;
   video_url: string | null;
+  /** Whether video_url points at an uploaded file or an external link. Null iff video_url is null. */
+  video_source: ExerciseVideoSource | null;
   created_by: string;
   created_at: string;
   updated_at: string;

@@ -4,23 +4,30 @@ import { cn } from "@/src/lib/cn";
 import { useDraggable } from "@dnd-kit/core";
 
 interface DraggableBlockTemplateRowProps {
-  blockTemplateId: string;
+  /** Full dnd drag id — see LibraryTemplate in blockTemplateFilter.ts. */
+  dragId: string;
   name: string;
   exerciseCount: number;
+  blockCount: number;
   variant?: "list" | "card";
 }
 
 export function DraggableBlockTemplateRow({
-  blockTemplateId,
+  dragId,
   name,
   exerciseCount,
+  blockCount,
   variant = "list",
 }: DraggableBlockTemplateRowProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `block-template:${blockTemplateId}`,
+    id: dragId,
   });
 
-  const countLabel = `${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`;
+  const exerciseLabel = `${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`;
+  const countLabel =
+    blockCount === 1
+      ? exerciseLabel
+      : `${blockCount} blocks · ${exerciseLabel}`;
 
   if (variant === "card") {
     return (

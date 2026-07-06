@@ -4,7 +4,7 @@ import type { SessionTemplateSummary } from "@hooper/db";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { singleBlockTemplates } from "./blockTemplateFilter";
+import { libraryTemplates } from "./blockTemplateFilter";
 import { DraggableBlockTemplateRow } from "./dnd/DraggableBlockTemplateRow";
 
 interface BlockLibraryPanelProps {
@@ -19,10 +19,7 @@ export function BlockLibraryPanel({
   tabs,
 }: BlockLibraryPanelProps) {
   const [search, setSearch] = useState("");
-  const multiBlockCount = sessionTemplates.filter(
-    (t) => t.blocks.length > 1,
-  ).length;
-  const filtered = singleBlockTemplates(sessionTemplates, search);
+  const filtered = libraryTemplates(sessionTemplates, search);
 
   return (
     <div className="border-portal-border bg-portal-card flex w-[280px] flex-shrink-0 flex-col border-r">
@@ -47,24 +44,22 @@ export function BlockLibraryPanel({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="text-portal-text3 px-3.5 py-6 text-center text-xs">
-            No single-block templates yet
+            No block templates yet
           </div>
         ) : (
           filtered.map((b) => (
             <DraggableBlockTemplateRow
-              key={b.blockTemplateId}
-              blockTemplateId={b.blockTemplateId}
+              key={b.dragId}
+              dragId={b.dragId}
               name={b.name}
               exerciseCount={b.exerciseCount}
+              blockCount={b.blockCount}
             />
           ))
         )}
       </div>
       <div className="border-portal-border text-portal-text3 border-t px-3.5 py-2.5 text-[10px] leading-relaxed">
-        Drag a block up to add it here.{" "}
-        {multiBlockCount > 0 && (
-          <>Multi-block sessions come in via &ldquo;+ Add session&rdquo;. </>
-        )}
+        Drag a template up to add it here.{" "}
         <Link href="/blocks" className="text-portal-orange hover:underline">
           Manage Block Library →
         </Link>

@@ -12,8 +12,9 @@ import {
   XIcon,
 } from "../ui/icons";
 import { BlockCard } from "./BlockCard";
+import { BlockGapDropZone } from "./dnd/BlockGapDropZone";
 import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
-import { sessionDropId } from "./dnd/useBlockExerciseDnd";
+import { blockGapDropId, sessionDropId } from "./dnd/useBlockExerciseDnd";
 
 interface SessionCanvasColumnProps {
   programId: string;
@@ -167,26 +168,38 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
       <div
         ref={setNodeRef}
         className={cn(
-          "flex flex-1 flex-col gap-2 rounded-lg",
+          "flex flex-1 flex-col rounded-lg",
           isOver && "bg-portal-orange-soft",
         )}>
-        {session.blocks.map((block) => (
-          <BlockCard
-            key={block.id}
-            block={block}
-            dense
-            onOpenExercise={onOpenExercise}
-            onRemoveExercise={(exerciseRowId) =>
-              onRemoveExercise(block.id, exerciseRowId)
-            }
-            onRename={(name) => onRenameBlock(block.id, name)}
-            onDelete={() => onDeleteBlock(block.id)}
-            onSaveAsTemplate={
-              onSaveBlockAsTemplate
-                ? () => onSaveBlockAsTemplate(block.id)
-                : undefined
-            }
-          />
+        <BlockGapDropZone
+          id={blockGapDropId(session.id, 0)}
+          afterBlockId={session.blocks[0]?.id ?? null}
+          dense
+        />
+        {session.blocks.map((block, i) => (
+          <div key={block.id} className="contents">
+            <BlockCard
+              block={block}
+              dense
+              onOpenExercise={onOpenExercise}
+              onRemoveExercise={(exerciseRowId) =>
+                onRemoveExercise(block.id, exerciseRowId)
+              }
+              onRename={(name) => onRenameBlock(block.id, name)}
+              onDelete={() => onDeleteBlock(block.id)}
+              onSaveAsTemplate={
+                onSaveBlockAsTemplate
+                  ? () => onSaveBlockAsTemplate(block.id)
+                  : undefined
+              }
+            />
+            <BlockGapDropZone
+              id={blockGapDropId(session.id, i + 1)}
+              beforeBlockId={block.id}
+              afterBlockId={session.blocks[i + 1]?.id ?? null}
+              dense
+            />
+          </div>
         ))}
         <NewBlockDropZone
           sessionId={session.id}

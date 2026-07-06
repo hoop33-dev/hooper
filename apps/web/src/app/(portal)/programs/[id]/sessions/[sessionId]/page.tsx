@@ -16,6 +16,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   createBlockFromTemplateAction,
+  createBlocksFromSessionTemplateAction,
   saveBlockAsTemplateAction,
   saveSessionAsTemplateAction,
 } from "../../../../blocks/actions";
@@ -144,6 +145,9 @@ export default async function SessionViewPage({
         getLinkedWeeksForExerciseAction={getLinkedWeeksForExerciseAction}
         saveBlockAsTemplateAction={wrappedSaveBlockAsTemplate}
         createBlockFromTemplateAction={createBlockFromTemplateAction}
+        createBlocksFromSessionTemplateAction={
+          createBlocksFromSessionTemplateAction
+        }
       />
     </div>
   );

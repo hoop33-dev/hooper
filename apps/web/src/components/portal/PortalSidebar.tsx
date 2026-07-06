@@ -5,6 +5,7 @@ import type { CoachProfile } from "@/src/services/auth.service";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState, type ReactElement } from "react";
 
 function DumbbellIcon({
   size = 15,
@@ -102,26 +103,105 @@ function UsersIcon({
   );
 }
 
-const NAV_ITEMS = [
+function LibraryIcon({
+  size = 15,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
+
+function ChevronIcon({
+  size = 11,
+  color = "currentColor",
+  expanded,
+}: {
+  size?: number;
+  color?: string;
+  expanded: boolean;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn(
+        "ml-auto flex-shrink-0 transition-transform",
+        expanded && "rotate-90",
+      )}>
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
+type IconComponent = (props: { size?: number; color?: string }) => ReactElement;
+
+interface LeafNavItem {
+  id: string;
+  label: string;
+  href: string;
+  Icon: IconComponent;
+  active: boolean;
+}
+
+interface ParentNavItem {
+  id: string;
+  label: string;
+  Icon: IconComponent;
+  active: boolean;
+  children: LeafNavItem[];
+}
+
+type NavItem = LeafNavItem | ParentNavItem;
+
+const NAV_ITEMS: NavItem[] = [
   {
-    id: "exercises",
-    label: "Exercise Library",
-    href: "/exercises",
-    Icon: DumbbellIcon,
+    id: "library",
+    label: "Library",
+    Icon: LibraryIcon,
     active: true,
+    children: [
+      {
+        id: "exercises",
+        label: "Exercises",
+        href: "/exercises",
+        Icon: DumbbellIcon,
+        active: true,
+      },
+      {
+        id: "blocks",
+        label: "Blocks",
+        href: "/blocks",
+        Icon: StackIcon,
+        active: true,
+      },
+    ],
   },
   {
     id: "programs",
     label: "Programs",
     href: "/programs",
     Icon: LayersIcon,
-    active: true,
-  },
-  {
-    id: "blocks",
-    label: "Block Library",
-    href: "/blocks",
-    Icon: StackIcon,
     active: true,
   },
   {
@@ -161,7 +241,7 @@ function SidebarNavItem({
   item,
   pathname,
 }: {
-  item: (typeof NAV_ITEMS)[number];
+  item: LeafNavItem;
   pathname: string;
 }) {
   const isActive = pathname.startsWith(item.href);
@@ -200,6 +280,58 @@ function SidebarNavItem({
   );
 }
 
+function SidebarLibraryNavItem({
+  item,
+  pathname,
+}: {
+  item: ParentNavItem;
+  pathname: string;
+}) {
+  const isSectionActive = item.children.some((child) =>
+    pathname.startsWith(child.href),
+  );
+  const [expanded, setExpanded] = useState(isSectionActive);
+
+  useEffect(() => {
+    if (isSectionActive) setExpanded(true);
+  }, [isSectionActive]);
+
+  const color = isSectionActive ? "#F15825" : "rgba(255,255,255,0.42)";
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setExpanded((prev) => !prev)}
+        className={cn(
+          "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors",
+          isSectionActive
+            ? "bg-[rgba(241,88,37,0.13)]"
+            : "hover:bg-white/[0.06]",
+        )}>
+        <item.Icon size={15} color={color} />
+        <span
+          className={cn(
+            "text-[13px]",
+            isSectionActive
+              ? "font-bold text-white"
+              : "font-medium text-white/55",
+          )}>
+          {item.label}
+        </span>
+        <ChevronIcon expanded={expanded} color={color} />
+      </button>
+      {expanded && (
+        <div className="mt-0.5 flex flex-col gap-0.5 pl-4">
+          {item.children.map((child) => (
+            <SidebarNavItem key={child.id} item={child} pathname={pathname} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SidebarCoachFooter({ profile }: { profile: CoachProfile | null }) {
   const initials = profile
     ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}`.toUpperCase()
@@ -232,9 +364,17 @@ export function PortalSidebar({ profile }: { profile: CoachProfile | null }) {
     <aside className="bg-sidebar flex h-full w-[220px] flex-shrink-0 flex-col">
       <SidebarHeader />
       <nav className="flex flex-1 flex-col gap-0.5 p-2.5">
-        {NAV_ITEMS.map((item) => (
-          <SidebarNavItem key={item.id} item={item} pathname={pathname} />
-        ))}
+        {NAV_ITEMS.map((item) =>
+          "children" in item ? (
+            <SidebarLibraryNavItem
+              key={item.id}
+              item={item}
+              pathname={pathname}
+            />
+          ) : (
+            <SidebarNavItem key={item.id} item={item} pathname={pathname} />
+          ),
+        )}
       </nav>
       <SidebarCoachFooter profile={profile} />
     </aside>

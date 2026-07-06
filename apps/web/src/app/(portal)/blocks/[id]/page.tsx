@@ -6,13 +6,18 @@ import type {
 } from "@/src/services/block.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
-import { getSessionTemplateById } from "@/src/services/sessionTemplate.service";
+import {
+  getSessionTemplateById,
+  listSessionTemplates,
+} from "@/src/services/sessionTemplate.service";
 import type { SessionWithBlocks } from "@hooper/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   addExerciseToBlockTemplateAction,
   createBlockTemplateAction,
+  createBlockTemplateFromTemplateAction,
+  createBlockTemplatesFromSessionTemplateAction,
   deleteBlockTemplateAction,
   getLinkedWeeksForTemplateExerciseAction,
   removeExerciseFromBlockTemplateAction,
@@ -22,21 +27,75 @@ import {
   updateBlockTemplateExerciseAction,
 } from "../actions";
 
+async function createBlockAction(input: CreateBlockInput) {
+  "use server";
+  return createBlockTemplateAction({
+    session_template_id: input.session_id,
+    name: input.name,
+  });
+}
+
+async function addExerciseToBlockAction(input: AddExerciseToBlockInput) {
+  "use server";
+  const { block_id, ...rest } = input;
+  return addExerciseToBlockTemplateAction({
+    block_template_id: block_id,
+    ...rest,
+  });
+}
+
+async function createBlockFromTemplateAction(input: {
+  session_id: string;
+  block_template_id: string;
+}) {
+  "use server";
+  return createBlockTemplateFromTemplateAction({
+    session_template_id: input.session_id,
+    block_template_id: input.block_template_id,
+  });
+}
+
+async function createBlocksFromSessionTemplateAction(input: {
+  session_id: string;
+  session_template_id: string;
+}) {
+  "use server";
+  return createBlockTemplatesFromSessionTemplateAction({
+    session_template_id: input.session_id,
+    source_session_template_id: input.session_template_id,
+  });
+}
+
 export default async function BlockTemplateEditorPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [templateResult, exercisesResult, categoriesResult] = await Promise.all(
-    [getSessionTemplateById(id), listExercises(), listCategories()],
-  );
+  const [
+    templateResult,
+    exercisesResult,
+    categoriesResult,
+    sessionTemplatesResult,
+  ] = await Promise.all([
+    getSessionTemplateById(id),
+    listExercises(),
+    listCategories(),
+    listSessionTemplates(),
+  ]);
 
   if (!templateResult.ok) notFound();
 
   const template = templateResult.data;
   const exercises = exercisesResult.ok ? exercisesResult.data : [];
   const categories = categoriesResult.ok ? categoriesResult.data : [];
+  // Excludes itself — dragging a template into its own editor would nest a
+  // copy of a template inside itself, which the Block Library has no concept
+  // of undoing (there's no "remove a nested template" affordance, just
+  // remove-block).
+  const sessionTemplates = sessionTemplatesResult.ok
+    ? sessionTemplatesResult.data.filter((t) => t.id !== id)
+    : [];
 
   // SessionViewShell/useSessionViewState only ever read `.id` and `.blocks`
   // off the session they're given — every other SessionWithBlocks field
@@ -53,23 +112,6 @@ export default async function BlockTemplateEditorPage({
     updated_at: template.updated_at,
     blocks: template.blocks,
   };
-
-  async function createBlockAction(input: CreateBlockInput) {
-    "use server";
-    return createBlockTemplateAction({
-      session_template_id: input.session_id,
-      name: input.name,
-    });
-  }
-
-  async function addExerciseToBlockAction(input: AddExerciseToBlockInput) {
-    "use server";
-    const { block_id, ...rest } = input;
-    return addExerciseToBlockTemplateAction({
-      block_template_id: block_id,
-      ...rest,
-    });
-  }
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -88,6 +130,7 @@ export default async function BlockTemplateEditorPage({
         session={sessionShape}
         exercises={exercises}
         categories={categories}
+        sessionTemplates={sessionTemplates}
         createBlockAction={createBlockAction}
         updateBlockAction={updateBlockTemplateAction}
         deleteBlockAction={deleteBlockTemplateAction}
@@ -98,6 +141,10 @@ export default async function BlockTemplateEditorPage({
         reorderBlockExercisesAction={reorderBlockTemplateExercisesAction}
         getLinkedWeeksForExerciseAction={
           getLinkedWeeksForTemplateExerciseAction
+        }
+        createBlockFromTemplateAction={createBlockFromTemplateAction}
+        createBlocksFromSessionTemplateAction={
+          createBlocksFromSessionTemplateAction
         }
       />
     </div>

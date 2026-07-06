@@ -94,6 +94,12 @@ export interface ProgramCanvasActions {
     session_id: string;
     block_template_id: string;
   }) => Promise<ActionResult<BlockWithExercises>>;
+  /** Only needed to power dragging a multi-block Block Library template into
+   * a session. */
+  createBlocksFromSessionTemplateAction?: (input: {
+    session_id: string;
+    session_template_id: string;
+  }) => Promise<ActionResult<BlockWithExercises[]>>;
   /** Only needed to power "+ Add session > From template". */
   createSessionFromTemplateAction?: (
     input: CreateSessionFromTemplateInput,
@@ -348,6 +354,7 @@ function useCanvasBlockState(
   setWeekBlocks: (blocks: BlockWithExercises[]) => void,
   exercisesById: Map<string, ExerciseWithDetails>,
   blockTemplateNamesById: Map<string, string>,
+  sessionTemplatesById: Map<string, SessionTemplateSummary>,
   router: ReturnType<typeof useRouter>,
 ) {
   const weekBlocks = weekSessions.flatMap((s) => s.blocks);
@@ -364,7 +371,10 @@ function useCanvasBlockState(
     reorderBlocksAction: linkAware.reorderBlocksAction,
     createBlockAction,
     createBlockFromTemplateAction: actions.createBlockFromTemplateAction,
+    createBlocksFromSessionTemplateAction:
+      actions.createBlocksFromSessionTemplateAction,
     blockTemplateNamesById,
+    sessionTemplatesById,
   });
 
   const blockActions = useBlockActions({
@@ -429,6 +439,18 @@ async function runAddWeek(
   else showError(result.error ?? "Something went wrong.");
 }
 
+/** Two lookups derived from the same sessionTemplates list — block names
+ * keyed by block_template id (single-block drops) and full summaries keyed
+ * by session_template id (multi-block drops) — see useBlockExerciseDnd.ts. */
+function buildTemplateLookups(sessionTemplates: SessionTemplateSummary[]) {
+  return {
+    blockTemplateNamesById: new Map(
+      sessionTemplates.flatMap((t) => t.blocks).map((b) => [b.id, b.name]),
+    ),
+    sessionTemplatesById: new Map(sessionTemplates.map((t) => [t.id, t])),
+  };
+}
+
 export function useProgramCanvasState(
   program: ProgramWithSessions,
   exercises: ExerciseWithDetails[],
@@ -449,9 +471,8 @@ export function useProgramCanvasState(
     .filter((s) => s.week_number === selectedWeek)
     .sort((a, b) => a.position - b.position);
   const exercisesById = new Map(exercises.map((e) => [e.id, e]));
-  const blockTemplateNamesById = new Map(
-    sessionTemplates.flatMap((t) => t.blocks).map((b) => [b.id, b.name]),
-  );
+  const { blockTemplateNamesById, sessionTemplatesById } =
+    buildTemplateLookups(sessionTemplates);
 
   function setWeekBlocks(blocks: BlockWithExercises[]) {
     const weekSessionIds = new Set(weekSessions.map((s) => s.id));
@@ -464,6 +485,7 @@ export function useProgramCanvasState(
     setWeekBlocks,
     exercisesById,
     blockTemplateNamesById,
+    sessionTemplatesById,
     router,
   );
 
@@ -507,6 +529,7 @@ export function useProgramCanvasState(
     weekSessions,
     exercisesById,
     blockTemplateNamesById,
+    sessionTemplatesById,
     sessionTemplates,
     dnd,
     blockActions,

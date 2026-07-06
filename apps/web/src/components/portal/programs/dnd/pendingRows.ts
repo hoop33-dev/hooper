@@ -93,3 +93,14 @@ export function createPendingBlockFromTemplate(
     pending: true,
   };
 }
+
+/** Placeholders shown while a multi-block session template is being copied
+ * in — one pending block per source block, so every block in the template
+ * appears (dimmed, with a spinner) immediately on drop rather than just the
+ * first one. */
+export function createPendingBlocksFromSessionTemplate(
+  sessionId: string,
+  blocks: { name: string }[],
+): Pending<BlockWithExercises>[] {
+  return blocks.map((b) => createPendingBlockFromTemplate(sessionId, b.name));
+}

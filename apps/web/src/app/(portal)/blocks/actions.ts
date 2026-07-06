@@ -8,14 +8,20 @@ import type {
   AddExerciseToBlockTemplateInput,
   BlockExerciseWithMeasurements,
   CreateBlockFromTemplateInput,
+  CreateBlocksFromSessionTemplateInput,
+  CreateBlockTemplateFromTemplateInput,
   CreateBlockTemplateInput,
+  CreateBlockTemplatesFromSessionTemplateInput,
   UpdateBlockTemplateExerciseInput,
   UpdateBlockTemplateInput,
 } from "@/src/services/blockTemplate.service";
 import {
   addExerciseToBlockTemplate,
   createBlockFromTemplate,
+  createBlocksFromSessionTemplate,
   createBlockTemplate,
+  createBlockTemplateFromTemplate,
+  createBlockTemplatesFromSessionTemplate,
   deleteBlockTemplate,
   removeExerciseFromBlockTemplate,
   reorderBlockTemplateExercises,
@@ -113,6 +119,16 @@ export async function createBlockFromTemplateAction(
   input: CreateBlockFromTemplateInput,
 ): Promise<ActionResult<BlockWithExercises>> {
   const result = await createBlockFromTemplate(input);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function createBlocksFromSessionTemplateAction(
+  input: CreateBlocksFromSessionTemplateInput,
+): Promise<ActionResult<BlockWithExercises[]>> {
+  const result = await createBlocksFromSessionTemplate(input);
   if (result.ok) revalidateProgramRoutes();
   return result.ok
     ? { ok: true, data: result.data }
@@ -221,4 +237,26 @@ export async function getLinkedWeeksForTemplateExerciseAction(
   _id: string,
 ): Promise<ActionResult<number[]>> {
   return { ok: true, data: [] };
+}
+
+// ── Dragging a Block Library template into the template editor itself ──
+
+export async function createBlockTemplateFromTemplateAction(
+  input: CreateBlockTemplateFromTemplateInput,
+): Promise<ActionResult<BlockWithExercises>> {
+  const result = await createBlockTemplateFromTemplate(input);
+  if (result.ok) revalidateBlockLibraryRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function createBlockTemplatesFromSessionTemplateAction(
+  input: CreateBlockTemplatesFromSessionTemplateInput,
+): Promise<ActionResult<BlockWithExercises[]>> {
+  const result = await createBlockTemplatesFromSessionTemplate(input);
+  if (result.ok) revalidateBlockLibraryRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
 }

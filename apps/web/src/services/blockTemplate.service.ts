@@ -593,3 +593,201 @@ export async function createBlockFromTemplate(
     return err(toErrorMessage(e));
   }
 }
+
+export type CreateBlockTemplateFromTemplateInput = {
+  session_template_id: string;
+  block_template_id: string;
+};
+
+/** Copies a template placement's measurements/exercise into a new sibling
+ * block template's exercises, fully hydrated — the template-editor sibling
+ * of copyTemplateExercisesIntoBlock (targets block_template_exercises
+ * instead of block_exercises). */
+async function copyTemplateExercisesIntoBlockTemplate(
+  supabase: SupabaseClient,
+  newBlockTemplateId: string,
+  sourceExercises: RawTemplateBlockExercise[],
+): Promise<Result<BlockExerciseWithDetails[]>> {
+  if (sourceExercises.length === 0) return ok([]);
+
+  const { data: newExercises, error: exercisesError } = await supabase
+    .from("block_template_exercises")
+    .insert(
+      sourceExercises.map((be) => ({
+        block_template_id: newBlockTemplateId,
+        exercise_id: be.exercise_id,
+        position: be.position,
+        sets: be.sets,
+        notes: be.notes,
+      })),
+    )
+    .select();
+  if (exercisesError) return err(exercisesError.message);
+
+  const measurementRows = sourceExercises.flatMap((be, i) =>
+    be.block_template_exercise_measurements.map((m) => ({
+      block_template_exercise_id: newExercises[i].id,
+      position: m.position,
+      unit_type: m.unit_type,
+      value: m.value,
+      value_entered_by: m.value_entered_by,
+      value_unit: m.value_unit,
+    })),
+  );
+  const { data: insertedMeasurements, error: measurementsError } =
+    await supabase
+      .from("block_template_exercise_measurements")
+      .insert(measurementRows)
+      .select();
+  if (measurementsError) return err(measurementsError.message);
+
+  const { data: cats } = await supabase.from("exercise_categories").select("*");
+  const allCategories = (cats ?? []) as ExerciseCategoryRow[];
+
+  return ok(
+    sourceExercises.map((be, i) => ({
+      ...toBlockExerciseWithMeasurements(
+        newExercises[i],
+        (insertedMeasurements ?? [])
+          .filter((m) => m.block_template_exercise_id === newExercises[i].id)
+          .map(({ block_template_exercise_id, ...m }) => ({
+            ...m,
+            block_exercise_id: block_template_exercise_id,
+          })),
+      ),
+      exercise: toExerciseWithDetails(be.exercise, allCategories),
+    })),
+  );
+}
+
+/** Copies a block template's exercises/measurements into a new sibling block
+ * template in one round trip, fully hydrated — the template-editor sibling
+ * of createBlockFromTemplate (drag-and-drop insert from the Block Library
+ * panel into the template editor itself, rather than into a real session). */
+export async function createBlockTemplateFromTemplate(
+  input: CreateBlockTemplateFromTemplateInput,
+): Promise<Result<BlockWithExercises>> {
+  try {
+    const supabase = await createClient();
+    const { data: rawBlockTemplate, error } = await supabase
+      .from("block_templates")
+      .select(`*, block_template_exercises(${TEMPLATE_BLOCK_EXERCISE_SELECT})`)
+      .eq("id", input.block_template_id)
+      .single();
+    if (error) return err(error.message);
+    const blockTemplate = rawBlockTemplate as unknown as {
+      name: string;
+      color: string;
+      block_template_exercises: RawTemplateBlockExercise[];
+    };
+
+    const sourceExercises = [...blockTemplate.block_template_exercises].sort(
+      (a, b) => a.position - b.position,
+    );
+
+    const position = await nextBlockTemplatePosition(
+      supabase,
+      input.session_template_id,
+    );
+
+    const { data: newBlockTemplate, error: blockError } = await supabase
+      .from("block_templates")
+      .insert({
+        session_template_id: input.session_template_id,
+        name: blockTemplate.name,
+        color: blockTemplate.color,
+        position,
+      })
+      .select()
+      .single();
+    if (blockError) return err(blockError.message);
+
+    const exercisesResult = await copyTemplateExercisesIntoBlockTemplate(
+      supabase,
+      newBlockTemplate.id,
+      sourceExercises,
+    );
+    if (!exercisesResult.ok) return err(exercisesResult.error);
+
+    return ok({
+      ...toBlockRow(newBlockTemplate),
+      exercises: exercisesResult.data,
+    });
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
+async function orderedBlockTemplateIds(
+  supabase: SupabaseClient,
+  sessionTemplateId: string,
+): Promise<string[]> {
+  const { data } = await supabase
+    .from("block_templates")
+    .select("id")
+    .eq("session_template_id", sessionTemplateId)
+    .order("position");
+  return (data ?? []).map((b) => b.id);
+}
+
+export type CreateBlocksFromSessionTemplateInput = {
+  session_id: string;
+  session_template_id: string;
+};
+
+/** Copies every block of a multi-block template into an existing real
+ * session — the multi-block sibling of createBlockFromTemplate, used when a
+ * multi-block template is dragged straight into a session rather than
+ * "+ Add session > From template" (which creates a whole new session; see
+ * createSessionFromTemplate). Blocks are copied one at a time, in order, so
+ * each lands right after the last. */
+export async function createBlocksFromSessionTemplate(
+  input: CreateBlocksFromSessionTemplateInput,
+): Promise<Result<BlockWithExercises[]>> {
+  const supabase = await createClient();
+  const blockTemplateIds = await orderedBlockTemplateIds(
+    supabase,
+    input.session_template_id,
+  );
+
+  const results: BlockWithExercises[] = [];
+  for (const blockTemplateId of blockTemplateIds) {
+    const result = await createBlockFromTemplate({
+      session_id: input.session_id,
+      block_template_id: blockTemplateId,
+    });
+    if (!result.ok) return err(result.error);
+    results.push(result.data);
+  }
+  return ok(results);
+}
+
+export type CreateBlockTemplatesFromSessionTemplateInput = {
+  session_template_id: string;
+  source_session_template_id: string;
+};
+
+/** Copies every block of another (multi-block) template into this one — the
+ * multi-block sibling of createBlockTemplateFromTemplate, used when a
+ * multi-block template is dragged into the template editor itself. Blocks
+ * are copied one at a time, in order, so each lands right after the last. */
+export async function createBlockTemplatesFromSessionTemplate(
+  input: CreateBlockTemplatesFromSessionTemplateInput,
+): Promise<Result<BlockWithExercises[]>> {
+  const supabase = await createClient();
+  const blockTemplateIds = await orderedBlockTemplateIds(
+    supabase,
+    input.source_session_template_id,
+  );
+
+  const results: BlockWithExercises[] = [];
+  for (const blockTemplateId of blockTemplateIds) {
+    const result = await createBlockTemplateFromTemplate({
+      session_template_id: input.session_template_id,
+      block_template_id: blockTemplateId,
+    });
+    if (!result.ok) return err(result.error);
+    results.push(result.data);
+  }
+  return ok(results);
+}

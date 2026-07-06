@@ -80,4 +80,30 @@ describe("blockDndCollision", () => {
 
     expect(result).toEqual([]);
   });
+
+  it("prefers a between-blocks gap over the session column it physically sits inside", () => {
+    // The gap sits inside the session column's own bounding rect (the column
+    // wraps every block plus the space between them), so both register a
+    // pointerWithin hit — the gap, being the more specific target, should win
+    // so a drop between two blocks lands there instead of at the session's
+    // end.
+    const droppableRects = new Map([
+      ["session:s1", rect(0, 500)],
+      ["gap:s1:1", rect(240, 20)],
+    ]);
+    const droppableContainers = [
+      container("session:s1"),
+      container("gap:s1:1"),
+    ];
+
+    const result = blockDndCollision({
+      active: active("library:ex-1"),
+      collisionRect: rect(245, 10),
+      droppableRects,
+      droppableContainers,
+      pointerCoordinates: { x: 10, y: 250 },
+    });
+
+    expect(result.map((c) => c.id)).toEqual(["gap:s1:1"]);
+  });
 });

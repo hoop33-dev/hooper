@@ -60,6 +60,12 @@ export interface SessionViewActions {
     session_id: string;
     block_template_id: string;
   }) => Promise<ActionResult<BlockWithExercises>>;
+  /** Only needed to power dragging a multi-block Block Library template into
+   * this session (see the sessionTemplates param below). */
+  createBlocksFromSessionTemplateAction?: (input: {
+    session_id: string;
+    session_template_id: string;
+  }) => Promise<ActionResult<BlockWithExercises[]>>;
   /** Unlike the program canvas, this page only ever loads its own session,
    * so it can't tell locally which other weeks a linked exercise spans —
    * this is a real lookup so the measurement modal can still show the
@@ -118,6 +124,7 @@ export function useSessionViewState(
   const blockTemplateNamesById = new Map(
     sessionTemplates.flatMap((t) => t.blocks).map((b) => [b.id, b.name]),
   );
+  const sessionTemplatesById = new Map(sessionTemplates.map((t) => [t.id, t]));
 
   const dnd = useBlockExerciseDnd({
     blocks,
@@ -129,7 +136,10 @@ export function useSessionViewState(
     createBlockAction: (sessionId, name) =>
       actions.createBlockAction({ session_id: sessionId, name }),
     createBlockFromTemplateAction: actions.createBlockFromTemplateAction,
+    createBlocksFromSessionTemplateAction:
+      actions.createBlocksFromSessionTemplateAction,
     blockTemplateNamesById,
+    sessionTemplatesById,
   });
 
   const blockActions = useBlockActions({
@@ -155,6 +165,7 @@ export function useSessionViewState(
     blocks,
     exercisesById,
     blockTemplateNamesById,
+    sessionTemplatesById,
     dnd,
     blockActions,
     editingExerciseLinkedWeeks,

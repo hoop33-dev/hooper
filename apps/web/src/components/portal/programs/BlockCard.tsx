@@ -22,19 +22,16 @@ import { SortableBlockExerciseRow } from "./dnd/SortableBlockExerciseRow";
 import { isPending } from "./dnd/pendingRows";
 
 type BlockDropVisual = {
-  lineEdge: "top" | "bottom" | null;
   headerLineEdge: "bottom" | null;
   emptyHighlight: boolean;
 };
 
-/**
- * A block card shows either a block-reorder line (a block, or a block
- * template about to become one, hovering this card — it'll land as a
- * sibling block, before/after this one), a header-bottom line for an
- * exercise/library drop on the block header (it goes first in the block),
- * or a fill highlight (something dropped onto an empty block, which has no
- * row to anchor a line to).
- */
+/** A block/template hovering this card reorders whole blocks — that cue now
+ * lives on the gap either side of the card (see BlockGapDropZone), not on
+ * the card itself, so it's excluded here entirely. A block card only shows
+ * its own cue for an exercise/library drop: a header-bottom line (it goes
+ * first in the block) or a fill highlight for an empty block, which has no
+ * row to anchor a line to. */
 function computeBlockDropVisual(
   blockDomId: string,
   hasExercises: boolean,
@@ -42,21 +39,15 @@ function computeBlockDropVisual(
 ): BlockDropVisual {
   const activeId = indicator.activeId ?? "";
   if (!activeId || indicator.overId !== blockDomId)
-    return { lineEdge: null, headerLineEdge: null, emptyHighlight: false };
+    return { headerLineEdge: null, emptyHighlight: false };
 
-  if (activeId.startsWith("block:") || activeId.startsWith("block-template:")) {
-    if (activeId === blockDomId)
-      return { lineEdge: null, headerLineEdge: null, emptyHighlight: false };
-    return {
-      lineEdge: indicator.after ? "bottom" : "top",
-      headerLineEdge: null,
-      emptyHighlight: false,
-    };
-  }
-  // Exercise or library item dropped onto the block itself (its header) —
-  // show the cue on the header bottom so it reads as "insert first".
+  const isBlockLikeDrag =
+    activeId.startsWith("block:") ||
+    activeId.startsWith("block-template:") ||
+    activeId.startsWith("session-template:");
+  if (isBlockLikeDrag) return { headerLineEdge: null, emptyHighlight: false };
+
   return {
-    lineEdge: null,
     headerLineEdge: hasExercises ? "bottom" : null,
     emptyHighlight: !hasExercises,
   };
@@ -272,7 +263,7 @@ export function BlockCard({
     id: blockDomId,
     disabled: pending,
   });
-  const { lineEdge, headerLineEdge, emptyHighlight } = computeBlockDropVisual(
+  const { headerLineEdge, emptyHighlight } = computeBlockDropVisual(
     blockDomId,
     block.exercises.length > 0,
     useDragIndicator(),
@@ -289,14 +280,6 @@ export function BlockCard({
         isDragging && "opacity-40",
         pending && "opacity-60",
       )}>
-      {lineEdge && (
-        <div
-          className={cn(
-            "bg-portal-orange pointer-events-none absolute inset-x-0 z-10 h-0.5",
-            lineEdge === "bottom" ? "bottom-0" : "top-0",
-          )}
-        />
-      )}
       <BlockCardHeader
         block={block}
         readOnly={readOnly}

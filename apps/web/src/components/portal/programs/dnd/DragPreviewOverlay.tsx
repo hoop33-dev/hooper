@@ -1,11 +1,16 @@
 import { cn } from "@/src/lib/cn";
-import type { BlockWithExercises, ExerciseWithDetails } from "@hooper/db";
+import type {
+  BlockWithExercises,
+  ExerciseWithDetails,
+  SessionTemplateSummary,
+} from "@hooper/db";
 
 interface DragPreviewOverlayProps {
   activeId: string | null;
   blocks: BlockWithExercises[];
   exercisesById: Map<string, ExerciseWithDetails>;
   blockTemplateNamesById?: Map<string, string>;
+  sessionTemplatesById?: Map<string, SessionTemplateSummary>;
 }
 
 type GhostContent = { label: string; accentColor?: string };
@@ -42,7 +47,12 @@ function findBlockExercise(
 function resolveGhostContent(
   type: string,
   value: string,
-  { blocks, exercisesById, blockTemplateNamesById }: DragPreviewOverlayProps,
+  {
+    blocks,
+    exercisesById,
+    blockTemplateNamesById,
+    sessionTemplatesById,
+  }: DragPreviewOverlayProps,
 ): GhostContent | null {
   if (type === "library") {
     const exercise = exercisesById.get(value);
@@ -51,6 +61,12 @@ function resolveGhostContent(
   if (type === "block-template") {
     const name = blockTemplateNamesById?.get(value);
     return name ? { label: name } : null;
+  }
+  if (type === "session-template") {
+    const template = sessionTemplatesById?.get(value);
+    return template
+      ? { label: `${template.name} (${template.blocks.length} blocks)` }
+      : null;
   }
   if (type === "block-exercise") {
     const match = findBlockExercise(blocks, value);

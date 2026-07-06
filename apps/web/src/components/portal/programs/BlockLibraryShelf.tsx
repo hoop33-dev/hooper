@@ -3,7 +3,7 @@
 import type { SessionTemplateSummary } from "@hooper/db";
 import Link from "next/link";
 import { useState } from "react";
-import { singleBlockTemplates } from "./blockTemplateFilter";
+import { libraryTemplates } from "./blockTemplateFilter";
 import { DraggableBlockTemplateRow } from "./dnd/DraggableBlockTemplateRow";
 
 interface BlockLibraryShelfProps {
@@ -13,11 +13,9 @@ interface BlockLibraryShelfProps {
 function ShelfSidebar({
   search,
   onSearch,
-  multiBlockCount,
 }: {
   search: string;
   onSearch: (v: string) => void;
-  multiBlockCount: number;
 }) {
   return (
     <div className="border-portal-border flex w-[180px] flex-shrink-0 flex-col gap-2 border-r p-2.5">
@@ -28,9 +26,7 @@ function ShelfSidebar({
         className="border-portal-border bg-portal-bg text-portal-text1 h-7 w-full rounded-md border px-2 text-[11px] outline-none"
       />
       <p className="text-portal-text3 mt-auto text-[10px] leading-relaxed">
-        Drag a block card up into any session above to add it.
-        {multiBlockCount > 0 &&
-          " Multi-block sessions come in via “+ Add session”."}
+        Drag a card up into any session above to add it.
       </p>
       <Link
         href="/blocks"
@@ -48,30 +44,24 @@ export function BlockLibraryShelfBody({
   sessionTemplates,
 }: BlockLibraryShelfProps) {
   const [search, setSearch] = useState("");
-  const multiBlockCount = sessionTemplates.filter(
-    (t) => t.blocks.length > 1,
-  ).length;
-  const filtered = singleBlockTemplates(sessionTemplates, search);
+  const filtered = libraryTemplates(sessionTemplates, search);
 
   return (
     <div className="flex h-[190px]">
-      <ShelfSidebar
-        search={search}
-        onSearch={setSearch}
-        multiBlockCount={multiBlockCount}
-      />
+      <ShelfSidebar search={search} onSearch={setSearch} />
       <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto p-2.5">
         {filtered.length === 0 ? (
           <div className="text-portal-text3 px-2 py-6 text-center text-xs">
-            No single-block templates yet
+            No block templates yet
           </div>
         ) : (
           filtered.map((b) => (
             <DraggableBlockTemplateRow
-              key={b.blockTemplateId}
-              blockTemplateId={b.blockTemplateId}
+              key={b.dragId}
+              dragId={b.dragId}
               name={b.name}
               exerciseCount={b.exerciseCount}
+              blockCount={b.blockCount}
               variant="card"
             />
           ))

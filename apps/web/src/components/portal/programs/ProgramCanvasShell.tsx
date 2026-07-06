@@ -7,7 +7,6 @@ import type {
   ProgramWithSessions,
   SessionTemplateSummary,
 } from "@hooper/db";
-import { blockDndCollision } from "./dnd/collision";
 import { DragIndicatorContext } from "./dnd/DragIndicatorContext";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
 import { ProgramLibraryShelf } from "./ProgramLibraryShelf";
@@ -111,6 +110,7 @@ function ProgramCanvasBody({
           blocks={state.weekSessions.flatMap((s) => s.blocks)}
           exercisesById={state.exercisesById}
           blockTemplateNamesById={state.blockTemplateNamesById}
+          sessionTemplatesById={state.sessionTemplatesById}
         />
       </DragOverlay>
     </>
@@ -176,7 +176,7 @@ export function ProgramCanvasShell({
     <div className="flex h-full flex-col overflow-hidden">
       <DndContext
         sensors={state.dnd.sensors}
-        collisionDetection={blockDndCollision}
+        collisionDetection={state.dnd.collisionDetection}
         onDragStart={state.dnd.handleDragStart}
         onDragMove={state.dnd.handleDragMove}
         onDragEnd={state.dnd.handleDragEnd}

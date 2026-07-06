@@ -12,19 +12,35 @@ function idType(id: string | number): string {
 
 /** Which droppable types a given drag source is allowed to target. */
 function allowedTargets(activeType: string): string[] {
-  if (activeType === "block-exercise") return ["block-exercise", "block"];
-  if (activeType === "block") return ["block", "session"];
-  if (activeType === "library") return ["block-exercise", "block", "new-block"];
+  // "gap" is the space between two block cards (and before the first / after
+  // the last) — every drag source that can end up placing/creating a block
+  // can target it; see resolveGapBlockPosition in useBlockExerciseDnd.ts.
+  if (activeType === "block-exercise")
+    return ["block-exercise", "block", "gap"];
+  if (activeType === "block") return ["block", "session", "gap"];
+  if (activeType === "library")
+    return ["block-exercise", "block", "new-block", "gap"];
   // A block template always creates a whole new block, so it targets the
   // same zones a whole block does, plus "+ Add block" (equivalent to its
-  // session — see resolveTargetSession in useBlockExerciseDnd.ts).
-  if (activeType === "block-template") return ["block", "session", "new-block"];
+  // session — see resolveTargetSession in useBlockExerciseDnd.ts). A
+  // multi-block session template targets the same zones — it just creates
+  // several new blocks instead of one.
+  if (activeType === "block-template" || activeType === "session-template")
+    return ["block", "session", "new-block", "gap"];
   return [];
 }
 
 // Most-specific-first: an exercise row wins over its containing block, the
-// "add block" zone wins over the session column behind it, etc.
-const TYPE_PRIORITY = ["block-exercise", "new-block", "block", "session"];
+// "add block" zone wins over the session column behind it, and a gap (which
+// physically sits inside the session column's own bounds) wins over that
+// column too.
+const TYPE_PRIORITY = [
+  "block-exercise",
+  "new-block",
+  "gap",
+  "block",
+  "session",
+];
 
 /**
  * Drag-type-aware collision detection. Restricts candidate droppables to the

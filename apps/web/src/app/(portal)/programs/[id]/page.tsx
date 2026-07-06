@@ -9,6 +9,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   createBlockFromTemplateAction,
+  createBlocksFromSessionTemplateAction,
   createSessionFromTemplateAction,
   saveBlockAsTemplateAction,
   saveSessionAsTemplateAction,
@@ -104,6 +105,9 @@ export default async function ProgramCanvasPage({
         saveBlockAsTemplateAction={wrappedSaveBlockAsTemplate}
         saveSessionAsTemplateAction={wrappedSaveSessionAsTemplate}
         createBlockFromTemplateAction={createBlockFromTemplateAction}
+        createBlocksFromSessionTemplateAction={
+          createBlocksFromSessionTemplateAction
+        }
         createSessionFromTemplateAction={createSessionFromTemplateAction}
       />
     </div>

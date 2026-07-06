@@ -3,6 +3,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragMoveEvent,
   type DragStartEvent,
@@ -13,19 +14,22 @@ import type {
   BlockRow,
   BlockWithExercises,
   ExerciseWithDetails,
+  SessionTemplateSummary,
 } from "@hooper/db";
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useToast } from "../../ui/Toast";
+import { blockDndCollision } from "./collision";
 import {
   computeBlockMove,
   computeExerciseMove,
   type BlockExercisePositionUpdate,
   type BlockPositionUpdate,
 } from "./dropComputation";
-import { isInsertAfter, isInsertAfterForBlockTarget } from "./insertPosition";
+import { isInsertAfter } from "./insertPosition";
 import {
   createPendingBlock,
   createPendingBlockFromTemplate,
+  createPendingBlocksFromSessionTemplate,
   createPendingExercise,
 } from "./pendingRows";
 
@@ -66,10 +70,21 @@ export interface UseBlockExerciseDndOptions {
     session_id: string;
     block_template_id: string;
   }) => Promise<ActionResult<BlockWithExercises>>;
+  /** Enables dropping a multi-block Block Library template onto any
+   * block/session drop zone, copying every one of its blocks in, in order,
+   * as brand-new blocks in one motion. */
+  createBlocksFromSessionTemplateAction?: (input: {
+    session_id: string;
+    session_template_id: string;
+  }) => Promise<ActionResult<BlockWithExercises[]>>;
   /** Block name for each single-block template shown in the Block Library
    * panel, keyed by its block_template id — used for the pending placeholder
    * shown while createBlockFromTemplateAction resolves. */
   blockTemplateNamesById?: Map<string, string>;
+  /** Every Block Library template summary keyed by its session_template id —
+   * used to preview a multi-block template's blocks (names, for the pending
+   * placeholders) while createBlocksFromSessionTemplateAction resolves. */
+  sessionTemplatesById?: Map<string, SessionTemplateSummary>;
 }
 
 type ParsedId = {
@@ -78,8 +93,10 @@ type ParsedId = {
     | "block-exercise"
     | "library"
     | "block-template"
+    | "session-template"
     | "new-block"
-    | "session";
+    | "session"
+    | "gap";
   value: string;
 };
 
@@ -93,8 +110,10 @@ function parseId(id: string): ParsedId | null {
     type === "block-exercise" ||
     type === "library" ||
     type === "block-template" ||
+    type === "session-template" ||
     type === "new-block" ||
-    type === "session"
+    type === "session" ||
+    type === "gap"
   ) {
     return { type, value };
   }
@@ -111,6 +130,37 @@ export function newBlockDropId(sessionId: string): string {
  * block into a session that has no blocks to hover over yet. */
 export function sessionDropId(sessionId: string): string {
   return `session:${sessionId}`;
+}
+
+/** Id for the exact insertion point at `index` among a session's blocks —
+ * index 0 is before the first block, index `blocks.length` is after the
+ * last. One more of these exists than there are blocks in the session. */
+export function blockGapDropId(sessionId: string, index: number): string {
+  return `gap:${sessionId}:${index}`;
+}
+
+function parseGapId(id: string): { sessionId: string; index: number } | null {
+  const match = /^gap:(.+):(\d+)$/.exec(id);
+  if (!match) return null;
+  return { sessionId: match[1], index: Number(match[2]) };
+}
+
+/** Resolves a gap's position into the same overBlockId/insertAfter shape the
+ * rest of the module works in — the block currently at `index` (insert
+ * before it), or the last block with insertAfter (or no block at all, for an
+ * empty session) when `index` is past the end. */
+function resolveGapBlockPosition(
+  blocks: BlockWithExercises[],
+  sessionId: string,
+  index: number,
+): { overBlockId: string | null; insertAfter: boolean } {
+  const sessionBlocks = blocks
+    .filter((b) => b.session_id === sessionId)
+    .sort((a, b) => a.position - b.position);
+  const target = sessionBlocks[index];
+  if (target) return { overBlockId: target.id, insertAfter: false };
+  const last = sessionBlocks[sessionBlocks.length - 1];
+  return { overBlockId: last?.id ?? null, insertAfter: !!last };
 }
 
 function findBlockIdForExercise(
@@ -165,24 +215,42 @@ function resolveExerciseTarget(
   return null;
 }
 
-/** Resolves which session a block drop targets, from either a block-level
- * over-target (use that block's own session), a session column zone, or the
- * "+ Add block" zone (equivalent to its session — there's no block to
- * anchor a position to yet). */
+/** Resolves which session a block drop targets and exactly where in it,
+ * from a block-level over-target (that block's own session, above/below it
+ * per the pointer), a session column zone or "+ Add block" zone (append —
+ * there's no block to anchor a position to), or a between-blocks gap (the
+ * exact position it marks). */
 function resolveTargetSession(
   blocks: BlockWithExercises[],
-  overId: string,
-): { sessionId: string; overBlockId: string | null } | null {
-  const over = parseId(overId);
-  if (!over) return null;
-  if (over.type === "block") {
-    const overBlock = blocks.find((b) => b.id === over.value);
+  over: Over,
+  pointerY: number | null,
+): {
+  sessionId: string;
+  overBlockId: string | null;
+  insertAfter: boolean;
+} | null {
+  const parsed = parseId(String(over.id));
+  if (!parsed) return null;
+  if (parsed.type === "block") {
+    const overBlock = blocks.find((b) => b.id === parsed.value);
     return overBlock
-      ? { sessionId: overBlock.session_id, overBlockId: over.value }
+      ? {
+          sessionId: overBlock.session_id,
+          overBlockId: parsed.value,
+          insertAfter: isInsertAfter(pointerY, over),
+        }
       : null;
   }
-  if (over.type === "session" || over.type === "new-block") {
-    return { sessionId: over.value, overBlockId: null };
+  if (parsed.type === "session" || parsed.type === "new-block") {
+    return { sessionId: parsed.value, overBlockId: null, insertAfter: false };
+  }
+  if (parsed.type === "gap") {
+    const gap = parseGapId(String(over.id));
+    if (!gap) return null;
+    return {
+      sessionId: gap.sessionId,
+      ...resolveGapBlockPosition(blocks, gap.sessionId, gap.index),
+    };
   }
   return null;
 }
@@ -196,19 +264,106 @@ async function handleBlockDrop(
   onError: (message: string) => void,
 ) {
   if (!options.reorderBlocksAction) return;
-  const target = resolveTargetSession(options.blocks, String(over.id));
+  const target = resolveTargetSession(options.blocks, over, pointerY);
   if (!target) return;
   const result = computeBlockMove(
     options.blocks,
     activeBlockId,
     target.sessionId,
     target.overBlockId,
-    target.overBlockId ? isInsertAfterForBlockTarget(pointerY, over) : false,
+    target.insertAfter,
   );
   if (!result) return;
   markCommitted();
   options.setBlocks(result.blocks);
   reportIfFailed(onError, await options.reorderBlocksAction(result.updates));
+}
+
+/** Splits an already-placed exercise row out into a brand-new block at a
+ * specific session position — the block-exercise counterpart of
+ * createBlockForExercise below, moving the row out of its source block via
+ * computeExerciseMove instead of adding a fresh row through
+ * addExerciseToBlockAction. */
+async function splitExerciseIntoNewBlock(
+  options: UseBlockExerciseDndOptions,
+  activeExerciseId: string,
+  sourceBlockId: string,
+  sessionId: string,
+  overBlockId: string | null,
+  insertAfter: boolean,
+  markCommitted: () => void,
+  onError: (message: string) => void,
+) {
+  if (!options.createBlockAction) return;
+  const sourceBlock = options.blocks.find((b) => b.id === sourceBlockId);
+  const movingRow = sourceBlock?.exercises.find(
+    (e) => e.id === activeExerciseId,
+  );
+  if (!movingRow) return;
+
+  markCommitted();
+  const originalBlocks = options.blocks;
+
+  // Show the split immediately: the row disappears from its source block and
+  // a pending block holding a copy of it appears at the drop position, while
+  // the two round trips below resolve — otherwise the exercise would
+  // flash in both places at once.
+  const withoutRow = originalBlocks.map((b) =>
+    b.id === sourceBlockId
+      ? {
+          ...b,
+          exercises: b.exercises.filter((e) => e.id !== activeExerciseId),
+        }
+      : b,
+  );
+  const pendingBlock = createPendingBlock(sessionId, movingRow.exercise);
+  options.setBlocks(
+    placeBlock(withoutRow, sessionId, overBlockId, insertAfter, pendingBlock)
+      .blocks,
+  );
+
+  const blockResult = await options.createBlockAction(sessionId, "New block");
+  if (!blockResult.ok || !blockResult.data) {
+    options.setBlocks(originalBlocks);
+    reportIfFailed(onError, blockResult);
+    return;
+  }
+
+  const newBlockId = blockResult.data.id;
+  const withNewBlock = [
+    ...originalBlocks,
+    { ...blockResult.data, exercises: [] },
+  ];
+  const moved = computeExerciseMove(
+    withNewBlock,
+    activeExerciseId,
+    sourceBlockId,
+    newBlockId,
+    null,
+    false,
+  );
+  const newBlockWithExercise = moved?.blocks.find((b) => b.id === newBlockId);
+  if (!moved || !newBlockWithExercise) {
+    options.setBlocks(originalBlocks);
+    return;
+  }
+
+  const rest = moved.blocks.filter((b) => b.id !== newBlockId);
+  const placed = placeBlock(
+    rest,
+    sessionId,
+    overBlockId,
+    insertAfter,
+    newBlockWithExercise,
+  );
+  options.setBlocks(placed.blocks);
+  reportIfFailed(
+    onError,
+    await options.reorderBlockExercisesAction(moved.updates),
+  );
+  if (placed.updates.length > 0 && options.reorderBlocksAction) {
+    reportIfFailed(onError, await options.reorderBlocksAction(placed.updates));
+  }
 }
 
 async function handleExerciseDrop(
@@ -223,13 +378,37 @@ async function handleExerciseDrop(
     options.blocks,
     activeExerciseId,
   );
+  if (!sourceBlockId) return;
+
+  const overParsed = parseId(String(over.id));
+  if (overParsed?.type === "gap") {
+    const gap = parseGapId(String(over.id));
+    if (!gap) return;
+    const position = resolveGapBlockPosition(
+      options.blocks,
+      gap.sessionId,
+      gap.index,
+    );
+    await splitExerciseIntoNewBlock(
+      options,
+      activeExerciseId,
+      sourceBlockId,
+      gap.sessionId,
+      position.overBlockId,
+      position.insertAfter,
+      markCommitted,
+      onError,
+    );
+    return;
+  }
+
   const target = resolveExerciseTarget(
     options.blocks,
     over,
     pointerY,
     activeExerciseId,
   );
-  if (!sourceBlockId || !target) return;
+  if (!target) return;
 
   const result = computeExerciseMove(
     options.blocks,
@@ -280,25 +459,36 @@ function placeExercise(
   return moved ? moved.blocks : appended;
 }
 
-async function handleLibraryDropOnNewBlock(
+/** Creates a new block — pre-populated with the dragged exercise — at a
+ * specific session position (`overBlockId`/`insertAfter`, both null/false to
+ * append at the end), showing it immediately as a pending placeholder while
+ * the two round trips (create block, then add the exercise) resolve. Powers
+ * both the "+ Add block" zone (always appends) and dropping a library
+ * exercise on a between-blocks gap (inserts at that exact position). */
+async function createBlockForExercise(
   options: UseBlockExerciseDndOptions,
   exerciseId: string,
   exercise: ExerciseWithDetails,
   sessionId: string,
+  overBlockId: string | null,
+  insertAfter: boolean,
   markCommitted: () => void,
   onError: (message: string) => void,
 ) {
   if (!options.createBlockAction) return;
   markCommitted();
 
-  // Show the new block (and its pending row) immediately instead of waiting
-  // on two round trips (create block, then add the exercise to it) — it's
-  // dimmed and non-interactive until the real data swaps in.
   const originalBlocks = options.blocks;
-  options.setBlocks([
-    ...originalBlocks,
-    createPendingBlock(sessionId, exercise),
-  ]);
+  const pendingBlock = createPendingBlock(sessionId, exercise);
+  options.setBlocks(
+    placeBlock(
+      originalBlocks,
+      sessionId,
+      overBlockId,
+      insertAfter,
+      pendingBlock,
+    ).blocks,
+  );
 
   const blockResult = await options.createBlockAction(sessionId, "New block");
   if (!blockResult.ok || !blockResult.data) {
@@ -316,36 +506,32 @@ async function handleLibraryDropOnNewBlock(
     exerciseResult.ok && exerciseResult.data
       ? [{ ...exerciseResult.data, exercise }]
       : [];
-  options.setBlocks([...originalBlocks, { ...blockResult.data, exercises }]);
+  const realBlock = { ...blockResult.data, exercises };
+  const placed = placeBlock(
+    originalBlocks,
+    sessionId,
+    overBlockId,
+    insertAfter,
+    realBlock,
+  );
+  options.setBlocks(placed.blocks);
+  if (placed.updates.length > 0 && options.reorderBlocksAction) {
+    reportIfFailed(onError, await options.reorderBlocksAction(placed.updates));
+  }
 }
 
-async function handleLibraryDrop(
+/** Adds a library exercise into an existing block, at a specific row (or the
+ * front, if dropped on the block header) — the "normal" case of
+ * handleLibraryDrop, split out to keep that function within line-count
+ * limits. */
+async function placeLibraryExerciseInBlock(
   options: UseBlockExerciseDndOptions,
   exerciseId: string,
-  pointerY: number | null,
-  over: Over,
+  exercise: ExerciseWithDetails,
+  target: ExerciseTarget,
   markCommitted: () => void,
   onError: (message: string) => void,
 ) {
-  const exercise = options.exercisesById.get(exerciseId);
-  if (!exercise) return;
-
-  const overParsed = parseId(String(over.id));
-  if (overParsed?.type === "new-block") {
-    await handleLibraryDropOnNewBlock(
-      options,
-      exerciseId,
-      exercise,
-      overParsed.value,
-      markCommitted,
-      onError,
-    );
-    return;
-  }
-
-  const target = resolveExerciseTarget(options.blocks, over, pointerY);
-  if (!target) return;
-
   markCommitted();
   const originalBlocks = options.blocks;
 
@@ -398,11 +584,103 @@ async function handleLibraryDrop(
   );
 }
 
-/** Appends `block` to its (already-correct) session, then — if it was
- * dropped over a specific sibling rather than at the end — repositions it
- * there via computeBlockMove. Mirrors placeExercise's append-then-move
- * shape so both the pending placeholder and the eventual real block land in
+async function handleLibraryDrop(
+  options: UseBlockExerciseDndOptions,
+  exerciseId: string,
+  pointerY: number | null,
+  over: Over,
+  markCommitted: () => void,
+  onError: (message: string) => void,
+) {
+  const exercise = options.exercisesById.get(exerciseId);
+  if (!exercise) return;
+
+  const overParsed = parseId(String(over.id));
+  if (overParsed?.type === "new-block") {
+    await createBlockForExercise(
+      options,
+      exerciseId,
+      exercise,
+      overParsed.value,
+      null,
+      false,
+      markCommitted,
+      onError,
+    );
+    return;
+  }
+  if (overParsed?.type === "gap") {
+    const gap = parseGapId(String(over.id));
+    if (!gap) return;
+    const position = resolveGapBlockPosition(
+      options.blocks,
+      gap.sessionId,
+      gap.index,
+    );
+    await createBlockForExercise(
+      options,
+      exerciseId,
+      exercise,
+      gap.sessionId,
+      position.overBlockId,
+      position.insertAfter,
+      markCommitted,
+      onError,
+    );
+    return;
+  }
+
+  const target = resolveExerciseTarget(options.blocks, over, pointerY);
+  if (!target) return;
+  await placeLibraryExerciseInBlock(
+    options,
+    exerciseId,
+    exercise,
+    target,
+    markCommitted,
+    onError,
+  );
+}
+
+/** Appends `newBlocks` to their (already-correct) session, then — if dropped
+ * over a specific sibling rather than at the end — repositions them there,
+ * one at a time, so their relative order among themselves is preserved
+ * immediately after the drop target. Mirrors placeExercise's append-then-move
+ * shape so both the pending placeholders and the eventual real blocks land in
  * the same spot without a visible jump. */
+function placeBlocks(
+  blocks: BlockWithExercises[],
+  sessionId: string,
+  overBlockId: string | null,
+  insertAfter: boolean,
+  newBlocks: BlockWithExercises[],
+): { blocks: BlockWithExercises[]; updates: BlockPositionUpdate[] } {
+  const appended = [...blocks, ...newBlocks];
+  if (!overBlockId) return { blocks: appended, updates: [] };
+
+  let current = appended;
+  let updates: BlockPositionUpdate[] = [];
+  let anchor = overBlockId;
+  let anchorInsertAfter = insertAfter;
+  for (const block of newBlocks) {
+    const moved = computeBlockMove(
+      current,
+      block.id,
+      sessionId,
+      anchor,
+      anchorInsertAfter,
+    );
+    if (moved) {
+      current = moved.blocks;
+      updates = moved.updates;
+    }
+    anchor = block.id;
+    anchorInsertAfter = true;
+  }
+  return { blocks: current, updates };
+}
+
+/** Single-block convenience wrapper around placeBlocks. */
 function placeBlock(
   blocks: BlockWithExercises[],
   sessionId: string,
@@ -410,16 +688,7 @@ function placeBlock(
   insertAfter: boolean,
   block: BlockWithExercises,
 ): { blocks: BlockWithExercises[]; updates: BlockPositionUpdate[] } {
-  const appended = [...blocks, block];
-  if (!overBlockId) return { blocks: appended, updates: [] };
-  const moved = computeBlockMove(
-    appended,
-    block.id,
-    sessionId,
-    overBlockId,
-    insertAfter,
-  );
-  return moved ?? { blocks: appended, updates: [] };
+  return placeBlocks(blocks, sessionId, overBlockId, insertAfter, [block]);
 }
 
 /** Copies a Block Library template into a new block wherever it's dropped —
@@ -435,14 +704,11 @@ async function handleBlockTemplateDrop(
   onError: (message: string) => void,
 ) {
   if (!options.createBlockFromTemplateAction) return;
-  const target = resolveTargetSession(options.blocks, String(over.id));
+  const target = resolveTargetSession(options.blocks, over, pointerY);
   if (!target) return;
 
   markCommitted();
   const originalBlocks = options.blocks;
-  const insertAfter = target.overBlockId
-    ? isInsertAfterForBlockTarget(pointerY, over)
-    : false;
 
   // Show the new block immediately at the exact spot it'll end up — not
   // appended at the end — so nothing visibly jumps once the real data
@@ -455,7 +721,7 @@ async function handleBlockTemplateDrop(
       originalBlocks,
       target.sessionId,
       target.overBlockId,
-      insertAfter,
+      target.insertAfter,
       pendingBlock,
     ).blocks,
   );
@@ -474,7 +740,7 @@ async function handleBlockTemplateDrop(
     originalBlocks,
     target.sessionId,
     target.overBlockId,
-    insertAfter,
+    target.insertAfter,
     result.data,
   );
   options.setBlocks(placed.blocks);
@@ -483,59 +749,109 @@ async function handleBlockTemplateDrop(
   }
 }
 
-function getPointerY(event: {
-  activatorEvent: Event | null;
-  delta: { y: number };
-}): number | null {
-  const activatorEvent = event.activatorEvent;
-  if (!activatorEvent) return null;
-  if (
-    "clientY" in activatorEvent &&
-    typeof activatorEvent.clientY === "number"
-  ) {
-    return activatorEvent.clientY + event.delta.y;
+/** Copies every block of a multi-block Block Library template into new
+ * blocks wherever it's dropped — mirrors handleBlockTemplateDrop, but shows
+ * (and later swaps in) one pending block per source block instead of just
+ * one, so the whole template's blocks appear together, in order, immediately
+ * on drop. */
+async function handleSessionTemplateDrop(
+  options: UseBlockExerciseDndOptions,
+  sessionTemplateId: string,
+  pointerY: number | null,
+  over: Over,
+  markCommitted: () => void,
+  onError: (message: string) => void,
+) {
+  if (!options.createBlocksFromSessionTemplateAction) return;
+  const target = resolveTargetSession(options.blocks, over, pointerY);
+  if (!target) return;
+
+  const template = options.sessionTemplatesById?.get(sessionTemplateId);
+  if (!template || template.blocks.length === 0) return;
+
+  markCommitted();
+  const originalBlocks = options.blocks;
+
+  const pendingBlocks = createPendingBlocksFromSessionTemplate(
+    target.sessionId,
+    template.blocks,
+  );
+  options.setBlocks(
+    placeBlocks(
+      originalBlocks,
+      target.sessionId,
+      target.overBlockId,
+      target.insertAfter,
+      pendingBlocks,
+    ).blocks,
+  );
+
+  const result = await options.createBlocksFromSessionTemplateAction({
+    session_id: target.sessionId,
+    session_template_id: sessionTemplateId,
+  });
+  if (!result.ok || !result.data) {
+    options.setBlocks(originalBlocks);
+    reportIfFailed(onError, result);
+    return;
   }
-  const touchEvent = activatorEvent as TouchEvent;
-  if (touchEvent.touches.length > 0) {
-    return touchEvent.touches[0].clientY + event.delta.y;
+
+  const placed = placeBlocks(
+    originalBlocks,
+    target.sessionId,
+    target.overBlockId,
+    target.insertAfter,
+    result.data,
+  );
+  options.setBlocks(placed.blocks);
+  if (placed.updates.length > 0 && options.reorderBlocksAction) {
+    reportIfFailed(onError, await options.reorderBlocksAction(placed.updates));
   }
-  if (touchEvent.changedTouches.length > 0) {
-    return touchEvent.changedTouches[0].clientY + event.delta.y;
-  }
-  return null;
+}
+
+/** Wraps blockDndCollision to capture the exact pointer coordinates dnd-kit
+ * used to resolve `over` on this pass, into `pointerYRef` — reading them
+ * straight from collision detection (rather than reconstructing current
+ * pointer position from `activatorEvent.clientY + delta.y`, which drifted
+ * from the coordinates collision detection actually compared `over.rect`
+ * against, occasionally flipping which half of a hovered block looked
+ * active) guarantees the two stay in lockstep, since both come from the
+ * same pass. */
+function createCollisionDetection(pointerYRef: {
+  current: number | null;
+}): CollisionDetection {
+  return (args) => {
+    pointerYRef.current = args.pointerCoordinates?.y ?? null;
+    return blockDndCollision(args);
+  };
 }
 
 function createDragStartHandler(
   setActiveId: (value: string | null) => void,
-  setPointerY: (value: number | null) => void,
   setSuppressDropAnimation: (value: boolean) => void,
 ) {
   return (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
-    setPointerY(
-      getPointerY({ activatorEvent: event.activatorEvent, delta: { y: 0 } }),
-    );
     setSuppressDropAnimation(false);
   };
 }
 
 function createDragMoveHandler(
+  pointerYRef: { current: number | null },
   setPointerY: (value: number | null) => void,
   setDropTarget: (value: { overId: string; after: boolean } | null) => void,
 ) {
   return (event: DragMoveEvent) => {
     const { over } = event;
-    const nextPointerY = getPointerY(event);
-    setPointerY(nextPointerY);
+    const pointerY = pointerYRef.current;
+    setPointerY(pointerY);
     if (!over) {
       setDropTarget(null);
       return;
     }
     setDropTarget({
       overId: String(over.id),
-      after: String(over.id).startsWith("block:")
-        ? isInsertAfterForBlockTarget(nextPointerY, over)
-        : isInsertAfter(nextPointerY, over),
+      after: isInsertAfter(pointerY, over),
     });
   };
 }
@@ -588,6 +904,15 @@ function createDragEndHandler(
         markCommitted,
         onError,
       );
+    } else if (activeParsed.type === "session-template") {
+      await handleSessionTemplateDrop(
+        options,
+        activeParsed.value,
+        pointerY,
+        over,
+        markCommitted,
+        onError,
+      );
     } else {
       await handleLibraryDrop(
         options,
@@ -622,6 +947,15 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
     after: boolean;
   } | null>(null);
 
+  // Read fresh in createCollisionDetection on every collision pass — see its
+  // comment for why this is more reliable than reconstructing pointer
+  // position from the drag event.
+  const pointerYRef = useRef<number | null>(null);
+  const collisionDetection = useMemo(
+    () => createCollisionDetection(pointerYRef),
+    [],
+  );
+
   // Suppresses the DragOverlay's snap-back animation once a drop resolves to
   // a real placement, so the item vanishes and appears at its destination
   // instead of flying back — the return animation is reserved for drops
@@ -633,10 +967,13 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
 
   const handleDragStart = createDragStartHandler(
     setActiveId,
-    setPointerY,
     setSuppressDropAnimation,
   );
-  const handleDragMove = createDragMoveHandler(setPointerY, setDropTarget);
+  const handleDragMove = createDragMoveHandler(
+    pointerYRef,
+    setPointerY,
+    setDropTarget,
+  );
   const handleDragEnd = createDragEndHandler(
     options,
     pointerY,
@@ -654,6 +991,7 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
 
   return {
     sensors,
+    collisionDetection,
     activeId,
     indicator: {
       activeId,

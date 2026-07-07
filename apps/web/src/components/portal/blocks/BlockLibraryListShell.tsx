@@ -59,7 +59,6 @@ export function BlockLibraryListShell({
   }
 
   async function handleDelete(template: SessionTemplateSummary) {
-    if (!confirm(`Delete "${template.name}"? This can't be undone.`)) return;
     await deleteAction(template.id);
     router.refresh();
   }

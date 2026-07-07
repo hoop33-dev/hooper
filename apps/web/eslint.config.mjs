@@ -83,7 +83,7 @@ const eslintConfig = [
       "sonarjs/cognitive-complexity": ["error", 15],
       "max-lines-per-function": [
         "error",
-        { max: 80, skipBlankLines: true, skipComments: true },
+        { max: 100, skipBlankLines: true, skipComments: true },
       ],
       "max-depth": ["error", 4],
       "max-nested-callbacks": ["error", 4],

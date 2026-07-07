@@ -79,6 +79,10 @@ export interface ProgramCanvasActions {
     id: string,
     input: UpdateProgramInput,
   ) => Promise<ActionResult<ProgramRow>>;
+  deleteProgramWeekAction: (
+    programId: string,
+    weekNumber: number,
+  ) => Promise<ActionResult<ProgramRow>>;
   /** Only needed to power the block header's "Save as template" button. */
   saveBlockAsTemplateAction?: (
     blockId: string,
@@ -439,6 +443,66 @@ async function runAddWeek(
   else showError(result.error ?? "Something went wrong.");
 }
 
+/** Which week should end up selected after `deletedWeek` is removed — every
+ * week after it shifts down by one, so a selection past it must shift too,
+ * while a selection on it falls back to the week now in its place (clamped
+ * to 1, since a deleted week 1 leaves the new week 1 behind it). */
+export function selectWeekAfterDelete(
+  deletedWeek: number,
+  currentSelected: number,
+): number {
+  if (currentSelected < deletedWeek) return currentSelected;
+  return Math.max(1, currentSelected - 1);
+}
+
+async function runDeleteWeek(
+  program: ProgramWithSessions,
+  weekNumber: number,
+  deleteProgramWeekAction: ProgramCanvasActions["deleteProgramWeekAction"],
+  onSuccess: () => void,
+  showError: (message: string) => void,
+) {
+  const result = await deleteProgramWeekAction(program.id, weekNumber);
+  if (result.ok) onSuccess();
+  else showError(result.error ?? "Something went wrong.");
+}
+
+function useWeekHandlers(
+  program: ProgramWithSessions,
+  actions: ProgramCanvasActions,
+  selectedWeek: number,
+  selectWeek: (week: number) => void,
+  router: ReturnType<typeof useRouter>,
+  showError: (message: string) => void,
+) {
+  async function addWeek() {
+    await runAddWeek(
+      program,
+      actions.updateProgramAction,
+      (newWeekCount) => {
+        router.refresh();
+        selectWeek(newWeekCount);
+      },
+      showError,
+    );
+  }
+
+  async function deleteWeek(weekNumber: number) {
+    await runDeleteWeek(
+      program,
+      weekNumber,
+      actions.deleteProgramWeekAction,
+      () => {
+        router.refresh();
+        selectWeek(selectWeekAfterDelete(weekNumber, selectedWeek));
+      },
+      showError,
+    );
+  }
+
+  return { addWeek, deleteWeek };
+}
+
 /** Two lookups derived from the same sessionTemplates list — block names
  * keyed by block_template id (single-block drops) and full summaries keyed
  * by session_template id (multi-block drops) — see useBlockExerciseDnd.ts. */
@@ -493,17 +557,14 @@ export function useProgramCanvasState(
     setSelectedWeek(week);
   }
 
-  async function addWeek() {
-    await runAddWeek(
-      program,
-      actions.updateProgramAction,
-      (newWeekCount) => {
-        router.refresh();
-        selectWeek(newWeekCount);
-      },
-      showError,
-    );
-  }
+  const { addWeek, deleteWeek } = useWeekHandlers(
+    program,
+    actions,
+    selectedWeek,
+    selectWeek,
+    router,
+    showError,
+  );
 
   const sessionModalHandlers = useSessionModalHandlers(
     program,
@@ -526,6 +587,7 @@ export function useProgramCanvasState(
     selectedWeek,
     selectWeek,
     addWeek,
+    deleteWeek,
     weekSessions,
     exercisesById,
     blockTemplateNamesById,

@@ -5,6 +5,7 @@ import type { ExerciseCategoryRow, ExerciseVideoSource } from "@hooper/db";
 import { useEffect, useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
+import { SpinnerIcon } from "../ui/icons";
 import { CategoryCombobox } from "./CategoryCombobox";
 import { UnitTypeSelector } from "./UnitTypeSelector";
 import { VideoField } from "./VideoField";
@@ -64,7 +65,13 @@ function ExerciseFormFields({
   );
 }
 
-function DeleteZone({ onDelete }: { onDelete: () => void }) {
+function DeleteZone({
+  onDelete,
+  deleting,
+}: {
+  onDelete: () => void;
+  deleting: boolean;
+}) {
   const [confirming, setConfirming] = useState(false);
 
   if (confirming) {
@@ -76,11 +83,16 @@ function DeleteZone({ onDelete }: { onDelete: () => void }) {
         <PortalButton
           variant="ghost"
           size="sm"
-          onClick={() => setConfirming(false)}>
+          onClick={() => setConfirming(false)}
+          disabled={deleting}>
           Cancel
         </PortalButton>
-        <PortalButton variant="danger" size="sm" onClick={onDelete}>
-          Delete
+        <PortalButton
+          variant="danger"
+          size="sm"
+          onClick={onDelete}
+          disabled={deleting}>
+          {deleting ? <SpinnerIcon size={12} /> : "Delete"}
         </PortalButton>
       </div>
     );
@@ -289,7 +301,7 @@ function ModalFooter({
       <div className="flex items-center justify-between">
         <div>
           {mode === "edit" && deleteAction && (
-            <DeleteZone onDelete={onDelete} />
+            <DeleteZone onDelete={onDelete} deleting={saving} />
           )}
         </div>
         <div className="flex gap-2">

@@ -21,6 +21,7 @@ import {
   type UpdateBlockExerciseInput,
   type UpdateBlockInput,
 } from "@/src/services/block.service";
+import { deleteProgramWeek } from "@/src/services/program.service";
 import {
   createSession,
   deleteSession,
@@ -32,7 +33,7 @@ import {
   type DuplicateSessionInput,
   type SetLinkedWeeksInput,
 } from "@/src/services/session.service";
-import type { BlockRow, SessionRow } from "@hooper/db";
+import type { BlockRow, ProgramRow, SessionRow } from "@hooper/db";
 import { revalidatePath } from "next/cache";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
@@ -86,6 +87,17 @@ export async function setLinkedWeeksAction(
   const result = await setLinkedWeeks(input);
   if (result.ok) revalidateProgramRoutes();
   return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+export async function deleteProgramWeekAction(
+  programId: string,
+  weekNumber: number,
+): Promise<ActionResult<ProgramRow>> {
+  const result = await deleteProgramWeek(programId, weekNumber);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
 }
 
 export async function reorderSessionsAction(

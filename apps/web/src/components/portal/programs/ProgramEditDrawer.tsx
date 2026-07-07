@@ -4,7 +4,7 @@ import type { ProgramSummary } from "@hooper/db";
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
-import { XIcon } from "../ui/icons";
+import { SpinnerIcon, XIcon } from "../ui/icons";
 import { NumberStepper } from "./NumberStepper";
 
 export type ProgramEditFormData = {
@@ -32,6 +32,16 @@ function DangerZone({
   onDelete: () => Promise<void>;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await onDelete();
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="border-portal-border mt-1 border-t pt-4">
@@ -54,11 +64,16 @@ function DangerZone({
           <PortalButton
             variant="ghost"
             size="sm"
-            onClick={() => setConfirming(false)}>
+            onClick={() => setConfirming(false)}
+            disabled={deleting}>
             Cancel
           </PortalButton>
-          <PortalButton variant="danger" size="sm" onClick={onDelete}>
-            Delete
+          <PortalButton
+            variant="danger"
+            size="sm"
+            onClick={handleDelete}
+            disabled={deleting}>
+            {deleting ? <SpinnerIcon size={12} /> : "Delete"}
           </PortalButton>
         </div>
       ) : (

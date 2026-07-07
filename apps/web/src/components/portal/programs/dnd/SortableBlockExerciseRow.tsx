@@ -7,7 +7,8 @@ import {
 } from "@/src/lib/measurementFormat";
 import { useSortable } from "@dnd-kit/sortable";
 import type { BlockExerciseWithDetails } from "@hooper/db";
-import { SpinnerIcon, XIcon } from "../../ui/icons";
+import { SpinnerIcon } from "../../ui/icons";
+import { InlineConfirmDelete } from "../../ui/InlineConfirmDelete";
 import { useDragIndicator, type DragIndicator } from "./DragIndicatorContext";
 import { isPending } from "./pendingRows";
 
@@ -171,16 +172,11 @@ export function SortableBlockExerciseRow({
       </span>
       <RowBody blockExercise={blockExercise} dense={dense} />
       {!readOnly && !pending && onRemove && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-          className="text-portal-text3 hover:text-portal-text1 flex-shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-          <XIcon />
-        </button>
+        <InlineConfirmDelete
+          onDelete={onRemove}
+          idleTitle="Remove exercise"
+          idleClassName="text-portal-text3 opacity-0 hover:text-portal-text1 group-focus-within:opacity-100 group-hover:opacity-100"
+        />
       )}
     </div>
   );

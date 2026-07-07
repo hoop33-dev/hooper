@@ -1,4 +1,6 @@
 import type { SessionTemplateSummary } from "@hooper/db";
+import { SpinnerIcon } from "../ui/icons";
+import { useInlineConfirm } from "../ui/useInlineConfirm";
 
 function formatUpdatedAt(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -18,6 +20,38 @@ function TemplateNameCell({ template }: { template: SessionTemplateSummary }) {
         {template.name}
       </div>
     </div>
+  );
+}
+
+function DeleteTemplateButton({ onDelete }: { onDelete: () => void }) {
+  const { armed, confirming, arm, confirm } = useInlineConfirm(onDelete);
+
+  if (confirming) {
+    return (
+      <span className="border-portal-border flex h-[26px] w-[68px] items-center justify-center rounded-lg border">
+        <SpinnerIcon size={13} />
+      </span>
+    );
+  }
+
+  if (armed) {
+    return (
+      <button
+        type="button"
+        onClick={confirm}
+        className="rounded-lg border border-red-500 px-3 py-1 text-xs font-semibold text-red-500 hover:bg-red-50">
+        Confirm?
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={arm}
+      className="border-portal-border text-portal-text2 hover:bg-portal-bg rounded-lg border px-3 py-1 text-xs font-semibold">
+      Delete
+    </button>
   );
 }
 
@@ -70,12 +104,7 @@ export function BlockLibraryTable({
                   className="border-portal-border text-portal-text2 hover:bg-portal-bg rounded-lg border px-3 py-1 text-xs font-semibold">
                   Rename
                 </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(template)}
-                  className="border-portal-border text-portal-text2 hover:bg-portal-bg rounded-lg border px-3 py-1 text-xs font-semibold">
-                  Delete
-                </button>
+                <DeleteTemplateButton onDelete={() => onDelete(template)} />
               </div>
             </td>
           </tr>

@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   linkedWeeksOfExercise,
   linkedWeeksOfSession,
+  selectWeekAfterDelete,
 } from "./useProgramCanvasState";
 
 function exercise(
@@ -120,5 +121,23 @@ describe("linkedWeeksOfExercise", () => {
     const linked = exercise("e1", "ex-group-a");
     const week1 = session("s1", 1, null, [block("b1", [linked])]);
     expect(linkedWeeksOfExercise(linked, [week1])).toBeUndefined();
+  });
+});
+
+describe("selectWeekAfterDelete", () => {
+  it("leaves the selection untouched when it's before the deleted week", () => {
+    expect(selectWeekAfterDelete(3, 1)).toBe(1);
+  });
+
+  it("shifts the selection down when it's after the deleted week", () => {
+    expect(selectWeekAfterDelete(2, 4)).toBe(3);
+  });
+
+  it("falls back to the previous week when the selected week is deleted", () => {
+    expect(selectWeekAfterDelete(3, 3)).toBe(2);
+  });
+
+  it("clamps to week 1 when week 1 is deleted while selected", () => {
+    expect(selectWeekAfterDelete(1, 1)).toBe(1);
   });
 });

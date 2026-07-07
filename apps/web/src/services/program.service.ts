@@ -140,6 +140,62 @@ export async function updateProgram(
   }
 }
 
+/** Weeks aren't a stored entity — just a count on the program plus a
+ * `week_number` on each session. Deleting one means dropping its sessions
+ * (blocks/exercises cascade), shifting every later week's sessions down by
+ * one, and decrementing the count to match. */
+export async function deleteProgramWeek(
+  programId: string,
+  weekNumber: number,
+): Promise<Result<ProgramRow>> {
+  try {
+    const supabase = await createClient();
+
+    const { data: program, error: programError } = await supabase
+      .from("programs")
+      .select("weeks")
+      .eq("id", programId)
+      .single();
+    if (programError) return err(programError.message);
+    if (program.weeks <= 1) {
+      return err("A program must have at least one week.");
+    }
+
+    const { error: deleteError } = await supabase
+      .from("sessions")
+      .delete()
+      .eq("program_id", programId)
+      .eq("week_number", weekNumber);
+    if (deleteError) return err(deleteError.message);
+
+    const { data: laterSessions, error: laterError } = await supabase
+      .from("sessions")
+      .select("id, week_number")
+      .eq("program_id", programId)
+      .gt("week_number", weekNumber);
+    if (laterError) return err(laterError.message);
+
+    for (const session of laterSessions ?? []) {
+      const { error: shiftError } = await supabase
+        .from("sessions")
+        .update({ week_number: session.week_number - 1 })
+        .eq("id", session.id);
+      if (shiftError) return err(shiftError.message);
+    }
+
+    const { data, error } = await supabase
+      .from("programs")
+      .update({ weeks: program.weeks - 1 })
+      .eq("id", programId)
+      .select()
+      .single();
+    if (error) return err(error.message);
+    return ok(data);
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
 export async function publishProgram(id: string): Promise<Result<ProgramRow>> {
   try {
     const supabase = await createClient();

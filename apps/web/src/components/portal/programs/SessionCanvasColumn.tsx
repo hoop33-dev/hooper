@@ -4,13 +4,8 @@ import { cn } from "@/src/lib/cn";
 import { useDroppable } from "@dnd-kit/core";
 import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
 import Link from "next/link";
-import {
-  BookmarkIcon,
-  DuplicateIcon,
-  LinkIcon,
-  PencilIcon,
-  XIcon,
-} from "../ui/icons";
+import { BookmarkIcon, DuplicateIcon, LinkIcon, PencilIcon } from "../ui/icons";
+import { InlineConfirmDelete } from "../ui/InlineConfirmDelete";
 import { BlockCard } from "./BlockCard";
 import { BlockGapDropZone } from "./dnd/BlockGapDropZone";
 import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
@@ -80,16 +75,11 @@ function ColumnHeaderActions({
           <BookmarkIcon />
         </button>
       )}
-      <button
-        type="button"
-        onClick={(e) => {
-          stop(e);
-          onDelete();
-        }}
-        className="text-portal-text3 hover:text-red-500"
-        title="Delete">
-        <XIcon />
-      </button>
+      <InlineConfirmDelete
+        onDelete={onDelete}
+        idleTitle="Delete"
+        idleClassName="text-portal-text3 hover:text-red-500"
+      />
     </div>
   );
 }

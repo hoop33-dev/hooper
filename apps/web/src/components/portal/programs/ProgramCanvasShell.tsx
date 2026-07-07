@@ -69,6 +69,7 @@ function ProgramCanvasBody({
         selectedWeek={state.selectedWeek}
         onSelect={state.selectWeek}
         onAddWeek={state.addWeek}
+        onDeleteWeek={state.deleteWeek}
       />
       <SessionCanvasRow
         programId={program.id}

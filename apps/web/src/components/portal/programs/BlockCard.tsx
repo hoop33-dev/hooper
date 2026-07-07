@@ -12,14 +12,15 @@ import type {
   ExerciseWithDetails,
 } from "@hooper/db";
 import { useState } from "react";
-import { BookmarkIcon, SpinnerIcon, XIcon } from "../ui/icons";
+import { BookmarkIcon, SpinnerIcon } from "../ui/icons";
+import { InlineConfirmDelete } from "../ui/InlineConfirmDelete";
 import { AddExercisePopover } from "./AddExercisePopover";
 import {
   useDragIndicator,
   type DragIndicator,
 } from "./dnd/DragIndicatorContext";
-import { SortableBlockExerciseRow } from "./dnd/SortableBlockExerciseRow";
 import { isPending } from "./dnd/pendingRows";
+import { SortableBlockExerciseRow } from "./dnd/SortableBlockExerciseRow";
 
 type BlockDropVisual = {
   headerLineEdge: "bottom" | null;
@@ -181,13 +182,11 @@ function BlockCardHeader({
         </button>
       )}
       {!readOnly && !pending && (
-        <button
-          type="button"
-          onClick={onDelete}
-          onPointerDown={(e) => e.stopPropagation()}
-          className="text-portal-text3 flex-shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:text-red-500">
-          <XIcon />
-        </button>
+        <InlineConfirmDelete
+          onDelete={onDelete}
+          idleTitle="Delete block"
+          idleClassName="text-portal-text3 opacity-0 hover:text-red-500 group-focus-within:opacity-100 group-hover:opacity-100"
+        />
       )}
     </div>
   );

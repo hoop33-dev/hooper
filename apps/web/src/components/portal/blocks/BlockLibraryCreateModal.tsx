@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
 import { XIcon } from "../ui/icons";
+import { useModalDismiss } from "../ui/useModalDismiss";
 
 interface BlockLibraryCreateModalProps {
   onClose: () => void;
@@ -16,6 +17,7 @@ export function BlockLibraryCreateModal({
 }: BlockLibraryCreateModalProps) {
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
+  const onBackdropClick = useModalDismiss(onClose);
 
   async function handleCreate() {
     if (!name.trim() || saving) return;
@@ -25,7 +27,9 @@ export function BlockLibraryCreateModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div
+      onClick={onBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-portal-card w-full max-w-sm rounded-2xl shadow-2xl">
         <div className="border-portal-border flex items-center justify-between border-b px-6 py-4">
           <h2 className="font-title text-portal-text1 text-lg font-extrabold tracking-wide">

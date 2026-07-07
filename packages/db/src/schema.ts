@@ -84,7 +84,6 @@ export type ProgramRow = {
   name: string;
   description: string | null;
   weeks: number;
-  sessions_per_week: number;
   status: ProgramStatus;
   created_by: string;
   created_at: string;
@@ -225,10 +224,7 @@ export type Database = {
       programs: {
         Row: ProgramRow;
         Insert: Partial<ProgramRow> &
-          Pick<
-            ProgramRow,
-            "name" | "weeks" | "sessions_per_week" | "created_by"
-          >;
+          Pick<ProgramRow, "name" | "weeks" | "created_by">;
         Update: Partial<ProgramRow>;
         Relationships: [];
       };

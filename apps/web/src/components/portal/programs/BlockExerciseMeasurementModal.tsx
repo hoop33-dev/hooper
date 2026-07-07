@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalTextarea } from "../ui/PortalInput";
 import { XIcon } from "../ui/icons";
+import { useModalDismiss } from "../ui/useModalDismiss";
 
 /**
  * Number entry that allows the field to be blank while typing and coerces to
@@ -553,6 +554,7 @@ export function BlockExerciseMeasurementModal({
   const [notes, setNotes] = useState(blockExercise.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [choosingScope, setChoosingScope] = useState(false);
+  const onBackdropClick = useModalDismiss(onClose);
 
   function updateMeasurement(index: number, patch: Partial<MeasurementState>) {
     setMeasurements((prev) =>
@@ -580,7 +582,9 @@ export function BlockExerciseMeasurementModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+    <div
+      onClick={onBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
       <div className="bg-portal-card flex max-h-[560px] w-full max-w-sm flex-col overflow-hidden rounded-2xl shadow-2xl">
         <ModalHeader name={exercise.name} onClose={onClose} />
         <ModalBody

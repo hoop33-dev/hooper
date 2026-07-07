@@ -128,8 +128,11 @@ export type ProgramWithSessions = ProgramRow & {
   sessions: SessionWithBlocks[];
 };
 
-// sessionCount is a real COUNT(*) over `sessions` — never
-// weeks * sessions_per_week, since sessions are created manually.
+// sessionCount is a real COUNT(*) over `sessions`, and sessionsPerWeek is the
+// [min, max] session count across the weeks that have at least one session —
+// both derived from real rows since sessions are created manually, not from
+// a fixed per-week target. null when no sessions exist yet.
 export type ProgramSummary = ProgramRow & {
   sessionCount: number;
+  sessionsPerWeek: [min: number, max: number] | null;
 };

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
+import { useModalDismiss } from "../ui/useModalDismiss";
 
 export type DuplicatePattern =
   | "every"
@@ -245,6 +246,7 @@ export function SessionDuplicateModal({
         ),
   );
   const [saving, setSaving] = useState(false);
+  const onBackdropClick = useModalDismiss(onClose);
 
   function handlePattern(p: DuplicatePattern) {
     setPattern(p);
@@ -271,7 +273,9 @@ export function SessionDuplicateModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div
+      onClick={onBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-portal-card w-full max-w-lg rounded-2xl shadow-2xl">
         <ModalHeader
           sessionName={sessionName}

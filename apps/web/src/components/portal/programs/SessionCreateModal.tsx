@@ -5,6 +5,7 @@ import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
 import { XIcon } from "../ui/icons";
+import { useModalDismiss } from "../ui/useModalDismiss";
 
 export type SessionCreateData =
   | { mode: "blank"; name: string; week_number: number }
@@ -239,6 +240,7 @@ export function SessionCreateModal({
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const onBackdropClick = useModalDismiss(onClose);
 
   const canSubmit =
     mode === "blank"
@@ -273,7 +275,9 @@ export function SessionCreateModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+    <div
+      onClick={onBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
       <div className="bg-portal-card w-full max-w-md rounded-2xl shadow-2xl">
         <ModalHeader weekNumber={weekNumber} onClose={onClose} />
         <ModalBody

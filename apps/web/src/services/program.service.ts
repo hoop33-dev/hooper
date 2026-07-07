@@ -18,7 +18,6 @@ export type CreateProgramInput = {
   name: string;
   description?: string;
   weeks: number;
-  sessions_per_week: number;
   created_by: string;
 };
 
@@ -26,28 +25,45 @@ export type UpdateProgramInput = {
   name?: string;
   description?: string;
   weeks?: number;
-  sessions_per_week?: number;
 };
 
 type RawSession = SessionRow & { blocks: RawBlock[] };
 type RawProgram = ProgramRow & { sessions: RawSession[] };
+
+/** [min, max] sessions-per-week across weeks that have at least one session,
+ * or null if none do. Derived from real rows rather than a stored target. */
+function sessionsPerWeekRange(
+  sessions: { week_number: number }[],
+): [number, number] | null {
+  if (sessions.length === 0) return null;
+  const counts = new Map<number, number>();
+  for (const { week_number } of sessions) {
+    counts.set(week_number, (counts.get(week_number) ?? 0) + 1);
+  }
+  const values = [...counts.values()];
+  return [Math.min(...values), Math.max(...values)];
+}
 
 export async function listPrograms(): Promise<Result<ProgramSummary[]>> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("programs")
-      .select("*, sessions(count)")
+      .select("*, sessions(week_number)")
       .order("updated_at", { ascending: false });
 
     if (error) return err(error.message);
 
-    const rows = (data ?? []).map((row) => ({
-      ...row,
-      sessionCount: Array.isArray(row.sessions)
-        ? ((row.sessions[0] as { count: number } | undefined)?.count ?? 0)
-        : 0,
-    }));
+    const rows = (data ?? []).map((row) => {
+      const sessions = Array.isArray(row.sessions)
+        ? (row.sessions as { week_number: number }[])
+        : [];
+      return {
+        ...row,
+        sessionCount: sessions.length,
+        sessionsPerWeek: sessionsPerWeekRange(sessions),
+      };
+    });
 
     return ok(rows as ProgramSummary[]);
   } catch (e) {
@@ -98,7 +114,6 @@ export async function createProgram(
         name: input.name,
         description: input.description ?? null,
         weeks: input.weeks,
-        sessions_per_week: input.sessions_per_week,
         created_by: input.created_by,
       })
       .select()
@@ -125,9 +140,6 @@ export async function updateProgram(
           description: input.description,
         }),
         ...(input.weeks !== undefined && { weeks: input.weeks }),
-        ...(input.sessions_per_week !== undefined && {
-          sessions_per_week: input.sessions_per_week,
-        }),
       })
       .eq("id", id)
       .select()

@@ -2,10 +2,11 @@
 
 import type { UnitType } from "@/src/constants/unitTypes";
 import type { ExerciseCategoryRow, ExerciseVideoSource } from "@hooper/db";
-import { useEffect, useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
 import { SpinnerIcon } from "../ui/icons";
+import { useModalDismiss } from "../ui/useModalDismiss";
 import { CategoryCombobox } from "./CategoryCombobox";
 import { UnitTypeSelector } from "./UnitTypeSelector";
 import { VideoField } from "./VideoField";
@@ -18,16 +19,6 @@ export type {
   ExerciseFormData,
   ExerciseModalProps,
 } from "./exerciseModalTypes";
-
-function useEscapeKey(onClose: () => void) {
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-}
 
 function ExerciseFormFields({
   name,
@@ -113,13 +104,13 @@ function DeleteZone({
 export function ExerciseModal(props: ExerciseModalProps) {
   const { mode, exercise, categories, onClose, deleteAction } = props;
   const form = useExerciseModalForm(props);
-
-  useEscapeKey(onClose);
+  const onBackdropClick = useModalDismiss(onClose);
 
   return (
     <ModalLayout
       mode={mode}
       onClose={onClose}
+      onBackdropClick={onBackdropClick}
       name={form.name}
       description={form.description}
       nameError={form.nameError}
@@ -145,6 +136,7 @@ export function ExerciseModal(props: ExerciseModalProps) {
 function ModalLayout({
   mode,
   onClose,
+  onBackdropClick,
   name,
   description,
   nameError,
@@ -166,6 +158,7 @@ function ModalLayout({
 }: {
   mode: "create" | "edit";
   onClose: () => void;
+  onBackdropClick: (e: MouseEvent<HTMLDivElement>) => void;
   name: string;
   description: string;
   nameError?: string;
@@ -186,7 +179,9 @@ function ModalLayout({
   onSave: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div
+      onClick={onBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-portal-card flex h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl shadow-2xl">
         <ModalHeader mode={mode} onClose={onClose} />
         <ModalColumnBody

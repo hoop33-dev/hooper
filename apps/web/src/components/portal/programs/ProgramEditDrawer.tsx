@@ -5,13 +5,13 @@ import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
 import { SpinnerIcon, XIcon } from "../ui/icons";
+import { useModalDismiss } from "../ui/useModalDismiss";
 import { NumberStepper } from "./NumberStepper";
 
 export type ProgramEditFormData = {
   name: string;
   description?: string;
   weeks: number;
-  sessions_per_week: number;
 };
 
 interface ProgramEditDrawerProps {
@@ -120,8 +120,6 @@ interface DrawerFieldsProps {
   onDescription: (v: string) => void;
   weeks: number;
   onWeeks: (v: number) => void;
-  sessionsPerWeek: number;
-  onSessionsPerWeek: (v: number) => void;
   program: ProgramSummary;
   onPublish: () => Promise<void>;
   onDelete: () => Promise<void>;
@@ -134,8 +132,6 @@ function DrawerFields({
   onDescription,
   weeks,
   onWeeks,
-  sessionsPerWeek,
-  onSessionsPerWeek,
   program,
   onPublish,
   onDelete,
@@ -153,22 +149,13 @@ function DrawerFields({
         onChange={(e) => onDescription(e.target.value)}
         rows={2}
       />
-      <div className="grid grid-cols-2 gap-3">
-        <NumberStepper
-          label="Duration (weeks)"
-          value={weeks}
-          onChange={onWeeks}
-          min={1}
-          max={52}
-        />
-        <NumberStepper
-          label="Sessions/week"
-          value={sessionsPerWeek}
-          onChange={onSessionsPerWeek}
-          min={1}
-          max={7}
-        />
-      </div>
+      <NumberStepper
+        label="Duration (weeks)"
+        value={weeks}
+        onChange={onWeeks}
+        min={1}
+        max={52}
+      />
       <DangerZone
         status={program.status}
         onPublish={onPublish}
@@ -188,10 +175,8 @@ export function ProgramEditDrawer({
   const [name, setName] = useState(program.name);
   const [description, setDescription] = useState(program.description ?? "");
   const [weeks, setWeeks] = useState(program.weeks);
-  const [sessionsPerWeek, setSessionsPerWeek] = useState(
-    program.sessions_per_week,
-  );
   const [saving, setSaving] = useState(false);
+  const onBackdropClick = useModalDismiss(onClose);
 
   async function handleSave() {
     setSaving(true);
@@ -199,13 +184,14 @@ export function ProgramEditDrawer({
       name: name.trim(),
       description: description.trim() || undefined,
       weeks,
-      sessions_per_week: sessionsPerWeek,
     });
     setSaving(false);
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/35">
+    <div
+      onClick={onBackdropClick}
+      className="fixed inset-0 z-50 flex justify-end bg-black/35">
       <div className="bg-portal-card flex h-full w-full max-w-md flex-col shadow-2xl">
         <DrawerHeader programName={program.name} onClose={onClose} />
         <DrawerFields
@@ -215,8 +201,6 @@ export function ProgramEditDrawer({
           onDescription={setDescription}
           weeks={weeks}
           onWeeks={setWeeks}
-          sessionsPerWeek={sessionsPerWeek}
-          onSessionsPerWeek={setSessionsPerWeek}
           program={program}
           onPublish={onPublish}
           onDelete={onDelete}

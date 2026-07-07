@@ -3,49 +3,18 @@
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
+import { useModalDismiss } from "../ui/useModalDismiss";
 import { NumberStepper } from "./NumberStepper";
 
 export type ProgramCreateFormData = {
   name: string;
   description?: string;
   weeks: number;
-  sessions_per_week: number;
 };
 
 interface ProgramCreateModalProps {
   onClose: () => void;
   onCreate: (data: ProgramCreateFormData) => Promise<void>;
-}
-
-function SummaryPill({
-  weeks,
-  sessionsPerWeek,
-}: {
-  weeks: number;
-  sessionsPerWeek: number;
-}) {
-  const stats: [number, string][] = [
-    [weeks, "Weeks"],
-    [sessionsPerWeek, "Per week"],
-    [weeks * sessionsPerWeek, "Target sessions"],
-  ];
-  return (
-    <div className="border-portal-border bg-portal-bg flex items-center rounded-xl border px-5 py-3.5">
-      {stats.map(([value, label], i) => (
-        <div key={label} className="flex flex-1 items-center">
-          {i > 0 && <div className="bg-portal-border mx-4 h-9 w-px" />}
-          <div className="flex-1 text-center">
-            <div className="font-title text-portal-orange text-2xl leading-none font-black">
-              {value}
-            </div>
-            <div className="text-portal-text3 mt-1 text-[10px] tracking-wide uppercase">
-              {label}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function ModalHeader({ onClose }: { onClose: () => void }) {
@@ -73,8 +42,6 @@ interface ModalFieldsProps {
   onDescription: (v: string) => void;
   weeks: number;
   onWeeks: (v: number) => void;
-  sessionsPerWeek: number;
-  onSessionsPerWeek: (v: number) => void;
 }
 
 function ModalFields({
@@ -84,8 +51,6 @@ function ModalFields({
   onDescription,
   weeks,
   onWeeks,
-  sessionsPerWeek,
-  onSessionsPerWeek,
 }: ModalFieldsProps) {
   return (
     <div className="flex flex-col gap-4 px-6 py-5">
@@ -103,26 +68,16 @@ function ModalFields({
         placeholder="What's this program for?"
         rows={2}
       />
-      <div className="grid grid-cols-2 gap-4">
-        <NumberStepper
-          label="Duration (weeks)"
-          value={weeks}
-          onChange={onWeeks}
-          min={1}
-          max={52}
-        />
-        <NumberStepper
-          label="Sessions per week"
-          value={sessionsPerWeek}
-          onChange={onSessionsPerWeek}
-          min={1}
-          max={7}
-        />
-      </div>
-      <SummaryPill weeks={weeks} sessionsPerWeek={sessionsPerWeek} />
+      <NumberStepper
+        label="Duration (weeks)"
+        value={weeks}
+        onChange={onWeeks}
+        min={1}
+        max={52}
+      />
       <p className="text-portal-text3 text-xs">
         You&apos;ll add sessions individually after creating the program — weeks
-        and sessions/week are just a planning target for now.
+        is just a planning target for now.
       </p>
     </div>
   );
@@ -158,8 +113,8 @@ export function ProgramCreateModal({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [weeks, setWeeks] = useState(8);
-  const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
   const [saving, setSaving] = useState(false);
+  const onBackdropClick = useModalDismiss(onClose);
 
   async function handleCreate() {
     if (!name.trim() || saving) return;
@@ -168,13 +123,14 @@ export function ProgramCreateModal({
       name: name.trim(),
       description: description.trim() || undefined,
       weeks,
-      sessions_per_week: sessionsPerWeek,
     });
     setSaving(false);
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div
+      onClick={onBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-portal-card w-full max-w-lg rounded-2xl shadow-2xl">
         <ModalHeader onClose={onClose} />
         <ModalFields
@@ -184,8 +140,6 @@ export function ProgramCreateModal({
           onDescription={setDescription}
           weeks={weeks}
           onWeeks={setWeeks}
-          sessionsPerWeek={sessionsPerWeek}
-          onSessionsPerWeek={setSessionsPerWeek}
         />
         <ModalFooter
           onClose={onClose}

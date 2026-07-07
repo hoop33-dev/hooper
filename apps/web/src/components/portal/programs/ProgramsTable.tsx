@@ -8,6 +8,14 @@ function formatUpdatedAt(iso: string): string {
   });
 }
 
+function formatSessionsPerWeek(
+  range: ProgramSummary["sessionsPerWeek"],
+): string {
+  if (!range) return "no sessions yet";
+  const [min, max] = range;
+  return min === max ? `${min}/wk` : `${min}-${max}/wk`;
+}
+
 function ProgramNameCell({ program }: { program: ProgramSummary }) {
   const initial = program.name.trim().charAt(0).toUpperCase() || "P";
   return (
@@ -59,11 +67,11 @@ export function ProgramsTable({ programs, onEdit }: ProgramsTableProps) {
               </a>
             </td>
             <td className="text-portal-text2 py-3.5 pr-4 text-[13px]">
-              {program.weeks} wk · {program.sessions_per_week}/wk
+              {program.weeks} wk ·{" "}
+              {formatSessionsPerWeek(program.sessionsPerWeek)}
             </td>
             <td className="text-portal-text2 py-3.5 pr-4 text-[13px]">
-              {program.sessionCount} of{" "}
-              {program.weeks * program.sessions_per_week}
+              {program.sessionCount}
             </td>
             <td className="py-3.5 pr-4">
               <ProgramStatusBadge status={program.status} />

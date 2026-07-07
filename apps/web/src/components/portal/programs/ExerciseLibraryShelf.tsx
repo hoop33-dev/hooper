@@ -2,10 +2,12 @@
 
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
 import { useState } from "react";
+import { CreateExerciseButton } from "./CreateExerciseButton";
 import { DraggableLibraryRow } from "./dnd/DraggableLibraryRow";
+import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { filterExercises } from "./exerciseFilter";
 
-interface ExerciseLibraryShelfProps {
+interface ExerciseLibraryShelfProps extends CreateExerciseActions {
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
 }
@@ -55,6 +57,10 @@ function ShelfSidebar({
 export function ExerciseLibraryShelfBody({
   exercises,
   categories,
+  profileId,
+  createExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
 }: ExerciseLibraryShelfProps) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -73,6 +79,14 @@ export function ExerciseLibraryShelfBody({
         {filtered.map((ex) => (
           <DraggableLibraryRow key={ex.id} exercise={ex} variant="card" />
         ))}
+        <CreateExerciseButton
+          categories={categories}
+          profileId={profileId}
+          createExerciseAction={createExerciseAction}
+          updateExerciseAction={updateExerciseAction}
+          updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+          className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex h-[52px] w-[136px] flex-shrink-0 items-center justify-center rounded-lg border border-dashed px-2.5 text-center text-[11px] font-bold"
+        />
       </div>
     </div>
   );

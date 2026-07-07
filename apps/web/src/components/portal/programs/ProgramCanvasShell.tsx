@@ -9,6 +9,7 @@ import type {
 } from "@hooper/db";
 import { DragIndicatorContext } from "./dnd/DragIndicatorContext";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
+import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { ProgramLibraryShelf } from "./ProgramLibraryShelf";
 import { SaveAsTemplatePopover } from "./SaveAsTemplatePopover";
 import { SessionCanvasRow } from "./SessionCanvasRow";
@@ -19,7 +20,8 @@ import {
 } from "./useProgramCanvasState";
 import { WeekTabStrip } from "./WeekTabStrip";
 
-interface ProgramCanvasShellProps extends ProgramCanvasActions {
+interface ProgramCanvasShellProps
+  extends ProgramCanvasActions, CreateExerciseActions {
   program: ProgramWithSessions;
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
@@ -49,6 +51,7 @@ function ProgramCanvasBody({
   state,
   onSaveBlockAsTemplate,
   saveSessionAsTemplateEnabled,
+  createExerciseActions,
 }: {
   program: ProgramWithSessions;
   exercises: ExerciseWithDetails[];
@@ -57,6 +60,7 @@ function ProgramCanvasBody({
   state: CanvasState;
   onSaveBlockAsTemplate: ((blockId: string) => void) | undefined;
   saveSessionAsTemplateEnabled: boolean;
+  createExerciseActions: CreateExerciseActions;
 }) {
   return (
     <>
@@ -103,6 +107,7 @@ function ProgramCanvasBody({
         exercises={exercises}
         categories={categories}
         sessionTemplates={sessionTemplates}
+        {...createExerciseActions}
       />
       <DragOverlay dropAnimation={state.dnd.dropAnimation}>
         <DragPreviewOverlay
@@ -159,8 +164,18 @@ export function ProgramCanvasShell({
   exercises,
   categories,
   sessionTemplates = [],
+  profileId,
+  createExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
   ...actions
 }: ProgramCanvasShellProps) {
+  const createExerciseActions: CreateExerciseActions = {
+    profileId,
+    createExerciseAction,
+    updateExerciseAction,
+    updateExerciseVideoUrlAction,
+  };
   const state = useProgramCanvasState(
     program,
     exercises,
@@ -190,6 +205,7 @@ export function ProgramCanvasShell({
             state={state}
             onSaveBlockAsTemplate={onSaveBlockAsTemplate}
             saveSessionAsTemplateEnabled={!!actions.saveSessionAsTemplateAction}
+            createExerciseActions={createExerciseActions}
           />
         </DragIndicatorContext.Provider>
       </DndContext>

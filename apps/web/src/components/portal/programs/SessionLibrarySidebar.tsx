@@ -7,10 +7,11 @@ import type {
 } from "@hooper/db";
 import { useState } from "react";
 import { BlockLibraryPanel } from "./BlockLibraryPanel";
+import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { ExerciseLibraryPanel } from "./ExerciseLibraryPanel";
 import { LibraryTabs, type LibraryTab } from "./LibraryTabs";
 
-interface SessionLibrarySidebarProps {
+interface SessionLibrarySidebarProps extends CreateExerciseActions {
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
   sessionTemplates: SessionTemplateSummary[];
@@ -23,6 +24,10 @@ export function SessionLibrarySidebar({
   exercises,
   categories,
   sessionTemplates,
+  profileId,
+  createExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
 }: SessionLibrarySidebarProps) {
   const [tab, setTab] = useState<LibraryTab>("exercises");
   const tabs = (
@@ -34,6 +39,10 @@ export function SessionLibrarySidebar({
       exercises={exercises}
       categories={categories}
       tabs={tabs}
+      profileId={profileId}
+      createExerciseAction={createExerciseAction}
+      updateExerciseAction={updateExerciseAction}
+      updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
     />
   ) : (
     <BlockLibraryPanel sessionTemplates={sessionTemplates} tabs={tabs} />

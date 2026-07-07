@@ -1,3 +1,4 @@
+import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
 import { SaveSessionAsTemplateButton } from "@/src/components/portal/programs/SaveSessionAsTemplateButton";
 import { SessionNavArrows } from "@/src/components/portal/programs/SessionNavArrows";
 import { SessionViewShell } from "@/src/components/portal/programs/SessionViewShell";
@@ -20,6 +21,11 @@ import {
   saveBlockAsTemplateAction,
   saveSessionAsTemplateAction,
 } from "../../../../blocks/actions";
+import {
+  createExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
+} from "../../../../exercises/actions";
 import {
   addExerciseToBlockAction,
   createBlockAction,
@@ -70,12 +76,7 @@ function SessionPageActions({
   );
 }
 
-export default async function SessionViewPage({
-  params,
-}: {
-  params: Promise<{ id: string; sessionId: string }>;
-}) {
-  const { id, sessionId } = await params;
+async function loadSessionPageData(programId: string, sessionId: string) {
   const [
     sessionResult,
     exercisesResult,
@@ -89,20 +90,37 @@ export default async function SessionViewPage({
     listCategories(),
     getCoachProfile(),
     listSessionTemplates(),
-    listSessionsForProgram(id),
+    listSessionsForProgram(programId),
   ]);
 
-  if (!sessionResult.ok) notFound();
+  return {
+    session: sessionResult,
+    exercises: exercisesResult.ok ? exercisesResult.data : [],
+    categories: categoriesResult.ok ? categoriesResult.data : [],
+    profileId: profileResult.ok ? profileResult.data.id : "",
+    sessionTemplates: sessionTemplatesResult.ok
+      ? sessionTemplatesResult.data
+      : [],
+    programSessions: programSessionsResult.ok ? programSessionsResult.data : [],
+  };
+}
 
-  const exercises = exercisesResult.ok ? exercisesResult.data : [];
-  const categories = categoriesResult.ok ? categoriesResult.data : [];
-  const profileId = profileResult.ok ? profileResult.data.id : "";
-  const sessionTemplates = sessionTemplatesResult.ok
-    ? sessionTemplatesResult.data
-    : [];
-  const programSessions = programSessionsResult.ok
-    ? programSessionsResult.data
-    : [];
+export default async function SessionViewPage({
+  params,
+}: {
+  params: Promise<{ id: string; sessionId: string }>;
+}) {
+  const { id, sessionId } = await params;
+  const {
+    session: sessionResult,
+    exercises,
+    categories,
+    profileId,
+    sessionTemplates,
+    programSessions,
+  } = await loadSessionPageData(id, sessionId);
+
+  if (!sessionResult.ok) notFound();
 
   async function wrappedSaveBlockAsTemplate(blockId: string, name: string) {
     "use server";
@@ -112,6 +130,11 @@ export default async function SessionViewPage({
   async function wrappedSaveSessionAsTemplate(name: string) {
     "use server";
     return saveSessionAsTemplateAction(sessionId, name, profileId);
+  }
+
+  async function wrappedCreateExercise(data: ExerciseFormData) {
+    "use server";
+    return createExerciseAction({ ...data, created_by: profileId });
   }
 
   return (
@@ -148,6 +171,10 @@ export default async function SessionViewPage({
         createBlocksFromSessionTemplateAction={
           createBlocksFromSessionTemplateAction
         }
+        profileId={profileId}
+        createExerciseAction={wrappedCreateExercise}
+        updateExerciseAction={updateExerciseAction}
+        updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
       />
     </div>
   );

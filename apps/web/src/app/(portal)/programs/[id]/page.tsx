@@ -1,3 +1,4 @@
+import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
 import { ProgramCanvasShell } from "@/src/components/portal/programs/ProgramCanvasShell";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { getCoachProfile } from "@/src/services/auth.service";
@@ -14,6 +15,11 @@ import {
   saveBlockAsTemplateAction,
   saveSessionAsTemplateAction,
 } from "../../blocks/actions";
+import {
+  createExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
+} from "../../exercises/actions";
 import { updateProgramAction } from "../actions";
 import {
   addExerciseToBlockAction,
@@ -30,6 +36,16 @@ import {
   updateBlockExerciseAction,
   updateSessionNameAction,
 } from "./actions";
+
+function BackToProgramsLink() {
+  return (
+    <Link
+      href="/programs"
+      className="text-portal-text2 text-xs font-semibold hover:underline">
+      ← Back to programs
+    </Link>
+  );
+}
 
 export default async function ProgramCanvasPage({
   params,
@@ -70,18 +86,17 @@ export default async function ProgramCanvasPage({
     return saveSessionAsTemplateAction(sessionId, name, profileId);
   }
 
+  async function wrappedCreateExercise(data: ExerciseFormData) {
+    "use server";
+    return createExerciseAction({ ...data, created_by: profileId });
+  }
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <PageHeader
         title={programResult.data.name}
         subtitle={`${programResult.data.weeks} weeks · ${programResult.data.sessions_per_week} sessions/week`}
-        action={
-          <Link
-            href="/programs"
-            className="text-portal-text2 text-xs font-semibold hover:underline">
-            ← Back to programs
-          </Link>
-        }
+        action={<BackToProgramsLink />}
       />
       <ProgramCanvasShell
         program={programResult.data}
@@ -109,6 +124,10 @@ export default async function ProgramCanvasPage({
           createBlocksFromSessionTemplateAction
         }
         createSessionFromTemplateAction={createSessionFromTemplateAction}
+        profileId={profileId}
+        createExerciseAction={wrappedCreateExercise}
+        updateExerciseAction={updateExerciseAction}
+        updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
       />
     </div>
   );

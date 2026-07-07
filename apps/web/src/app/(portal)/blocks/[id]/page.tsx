@@ -1,5 +1,7 @@
+import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
 import { SessionViewShell } from "@/src/components/portal/programs/SessionViewShell";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
+import { getCoachProfile } from "@/src/services/auth.service";
 import type {
   AddExerciseToBlockInput,
   CreateBlockInput,
@@ -13,6 +15,11 @@ import {
 import type { SessionWithBlocks } from "@hooper/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import {
+  createExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
+} from "../../exercises/actions";
 import {
   addExerciseToBlockTemplateAction,
   createBlockTemplateAction,
@@ -66,36 +73,68 @@ async function createBlocksFromSessionTemplateAction(input: {
   });
 }
 
+function BackToBlockLibraryLink() {
+  return (
+    <Link
+      href="/blocks"
+      className="text-portal-text2 text-xs font-semibold hover:underline">
+      ← Back to Block Library
+    </Link>
+  );
+}
+
+async function loadBlockTemplatePageData(templateId: string) {
+  const [
+    templateResult,
+    exercisesResult,
+    categoriesResult,
+    profileResult,
+    sessionTemplatesResult,
+  ] = await Promise.all([
+    getSessionTemplateById(templateId),
+    listExercises(),
+    listCategories(),
+    getCoachProfile(),
+    listSessionTemplates(),
+  ]);
+
+  return {
+    template: templateResult,
+    exercises: exercisesResult.ok ? exercisesResult.data : [],
+    categories: categoriesResult.ok ? categoriesResult.data : [],
+    profileId: profileResult.ok ? profileResult.data.id : "",
+    // Excludes itself — dragging a template into its own editor would nest a
+    // copy of a template inside itself, which the Block Library has no
+    // concept of undoing (there's no "remove a nested template" affordance,
+    // just remove-block).
+    sessionTemplates: sessionTemplatesResult.ok
+      ? sessionTemplatesResult.data.filter((t) => t.id !== templateId)
+      : [],
+  };
+}
+
 export default async function BlockTemplateEditorPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [
-    templateResult,
-    exercisesResult,
-    categoriesResult,
-    sessionTemplatesResult,
-  ] = await Promise.all([
-    getSessionTemplateById(id),
-    listExercises(),
-    listCategories(),
-    listSessionTemplates(),
-  ]);
+  const {
+    template: templateResult,
+    exercises,
+    categories,
+    profileId,
+    sessionTemplates,
+  } = await loadBlockTemplatePageData(id);
 
   if (!templateResult.ok) notFound();
 
   const template = templateResult.data;
-  const exercises = exercisesResult.ok ? exercisesResult.data : [];
-  const categories = categoriesResult.ok ? categoriesResult.data : [];
-  // Excludes itself — dragging a template into its own editor would nest a
-  // copy of a template inside itself, which the Block Library has no concept
-  // of undoing (there's no "remove a nested template" affordance, just
-  // remove-block).
-  const sessionTemplates = sessionTemplatesResult.ok
-    ? sessionTemplatesResult.data.filter((t) => t.id !== id)
-    : [];
+
+  async function wrappedCreateExercise(data: ExerciseFormData) {
+    "use server";
+    return createExerciseAction({ ...data, created_by: profileId });
+  }
 
   // SessionViewShell/useSessionViewState only ever read `.id` and `.blocks`
   // off the session they're given — every other SessionWithBlocks field
@@ -118,13 +157,7 @@ export default async function BlockTemplateEditorPage({
       <PageHeader
         title={template.name}
         subtitle="Block Library template"
-        action={
-          <Link
-            href="/blocks"
-            className="text-portal-text2 text-xs font-semibold hover:underline">
-            ← Back to Block Library
-          </Link>
-        }
+        action={<BackToBlockLibraryLink />}
       />
       <SessionViewShell
         session={sessionShape}
@@ -146,6 +179,10 @@ export default async function BlockTemplateEditorPage({
         createBlocksFromSessionTemplateAction={
           createBlocksFromSessionTemplateAction
         }
+        profileId={profileId}
+        createExerciseAction={wrappedCreateExercise}
+        updateExerciseAction={updateExerciseAction}
+        updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
       />
     </div>
   );

@@ -7,10 +7,11 @@ import type {
 } from "@hooper/db";
 import { useState } from "react";
 import { BlockLibraryShelfBody } from "./BlockLibraryShelf";
+import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { ExerciseLibraryShelfBody } from "./ExerciseLibraryShelf";
 import { LibraryTabs, type LibraryTab } from "./LibraryTabs";
 
-interface ProgramLibraryShelfProps {
+interface ProgramLibraryShelfProps extends CreateExerciseActions {
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
   sessionTemplates: SessionTemplateSummary[];
@@ -20,6 +21,10 @@ export function ProgramLibraryShelf({
   exercises,
   categories,
   sessionTemplates,
+  profileId,
+  createExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
 }: ProgramLibraryShelfProps) {
   const [open, setOpen] = useState(true);
   const [tab, setTab] = useState<LibraryTab>("exercises");
@@ -48,6 +53,10 @@ export function ProgramLibraryShelf({
             <ExerciseLibraryShelfBody
               exercises={exercises}
               categories={categories}
+              profileId={profileId}
+              createExerciseAction={createExerciseAction}
+              updateExerciseAction={updateExerciseAction}
+              updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
             />
           ) : (
             <BlockLibraryShelfBody sessionTemplates={sessionTemplates} />

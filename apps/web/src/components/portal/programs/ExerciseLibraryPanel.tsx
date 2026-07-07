@@ -3,10 +3,12 @@
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { CreateExerciseButton } from "./CreateExerciseButton";
 import { DraggableLibraryRow } from "./dnd/DraggableLibraryRow";
+import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { filterExercises } from "./exerciseFilter";
 
-interface ExerciseLibraryPanelProps {
+interface ExerciseLibraryPanelProps extends CreateExerciseActions {
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
   /** Replaces the plain "Exercise Library" title — used to show the
@@ -18,6 +20,10 @@ export function ExerciseLibraryPanel({
   exercises,
   categories,
   tabs,
+  profileId,
+  createExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
 }: ExerciseLibraryPanelProps) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -55,14 +61,21 @@ export function ExerciseLibraryPanel({
         </select>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {filtered.length === 0 ? (
+        {filtered.map((ex) => (
+          <DraggableLibraryRow key={ex.id} exercise={ex} />
+        ))}
+        <CreateExerciseButton
+          categories={categories}
+          profileId={profileId}
+          createExerciseAction={createExerciseAction}
+          updateExerciseAction={updateExerciseAction}
+          updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+          className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex w-full items-center gap-2 border-b border-dashed px-3.5 py-2.5 text-left text-xs font-semibold"
+        />
+        {filtered.length === 0 && (
           <div className="text-portal-text3 px-3.5 py-6 text-center text-xs">
             No results
           </div>
-        ) : (
-          filtered.map((ex) => (
-            <DraggableLibraryRow key={ex.id} exercise={ex} />
-          ))
         )}
       </div>
     </div>

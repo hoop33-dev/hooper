@@ -11,6 +11,7 @@ import { BlockExerciseMeasurementModal } from "./BlockExerciseMeasurementModal";
 import { BlockList } from "./BlockList";
 import { DragIndicatorContext } from "./dnd/DragIndicatorContext";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
+import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { SaveAsTemplatePopover } from "./SaveAsTemplatePopover";
 import { SessionLibrarySidebar } from "./SessionLibrarySidebar";
 import {
@@ -18,7 +19,8 @@ import {
   type SessionViewActions,
 } from "./useSessionViewState";
 
-interface SessionViewShellProps extends SessionViewActions {
+interface SessionViewShellProps
+  extends SessionViewActions, CreateExerciseActions {
   session: SessionWithBlocks;
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
@@ -56,6 +58,10 @@ export function SessionViewShell({
   exercises,
   categories,
   sessionTemplates = [],
+  profileId,
+  createExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
   ...actions
 }: SessionViewShellProps) {
   const state = useSessionViewState(
@@ -79,6 +85,10 @@ export function SessionViewShell({
             exercises={exercises}
             categories={categories}
             sessionTemplates={sessionTemplates}
+            profileId={profileId}
+            createExerciseAction={createExerciseAction}
+            updateExerciseAction={updateExerciseAction}
+            updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
           />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
             <BlockList

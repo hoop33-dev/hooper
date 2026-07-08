@@ -9,6 +9,7 @@ import { NumberStepper } from "./NumberStepper";
 export type ProgramCreateFormData = {
   name: string;
   description?: string;
+  notes?: string;
   weeks: number;
 };
 
@@ -40,6 +41,8 @@ interface ModalFieldsProps {
   onName: (v: string) => void;
   description: string;
   onDescription: (v: string) => void;
+  notes: string;
+  onNotes: (v: string) => void;
   weeks: number;
   onWeeks: (v: number) => void;
 }
@@ -49,6 +52,8 @@ function ModalFields({
   onName,
   description,
   onDescription,
+  notes,
+  onNotes,
   weeks,
   onWeeks,
 }: ModalFieldsProps) {
@@ -66,6 +71,13 @@ function ModalFields({
         value={description}
         onChange={(e) => onDescription(e.target.value)}
         placeholder="What's this program for?"
+        rows={2}
+      />
+      <PortalTextarea
+        label="Notes (optional)"
+        value={notes}
+        onChange={(e) => onNotes(e.target.value)}
+        placeholder="e.g. Do things at this tempo, rest 90s between sets…"
         rows={2}
       />
       <NumberStepper
@@ -112,6 +124,7 @@ export function ProgramCreateModal({
 }: ProgramCreateModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [notes, setNotes] = useState("");
   const [weeks, setWeeks] = useState(8);
   const [saving, setSaving] = useState(false);
   const onBackdropClick = useModalDismiss(onClose);
@@ -122,6 +135,7 @@ export function ProgramCreateModal({
     await onCreate({
       name: name.trim(),
       description: description.trim() || undefined,
+      notes: notes.trim() || undefined,
       weeks,
     });
     setSaving(false);
@@ -138,6 +152,8 @@ export function ProgramCreateModal({
           onName={setName}
           description={description}
           onDescription={setDescription}
+          notes={notes}
+          onNotes={setNotes}
           weeks={weeks}
           onWeeks={setWeeks}
         />

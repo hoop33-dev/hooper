@@ -21,8 +21,8 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-xs font-semibold gap-1.5",
-  md: "h-9 px-4 text-sm font-semibold gap-2",
+  sm: "h-8 px-3 text-xs gap-1.5",
+  md: "h-9 px-4 text-sm gap-2",
 };
 
 export function PortalButton({
@@ -40,8 +40,7 @@ export function PortalButton({
         sizes[size],
         className,
       )}
-      {...props}
-    >
+      {...props}>
       {children}
     </button>
   );

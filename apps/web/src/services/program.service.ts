@@ -17,6 +17,7 @@ import {
 export type CreateProgramInput = {
   name: string;
   description?: string;
+  notes?: string;
   weeks: number;
   created_by: string;
 };
@@ -24,6 +25,7 @@ export type CreateProgramInput = {
 export type UpdateProgramInput = {
   name?: string;
   description?: string;
+  notes?: string;
   weeks?: number;
 };
 
@@ -113,6 +115,7 @@ export async function createProgram(
       .insert({
         name: input.name,
         description: input.description ?? null,
+        notes: input.notes ?? null,
         weeks: input.weeks,
         created_by: input.created_by,
       })
@@ -139,6 +142,7 @@ export async function updateProgram(
         ...(input.description !== undefined && {
           description: input.description,
         }),
+        ...(input.notes !== undefined && { notes: input.notes }),
         ...(input.weeks !== undefined && { weeks: input.weeks }),
       })
       .eq("id", id)

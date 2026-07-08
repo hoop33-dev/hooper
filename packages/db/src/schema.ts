@@ -83,6 +83,7 @@ export type ProgramRow = {
   id: string;
   name: string;
   description: string | null;
+  notes: string | null;
   weeks: number;
   status: ProgramStatus;
   created_by: string;

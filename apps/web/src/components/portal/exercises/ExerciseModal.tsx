@@ -2,10 +2,10 @@
 
 import type { UnitType } from "@/src/constants/unitTypes";
 import type { ExerciseCategoryRow, ExerciseVideoSource } from "@hooper/db";
-import { useState, type MouseEvent } from "react";
+import type { MouseEvent } from "react";
+import { InlineConfirmDeleteBar } from "../ui/InlineConfirmDeleteBar";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
-import { SpinnerIcon } from "../ui/icons";
 import { useModalDismiss } from "../ui/useModalDismiss";
 import { CategoryCombobox } from "./CategoryCombobox";
 import { UnitTypeSelector } from "./UnitTypeSelector";
@@ -52,51 +52,6 @@ function ExerciseFormFields({
         placeholder="Key technique points, setup cues…"
         rows={5}
       />
-    </div>
-  );
-}
-
-function DeleteZone({
-  onDelete,
-  deleting,
-}: {
-  onDelete: () => void;
-  deleting: boolean;
-}) {
-  const [confirming, setConfirming] = useState(false);
-
-  if (confirming) {
-    return (
-      <div className="flex h-9 items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4">
-        <span className="flex-1 text-sm text-red-700">
-          Delete this exercise?
-        </span>
-        <PortalButton
-          variant="ghost"
-          size="sm"
-          onClick={() => setConfirming(false)}
-          disabled={deleting}>
-          Cancel
-        </PortalButton>
-        <PortalButton
-          variant="danger"
-          size="sm"
-          onClick={onDelete}
-          disabled={deleting}>
-          {deleting ? <SpinnerIcon size={12} /> : "Delete"}
-        </PortalButton>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-9 items-center">
-      <button
-        type="button"
-        onClick={() => setConfirming(true)}
-        className="text-xs font-semibold text-red-500 hover:underline">
-        Delete exercise
-      </button>
     </div>
   );
 }
@@ -296,7 +251,12 @@ function ModalFooter({
       <div className="flex items-center justify-between">
         <div>
           {mode === "edit" && deleteAction && (
-            <DeleteZone onDelete={onDelete} deleting={saving} />
+            <InlineConfirmDeleteBar
+              idleLabel="Delete exercise"
+              confirmLabel="Delete this exercise?"
+              onDelete={onDelete}
+              deleting={saving}
+            />
           )}
         </div>
         <div className="flex gap-2">

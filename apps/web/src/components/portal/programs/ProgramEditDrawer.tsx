@@ -2,15 +2,17 @@
 
 import type { ProgramSummary } from "@hooper/db";
 import { useState } from "react";
+import { InlineConfirmDeleteBar } from "../ui/InlineConfirmDeleteBar";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
-import { SpinnerIcon, XIcon } from "../ui/icons";
+import { XIcon } from "../ui/icons";
 import { useModalDismiss } from "../ui/useModalDismiss";
 import { NumberStepper } from "./NumberStepper";
 
 export type ProgramEditFormData = {
   name: string;
   description?: string;
+  notes?: string;
   weeks: number;
 };
 
@@ -31,7 +33,6 @@ function DangerZone({
   onPublish: () => Promise<void>;
   onDelete: () => Promise<void>;
 }) {
-  const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
@@ -56,34 +57,12 @@ function DangerZone({
           Publish this program
         </PortalButton>
       )}
-      {confirming ? (
-        <div className="flex h-9 items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4">
-          <span className="flex-1 text-sm text-red-700">
-            Delete this program?
-          </span>
-          <PortalButton
-            variant="ghost"
-            size="sm"
-            onClick={() => setConfirming(false)}
-            disabled={deleting}>
-            Cancel
-          </PortalButton>
-          <PortalButton
-            variant="danger"
-            size="sm"
-            onClick={handleDelete}
-            disabled={deleting}>
-            {deleting ? <SpinnerIcon size={12} /> : "Delete"}
-          </PortalButton>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
-          className="w-full rounded-lg border border-red-200 bg-red-50 px-3.5 py-2 text-left text-xs font-semibold text-red-500">
-          Delete this program…
-        </button>
-      )}
+      <InlineConfirmDeleteBar
+        idleLabel="Delete this program"
+        confirmLabel="Delete this program?"
+        onDelete={handleDelete}
+        deleting={deleting}
+      />
     </div>
   );
 }
@@ -118,6 +97,8 @@ interface DrawerFieldsProps {
   onName: (v: string) => void;
   description: string;
   onDescription: (v: string) => void;
+  notes: string;
+  onNotes: (v: string) => void;
   weeks: number;
   onWeeks: (v: number) => void;
   program: ProgramSummary;
@@ -130,6 +111,8 @@ function DrawerFields({
   onName,
   description,
   onDescription,
+  notes,
+  onNotes,
   weeks,
   onWeeks,
   program,
@@ -147,6 +130,13 @@ function DrawerFields({
         label="Description (optional)"
         value={description}
         onChange={(e) => onDescription(e.target.value)}
+        rows={2}
+      />
+      <PortalTextarea
+        label="Notes (optional)"
+        value={notes}
+        onChange={(e) => onNotes(e.target.value)}
+        placeholder="e.g. Do things at this tempo, rest 90s between sets…"
         rows={2}
       />
       <NumberStepper
@@ -174,6 +164,7 @@ export function ProgramEditDrawer({
 }: ProgramEditDrawerProps) {
   const [name, setName] = useState(program.name);
   const [description, setDescription] = useState(program.description ?? "");
+  const [notes, setNotes] = useState(program.notes ?? "");
   const [weeks, setWeeks] = useState(program.weeks);
   const [saving, setSaving] = useState(false);
   const onBackdropClick = useModalDismiss(onClose);
@@ -183,6 +174,7 @@ export function ProgramEditDrawer({
     await onSave({
       name: name.trim(),
       description: description.trim() || undefined,
+      notes: notes.trim() || undefined,
       weeks,
     });
     setSaving(false);
@@ -199,6 +191,8 @@ export function ProgramEditDrawer({
           onName={setName}
           description={description}
           onDescription={setDescription}
+          notes={notes}
+          onNotes={setNotes}
           weeks={weeks}
           onWeeks={setWeeks}
           program={program}

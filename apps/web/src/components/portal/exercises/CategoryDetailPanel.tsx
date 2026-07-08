@@ -3,9 +3,9 @@
 import { getDescendantIds } from "@/src/lib/categoryTree";
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
 import { useState } from "react";
+import { InlineConfirmDeleteBar } from "../ui/InlineConfirmDeleteBar";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
-import { SpinnerIcon } from "../ui/icons";
 
 interface CategoryDetailPanelProps {
   category: ExerciseCategoryRow | null;
@@ -198,7 +198,6 @@ function ExerciseListItem({ exercise }: { exercise: ExerciseWithDetails }) {
 }
 
 function DeleteZone({ onDelete }: { onDelete: () => Promise<void> }) {
-  const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
@@ -210,38 +209,13 @@ function DeleteZone({ onDelete }: { onDelete: () => Promise<void> }) {
     }
   }
 
-  if (confirming) {
-    return (
-      <div className="flex h-9 items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4">
-        <span className="flex-1 text-sm text-red-700">
-          Delete this category?
-        </span>
-        <PortalButton
-          variant="ghost"
-          size="sm"
-          onClick={() => setConfirming(false)}
-          disabled={deleting}>
-          Cancel
-        </PortalButton>
-        <PortalButton
-          variant="danger"
-          size="sm"
-          onClick={handleDelete}
-          disabled={deleting}>
-          {deleting ? <SpinnerIcon size={12} /> : "Delete"}
-        </PortalButton>
-      </div>
-    );
-  }
   return (
-    <div className="flex h-9 items-center">
-      <button
-        type="button"
-        onClick={() => setConfirming(true)}
-        className="text-xs font-semibold text-red-500 hover:underline">
-        Delete category
-      </button>
-    </div>
+    <InlineConfirmDeleteBar
+      idleLabel="Delete category"
+      confirmLabel="Delete this category?"
+      onDelete={handleDelete}
+      deleting={deleting}
+    />
   );
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { CreateExerciseButton } from "./CreateExerciseButton";
@@ -77,6 +78,12 @@ export function ExerciseLibraryPanel({
             No results
           </div>
         )}
+      </div>
+      <div className="border-portal-border text-portal-text3 border-t px-3.5 py-2.5 text-[10px] leading-relaxed">
+        Drag a card up to add it here.{" "}
+        <Link href="/exercises" className="text-portal-orange hover:underline">
+          Manage Exercise Library →
+        </Link>
       </div>
     </div>
   );

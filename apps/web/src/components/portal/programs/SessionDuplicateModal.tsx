@@ -30,17 +30,52 @@ const PATTERNS: { id: DuplicatePattern; label: string }[] = [
   { id: "manual", label: "Manual" },
 ];
 
+const PATTERN_STEPS: Partial<Record<DuplicatePattern, number>> = {
+  every: 1,
+  every2: 2,
+  every3: 3,
+  every4: 4,
+};
+
+/** Weeks are relative to the session's own week — "every 2nd week" from
+ * week 3 means 1, 3, 5, 7…, not every even-numbered week. */
 function weeksForPattern(
   pattern: DuplicatePattern,
   total: number,
   sourceWeek: number,
 ): number[] {
+  const step = PATTERN_STEPS[pattern];
+  if (!step) return [sourceWeek];
   const all = Array.from({ length: total }, (_, i) => i + 1);
-  if (pattern === "every") return all;
-  if (pattern === "every2") return all.filter((w) => w % 2 === 0);
-  if (pattern === "every3") return all.filter((w) => w % 3 === 0);
-  if (pattern === "every4") return all.filter((w) => w % 4 === 0);
-  return [sourceWeek];
+  return all.filter((w) => (w - sourceWeek) % step === 0);
+}
+
+function sameWeeks(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false;
+  const setB = new Set(b);
+  return a.every((w) => setB.has(w));
+}
+
+/** Which pattern (if any) the session's existing linked weeks match, so
+ * reopening the modal reflects reality instead of always defaulting to
+ * "every 2nd week". */
+function detectPattern(
+  linkedWeeks: number[],
+  sourceWeek: number,
+  totalWeeks: number,
+): DuplicatePattern {
+  const candidates: DuplicatePattern[] = [
+    "every",
+    "every2",
+    "every3",
+    "every4",
+  ];
+  for (const p of candidates) {
+    if (sameWeeks(weeksForPattern(p, totalWeeks, sourceWeek), linkedWeeks)) {
+      return p;
+    }
+  }
+  return "manual";
 }
 
 function PatternButton({
@@ -236,14 +271,13 @@ export function SessionDuplicateModal({
   onDuplicate,
 }: SessionDuplicateModalProps) {
   const alreadyLinked = linkedWeeks.length > 1;
-  const [pattern, setPattern] = useState<DuplicatePattern>("every2");
-  const [selected, setSelected] = useState<number[]>(() =>
+  const [pattern, setPattern] = useState<DuplicatePattern>(() =>
     alreadyLinked
-      ? linkedWeeks
-      : withSourceWeek(
-          weeksForPattern("every2", totalWeeks, sourceWeek),
-          sourceWeek,
-        ),
+      ? detectPattern(linkedWeeks, sourceWeek, totalWeeks)
+      : "manual",
+  );
+  const [selected, setSelected] = useState<number[]>(() =>
+    alreadyLinked ? linkedWeeks : [sourceWeek],
   );
   const [saving, setSaving] = useState(false);
   const onBackdropClick = useModalDismiss(onClose);

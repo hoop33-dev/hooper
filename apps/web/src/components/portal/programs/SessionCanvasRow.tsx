@@ -1,6 +1,7 @@
 "use client";
 
 import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
+import type { BlockSettingsPatch } from "./BlockCard";
 import { SessionGapDropZone } from "./dnd/SessionGapDropZone";
 import { sessionGapDropId } from "./dnd/useBlockExerciseDnd";
 import { SessionCanvasColumn } from "./SessionCanvasColumn";
@@ -19,6 +20,7 @@ interface SessionCanvasRowProps {
   onRenameBlock: (blockId: string, name: string) => void;
   onDeleteBlock: (blockId: string) => void;
   onSaveBlockAsTemplate?: (blockId: string) => void;
+  onUpdateBlock: (blockId: string, patch: BlockSettingsPatch) => void;
 }
 
 export function SessionCanvasRow({
@@ -35,6 +37,7 @@ export function SessionCanvasRow({
   onRenameBlock,
   onDeleteBlock,
   onSaveBlockAsTemplate,
+  onUpdateBlock,
 }: SessionCanvasRowProps) {
   return (
     <div className="flex min-h-0 flex-1 items-start overflow-x-auto overflow-y-auto p-4">
@@ -61,6 +64,7 @@ export function SessionCanvasRow({
             onRenameBlock={onRenameBlock}
             onDeleteBlock={onDeleteBlock}
             onSaveBlockAsTemplate={onSaveBlockAsTemplate}
+            onUpdateBlock={onUpdateBlock}
           />
           <SessionGapDropZone
             id={sessionGapDropId(i + 1)}

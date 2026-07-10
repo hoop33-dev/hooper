@@ -141,6 +141,7 @@ type SourceBlockExercise = {
   notes: string | null;
   block_exercise_measurements: {
     position: number;
+    set_index: number;
     unit_type: string;
     value: number | null;
     value_entered_by: EnteredBy;
@@ -152,6 +153,8 @@ type SourceBlock = {
   name: string;
   color: string;
   position: number;
+  is_superset: boolean;
+  sets: number | null;
   block_exercises: SourceBlockExercise[];
 };
 type SourceSession = SessionRow & { blocks: SourceBlock[] };
@@ -197,6 +200,8 @@ export async function saveSessionAsTemplate(
           name: block.name,
           color: block.color,
           position: block.position,
+          is_superset: block.is_superset,
+          sets: block.sets,
         })),
       )
       .select();
@@ -226,6 +231,7 @@ export async function saveSessionAsTemplate(
       be.block_exercise_measurements.map((m) => ({
         block_template_exercise_id: newBlockExercises[i].id,
         position: m.position,
+        set_index: m.set_index,
         unit_type: m.unit_type,
         value: m.value,
         value_entered_by: m.value_entered_by,
@@ -252,6 +258,7 @@ type SourceTemplateBlockExercise = {
   notes: string | null;
   block_template_exercise_measurements: {
     position: number;
+    set_index: number;
     unit_type: string;
     value: number | null;
     value_entered_by: EnteredBy;
@@ -263,6 +270,8 @@ type SourceTemplateBlock = {
   name: string;
   color: string;
   position: number;
+  is_superset: boolean;
+  sets: number | null;
   block_template_exercises: SourceTemplateBlockExercise[];
 };
 type SourceSessionTemplate = SessionTemplateRow & {
@@ -302,6 +311,8 @@ async function copyTemplateBlocksIntoSession(
         name: block.name,
         color: block.color,
         position: block.position,
+        is_superset: block.is_superset,
+        sets: block.sets,
       })),
     )
     .select();
@@ -331,6 +342,7 @@ async function copyTemplateBlocksIntoSession(
     be.block_template_exercise_measurements.map((m) => ({
       block_exercise_id: newBlockExercises[i].id,
       position: m.position,
+      set_index: m.set_index,
       unit_type: m.unit_type,
       value: m.value,
       value_entered_by: m.value_entered_by,

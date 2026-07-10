@@ -7,7 +7,7 @@ import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
 import Link from "next/link";
 import { BookmarkIcon, DuplicateIcon, LinkIcon, PencilIcon } from "../ui/icons";
 import { InlineConfirmDelete } from "../ui/InlineConfirmDelete";
-import { BlockCard } from "./BlockCard";
+import { BlockCard, type BlockSettingsPatch } from "./BlockCard";
 import { BlockGapDropZone } from "./dnd/BlockGapDropZone";
 import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
 import {
@@ -29,6 +29,7 @@ interface SessionCanvasColumnProps {
   onRenameBlock: (blockId: string, name: string) => void;
   onDeleteBlock: (blockId: string) => void;
   onSaveBlockAsTemplate?: (blockId: string) => void;
+  onUpdateBlock: (blockId: string, patch: BlockSettingsPatch) => void;
 }
 
 function stop(e: React.MouseEvent) {
@@ -176,6 +177,7 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
     onRenameBlock,
     onDeleteBlock,
     onSaveBlockAsTemplate,
+    onUpdateBlock,
   } = props;
   // Lets a block be dropped into the general column area — the only
   // registered target when a session has no blocks to hover over yet.
@@ -233,6 +235,7 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
                   ? () => onSaveBlockAsTemplate(block.id)
                   : undefined
               }
+              onUpdateBlock={(patch) => onUpdateBlock(block.id, patch)}
             />
             <BlockGapDropZone
               id={blockGapDropId(session.id, i + 1)}

@@ -276,6 +276,8 @@ export async function copySessionIntoWeek(
         name: block.name,
         color: block.color,
         position: block.position,
+        is_superset: block.is_superset,
+        sets: block.sets,
         link_group_id: groupIds?.blockGroupIds.get(block.id) ?? null,
       })),
     )
@@ -307,6 +309,7 @@ export async function copySessionIntoWeek(
       be.block_exercise_measurements.map((m) => ({
         block_exercise_id: newBlockExercises[i].id,
         position: m.position,
+        set_index: m.set_index,
         unit_type: m.unit_type,
         value: m.value,
         value_entered_by: m.value_entered_by,

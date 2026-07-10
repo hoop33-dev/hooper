@@ -51,6 +51,8 @@ function block(
     color: "#000000",
     position: 0,
     link_group_id: null,
+    is_superset: false,
+    sets: null,
     created_at: "",
     updated_at: "",
     exercises,

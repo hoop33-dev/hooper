@@ -112,6 +112,12 @@ export type BlockRow = {
   position: number;
   /** Shared across the corresponding block in each linked sibling session. */
   link_group_id: string | null;
+  /** When true, `sets` is the shared round count for every exercise placed
+   * in this block (a superset/circuit) — each block_exercises.sets is kept
+   * in sync with it by the app layer. */
+  is_superset: boolean;
+  /** Only meaningful when is_superset is true; null otherwise. */
+  sets: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -133,7 +139,13 @@ export type EnteredBy = "coach" | "athlete";
 
 export type BlockExerciseMeasurementRow = {
   block_exercise_id: string;
+  /** Which unit-type slot this is (Reps, Weight, ... — up to 3 per
+   * placement), not which set. */
   position: number;
+  /** Which set (0-indexed) this value belongs to — a placement with `sets`
+   * sets has `sets` rows per unit-type slot, one per set_index, so a
+   * pyramid/wave set can hold a distinct value per set. */
+  set_index: number;
   unit_type: string;
   value: number | null;
   value_entered_by: EnteredBy;
@@ -163,6 +175,8 @@ export type BlockTemplateRow = {
   name: string;
   color: string;
   position: number;
+  is_superset: boolean;
+  sets: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -181,6 +195,7 @@ export type BlockTemplateExerciseRow = {
 export type BlockTemplateExerciseMeasurementRow = {
   block_template_exercise_id: string;
   position: number;
+  set_index: number;
   unit_type: string;
   value: number | null;
   value_entered_by: EnteredBy;

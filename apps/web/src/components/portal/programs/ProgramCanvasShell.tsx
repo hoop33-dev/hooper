@@ -104,6 +104,7 @@ function ProgramCanvasBody({
         onRenameBlock={state.blockActions.renameBlock}
         onDeleteBlock={state.blockActions.deleteBlockById}
         onSaveBlockAsTemplate={onSaveBlockAsTemplate}
+        onUpdateBlock={state.blockActions.updateBlockSettings}
       />
       <ProgramLibraryShelf
         exercises={exercises}
@@ -149,6 +150,9 @@ function ProgramCanvasModals({
         editingExerciseLinkedWeeks={state.linkedWeeksForEditingExercise}
         onCloseExerciseEditor={state.blockActions.closeExerciseEditor}
         onSaveExerciseMeasurement={state.blockActions.saveExerciseMeasurement}
+        editingSupersetBlock={state.blockActions.editingSupersetBlock}
+        onCloseSupersetEditor={state.blockActions.closeSupersetEditor}
+        onSaveSupersetMeasurements={state.blockActions.saveSupersetMeasurements}
       />
       {state.blockActions.savingAsTemplateBlock && (
         <SaveAsTemplatePopover

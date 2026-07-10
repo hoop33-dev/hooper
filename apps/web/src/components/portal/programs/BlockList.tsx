@@ -13,7 +13,7 @@ import type {
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
-import { BlockCard } from "./BlockCard";
+import { BlockCard, type BlockSettingsPatch } from "./BlockCard";
 import { BlockGapDropZone } from "./dnd/BlockGapDropZone";
 import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
 import { blockGapDropId, sessionDropId } from "./dnd/useBlockExerciseDnd";
@@ -29,6 +29,7 @@ interface BlockListProps {
   onAddBlock: (name: string) => Promise<void>;
   onAddExerciseToBlock: (blockId: string, exerciseId: string) => void;
   onSaveBlockAsTemplate?: (blockId: string) => void;
+  onUpdateBlock: (blockId: string, patch: BlockSettingsPatch) => void;
 }
 
 function AddBlockForm({
@@ -108,6 +109,7 @@ export function BlockList({
   onAddBlock,
   onAddExerciseToBlock,
   onSaveBlockAsTemplate,
+  onUpdateBlock,
 }: BlockListProps) {
   // Session-level drop target so a whole block can be dragged into an empty
   // session, which has no blocks (and therefore no gaps) to hover over.
@@ -138,6 +140,7 @@ export function BlockList({
               onAddExercise={(exerciseId) =>
                 onAddExerciseToBlock(block.id, exerciseId)
               }
+              onUpdateBlock={(patch) => onUpdateBlock(block.id, patch)}
             />
             <BlockGapDropZone
               id={blockGapDropId(sessionId, i + 1)}

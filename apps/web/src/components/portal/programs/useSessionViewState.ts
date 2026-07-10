@@ -113,6 +113,26 @@ function useEditingExerciseLinkedWeeks(
   return linkedWeeks;
 }
 
+/**
+ * `session` is a fresh object every time the server component behind this
+ * page re-renders (router.refresh()), but `blocks` was only seeded from it
+ * once on mount. Without this, an edit that can't be patched locally and
+ * relies on a refresh instead — e.g. a superset's round count, which
+ * cascades to every exercise in the block server-side (see
+ * cascadeSupersetSets in block.service.ts) — would silently keep showing
+ * stale per-exercise sets/measurements until a hard reload. Mirrors
+ * useSyncSessionsFromProgram in useProgramCanvasState.ts.
+ */
+function useSyncBlocksFromSession(
+  session: SessionWithBlocks,
+  setBlocks: (blocks: BlockWithExercises[]) => void,
+) {
+  useEffect(() => {
+    setBlocks(session.blocks);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.blocks]);
+}
+
 export function useSessionViewState(
   session: SessionWithBlocks,
   exercises: ExerciseWithDetails[],
@@ -120,6 +140,7 @@ export function useSessionViewState(
   sessionTemplates: SessionTemplateSummary[] = [],
 ) {
   const [blocks, setBlocks] = useState(session.blocks);
+  useSyncBlocksFromSession(session, setBlocks);
   const exercisesById = new Map(exercises.map((e) => [e.id, e]));
   const blockTemplateNamesById = new Map(
     sessionTemplates.flatMap((t) => t.blocks).map((b) => [b.id, b.name]),

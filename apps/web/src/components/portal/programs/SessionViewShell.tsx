@@ -14,6 +14,7 @@ import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
 import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { SaveAsTemplatePopover } from "./SaveAsTemplatePopover";
 import { SessionLibrarySidebar } from "./SessionLibrarySidebar";
+import { SupersetRoundsModal } from "./SupersetRoundsModal";
 import {
   useSessionViewState,
   type SessionViewActions,
@@ -38,6 +39,14 @@ function SessionViewModals({ state }: { state: SessionViewState }) {
           linkedWeeks={state.editingExerciseLinkedWeeks}
           onClose={state.blockActions.closeExerciseEditor}
           onSave={state.blockActions.saveExerciseMeasurement}
+        />
+      )}
+
+      {state.blockActions.editingSupersetBlock && (
+        <SupersetRoundsModal
+          block={state.blockActions.editingSupersetBlock}
+          onClose={state.blockActions.closeSupersetEditor}
+          onSave={state.blockActions.saveSupersetMeasurements}
         />
       )}
 
@@ -103,6 +112,7 @@ export function SessionViewShell({
                 state.blockActions.addBlock(session.id, name)
               }
               onAddExerciseToBlock={state.blockActions.addExerciseToBlock}
+              onUpdateBlock={state.blockActions.updateBlockSettings}
               onSaveBlockAsTemplate={
                 actions.saveBlockAsTemplateAction
                   ? (blockId) =>

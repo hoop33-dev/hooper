@@ -28,6 +28,10 @@ interface SessionModalsProps {
   /** The duplicate modal's session's current linked weeks (its own week
    * only, if it isn't linked to anything). */
   linkedWeeks: number[];
+  /** Set when the create modal was opened by dropping a library exercise on
+   * the "+ Add session" zone — shows what's being seeded into the new
+   * session's first block and locks the modal to a plain named session. */
+  seedExerciseName?: string;
   onCreateSession: (data: SessionCreateData) => Promise<void>;
   onRenameSession: (name: string) => Promise<void>;
   onDuplicateSession: (targetWeeks: number[]) => Promise<void>;
@@ -55,6 +59,7 @@ export function SessionModals({
   sessionTemplates,
   totalWeeks,
   linkedWeeks,
+  seedExerciseName,
   onCreateSession,
   onRenameSession,
   onDuplicateSession,
@@ -74,6 +79,7 @@ export function SessionModals({
           weekNumber={sessionModal.weekNumber}
           existingSessions={existingSessions}
           sessionTemplates={sessionTemplates}
+          seedExerciseName={seedExerciseName}
           onClose={onCloseSessionModal}
           onCreate={onCreateSession}
         />

@@ -71,6 +71,15 @@ export interface UseBlockExerciseDndOptions {
     sessionId: string,
     name: string,
   ) => Promise<ActionResult<BlockRow>>;
+  /**
+   * Enables dropping a library exercise onto the "+ Add session" zone —
+   * rather than creating anything immediately, this opens the session-create
+   * modal seeded with the dropped exercise, since (unlike every other drop
+   * target) a session needs a name from the user before it can exist. The
+   * modal's own submit flow is responsible for creating the session, then a
+   * first block, then adding the exercise to it.
+   */
+  onLibraryDropOnNewSession?: (exerciseId: string, weekNumber: number) => void;
   /** Enables dropping a Block Library template onto any block/session drop
    * zone, copying its exercises/measurements into a brand-new block. */
   createBlockFromTemplateAction?: (input: {
@@ -115,6 +124,7 @@ type ParsedId = {
     | "block-template"
     | "session-template"
     | "new-block"
+    | "new-session"
     | "session"
     | "gap"
     | "session-col"
@@ -134,6 +144,7 @@ function parseId(id: string): ParsedId | null {
     type === "block-template" ||
     type === "session-template" ||
     type === "new-block" ||
+    type === "new-session" ||
     type === "session" ||
     type === "gap" ||
     type === "session-col" ||
@@ -163,6 +174,12 @@ export function sessionGapDropId(index: number): string {
  * exercise, scoped to a specific session so each column targets itself. */
 export function newBlockDropId(sessionId: string): string {
   return `new-block:${sessionId}`;
+}
+
+/** Id for the "+ Add session" zone that seeds a brand-new session's first
+ * block from a dragged exercise, scoped to the week it'll be created in. */
+export function newSessionDropId(weekNumber: number): string {
+  return `new-session:${weekNumber}`;
 }
 
 /** Id for a session column's own drop zone, used to move/append a whole
@@ -720,6 +737,14 @@ async function handleLibraryDrop(
   if (!exercise) return;
 
   const overParsed = parseId(String(over.id));
+  if (overParsed?.type === "new-session") {
+    if (!options.onLibraryDropOnNewSession) return;
+    const weekNumber = Number(overParsed.value);
+    if (Number.isNaN(weekNumber)) return;
+    markCommitted();
+    options.onLibraryDropOnNewSession(exerciseId, weekNumber);
+    return;
+  }
   if (overParsed?.type === "new-block") {
     await createBlockForExercise(
       options,

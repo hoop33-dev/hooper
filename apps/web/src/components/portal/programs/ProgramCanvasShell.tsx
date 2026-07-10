@@ -74,6 +74,7 @@ function ProgramCanvasBody({
       />
       <SessionCanvasRow
         programId={program.id}
+        weekNumber={state.selectedWeek}
         sessions={state.weekSessions}
         onRenameSession={(session) =>
           state.setSessionModal({ type: "rename", session })
@@ -133,6 +134,11 @@ function ProgramCanvasModals({
   state: CanvasState;
   totalWeeks: number;
 }) {
+  const seedExerciseName =
+    state.sessionModal?.type === "create" && state.sessionModal.seedExerciseId
+      ? state.exercisesById.get(state.sessionModal.seedExerciseId)?.name
+      : undefined;
+
   return (
     <>
       <SessionModals
@@ -142,6 +148,7 @@ function ProgramCanvasModals({
         sessionTemplates={state.sessionTemplates}
         totalWeeks={totalWeeks}
         linkedWeeks={state.linkedWeeksForSessionModal}
+        seedExerciseName={seedExerciseName}
         onCreateSession={state.handleCreateSession}
         onRenameSession={state.handleRenameSession}
         onDuplicateSession={state.handleDuplicateSession}

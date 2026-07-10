@@ -16,6 +16,11 @@ interface SessionCreateModalProps {
   weekNumber: number;
   existingSessions: SessionRow[];
   sessionTemplates?: SessionTemplateSummary[];
+  /** Set when opened by dropping a library exercise on the "+ Add session"
+   * zone — locks the modal to a plain named session (blank mode is the only
+   * one that makes sense once an exercise is already picked) and shows what
+   * will be added to its first block. */
+  seedExerciseName?: string;
   onClose: () => void;
   onCreate: (data: SessionCreateData) => Promise<void>;
 }
@@ -165,6 +170,7 @@ interface ModalBodyProps {
   sessionTemplates: SessionTemplateSummary[];
   templateId: string | null;
   onTemplateId: (id: string) => void;
+  seedExerciseName?: string;
 }
 
 function ModalBody({
@@ -178,7 +184,31 @@ function ModalBody({
   sessionTemplates,
   templateId,
   onTemplateId,
+  seedExerciseName,
 }: ModalBodyProps) {
+  if (seedExerciseName) {
+    return (
+      <div className="flex flex-col gap-3.5 px-5 py-4">
+        <div className="border-portal-border bg-portal-bg rounded-lg border p-2.5 text-xs">
+          <span className="text-portal-text3">Adding </span>
+          <span className="text-portal-text1 font-semibold">
+            {seedExerciseName}
+          </span>
+          <span className="text-portal-text3">
+            {" "}
+            to a new block in this session.
+          </span>
+        </div>
+        <PortalInput
+          label="Session name"
+          value={name}
+          onChange={(e) => onName(e.target.value)}
+          placeholder="e.g. Upper Body Power"
+          autoFocus
+        />
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-3.5 px-5 py-4">
       <div className="grid grid-cols-3 gap-2">
@@ -232,6 +262,7 @@ export function SessionCreateModal({
   weekNumber,
   existingSessions,
   sessionTemplates = [],
+  seedExerciseName,
   onClose,
   onCreate,
 }: SessionCreateModalProps) {
@@ -291,6 +322,7 @@ export function SessionCreateModal({
           sessionTemplates={sessionTemplates}
           templateId={templateId}
           onTemplateId={setTemplateId}
+          seedExerciseName={seedExerciseName}
         />
         <div className="border-portal-border flex justify-end gap-2 border-t px-5 py-4">
           <PortalButton variant="ghost" onClick={onClose} disabled={saving}>

@@ -2,12 +2,14 @@
 
 import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
 import type { BlockSettingsPatch } from "./BlockCard";
+import { NewSessionDropZone } from "./dnd/NewSessionDropZone";
 import { SessionGapDropZone } from "./dnd/SessionGapDropZone";
 import { sessionGapDropId } from "./dnd/useBlockExerciseDnd";
 import { SessionCanvasColumn } from "./SessionCanvasColumn";
 
 interface SessionCanvasRowProps {
   programId: string;
+  weekNumber: number;
   sessions: SessionWithBlocks[];
   onRenameSession: (session: SessionWithBlocks) => void;
   onDuplicateSession: (session: SessionWithBlocks) => void;
@@ -25,6 +27,7 @@ interface SessionCanvasRowProps {
 
 export function SessionCanvasRow({
   programId,
+  weekNumber,
   sessions,
   onRenameSession,
   onDuplicateSession,
@@ -74,13 +77,15 @@ export function SessionCanvasRow({
         </div>
       ))}
       <div className="w-[100px] flex-shrink-0">
-        <button
-          type="button"
-          onClick={onAddSession}
-          className="border-portal-border-mid text-portal-text3 flex h-24 w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed text-xs font-semibold">
-          <span className="text-lg leading-none">+</span>
-          Add session
-        </button>
+        <NewSessionDropZone weekNumber={weekNumber} className="rounded-xl">
+          <button
+            type="button"
+            onClick={onAddSession}
+            className="border-portal-border-mid text-portal-text3 flex h-24 w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed text-xs font-semibold">
+            <span className="text-lg leading-none">+</span>
+            Add session
+          </button>
+        </NewSessionDropZone>
       </div>
     </div>
   );

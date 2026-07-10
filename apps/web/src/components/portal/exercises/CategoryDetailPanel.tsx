@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
 import { getDescendantIds } from "@/src/lib/categoryTree";
+import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
+import { useState } from "react";
+import { InlineConfirmBar } from "../ui/InlineConfirmBar";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
 
@@ -11,8 +12,15 @@ interface CategoryDetailPanelProps {
   allCategories: ExerciseCategoryRow[];
   exercises: ExerciseWithDetails[];
   mode: "blank" | "view" | "create";
-  onCreate: (data: { name: string; description: string; parent_id?: string }) => Promise<void>;
-  onUpdate: (id: string, data: { name: string; description: string; parent_id?: string | null }) => Promise<void>;
+  onCreate: (data: {
+    name: string;
+    description: string;
+    parent_id?: string;
+  }) => Promise<void>;
+  onUpdate: (
+    id: string,
+    data: { name: string; description: string; parent_id?: string | null },
+  ) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onStartCreate: () => void;
 }
@@ -20,14 +28,19 @@ interface CategoryDetailPanelProps {
 function BlankState({ onStartCreate }: { onStartCreate: () => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
-      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-portal-border">
-        <svg className="h-10 w-10 text-portal-text3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+      <div className="bg-portal-border flex h-20 w-20 items-center justify-center rounded-2xl">
+        <svg
+          className="text-portal-text3 h-10 w-10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.2">
           <path strokeLinecap="round" d="M3 7h18M3 12h18M3 17h10" />
         </svg>
       </div>
       <div className="text-center">
-        <p className="font-semibold text-portal-text1">No category selected</p>
-        <p className="mt-1 text-sm text-portal-text3">
+        <p className="text-portal-text1 font-semibold">No category selected</p>
+        <p className="text-portal-text3 mt-1 text-sm">
           Select a category from the list or create a new one
         </p>
       </div>
@@ -46,7 +59,10 @@ function sortedHierarchical(
   return cats
     .filter((c) => (c.parent_id ?? null) === parentId)
     .sort((a, b) => a.position - b.position)
-    .flatMap((c) => [{ cat: c, depth }, ...sortedHierarchical(cats, c.id, depth + 1)]);
+    .flatMap((c) => [
+      { cat: c, depth },
+      ...sortedHierarchical(cats, c.id, depth + 1),
+    ]);
 }
 
 function ParentSelector({
@@ -65,15 +81,14 @@ function ParentSelector({
 
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-semibold text-portal-text2">
+      <label className="text-portal-text2 text-xs font-semibold">
         Parent category{" "}
-        <span className="font-normal text-portal-text3">(optional)</span>
+        <span className="text-portal-text3 font-normal">(optional)</span>
       </label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 w-full rounded-lg border border-portal-border bg-portal-card px-3 text-sm text-portal-text1 focus:border-portal-orange focus:outline-none"
-      >
+        className="border-portal-border bg-portal-card text-portal-text1 focus:border-portal-orange h-9 w-full rounded-lg border px-3 text-sm focus:outline-none">
         <option value="">None (top-level)</option>
         {items.map(({ cat, depth }) => (
           <option key={cat.id} value={cat.id}>
@@ -96,7 +111,11 @@ function CategoryForm({
   initial?: { name: string; description: string; parent_id?: string | null };
   allCategories: ExerciseCategoryRow[];
   excludeIds: string[];
-  onSubmit: (data: { name: string; description: string; parent_id?: string }) => Promise<void>;
+  onSubmit: (data: {
+    name: string;
+    description: string;
+    parent_id?: string;
+  }) => Promise<void>;
   onCancel?: () => void;
   submitLabel: string;
 }) {
@@ -154,7 +173,10 @@ function CategoryForm({
             Cancel
           </PortalButton>
         )}
-        <PortalButton variant="primary" onClick={handleSubmit} disabled={saving || !name.trim()}>
+        <PortalButton
+          variant="primary"
+          onClick={handleSubmit}
+          disabled={saving || !name.trim()}>
           {saving ? "Saving…" : submitLabel}
         </PortalButton>
       </div>
@@ -164,38 +186,36 @@ function CategoryForm({
 
 function ExerciseListItem({ exercise }: { exercise: ExerciseWithDetails }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-portal-bg">
-      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-portal-orange-soft">
-        <span className="text-[10px] font-extrabold text-portal-orange">
+    <div className="hover:bg-portal-bg flex items-center gap-3 rounded-lg px-3 py-2.5">
+      <div className="bg-portal-orange-soft flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg">
+        <span className="text-portal-orange text-[10px] font-extrabold">
           {exercise.name.slice(0, 2).toUpperCase()}
         </span>
       </div>
-      <span className="text-sm text-portal-text1">{exercise.name}</span>
+      <span className="text-portal-text1 text-sm">{exercise.name}</span>
     </div>
   );
 }
 
-function DeleteZone({ onDelete }: { onDelete: () => void }) {
-  const [confirming, setConfirming] = useState(false);
-  if (confirming) {
-    return (
-      <div className="flex h-9 items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4">
-        <span className="flex-1 text-sm text-red-700">Delete this category?</span>
-        <PortalButton variant="ghost" size="sm" onClick={() => setConfirming(false)}>Cancel</PortalButton>
-        <PortalButton variant="danger" size="sm" onClick={onDelete}>Delete</PortalButton>
-      </div>
-    );
+function DeleteZone({ onDelete }: { onDelete: () => Promise<void> }) {
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await onDelete();
+    } finally {
+      setDeleting(false);
+    }
   }
+
   return (
-    <div className="flex h-9 items-center">
-      <button
-        type="button"
-        onClick={() => setConfirming(true)}
-        className="text-xs font-semibold text-red-500 hover:underline"
-      >
-        Delete category
-      </button>
-    </div>
+    <InlineConfirmBar
+      idleLabel="Delete category"
+      confirmLabel="Delete this category?"
+      onConfirm={handleDelete}
+      loading={deleting}
+    />
   );
 }
 
@@ -204,12 +224,16 @@ function CreateMode({
   onCreate,
 }: {
   allCategories: ExerciseCategoryRow[];
-  onCreate: (data: { name: string; description: string; parent_id?: string }) => Promise<void>;
+  onCreate: (data: {
+    name: string;
+    description: string;
+    parent_id?: string;
+  }) => Promise<void>;
 }) {
   return (
     <div className="flex-1 overflow-y-auto p-8">
       <div className="mb-6 flex items-center gap-2">
-        <span className="rounded-full bg-portal-orange-soft px-2.5 py-1 text-xs font-bold text-portal-orange">
+        <span className="bg-portal-orange-soft text-portal-orange rounded-full px-2.5 py-1 text-xs font-bold">
           Creating new category
         </span>
       </div>
@@ -233,12 +257,15 @@ function EditMode({
   category: ExerciseCategoryRow;
   allCategories: ExerciseCategoryRow[];
   descendantIds: string[];
-  onUpdate: (id: string, data: { name: string; description: string; parent_id?: string | null }) => Promise<void>;
+  onUpdate: (
+    id: string,
+    data: { name: string; description: string; parent_id?: string | null },
+  ) => Promise<void>;
   onCancel: () => void;
 }) {
   return (
     <div className="flex-1 overflow-y-auto p-8">
-      <h2 className="mb-6 font-title text-xl font-extrabold tracking-wide text-portal-text1">
+      <h2 className="font-title text-portal-text1 mb-6 text-xl font-extrabold tracking-wide">
         Edit category
       </h2>
       <CategoryForm
@@ -290,7 +317,9 @@ export function CategoryDetailPanel({
   if (!category) return null;
 
   const descendantIds = getDescendantIds(category.id, allCategories);
-  const parentName = allCategories.find((c) => c.id === category.parent_id)?.name;
+  const parentName = allCategories.find(
+    (c) => c.id === category.parent_id,
+  )?.name;
   const categoryExercises = exercises.filter((ex) =>
     ex.categories.some((c) => c.id === category.id),
   );
@@ -309,16 +338,18 @@ export function CategoryDetailPanel({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex flex-shrink-0 items-start justify-between border-b border-portal-border px-8 py-6">
+      <div className="border-portal-border flex flex-shrink-0 items-start justify-between border-b px-8 py-6">
         <div>
           {parentName && (
-            <p className="mb-1 text-xs text-portal-text3">{parentName} /</p>
+            <p className="text-portal-text3 mb-1 text-xs">{parentName} /</p>
           )}
-          <h2 className="font-title text-2xl font-extrabold tracking-wide text-portal-text1">
+          <h2 className="font-title text-portal-text1 text-2xl font-extrabold tracking-wide">
             {category.name}
           </h2>
           {category.description && (
-            <p className="mt-1 text-sm text-portal-text2">{category.description}</p>
+            <p className="text-portal-text2 mt-1 text-sm">
+              {category.description}
+            </p>
           )}
         </div>
         <PortalButton variant="secondary" onClick={() => setEditing(true)}>
@@ -327,11 +358,13 @@ export function CategoryDetailPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto px-8 py-6">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-portal-text3">
+        <p className="text-portal-text3 mb-3 text-xs font-semibold tracking-widest uppercase">
           Exercises ({categoryExercises.length})
         </p>
         {categoryExercises.length === 0 ? (
-          <p className="text-sm text-portal-text3">No exercises in this category yet.</p>
+          <p className="text-portal-text3 text-sm">
+            No exercises in this category yet.
+          </p>
         ) : (
           <div className="flex flex-col">
             {categoryExercises.map((ex) => (
@@ -341,7 +374,7 @@ export function CategoryDetailPanel({
         )}
       </div>
 
-      <div className="flex flex-shrink-0 items-center justify-end border-t border-portal-border px-8 py-4">
+      <div className="border-portal-border flex flex-shrink-0 items-center justify-end border-t px-8 py-4">
         <DeleteZone onDelete={async () => onDelete(category.id)} />
       </div>
     </div>

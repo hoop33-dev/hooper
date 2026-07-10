@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
 import type { CoachProfile } from "@/src/services/auth.service";
+import type { ReactNode } from "react";
 import { PortalSidebar } from "./PortalSidebar";
+import { ToastProvider } from "./ui/Toast";
 
 interface PortalLayoutProps {
   profile: CoachProfile | null;
@@ -11,11 +12,13 @@ interface PortalLayoutProps {
 
 export function PortalLayout({ profile, children }: PortalLayoutProps) {
   return (
-    <div className="flex h-screen overflow-hidden">
-      <PortalSidebar profile={profile} />
-      <main className="flex flex-1 flex-col overflow-hidden bg-portal-bg text-portal-text1">
-        {children}
-      </main>
-    </div>
+    <ToastProvider>
+      <div className="flex h-screen overflow-hidden">
+        <PortalSidebar profile={profile} />
+        <main className="bg-portal-bg text-portal-text1 flex min-h-0 flex-1 flex-col overflow-hidden">
+          {children}
+        </main>
+      </div>
+    </ToastProvider>
   );
 }

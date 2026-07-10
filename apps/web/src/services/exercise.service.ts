@@ -1,12 +1,18 @@
-import type { ExerciseRow, ExerciseWithDetails, ExerciseCategoryRow } from "@hooper/db";
-import { err, ok, toErrorMessage } from "@/src/lib/result";
 import type { Result } from "@/src/lib/result";
+import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
-import { createClient as createBrowserClient } from "@/src/lib/supabase/client";
+import type {
+  ExerciseCategoryRow,
+  ExerciseRow,
+  ExerciseVideoSource,
+  ExerciseWithDetails,
+} from "@hooper/db";
 
 export type CreateExerciseInput = {
   name: string;
   description?: string;
+  videoUrl?: string | null;
+  videoSource?: ExerciseVideoSource | null;
   categoryIds: string[];
   unitTypes: string[];
   created_by: string;
@@ -16,16 +22,17 @@ export type UpdateExerciseInput = {
   name?: string;
   description?: string;
   videoUrl?: string | null;
+  videoSource?: ExerciseVideoSource | null;
   categoryIds: string[];
   unitTypes: string[];
 };
 
-type RawExercise = ExerciseRow & {
+export type RawExercise = ExerciseRow & {
   exercise_category_links: { category_id: string }[];
   exercise_unit_types: { unit_type: string; position: number }[];
 };
 
-function toExerciseWithDetails(
+export function toExerciseWithDetails(
   raw: RawExercise,
   allCategories: ExerciseCategoryRow[],
 ): ExerciseWithDetails {
@@ -126,7 +133,10 @@ async function insertCategoryLinks(
 ): Promise<string | null> {
   if (categoryIds.length === 0) return null;
   const { error } = await supabase.from("exercise_category_links").insert(
-    categoryIds.map((category_id) => ({ exercise_id: exerciseId, category_id })),
+    categoryIds.map((category_id) => ({
+      exercise_id: exerciseId,
+      category_id,
+    })),
   );
   return error?.message ?? null;
 }
@@ -158,6 +168,8 @@ export async function createExercise(
       .insert({
         name: input.name,
         description: input.description ?? null,
+        video_url: input.videoUrl ?? null,
+        video_source: input.videoSource ?? null,
         created_by: input.created_by,
       })
       .select()
@@ -165,7 +177,11 @@ export async function createExercise(
 
     if (error) return err(error.message);
 
-    const linkErr = await insertCategoryLinks(supabase, data.id, input.categoryIds);
+    const linkErr = await insertCategoryLinks(
+      supabase,
+      data.id,
+      input.categoryIds,
+    );
     if (linkErr) return err(linkErr);
 
     const unitErr = await insertUnitTypes(supabase, data.id, input.unitTypes);
@@ -188,7 +204,10 @@ export async function updateExercise(
     if (input.name !== undefined) updatePayload.name = input.name;
     if (input.description !== undefined)
       updatePayload.description = input.description;
-    if ("videoUrl" in input) updatePayload.video_url = input.videoUrl ?? null;
+    if ("videoUrl" in input) {
+      updatePayload.video_url = input.videoUrl ?? null;
+      updatePayload.video_source = input.videoSource ?? null;
+    }
 
     const { data, error } = await supabase
       .from("exercises")
@@ -199,7 +218,10 @@ export async function updateExercise(
 
     if (error) return err(error.message);
 
-    await supabase.from("exercise_category_links").delete().eq("exercise_id", id);
+    await supabase
+      .from("exercise_category_links")
+      .delete()
+      .eq("exercise_id", id);
     await supabase.from("exercise_unit_types").delete().eq("exercise_id", id);
 
     const linkErr = await insertCategoryLinks(supabase, id, input.categoryIds);
@@ -225,41 +247,16 @@ export async function deleteExercise(id: string): Promise<Result<void>> {
   }
 }
 
-export async function uploadExerciseVideo(
-  exerciseId: string,
-  file: File,
-  profileId: string,
-): Promise<Result<string>> {
-  try {
-    const supabase = createBrowserClient();
-    const ext = file.name.split(".").pop() ?? "mp4";
-    const path = `${profileId}/${exerciseId}/demo.${ext}`;
-
-    const { error } = await supabase.storage
-      .from("exercise-videos")
-      .upload(path, file, { upsert: true });
-
-    if (error) return err(error.message);
-
-    const { data } = supabase.storage
-      .from("exercise-videos")
-      .getPublicUrl(path);
-
-    return ok(data.publicUrl);
-  } catch (e) {
-    return err(toErrorMessage(e));
-  }
-}
-
 export async function updateExerciseVideoUrl(
   id: string,
   videoUrl: string,
+  videoSource: ExerciseVideoSource,
 ): Promise<Result<void>> {
   try {
     const supabase = await createClient();
     const { error } = await supabase
       .from("exercises")
-      .update({ video_url: videoUrl })
+      .update({ video_url: videoUrl, video_source: videoSource })
       .eq("id", id);
     if (error) return err(error.message);
     return ok(undefined);

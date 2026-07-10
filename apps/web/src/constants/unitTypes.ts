@@ -1,11 +1,13 @@
 export const UNIT_TYPES = [
   "Reps",
-  "Reps × Weight (kg)",
-  "Reps × Weight (lbs)",
+  "Reps Each Side",
+  "Weight",
   "Time",
   "Distance",
   "% 1RM",
-  "Bodyweight",
+  "RPE",
+  "Shots",
+  "Makes",
 ] as const;
 
 export type UnitType = (typeof UNIT_TYPES)[number];

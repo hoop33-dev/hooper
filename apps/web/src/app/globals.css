@@ -10,7 +10,20 @@ html {
   color-scheme: dark;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   background-color: var(--color-surface, #161213);
   color: #ffffff;
+  overflow: hidden;
+}
+
+/* Tailwind's preflight resets <button> to cursor: default. Every button in
+   this app is clickable, so restore the native pointer cursor globally
+   instead of adding `cursor-pointer` to each one by hand. */
+button:not(:disabled) {
+  cursor: pointer;
 }

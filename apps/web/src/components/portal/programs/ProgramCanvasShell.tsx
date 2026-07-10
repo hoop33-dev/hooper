@@ -18,6 +18,7 @@ import {
   useProgramCanvasState,
   type ProgramCanvasActions,
 } from "./useProgramCanvasState";
+import { WeekAddModal } from "./WeekAddModal";
 import { WeekTabStrip } from "./WeekTabStrip";
 
 interface ProgramCanvasShellProps
@@ -68,7 +69,7 @@ function ProgramCanvasBody({
         totalWeeks={program.weeks}
         selectedWeek={state.selectedWeek}
         onSelect={state.selectWeek}
-        onAddWeek={state.addWeek}
+        onOpenAddWeek={state.openWeekAddModal}
         onDeleteWeek={state.deleteWeek}
       />
       <SessionCanvasRow
@@ -155,6 +156,18 @@ function ProgramCanvasModals({
           defaultName={state.blockActions.savingAsTemplateBlock.name}
           onClose={state.blockActions.closeSaveBlockAsTemplate}
           onSave={state.blockActions.submitSaveBlockAsTemplate}
+        />
+      )}
+      {state.weekAddModalOpen && (
+        <WeekAddModal
+          eligibleSources={state.eligibleImportSources}
+          selectedSourceId={state.selectedImportSourceId}
+          onSelectSource={state.selectImportSource}
+          selectedSourceProgram={state.selectedImportSourceProgram}
+          saving={state.savingWeekAdd}
+          onClose={state.closeWeekAddModal}
+          onSubmitBlank={state.submitAddBlankWeeks}
+          onSubmitImport={state.submitImportProgramWeeks}
         />
       )}
     </>

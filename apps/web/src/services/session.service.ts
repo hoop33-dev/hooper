@@ -198,7 +198,7 @@ type SourceBlockExercise = BlockExerciseRow & {
   block_exercise_measurements: BlockExerciseMeasurementRow[];
 };
 
-type SourceSession = SessionRow & {
+export type SourceSession = SessionRow & {
   blocks: (BlockRow & { block_exercises: SourceBlockExercise[] })[];
 };
 
@@ -214,6 +214,24 @@ async function fetchSourceSession(
   return (data as unknown as SourceSession) ?? null;
 }
 
+/** Every session (with full blocks/exercises/measurements depth) across a
+ * set of weeks in one program, ordered week-then-position — the source
+ * side of a cross-program week import (see programImport.service.ts). */
+export async function fetchSourceSessionsForWeeks(
+  supabase: SupabaseClient,
+  programId: string,
+  weekNumbers: number[],
+): Promise<SourceSession[]> {
+  const { data } = await supabase
+    .from("sessions")
+    .select("*, blocks(*, block_exercises(*, block_exercise_measurements(*)))")
+    .eq("program_id", programId)
+    .in("week_number", weekNumbers)
+    .order("week_number", { ascending: true })
+    .order("position", { ascending: true });
+  return (data as unknown as SourceSession[]) ?? [];
+}
+
 /** Group ids to stamp onto a copy so it joins an existing link group instead
  * of being an independent, unlinked duplicate (see `setLinkedWeeks`). */
 type LinkedGroupIds = {
@@ -222,22 +240,23 @@ type LinkedGroupIds = {
   exerciseGroupIds: Map<string, string>;
 };
 
-async function copySessionIntoWeek(
+export async function copySessionIntoWeek(
   supabase: SupabaseClient,
   source: SourceSession,
+  destinationProgramId: string,
   targetWeek: number,
   groupIds?: LinkedGroupIds,
 ): Promise<Result<SessionRow>> {
   const position = await nextSessionPosition(
     supabase,
-    source.program_id,
+    destinationProgramId,
     targetWeek,
   );
 
   const { data: newSession, error: sessionError } = await supabase
     .from("sessions")
     .insert({
-      program_id: source.program_id,
+      program_id: destinationProgramId,
       week_number: targetWeek,
       name: source.name,
       position,
@@ -316,7 +335,12 @@ export async function duplicateSession(
 
     const created: SessionRow[] = [];
     for (const week of input.targetWeeks) {
-      const result = await copySessionIntoWeek(supabase, source, week);
+      const result = await copySessionIntoWeek(
+        supabase,
+        source,
+        source.program_id,
+        week,
+      );
       if (!result.ok) return err(result.error);
       created.push(result.data);
     }
@@ -506,6 +530,7 @@ export async function setLinkedWeeks(
       const result = await copySessionIntoWeek(
         supabase,
         source,
+        source.program_id,
         week,
         groupIdsResult.data,
       );

@@ -212,6 +212,28 @@ export async function deleteProgramWeek(
   }
 }
 
+/** Generalizes "+ Week" from a fixed +1 into +N — still just bumps the
+ * count, no sessions created (weeks aren't a stored entity, see
+ * deleteProgramWeek's comment above). */
+export async function addBlankProgramWeeks(
+  programId: string,
+  count: number,
+): Promise<Result<ProgramRow>> {
+  try {
+    if (count < 1) return err("Enter at least 1 week.");
+    const supabase = await createClient();
+    const { data: program, error } = await supabase
+      .from("programs")
+      .select("weeks")
+      .eq("id", programId)
+      .single();
+    if (error) return err(error.message);
+    return updateProgram(programId, { weeks: program.weeks + count });
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
 export async function publishProgram(id: string): Promise<Result<ProgramRow>> {
   try {
     const supabase = await createClient();

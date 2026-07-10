@@ -20,15 +20,18 @@ import {
   updateExerciseAction,
   updateExerciseVideoUrlAction,
 } from "../../exercises/actions";
-import { updateProgramAction } from "../actions";
+import { getImportSourceProgramAction, updateProgramAction } from "../actions";
 import {
+  addBlankProgramWeeksAction,
   addExerciseToBlockAction,
+  copyProgramWeeksAction,
   createBlockAction,
   createSessionAction,
   deleteBlockAction,
   deleteProgramWeekAction,
   deleteSessionAction,
   duplicateSessionAction,
+  listEligibleImportSourcesAction,
   removeExerciseFromBlockAction,
   reorderBlockExercisesAction,
   reorderBlocksAction,
@@ -133,6 +136,10 @@ export default async function ProgramCanvasPage({
         reorderBlockExercisesAction={reorderBlockExercisesAction}
         updateProgramAction={updateProgramAction}
         deleteProgramWeekAction={deleteProgramWeekAction}
+        addBlankProgramWeeksAction={addBlankProgramWeeksAction}
+        listEligibleImportSourcesAction={listEligibleImportSourcesAction}
+        getImportSourceProgramAction={getImportSourceProgramAction}
+        copyProgramWeeksAction={copyProgramWeeksAction}
         saveBlockAsTemplateAction={wrappedSaveBlockAsTemplate}
         saveSessionAsTemplateAction={wrappedSaveSessionAsTemplate}
         createBlockFromTemplateAction={createBlockFromTemplateAction}

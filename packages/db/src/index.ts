@@ -7,6 +7,7 @@ export type {
   ExerciseRow,
   ExerciseUnitTypeRow,
   ProgramRow,
+  ProgramSourceRow,
   ProgramStatus,
   SessionRow,
 } from "./schema";

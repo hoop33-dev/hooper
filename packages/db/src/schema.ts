@@ -142,6 +142,13 @@ export type BlockExerciseMeasurementRow = {
   updated_at: string;
 };
 
+export type ProgramSourceRow = {
+  id: string;
+  source_program_id: string;
+  destination_program_id: string;
+  created_at: string;
+};
+
 export type SessionTemplateRow = {
   id: string;
   name: string;
@@ -258,6 +265,16 @@ export type Database = {
             "block_exercise_id" | "position" | "unit_type"
           >;
         Update: Partial<BlockExerciseMeasurementRow>;
+        Relationships: [];
+      };
+      program_sources: {
+        Row: ProgramSourceRow;
+        Insert: Partial<ProgramSourceRow> &
+          Pick<
+            ProgramSourceRow,
+            "source_program_id" | "destination_program_id"
+          >;
+        Update: Partial<ProgramSourceRow>;
         Relationships: [];
       };
       session_templates: {

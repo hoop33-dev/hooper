@@ -21,7 +21,15 @@ import {
   type UpdateBlockExerciseInput,
   type UpdateBlockInput,
 } from "@/src/services/block.service";
-import { deleteProgramWeek } from "@/src/services/program.service";
+import {
+  addBlankProgramWeeks,
+  deleteProgramWeek,
+} from "@/src/services/program.service";
+import {
+  copyProgramWeeks,
+  listEligibleImportSources,
+  type CopyProgramWeeksInput,
+} from "@/src/services/programImport.service";
 import {
   createSession,
   deleteSession,
@@ -33,7 +41,12 @@ import {
   type DuplicateSessionInput,
   type SetLinkedWeeksInput,
 } from "@/src/services/session.service";
-import type { BlockRow, ProgramRow, SessionRow } from "@hooper/db";
+import type {
+  BlockRow,
+  ProgramRow,
+  ProgramSummary,
+  SessionRow,
+} from "@hooper/db";
 import { revalidatePath } from "next/cache";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
@@ -94,6 +107,36 @@ export async function deleteProgramWeekAction(
   weekNumber: number,
 ): Promise<ActionResult<ProgramRow>> {
   const result = await deleteProgramWeek(programId, weekNumber);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function addBlankProgramWeeksAction(
+  programId: string,
+  count: number,
+): Promise<ActionResult<ProgramRow>> {
+  const result = await addBlankProgramWeeks(programId, count);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function listEligibleImportSourcesAction(
+  destinationProgramId: string,
+): Promise<ActionResult<ProgramSummary[]>> {
+  const result = await listEligibleImportSources(destinationProgramId);
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function copyProgramWeeksAction(
+  input: CopyProgramWeeksInput,
+): Promise<ActionResult<ProgramRow>> {
+  const result = await copyProgramWeeks(input);
   if (result.ok) revalidateProgramRoutes();
   return result.ok
     ? { ok: true, data: result.data }

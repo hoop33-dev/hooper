@@ -9,6 +9,7 @@ import type {
   UpdateBlockInput,
 } from "@/src/services/block.service";
 import type { UpdateProgramInput } from "@/src/services/program.service";
+import type { CopyProgramWeeksInput } from "@/src/services/programImport.service";
 import type {
   CreateSessionInput,
   DuplicateSessionInput,
@@ -21,6 +22,7 @@ import type {
   BlockWithExercises,
   ExerciseWithDetails,
   ProgramRow,
+  ProgramSummary,
   ProgramWithSessions,
   SessionRow,
   SessionTemplateSummary,
@@ -88,6 +90,19 @@ export interface ProgramCanvasActions {
   deleteProgramWeekAction: (
     programId: string,
     weekNumber: number,
+  ) => Promise<ActionResult<ProgramRow>>;
+  addBlankProgramWeeksAction: (
+    programId: string,
+    count: number,
+  ) => Promise<ActionResult<ProgramRow>>;
+  listEligibleImportSourcesAction: (
+    destinationProgramId: string,
+  ) => Promise<ActionResult<ProgramSummary[]>>;
+  getImportSourceProgramAction: (
+    programId: string,
+  ) => Promise<ActionResult<ProgramWithSessions>>;
+  copyProgramWeeksAction: (
+    input: CopyProgramWeeksInput,
   ) => Promise<ActionResult<ProgramRow>>;
   /** Only needed to power the block header's "Save as template" button. */
   saveBlockAsTemplateAction?: (
@@ -439,20 +454,6 @@ function patchWeekBlocks(
   );
 }
 
-async function runAddWeek(
-  program: ProgramWithSessions,
-  updateProgramAction: ProgramCanvasActions["updateProgramAction"],
-  onSuccess: (newWeekCount: number) => void,
-  showError: (message: string) => void,
-) {
-  const newWeekCount = program.weeks + 1;
-  const result = await updateProgramAction(program.id, {
-    weeks: newWeekCount,
-  });
-  if (result.ok) onSuccess(newWeekCount);
-  else showError(result.error ?? "Something went wrong.");
-}
-
 /** Which week should end up selected after `deletedWeek` is removed — every
  * week after it shifts down by one, so a selection past it must shift too,
  * while a selection on it falls back to the week now in its place (clamped
@@ -485,18 +486,6 @@ function useWeekHandlers(
   router: ReturnType<typeof useRouter>,
   showError: (message: string) => void,
 ) {
-  async function addWeek() {
-    await runAddWeek(
-      program,
-      actions.updateProgramAction,
-      (newWeekCount) => {
-        router.refresh();
-        selectWeek(newWeekCount);
-      },
-      showError,
-    );
-  }
-
   async function deleteWeek(weekNumber: number) {
     await runDeleteWeek(
       program,
@@ -510,7 +499,115 @@ function useWeekHandlers(
     );
   }
 
-  return { addWeek, deleteWeek };
+  return { deleteWeek };
+}
+
+/** Backs the "+ Week" modal — either adding N blank weeks or importing
+ * another program's weeks. Kept separate from `SessionModalState` since
+ * it's week-scoped, not session-scoped. */
+function useWeekAddModalState(
+  program: ProgramWithSessions,
+  actions: ProgramCanvasActions,
+  router: ReturnType<typeof useRouter>,
+  selectWeek: (week: number) => void,
+  showError: (message: string) => void,
+) {
+  const [open, setOpen] = useState(false);
+  const [eligibleSources, setEligibleSources] = useState<
+    ProgramSummary[] | null
+  >(null);
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [selectedSourceProgram, setSelectedSourceProgram] =
+    useState<ProgramWithSessions | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    async function load() {
+      const result = await actions.listEligibleImportSourcesAction(program.id);
+      if (cancelled) return;
+      setEligibleSources(result.ok ? (result.data ?? []) : []);
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, program.id]);
+
+  useEffect(() => {
+    if (!selectedSourceId) {
+      setSelectedSourceProgram(null);
+      return;
+    }
+    const id = selectedSourceId;
+    let cancelled = false;
+    async function load() {
+      const result = await actions.getImportSourceProgramAction(id);
+      if (cancelled) return;
+      setSelectedSourceProgram(result.ok ? (result.data ?? null) : null);
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSourceId]);
+
+  function openWeekAddModal() {
+    setOpen(true);
+  }
+
+  function closeWeekAddModal() {
+    setOpen(false);
+    setEligibleSources(null);
+    setSelectedSourceId(null);
+    setSelectedSourceProgram(null);
+  }
+
+  function finish(result: { ok: boolean; error?: string }) {
+    if (result.ok) {
+      closeWeekAddModal();
+      router.refresh();
+      selectWeek(program.weeks + 1);
+    } else {
+      showError(result.error ?? "Something went wrong.");
+    }
+  }
+
+  async function submitAddBlankWeeks(count: number) {
+    if (saving) return;
+    setSaving(true);
+    finish(await actions.addBlankProgramWeeksAction(program.id, count));
+    setSaving(false);
+  }
+
+  async function submitImportProgramWeeks(weekNumbers: number[]) {
+    if (saving || !selectedSourceId) return;
+    setSaving(true);
+    finish(
+      await actions.copyProgramWeeksAction({
+        sourceProgramId: selectedSourceId,
+        destinationProgramId: program.id,
+        sourceWeekNumbers: weekNumbers,
+      }),
+    );
+    setSaving(false);
+  }
+
+  return {
+    weekAddModalOpen: open,
+    openWeekAddModal,
+    closeWeekAddModal,
+    eligibleImportSources: eligibleSources,
+    selectedImportSourceId: selectedSourceId,
+    selectImportSource: setSelectedSourceId,
+    selectedImportSourceProgram: selectedSourceProgram,
+    submitAddBlankWeeks,
+    submitImportProgramWeeks,
+    savingWeekAdd: saving,
+  };
 }
 
 /** Two lookups derived from the same sessionTemplates list — block names
@@ -579,12 +676,20 @@ export function useProgramCanvasState(
     setSelectedWeek(week);
   }
 
-  const { addWeek, deleteWeek } = useWeekHandlers(
+  const { deleteWeek } = useWeekHandlers(
     program,
     actions,
     selectedWeek,
     selectWeek,
     router,
+    showError,
+  );
+
+  const weekAddModal = useWeekAddModalState(
+    program,
+    actions,
+    router,
+    selectWeek,
     showError,
   );
 
@@ -608,7 +713,6 @@ export function useProgramCanvasState(
     sessions,
     selectedWeek,
     selectWeek,
-    addWeek,
     deleteWeek,
     weekSessions,
     exercisesById,
@@ -622,5 +726,6 @@ export function useProgramCanvasState(
     linkedWeeksForSessionModal,
     linkedWeeksForEditingExercise,
     ...sessionModalHandlers,
+    ...weekAddModal,
   };
 }

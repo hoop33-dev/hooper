@@ -14,3 +14,14 @@ export function isInsertAfter(
   if (pointerY == null || !over) return false;
   return pointerY > over.rect.top + over.rect.height / 2;
 }
+
+/** Horizontal counterpart of isInsertAfter, for session columns — whether a
+ * drop should land after (vs. before) the hovered column, based on which
+ * half of its width the pointer is currently over. */
+export function isInsertAfterHorizontal(
+  pointerX: number | null,
+  over: Over | null,
+): boolean {
+  if (pointerX == null || !over) return false;
+  return pointerX > over.rect.left + over.rect.width / 2;
+}

@@ -1,6 +1,8 @@
 "use client";
 
 import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
+import { SessionGapDropZone } from "./dnd/SessionGapDropZone";
+import { sessionGapDropId } from "./dnd/useBlockExerciseDnd";
 import { SessionCanvasColumn } from "./SessionCanvasColumn";
 
 interface SessionCanvasRowProps {
@@ -35,27 +37,37 @@ export function SessionCanvasRow({
   onSaveBlockAsTemplate,
 }: SessionCanvasRowProps) {
   return (
-    <div className="flex min-h-0 flex-1 items-start gap-3 overflow-x-auto overflow-y-auto p-4">
-      {sessions.map((session) => (
-        <SessionCanvasColumn
-          key={session.id}
-          programId={programId}
-          session={session}
-          onRename={() => onRenameSession(session)}
-          onDuplicate={() => onDuplicateSession(session)}
-          onDelete={() => onDeleteSession(session.id)}
-          onSaveAsTemplate={
-            onSaveSessionAsTemplate
-              ? () => onSaveSessionAsTemplate(session)
-              : undefined
-          }
-          onAddBlock={() => onAddBlock(session.id)}
-          onOpenExercise={onOpenExercise}
-          onRemoveExercise={onRemoveExercise}
-          onRenameBlock={onRenameBlock}
-          onDeleteBlock={onDeleteBlock}
-          onSaveBlockAsTemplate={onSaveBlockAsTemplate}
-        />
+    <div className="flex min-h-0 flex-1 items-start overflow-x-auto overflow-y-auto p-4">
+      <SessionGapDropZone
+        id={sessionGapDropId(0)}
+        afterSessionId={sessions[0]?.id ?? null}
+      />
+      {sessions.map((session, i) => (
+        <div key={session.id} className="contents">
+          <SessionCanvasColumn
+            programId={programId}
+            session={session}
+            onRename={() => onRenameSession(session)}
+            onDuplicate={() => onDuplicateSession(session)}
+            onDelete={() => onDeleteSession(session.id)}
+            onSaveAsTemplate={
+              onSaveSessionAsTemplate
+                ? () => onSaveSessionAsTemplate(session)
+                : undefined
+            }
+            onAddBlock={() => onAddBlock(session.id)}
+            onOpenExercise={onOpenExercise}
+            onRemoveExercise={onRemoveExercise}
+            onRenameBlock={onRenameBlock}
+            onDeleteBlock={onDeleteBlock}
+            onSaveBlockAsTemplate={onSaveBlockAsTemplate}
+          />
+          <SessionGapDropZone
+            id={sessionGapDropId(i + 1)}
+            beforeSessionId={session.id}
+            afterSessionId={sessions[i + 1]?.id ?? null}
+          />
+        </div>
       ))}
       <div className="w-[100px] flex-shrink-0">
         <button

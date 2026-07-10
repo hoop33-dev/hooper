@@ -33,7 +33,10 @@ import type {
   BlockExercisePositionUpdate,
   BlockPositionUpdate,
 } from "./dnd/dropComputation";
-import { useBlockExerciseDnd } from "./dnd/useBlockExerciseDnd";
+import {
+  useBlockExerciseDnd,
+  type SessionPositionUpdate,
+} from "./dnd/useBlockExerciseDnd";
 import type { SessionCreateData } from "./SessionCreateModal";
 import { useBlockActions } from "./useBlockActions";
 
@@ -52,6 +55,9 @@ export interface ProgramCanvasActions {
     input: DuplicateSessionInput,
   ) => Promise<ActionResult<SessionRow[]>>;
   setLinkedWeeksAction: (input: SetLinkedWeeksInput) => Promise<ActionResult>;
+  reorderSessionsAction: (
+    updates: SessionPositionUpdate[],
+  ) => Promise<ActionResult>;
   createBlockAction: (
     input: CreateBlockInput,
   ) => Promise<ActionResult<BlockRow>>;
@@ -356,6 +362,7 @@ function useCanvasBlockState(
   weekSessions: SessionWithBlocks[],
   actions: ProgramCanvasActions,
   setWeekBlocks: (blocks: BlockWithExercises[]) => void,
+  setWeekSessionOrder: (sessions: SessionWithBlocks[]) => void,
   exercisesById: Map<string, ExerciseWithDetails>,
   blockTemplateNamesById: Map<string, string>,
   sessionTemplatesById: Map<string, SessionTemplateSummary>,
@@ -379,6 +386,9 @@ function useCanvasBlockState(
       actions.createBlocksFromSessionTemplateAction,
     blockTemplateNamesById,
     sessionTemplatesById,
+    weekSessions,
+    setWeekSessionOrder,
+    reorderSessionsAction: actions.reorderSessionsAction,
   });
 
   const blockActions = useBlockActions({
@@ -543,10 +553,22 @@ export function useProgramCanvasState(
     setSessions((prev) => patchWeekBlocks(prev, weekSessionIds, blocks));
   }
 
+  function setWeekSessionOrder(reordered: SessionWithBlocks[]) {
+    const positionById = new Map(reordered.map((s, index) => [s.id, index]));
+    setSessions((prev) =>
+      prev.map((s) =>
+        positionById.has(s.id)
+          ? { ...s, position: positionById.get(s.id)! }
+          : s,
+      ),
+    );
+  }
+
   const { dnd, blockActions } = useCanvasBlockState(
     weekSessions,
     actions,
     setWeekBlocks,
+    setWeekSessionOrder,
     exercisesById,
     blockTemplateNamesById,
     sessionTemplatesById,

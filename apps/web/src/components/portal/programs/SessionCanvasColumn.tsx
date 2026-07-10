@@ -2,6 +2,7 @@
 
 import { cn } from "@/src/lib/cn";
 import { useDroppable } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
 import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
 import Link from "next/link";
 import { BookmarkIcon, DuplicateIcon, LinkIcon, PencilIcon } from "../ui/icons";
@@ -9,7 +10,11 @@ import { InlineConfirmDelete } from "../ui/InlineConfirmDelete";
 import { BlockCard } from "./BlockCard";
 import { BlockGapDropZone } from "./dnd/BlockGapDropZone";
 import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
-import { blockGapDropId, sessionDropId } from "./dnd/useBlockExerciseDnd";
+import {
+  blockGapDropId,
+  sessionColId,
+  sessionDropId,
+} from "./dnd/useBlockExerciseDnd";
 
 interface SessionCanvasColumnProps {
   programId: string;
@@ -28,6 +33,19 @@ interface SessionCanvasColumnProps {
 
 function stop(e: React.MouseEvent) {
   e.stopPropagation();
+}
+
+function GripIcon() {
+  return (
+    <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+      <circle cx="2" cy="2" r="1.2" />
+      <circle cx="2" cy="6" r="1.2" />
+      <circle cx="2" cy="10" r="1.2" />
+      <circle cx="6" cy="2" r="1.2" />
+      <circle cx="6" cy="6" r="1.2" />
+      <circle cx="6" cy="10" r="1.2" />
+    </svg>
+  );
 }
 
 function ColumnHeaderActions({
@@ -91,6 +109,8 @@ function ColumnHeader({
   onDuplicate,
   onDelete,
   onSaveAsTemplate,
+  dragHandleAttributes,
+  dragHandleListeners,
 }: Pick<
   SessionCanvasColumnProps,
   | "programId"
@@ -99,10 +119,21 @@ function ColumnHeader({
   | "onDuplicate"
   | "onDelete"
   | "onSaveAsTemplate"
->) {
+> & {
+  dragHandleAttributes?: React.HTMLAttributes<HTMLButtonElement>;
+  dragHandleListeners?: Record<string, unknown>;
+}) {
   return (
     <div className="border-portal-border bg-portal-card group rounded-lg border p-2.5">
       <div className="flex items-start justify-between gap-1.5">
+        <button
+          type="button"
+          className="text-portal-text3 hover:text-portal-text1 mt-0.5 flex-shrink-0 cursor-grab touch-none active:cursor-grabbing"
+          title="Drag to reorder"
+          {...dragHandleAttributes}
+          {...dragHandleListeners}>
+          <GripIcon />
+        </button>
         <Link
           href={`/programs/${programId}/sessions/${session.id}`}
           onClick={stop}
@@ -148,15 +179,35 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
   } = props;
   // Lets a block be dropped into the general column area — the only
   // registered target when a session has no blocks to hover over yet.
-  const { setNodeRef, isOver } = useDroppable({
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: sessionDropId(session.id),
   });
+  // Column-level drag-to-reorder — shares the block/exercise DndContext (see
+  // handleSessionColumnDrop in useBlockExerciseDnd.ts). No CSS transform is
+  // applied: the column stays put while dragging (a DragOverlay ghost card
+  // follows the pointer instead) so only the gap's insertion line moves,
+  // matching how BlockCard handles block reordering.
+  const {
+    attributes: dragHandleAttributes,
+    listeners: dragHandleListeners,
+    setNodeRef: setSortableRef,
+    isDragging,
+  } = useSortable({ id: sessionColId(session.id) });
 
   return (
-    <div className="flex w-[220px] flex-shrink-0 flex-col gap-2">
-      <ColumnHeader {...props} />
+    <div
+      ref={setSortableRef}
+      className={cn(
+        "flex w-[220px] flex-shrink-0 flex-col gap-2",
+        isDragging && "opacity-40",
+      )}>
+      <ColumnHeader
+        {...props}
+        dragHandleAttributes={dragHandleAttributes}
+        dragHandleListeners={dragHandleListeners}
+      />
       <div
-        ref={setNodeRef}
+        ref={setDroppableRef}
         className={cn(
           "flex flex-1 flex-col rounded-lg",
           isOver && "bg-portal-orange-soft",

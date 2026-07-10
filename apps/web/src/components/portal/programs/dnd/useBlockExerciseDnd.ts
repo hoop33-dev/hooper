@@ -15,6 +15,7 @@ import type {
   BlockWithExercises,
   ExerciseWithDetails,
   SessionTemplateSummary,
+  SessionWithBlocks,
 } from "@hooper/db";
 import { useMemo, useRef, useState } from "react";
 import { useToast } from "../../ui/Toast";
@@ -25,13 +26,19 @@ import {
   type BlockExercisePositionUpdate,
   type BlockPositionUpdate,
 } from "./dropComputation";
-import { isInsertAfter } from "./insertPosition";
+import { isInsertAfter, isInsertAfterHorizontal } from "./insertPosition";
 import {
   createPendingBlock,
   createPendingBlockFromTemplate,
   createPendingBlocksFromSessionTemplate,
   createPendingExercise,
 } from "./pendingRows";
+
+export type SessionPositionUpdate = {
+  id: string;
+  week_number: number;
+  position: number;
+};
 
 function reportIfFailed(
   onError: (message: string) => void,
@@ -85,6 +92,19 @@ export interface UseBlockExerciseDndOptions {
    * used to preview a multi-block template's blocks (names, for the pending
    * placeholders) while createBlocksFromSessionTemplateAction resolves. */
   sessionTemplatesById?: Map<string, SessionTemplateSummary>;
+  /**
+   * Enables dragging whole session columns to reorder them within the
+   * current week. Folded into this hook (rather than a separate DndContext)
+   * because dnd-kit's useSortable/useDroppable always bind to the nearest
+   * enclosing DndContext — a second, nested provider around the same
+   * component tree doesn't give session columns an isolated drag scope, it
+   * just gets shadowed by this one.
+   */
+  weekSessions?: SessionWithBlocks[];
+  setWeekSessionOrder?: (sessions: SessionWithBlocks[]) => void;
+  reorderSessionsAction?: (
+    updates: SessionPositionUpdate[],
+  ) => Promise<ActionResult>;
 }
 
 type ParsedId = {
@@ -96,7 +116,9 @@ type ParsedId = {
     | "session-template"
     | "new-block"
     | "session"
-    | "gap";
+    | "gap"
+    | "session-col"
+    | "session-gap";
   value: string;
 };
 
@@ -113,11 +135,28 @@ function parseId(id: string): ParsedId | null {
     type === "session-template" ||
     type === "new-block" ||
     type === "session" ||
-    type === "gap"
+    type === "gap" ||
+    type === "session-col" ||
+    type === "session-gap"
   ) {
     return { type, value };
   }
   return null;
+}
+
+/** Id for a session column itself as a drag source — distinct from
+ * sessionDropId, which is the column's block-drop zone. */
+export function sessionColId(sessionId: string): string {
+  return `session-col:${sessionId}`;
+}
+
+/** Id for the exact insertion point at `index` among the current week's
+ * session columns — index 0 is before the first column, index
+ * `weekSessions.length` is after the last. Only one week's columns are ever
+ * mounted at a time, so (unlike blockGapDropId) no session/week scoping is
+ * needed in the id itself. */
+export function sessionGapDropId(index: number): string {
+  return `session-gap:${index}`;
 }
 
 /** Id for the "+ Add block" zone that creates a new block from a dragged
@@ -584,6 +623,91 @@ async function placeLibraryExerciseInBlock(
   );
 }
 
+/** Where a session column lands for a drop at gap `index` — accounts for the
+ * dragged column's own removal shifting every later index down by one, the
+ * same adjustment resolveGapBlockPosition/computeBlockMove make for blocks. */
+function insertSessionAt(
+  weekSessions: SessionWithBlocks[],
+  activeSessionId: string,
+  gapIndex: number,
+): SessionWithBlocks[] | null {
+  const currentIndex = weekSessions.findIndex((s) => s.id === activeSessionId);
+  if (currentIndex === -1) return null;
+
+  const moving = weekSessions[currentIndex];
+  const withoutActive = weekSessions.filter((s) => s.id !== activeSessionId);
+  const insertAt = Math.min(
+    gapIndex > currentIndex ? gapIndex - 1 : gapIndex,
+    withoutActive.length,
+  );
+  return [
+    ...withoutActive.slice(0, insertAt),
+    moving,
+    ...withoutActive.slice(insertAt),
+  ];
+}
+
+/** Resolves a drop target into the exact gap index it means to insert at —
+ * either a gap zone directly (its id already names the index), or a session
+ * column's own left/right half (before/after that column), mirroring how
+ * resolveGapBlockPosition/resolveTargetSession fold a hovered block into the
+ * same before/after shape a gap gives directly. */
+function resolveSessionGapIndex(
+  weekSessions: SessionWithBlocks[],
+  over: Over,
+  pointerX: number | null,
+): number | null {
+  const parsed = parseId(String(over.id));
+  if (!parsed) return null;
+  if (parsed.type === "session-gap") {
+    const index = Number(parsed.value);
+    return Number.isNaN(index) ? null : index;
+  }
+  if (parsed.type === "session-col") {
+    const index = weekSessions.findIndex((s) => s.id === parsed.value);
+    if (index === -1) return null;
+    return isInsertAfterHorizontal(pointerX, over) ? index + 1 : index;
+  }
+  return null;
+}
+
+/** Reorders session columns within the current week via the exact gap they
+ * were dropped on — kept index-based (no arrayMove-by-neighbor-id) since a
+ * gap already names the precise insertion point, mirroring how
+ * resolveGapBlockPosition drives block placement from blockGapDropId. */
+async function handleSessionColumnDrop(
+  options: UseBlockExerciseDndOptions,
+  activeSessionId: string,
+  pointerX: number | null,
+  over: Over,
+  markCommitted: () => void,
+  onError: (message: string) => void,
+) {
+  if (!options.weekSessions || !options.setWeekSessionOrder) return;
+  if (!options.reorderSessionsAction) return;
+  const gapIndex = resolveSessionGapIndex(options.weekSessions, over, pointerX);
+  if (gapIndex == null) return;
+
+  const original = options.weekSessions;
+  const reordered = insertSessionAt(original, activeSessionId, gapIndex);
+  if (!reordered) return;
+  if (reordered.every((s, i) => s.id === original[i].id)) return;
+
+  markCommitted();
+  options.setWeekSessionOrder(reordered);
+
+  const updates = reordered.map((session, index) => ({
+    id: session.id,
+    week_number: session.week_number,
+    position: index,
+  }));
+  const result = await options.reorderSessionsAction(updates);
+  if (!result.ok) {
+    options.setWeekSessionOrder(original);
+    onError(result.error ?? "Something went wrong.");
+  }
+}
+
 async function handleLibraryDrop(
   options: UseBlockExerciseDndOptions,
   exerciseId: string,
@@ -810,18 +934,20 @@ async function handleSessionTemplateDrop(
 }
 
 /** Wraps blockDndCollision to capture the exact pointer coordinates dnd-kit
- * used to resolve `over` on this pass, into `pointerYRef` — reading them
- * straight from collision detection (rather than reconstructing current
- * pointer position from `activatorEvent.clientY + delta.y`, which drifted
- * from the coordinates collision detection actually compared `over.rect`
- * against, occasionally flipping which half of a hovered block looked
- * active) guarantees the two stay in lockstep, since both come from the
- * same pass. */
-function createCollisionDetection(pointerYRef: {
-  current: number | null;
-}): CollisionDetection {
+ * used to resolve `over` on this pass, into `pointerYRef`/`pointerXRef` —
+ * reading them straight from collision detection (rather than reconstructing
+ * current pointer position from `activatorEvent.clientY + delta.y`, which
+ * drifted from the coordinates collision detection actually compared
+ * `over.rect` against, occasionally flipping which half of a hovered
+ * block/column looked active) guarantees the two stay in lockstep, since
+ * both come from the same pass. */
+function createCollisionDetection(
+  pointerYRef: { current: number | null },
+  pointerXRef: { current: number | null },
+): CollisionDetection {
   return (args) => {
     pointerYRef.current = args.pointerCoordinates?.y ?? null;
+    pointerXRef.current = args.pointerCoordinates?.x ?? null;
     return blockDndCollision(args);
   };
 }
@@ -838,20 +964,30 @@ function createDragStartHandler(
 
 function createDragMoveHandler(
   pointerYRef: { current: number | null },
+  pointerXRef: { current: number | null },
   setPointerY: (value: number | null) => void,
+  setPointerX: (value: number | null) => void,
   setDropTarget: (value: { overId: string; after: boolean } | null) => void,
 ) {
   return (event: DragMoveEvent) => {
     const { over } = event;
     const pointerY = pointerYRef.current;
+    const pointerX = pointerXRef.current;
     setPointerY(pointerY);
+    setPointerX(pointerX);
     if (!over) {
       setDropTarget(null);
       return;
     }
+    // Session columns are laid out horizontally, so "after" for them means
+    // right-of-center rather than below-center — every other drag type in
+    // this hook is a vertical list.
+    const isSessionColumn = parseId(String(over.id))?.type === "session-col";
     setDropTarget({
       overId: String(over.id),
-      after: isInsertAfter(pointerY, over),
+      after: isSessionColumn
+        ? isInsertAfterHorizontal(pointerX, over)
+        : isInsertAfter(pointerY, over),
     });
   };
 }
@@ -859,8 +995,10 @@ function createDragMoveHandler(
 function createDragEndHandler(
   options: UseBlockExerciseDndOptions,
   pointerY: number | null,
+  pointerX: number | null,
   setActiveId: (value: string | null) => void,
   setPointerY: (value: number | null) => void,
+  setPointerX: (value: number | null) => void,
   setDropTarget: (value: { overId: string; after: boolean } | null) => void,
   setSuppressDropAnimation: (value: boolean) => void,
   onError: (message: string) => void,
@@ -868,6 +1006,7 @@ function createDragEndHandler(
   return async (event: DragEndEvent) => {
     setActiveId(null);
     setPointerY(null);
+    setPointerX(null);
     setDropTarget(null);
     const { active, over } = event;
     if (!over) return;
@@ -913,6 +1052,15 @@ function createDragEndHandler(
         markCommitted,
         onError,
       );
+    } else if (activeParsed.type === "session-col") {
+      await handleSessionColumnDrop(
+        options,
+        activeParsed.value,
+        pointerX,
+        over,
+        markCommitted,
+        onError,
+      );
     } else {
       await handleLibraryDrop(
         options,
@@ -929,11 +1077,13 @@ function createDragEndHandler(
 function createDragCancelHandler(
   setActiveId: (value: string | null) => void,
   setPointerY: (value: number | null) => void,
+  setPointerX: (value: number | null) => void,
   setDropTarget: (value: { overId: string; after: boolean } | null) => void,
 ) {
   return () => {
     setActiveId(null);
     setPointerY(null);
+    setPointerX(null);
     setDropTarget(null);
   };
 }
@@ -942,6 +1092,7 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
   const { showError } = useToast();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pointerY, setPointerY] = useState<number | null>(null);
+  const [pointerX, setPointerX] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{
     overId: string;
     after: boolean;
@@ -951,8 +1102,9 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
   // comment for why this is more reliable than reconstructing pointer
   // position from the drag event.
   const pointerYRef = useRef<number | null>(null);
+  const pointerXRef = useRef<number | null>(null);
   const collisionDetection = useMemo(
-    () => createCollisionDetection(pointerYRef),
+    () => createCollisionDetection(pointerYRef, pointerXRef),
     [],
   );
 
@@ -971,14 +1123,18 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
   );
   const handleDragMove = createDragMoveHandler(
     pointerYRef,
+    pointerXRef,
     setPointerY,
+    setPointerX,
     setDropTarget,
   );
   const handleDragEnd = createDragEndHandler(
     options,
     pointerY,
+    pointerX,
     setActiveId,
     setPointerY,
+    setPointerX,
     setDropTarget,
     setSuppressDropAnimation,
     showError,
@@ -986,6 +1142,7 @@ export function useBlockExerciseDnd(options: UseBlockExerciseDndOptions) {
   const handleDragCancel = createDragCancelHandler(
     setActiveId,
     setPointerY,
+    setPointerX,
     setDropTarget,
   );
 

@@ -3,6 +3,7 @@ import type {
   BlockWithExercises,
   ExerciseWithDetails,
   SessionTemplateSummary,
+  SessionWithBlocks,
 } from "@hooper/db";
 
 interface DragPreviewOverlayProps {
@@ -11,6 +12,7 @@ interface DragPreviewOverlayProps {
   exercisesById: Map<string, ExerciseWithDetails>;
   blockTemplateNamesById?: Map<string, string>;
   sessionTemplatesById?: Map<string, SessionTemplateSummary>;
+  sessions?: SessionWithBlocks[];
 }
 
 type GhostContent = { label: string; accentColor?: string };
@@ -41,42 +43,48 @@ function findBlockExercise(
   return undefined;
 }
 
-/** Resolves what the drag overlay should show for a given active drag id —
- * one lookup per drag source type, dispatched below rather than branched
- * inline so the component itself stays a single flat render. */
-function resolveGhostContent(
-  type: string,
+type GhostResolver = (
   value: string,
-  {
-    blocks,
-    exercisesById,
-    blockTemplateNamesById,
-    sessionTemplatesById,
-  }: DragPreviewOverlayProps,
-): GhostContent | null {
-  if (type === "library") {
+  props: DragPreviewOverlayProps,
+) => GhostContent | null;
+
+/** One lookup per drag source type, dispatched by id prefix below so the
+ * component itself stays a single flat render. */
+const GHOST_RESOLVERS: Record<string, GhostResolver> = {
+  "session-col": (value, { sessions }) => {
+    const session = sessions?.find((s) => s.id === value);
+    return session ? { label: session.name } : null;
+  },
+  library: (value, { exercisesById }) => {
     const exercise = exercisesById.get(value);
     return exercise ? { label: exercise.name } : null;
-  }
-  if (type === "block-template") {
+  },
+  "block-template": (value, { blockTemplateNamesById }) => {
     const name = blockTemplateNamesById?.get(value);
     return name ? { label: name } : null;
-  }
-  if (type === "session-template") {
+  },
+  "session-template": (value, { sessionTemplatesById }) => {
     const template = sessionTemplatesById?.get(value);
     return template
       ? { label: `${template.name} (${template.blocks.length} blocks)` }
       : null;
-  }
-  if (type === "block-exercise") {
+  },
+  "block-exercise": (value, { blocks }) => {
     const match = findBlockExercise(blocks, value);
     return match ? { label: match.exercise.name } : null;
-  }
-  if (type === "block") {
+  },
+  block: (value, { blocks }) => {
     const block = blocks.find((b) => b.id === value);
     return block ? { label: block.name, accentColor: block.color } : null;
-  }
-  return null;
+  },
+};
+
+function resolveGhostContent(
+  type: string,
+  value: string,
+  props: DragPreviewOverlayProps,
+): GhostContent | null {
+  return GHOST_RESOLVERS[type]?.(value, props) ?? null;
 }
 
 export function DragPreviewOverlay(props: DragPreviewOverlayProps) {

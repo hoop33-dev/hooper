@@ -117,6 +117,7 @@ function ProgramCanvasBody({
           exercisesById={state.exercisesById}
           blockTemplateNamesById={state.blockTemplateNamesById}
           sessionTemplatesById={state.sessionTemplatesById}
+          sessions={state.weekSessions}
         />
       </DragOverlay>
     </>

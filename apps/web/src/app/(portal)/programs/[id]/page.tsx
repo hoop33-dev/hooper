@@ -32,6 +32,7 @@ import {
   removeExerciseFromBlockAction,
   reorderBlockExercisesAction,
   reorderBlocksAction,
+  reorderSessionsAction,
   setLinkedWeeksAction,
   updateBlockAction,
   updateBlockExerciseAction,
@@ -121,6 +122,7 @@ export default async function ProgramCanvasPage({
         deleteSessionAction={deleteSessionAction}
         duplicateSessionAction={duplicateSessionAction}
         setLinkedWeeksAction={setLinkedWeeksAction}
+        reorderSessionsAction={reorderSessionsAction}
         createBlockAction={createBlockAction}
         updateBlockAction={updateBlockAction}
         deleteBlockAction={deleteBlockAction}

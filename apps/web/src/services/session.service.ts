@@ -154,11 +154,40 @@ export async function updateSessionName(
   }
 }
 
+/** Deleting a session leaves a gap in its week's position sequence (e.g.
+ * 0, 2 after removing position 1) — later sessions in the same week are
+ * shifted down to close it, the same renumbering `deleteProgramWeek` does
+ * for week_number. */
 export async function deleteSession(id: string): Promise<Result<void>> {
   try {
     const supabase = await createClient();
+
+    const { data: target, error: targetError } = await supabase
+      .from("sessions")
+      .select("program_id, week_number, position")
+      .eq("id", id)
+      .single();
+    if (targetError) return err(targetError.message);
+
     const { error } = await supabase.from("sessions").delete().eq("id", id);
     if (error) return err(error.message);
+
+    const { data: laterSessions, error: laterError } = await supabase
+      .from("sessions")
+      .select("id, position")
+      .eq("program_id", target.program_id)
+      .eq("week_number", target.week_number)
+      .gt("position", target.position);
+    if (laterError) return err(laterError.message);
+
+    for (const session of laterSessions ?? []) {
+      const { error: shiftError } = await supabase
+        .from("sessions")
+        .update({ position: session.position - 1 })
+        .eq("id", session.id);
+      if (shiftError) return err(shiftError.message);
+    }
+
     return ok(undefined);
   } catch (e) {
     return err(toErrorMessage(e));
@@ -497,16 +526,21 @@ export async function reorderSessions(
 ): Promise<Result<void>> {
   try {
     const supabase = await createClient();
-    const { error } = await supabase.from("sessions").upsert(
-      updates.map(({ id, week_number, position }) => ({
-        id,
-        week_number,
-        position,
-      })) as unknown as SessionRow[],
-      { onConflict: "id" },
+    // Per-row UPDATEs, not upsert: upsert runs an INSERT ... ON CONFLICT,
+    // which still validates NOT NULL columns (sessions.name) against the
+    // insert payload even for rows that already exist — so a positions-only
+    // upsert fails with "null value in column name". UPDATE only touches
+    // the columns we pass. (Same fix as reorderBlocks in block.service.ts.)
+    const results = await Promise.all(
+      updates.map(({ id, week_number, position }) =>
+        supabase
+          .from("sessions")
+          .update({ week_number, position })
+          .eq("id", id),
+      ),
     );
-
-    if (error) return err(error.message);
+    const failed = results.find((r) => r.error);
+    if (failed?.error) return err(failed.error.message);
     return ok(undefined);
   } catch (e) {
     return err(toErrorMessage(e));

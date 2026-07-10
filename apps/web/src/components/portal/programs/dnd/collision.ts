@@ -27,6 +27,10 @@ function allowedTargets(activeType: string): string[] {
   // several new blocks instead of one.
   if (activeType === "block-template" || activeType === "session-template")
     return ["block", "session", "new-block", "gap"];
+  // A session column targets the insertion gaps between columns, plus the
+  // columns themselves — hovering a column's left/right half resolves to the
+  // gap on that side, the same way blocks resolve from a hovered block.
+  if (activeType === "session-col") return ["session-gap", "session-col"];
   return [];
 }
 
@@ -40,6 +44,8 @@ const TYPE_PRIORITY = [
   "gap",
   "block",
   "session",
+  "session-gap",
+  "session-col",
 ];
 
 /**

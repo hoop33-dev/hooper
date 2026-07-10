@@ -9,17 +9,35 @@ import {
   type Measurement,
 } from "./measurementFormat";
 
-function measurement(
+/** Builds one unit-type slot's rows across `sets` sets — `values` supplies
+ * one value per set (repeat the same number for a uniform placement, vary
+ * them for a pyramid/wave one). */
+function measurementRows(
   unitType: string,
-  overrides: Partial<Measurement> = {},
-): Measurement {
-  return {
+  values: (number | null)[],
+  overrides: Partial<
+    Omit<Measurement, "unit_type" | "set_index" | "value">
+  > = {},
+): Measurement[] {
+  return values.map((value, set_index) => ({
     unit_type: unitType,
-    value: null,
+    set_index,
+    value,
     value_entered_by: "coach",
     value_unit: defaultUnitFor(unitType),
     ...overrides,
-  };
+  }));
+}
+
+/** Single-set convenience wrapper for the common "every set is the same"
+ * case, mirroring the old single-measurement test fixture. */
+function measurement(
+  unitType: string,
+  overrides: Partial<Omit<Measurement, "unit_type" | "set_index">> = {},
+  sets = 1,
+): Measurement[] {
+  const { value = null, ...rest } = overrides;
+  return measurementRows(unitType, Array(sets).fill(value), rest);
 }
 
 describe("unitOptionsFor / defaultUnitFor", () => {
@@ -74,7 +92,7 @@ describe("formatMeasurementSummary", () => {
     expect(
       formatMeasurementSummary({
         sets: 1,
-        measurements: [measurement("Reps", { value: 15 })],
+        measurements: measurement("Reps", { value: 15 }),
       }),
     ).toBe("1 set × 15");
   });
@@ -83,15 +101,17 @@ describe("formatMeasurementSummary", () => {
     expect(
       formatMeasurementSummary({
         sets: 4,
-        measurements: [measurement("Weight", { value: 60 })],
+        measurements: measurement("Weight", { value: 60 }, 4),
       }),
     ).toBe("4 sets × 60 kg");
     expect(
       formatMeasurementSummary({
         sets: 4,
-        measurements: [
-          measurement("Weight", { value: 132, value_unit: "lbs" }),
-        ],
+        measurements: measurement(
+          "Weight",
+          { value: 132, value_unit: "lbs" },
+          4,
+        ),
       }),
     ).toBe("4 sets × 132 lbs");
   });
@@ -100,13 +120,13 @@ describe("formatMeasurementSummary", () => {
     expect(
       formatMeasurementSummary({
         sets: 3,
-        measurements: [measurement("Time", { value: 20 })],
+        measurements: measurement("Time", { value: 20 }, 3),
       }),
     ).toBe("3 sets × 20sec");
     expect(
       formatMeasurementSummary({
         sets: 3,
-        measurements: [measurement("Distance", { value: 10 })],
+        measurements: measurement("Distance", { value: 10 }, 3),
       }),
     ).toBe("3 sets × 10m");
   });
@@ -115,13 +135,13 @@ describe("formatMeasurementSummary", () => {
     expect(
       formatMeasurementSummary({
         sets: 5,
-        measurements: [measurement("% 1RM", { value: 75 })],
+        measurements: measurement("% 1RM", { value: 75 }, 5),
       }),
     ).toBe("5 sets × 75%");
     expect(
       formatMeasurementSummary({
         sets: 5,
-        measurements: [measurement("RPE", { value: 8 })],
+        measurements: measurement("RPE", { value: 8 }, 5),
       }),
     ).toBe("5 sets × 8");
   });
@@ -137,8 +157,8 @@ describe("formatMeasurementSummary", () => {
       formatMeasurementSummary({
         sets: 4,
         measurements: [
-          measurement("Reps", { value: 8 }),
-          measurement("Weight", { value: 60 }),
+          ...measurement("Reps", { value: 8 }, 4),
+          ...measurement("Weight", { value: 60 }, 4),
         ],
       }),
     ).toBe("4 sets × 8 + 60 kg");
@@ -149,11 +169,27 @@ describe("formatMeasurementSummary", () => {
       formatMeasurementSummary({
         sets: 3,
         measurements: [
-          measurement("Distance", { value: 100 }),
-          measurement("Time", { value: null, value_entered_by: "athlete" }),
+          ...measurement("Distance", { value: 100 }, 3),
+          ...measurement(
+            "Time",
+            { value: null, value_entered_by: "athlete" },
+            3,
+          ),
         ],
       }),
     ).toBe("3 sets × 100m + —");
+  });
+
+  it("shows a first→last range for a pyramid/wave set", () => {
+    expect(
+      formatMeasurementSummary({
+        sets: 5,
+        measurements: [
+          ...measurementRows("Reps", [12, 10, 8, 5, 3]),
+          ...measurementRows("Weight", [40, 50, 60, 70, 75]),
+        ],
+      }),
+    ).toBe("5 sets × 12→3 + 40 kg→75 kg");
   });
 });
 
@@ -162,13 +198,13 @@ describe("formatMeasurementCompact", () => {
     expect(
       formatMeasurementCompact({
         sets: 4,
-        measurements: [measurement("Reps", { value: 8 })],
+        measurements: measurement("Reps", { value: 8 }, 4),
       }),
     ).toBe("4×8");
     expect(
       formatMeasurementCompact({
         sets: 3,
-        measurements: [measurement("Time", { value: 20 })],
+        measurements: measurement("Time", { value: 20 }, 3),
       }),
     ).toBe("3×20sec");
   });
@@ -178,11 +214,38 @@ describe("formatMeasurementCompact", () => {
       formatMeasurementCompact({
         sets: 3,
         measurements: [
-          measurement("Distance", { value: 100 }),
-          measurement("Time", { value: null, value_entered_by: "athlete" }),
+          ...measurement("Distance", { value: 100 }, 3),
+          ...measurement(
+            "Time",
+            { value: null, value_entered_by: "athlete" },
+            3,
+          ),
         ],
       }),
     ).toBe("3×100m+—");
+  });
+
+  it("collapses a pyramid/wave measurement to a terse first-last range", () => {
+    expect(
+      formatMeasurementCompact({
+        sets: 5,
+        measurements: [
+          ...measurementRows("Reps", [12, 10, 8, 5, 3]),
+          ...measurementRows("Weight", [40, 50, 60, 70, 75]),
+        ],
+      }),
+    ).toBe("5×12-3+40-75 kg");
+  });
+
+  it("uses an em dash for whichever end of the range the athlete hasn't entered yet", () => {
+    expect(
+      formatMeasurementCompact({
+        sets: 3,
+        measurements: measurementRows("Weight", [40, 50, null], {
+          value_entered_by: "athlete",
+        }),
+      }),
+    ).toBe("3×40-—");
   });
 });
 
@@ -192,8 +255,8 @@ describe("measurementStatColumns", () => {
       measurementStatColumns({
         sets: 4,
         measurements: [
-          measurement("Reps", { value: 8 }),
-          measurement("Weight", { value: 32 }),
+          ...measurement("Reps", { value: 8 }, 4),
+          ...measurement("Weight", { value: 32 }, 4),
         ],
       }),
     ).toEqual([
@@ -207,8 +270,8 @@ describe("measurementStatColumns", () => {
     const columns = measurementStatColumns({
       sets: 3,
       measurements: [
-        measurement("Distance", { value: 100 }),
-        measurement("Time", { value: null, value_entered_by: "athlete" }),
+        ...measurement("Distance", { value: 100 }, 3),
+        ...measurement("Time", { value: null, value_entered_by: "athlete" }, 3),
       ],
     });
     const keys = columns.map((c) => c.key);

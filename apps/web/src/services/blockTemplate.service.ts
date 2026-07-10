@@ -6,6 +6,7 @@ import type {
   BlockExerciseRow,
   BlockExerciseWithDetails,
   BlockRow,
+  BlockTemplateExerciseMeasurementRow,
   BlockWithExercises,
   EnteredBy,
   ExerciseCategoryRow,
@@ -13,8 +14,9 @@ import type {
 } from "@hooper/db";
 import { defaultBlockColor } from "@hooper/shared";
 import {
-  defaultMeasurementRow,
+  defaultMeasurementInput,
   resolveConfiguredUnitTypes,
+  type MeasurementInput,
   type SupabaseClient,
 } from "./block.service";
 import { toExerciseWithDetails } from "./exercise.service";
@@ -23,17 +25,16 @@ import {
   type RawTemplateBlockExercise,
 } from "./templateShaping";
 
+export type { MeasurementInput, MeasurementSetInput } from "./block.service";
+
 export type CreateBlockTemplateInput = {
   session_template_id: string;
   name: string;
 };
-export type UpdateBlockTemplateInput = { name?: string };
-
-export type MeasurementInput = {
-  unit_type: string;
-  value?: number | null;
-  value_entered_by?: EnteredBy;
-  value_unit?: string | null;
+export type UpdateBlockTemplateInput = {
+  name?: string;
+  is_superset?: boolean;
+  sets?: number;
 };
 
 export type BlockExerciseWithMeasurements = BlockExerciseRow & {
@@ -84,14 +85,17 @@ function toTemplateMeasurementRows(
   blockTemplateExerciseId: string,
   measurements: MeasurementInput[],
 ) {
-  return measurements.map((m, position) => ({
-    block_template_exercise_id: blockTemplateExerciseId,
-    position,
-    unit_type: m.unit_type,
-    value: m.value ?? null,
-    value_entered_by: m.value_entered_by ?? "coach",
-    value_unit: m.value_unit ?? null,
-  }));
+  return measurements.flatMap((m, position) =>
+    m.sets.map((s, set_index) => ({
+      block_template_exercise_id: blockTemplateExerciseId,
+      position,
+      set_index,
+      unit_type: m.unit_type,
+      value: s.value ?? null,
+      value_entered_by: s.value_entered_by ?? "coach",
+      value_unit: m.value_unit ?? null,
+    })),
+  );
 }
 
 /** Shapes a freshly-inserted block_templates row into the BlockRow type the
@@ -102,6 +106,8 @@ function toBlockRow(row: {
   name: string;
   color: string;
   position: number;
+  is_superset: boolean;
+  sets: number | null;
   created_at: string;
   updated_at: string;
 }): BlockRow {
@@ -160,6 +166,86 @@ export async function createBlockTemplate(
   }
 }
 
+/** Template-editor sibling of block.service.ts's resizeMeasurements —
+ * groups a placement's raw measurement rows by unit-type slot, sorted by
+ * set_index, so a slot's values can be padded/truncated to a new sets
+ * count. */
+function groupTemplateMeasurementsByPosition(
+  measurements: BlockTemplateExerciseMeasurementRow[],
+): BlockTemplateExerciseMeasurementRow[][] {
+  const byPosition = new Map<number, BlockTemplateExerciseMeasurementRow[]>();
+  for (const m of measurements) {
+    const list = byPosition.get(m.position) ?? [];
+    list.push(m);
+    byPosition.set(m.position, list);
+  }
+  return [...byPosition.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, rows]) => [...rows].sort((a, b) => a.set_index - b.set_index));
+}
+
+function resizeTemplateMeasurements(
+  measurements: BlockTemplateExerciseMeasurementRow[],
+  setsCount: number,
+): MeasurementInput[] {
+  return groupTemplateMeasurementsByPosition(measurements).map((rows) => {
+    const last = rows[rows.length - 1];
+    return {
+      unit_type: rows[0].unit_type,
+      value_unit: rows[0].value_unit,
+      sets: Array.from({ length: setsCount }, (_, i) => {
+        const row = rows[i] ?? last;
+        return {
+          value: row?.value ?? null,
+          value_entered_by: row?.value_entered_by ?? "coach",
+        };
+      }),
+    };
+  });
+}
+
+/** Template-editor sibling of block.service.ts's cascadeSupersetSets. */
+async function cascadeTemplateSupersetSets(
+  supabase: SupabaseClient,
+  blockTemplateId: string,
+  newSets: number,
+): Promise<Result<void>> {
+  const { data: rawExercises, error } = await supabase
+    .from("block_template_exercises")
+    .select("*, block_template_exercise_measurements(*)")
+    .eq("block_template_id", blockTemplateId);
+  if (error) return err(error.message);
+
+  const exercises = (rawExercises ?? []) as unknown as {
+    id: string;
+    block_template_exercise_measurements: BlockTemplateExerciseMeasurementRow[];
+  }[];
+
+  for (const be of exercises) {
+    const { error: setsError } = await supabase
+      .from("block_template_exercises")
+      .update({ sets: newSets })
+      .eq("id", be.id);
+    if (setsError) return err(setsError.message);
+
+    const { error: deleteError } = await supabase
+      .from("block_template_exercise_measurements")
+      .delete()
+      .eq("block_template_exercise_id", be.id);
+    if (deleteError) return err(deleteError.message);
+
+    const resized = resizeTemplateMeasurements(
+      be.block_template_exercise_measurements ?? [],
+      newSets,
+    );
+    const { error: insertError } = await supabase
+      .from("block_template_exercise_measurements")
+      .insert(toTemplateMeasurementRows(be.id, resized));
+    if (insertError) return err(insertError.message);
+  }
+  return ok(undefined);
+}
+
 export async function updateBlockTemplate(
   id: string,
   input: UpdateBlockTemplateInput,
@@ -171,6 +257,10 @@ export async function updateBlockTemplate(
         name: input.name,
         color: defaultBlockColor(input.name),
       }),
+      ...(input.is_superset !== undefined && {
+        is_superset: input.is_superset,
+      }),
+      ...(input.sets !== undefined && { sets: input.sets }),
     };
 
     const { data, error } = await supabase
@@ -181,6 +271,16 @@ export async function updateBlockTemplate(
       .single();
 
     if (error) return err(error.message);
+
+    if (input.sets !== undefined && data.is_superset) {
+      const cascadeResult = await cascadeTemplateSupersetSets(
+        supabase,
+        id,
+        input.sets,
+      );
+      if (!cascadeResult.ok) return err(cascadeResult.error);
+    }
+
     return ok(toBlockRow(data));
   } catch (e) {
     return err(toErrorMessage(e));
@@ -229,13 +329,23 @@ export async function addExerciseToBlockTemplate(
       input.block_template_id,
     );
 
+    const { data: parentBlockTemplate } = await supabase
+      .from("block_templates")
+      .select("is_superset, sets")
+      .eq("id", input.block_template_id)
+      .single();
+    const setsCount =
+      parentBlockTemplate?.is_superset && parentBlockTemplate.sets
+        ? parentBlockTemplate.sets
+        : (input.sets ?? 1);
+
     const { data: inserted, error } = await supabase
       .from("block_template_exercises")
       .insert({
         block_template_id: input.block_template_id,
         exercise_id: input.exercise_id,
         position,
-        sets: input.sets ?? 1,
+        sets: setsCount,
         notes: input.notes ?? null,
       })
       .select()
@@ -245,7 +355,7 @@ export async function addExerciseToBlockTemplate(
     const measurements = input.measurements
       ? input.measurements
       : (await resolveConfiguredUnitTypes(supabase, input.exercise_id)).map(
-          (unitType, i) => defaultMeasurementRow(unitType, i),
+          (unitType) => defaultMeasurementInput(unitType, setsCount),
         );
 
     const { data: insertedMeasurements, error: measurementsError } =
@@ -282,39 +392,69 @@ export async function updateBlockTemplateExercise(
       ...("notes" in input && { notes: input.notes ?? null }),
     };
 
-    const { data: blockTemplateExercise, error } = await supabase
-      .from("block_template_exercises")
-      .update(patch)
-      .eq("id", id)
-      .select()
-      .single();
+    // A measurements-only save leaves patch empty — an empty .update()
+    // still hits PostgREST and comes back with no row for .single() to
+    // coerce, so skip straight to a plain select in that case.
+    const { data: blockTemplateExercise, error } =
+      Object.keys(patch).length > 0
+        ? await supabase
+            .from("block_template_exercises")
+            .update(patch)
+            .eq("id", id)
+            .select()
+            .single()
+        : await supabase
+            .from("block_template_exercises")
+            .select()
+            .eq("id", id)
+            .single();
     if (error) return err(error.message);
 
-    let measurements: BlockExerciseMeasurementRow[];
-    if (input.measurements) {
+    async function replaceTemplateMeasurements(
+      newMeasurements: MeasurementInput[],
+    ): Promise<BlockExerciseMeasurementRow[]> {
       const { error: deleteError } = await supabase
         .from("block_template_exercise_measurements")
         .delete()
         .eq("block_template_exercise_id", id);
-      if (deleteError) return err(deleteError.message);
+      if (deleteError) throw new Error(deleteError.message);
 
       const { data: insertedMeasurements, error: insertError } = await supabase
         .from("block_template_exercise_measurements")
-        .insert(toTemplateMeasurementRows(id, input.measurements))
+        .insert(toTemplateMeasurementRows(id, newMeasurements))
         .select();
-      if (insertError) return err(insertError.message);
-      measurements = (insertedMeasurements ?? []).map(
+      if (insertError) throw new Error(insertError.message);
+      return (insertedMeasurements ?? []).map(
         ({ block_template_exercise_id, ...m }) => ({
           ...m,
           block_exercise_id: block_template_exercise_id,
         }),
+      );
+    }
+
+    let measurements: BlockExerciseMeasurementRow[];
+    if (input.measurements) {
+      measurements = await replaceTemplateMeasurements(input.measurements);
+    } else if (input.sets !== undefined) {
+      const { data: existing } = await supabase
+        .from("block_template_exercise_measurements")
+        .select("*")
+        .eq("block_template_exercise_id", id)
+        .order("position")
+        .order("set_index");
+      measurements = await replaceTemplateMeasurements(
+        resizeTemplateMeasurements(
+          (existing ?? []) as BlockTemplateExerciseMeasurementRow[],
+          input.sets,
+        ),
       );
     } else {
       const { data } = await supabase
         .from("block_template_exercise_measurements")
         .select("*")
         .eq("block_template_exercise_id", id)
-        .order("position");
+        .order("position")
+        .order("set_index");
       measurements = (data ?? []).map(
         ({ block_template_exercise_id, ...m }) => ({
           ...m,
@@ -375,6 +515,7 @@ type SourceBlockExercise = {
   notes: string | null;
   block_exercise_measurements: {
     position: number;
+    set_index: number;
     unit_type: string;
     value: number | null;
     value_entered_by: EnteredBy;
@@ -409,6 +550,7 @@ async function copyBlockExercisesIntoTemplate(
     be.block_exercise_measurements.map((m) => ({
       block_template_exercise_id: newExercises[i].id,
       position: m.position,
+      set_index: m.set_index,
       unit_type: m.unit_type,
       value: m.value,
       value_entered_by: m.value_entered_by,
@@ -441,6 +583,8 @@ export async function saveBlockAsTemplate(
     const block = blockData as unknown as {
       name: string;
       color: string;
+      is_superset: boolean;
+      sets: number | null;
       block_exercises: SourceBlockExercise[];
     };
 
@@ -458,6 +602,8 @@ export async function saveBlockAsTemplate(
         name: block.name,
         color: block.color,
         position: 0,
+        is_superset: block.is_superset,
+        sets: block.sets,
       })
       .select()
       .single();
@@ -509,6 +655,7 @@ async function copyTemplateExercisesIntoBlock(
     be.block_template_exercise_measurements.map((m) => ({
       block_exercise_id: newExercises[i].id,
       position: m.position,
+      set_index: m.set_index,
       unit_type: m.unit_type,
       value: m.value,
       value_entered_by: m.value_entered_by,
@@ -553,6 +700,8 @@ export async function createBlockFromTemplate(
     const blockTemplate = rawBlockTemplate as unknown as {
       name: string;
       color: string;
+      is_superset: boolean;
+      sets: number | null;
       block_template_exercises: RawTemplateBlockExercise[];
     };
 
@@ -576,6 +725,8 @@ export async function createBlockFromTemplate(
         name: blockTemplate.name,
         color: blockTemplate.color,
         position,
+        is_superset: blockTemplate.is_superset,
+        sets: blockTemplate.sets,
       })
       .select()
       .single();
@@ -628,6 +779,7 @@ async function copyTemplateExercisesIntoBlockTemplate(
     be.block_template_exercise_measurements.map((m) => ({
       block_template_exercise_id: newExercises[i].id,
       position: m.position,
+      set_index: m.set_index,
       unit_type: m.unit_type,
       value: m.value,
       value_entered_by: m.value_entered_by,
@@ -678,6 +830,8 @@ export async function createBlockTemplateFromTemplate(
     const blockTemplate = rawBlockTemplate as unknown as {
       name: string;
       color: string;
+      is_superset: boolean;
+      sets: number | null;
       block_template_exercises: RawTemplateBlockExercise[];
     };
 
@@ -697,6 +851,8 @@ export async function createBlockTemplateFromTemplate(
         name: blockTemplate.name,
         color: blockTemplate.color,
         position,
+        is_superset: blockTemplate.is_superset,
+        sets: blockTemplate.sets,
       })
       .select()
       .single();

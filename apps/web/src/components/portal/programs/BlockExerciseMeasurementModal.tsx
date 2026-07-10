@@ -12,7 +12,7 @@ import type { BlockExerciseWithDetails, EnteredBy } from "@hooper/db";
 import { useEffect, useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalTextarea } from "../ui/PortalInput";
-import { XIcon } from "../ui/icons";
+import { DuplicateIcon, XIcon } from "../ui/icons";
 import { useModalDismiss } from "../ui/useModalDismiss";
 
 /**
@@ -62,14 +62,20 @@ function StepperInput({
   );
 }
 
-/** Each unit type is its own independent field (Reps, Weight, Time, RPE,
+/** One set's value within a unit-type slot — a placement's `sets` count
+ * determines how many of these each slot holds, so a pyramid/wave set can
+ * carry a distinct value per set instead of one value applied uniformly. */
+export type SetValueState = { value: number; value_entered_by: EnteredBy };
+
+/** Each unit type is its own independent column (Reps, Weight, Time, RPE,
  * Distance, Shots, Makes, etc.) — a placement is whichever of these an
- * exercise is configured with, shown simultaneously, never bundled. */
-type MeasurementState = {
+ * exercise is configured with, shown simultaneously, never bundled. Its
+ * display unit is shared across every set (switching kg→lbs affects the
+ * whole column, not one set). */
+export type MeasurementState = {
   unit_type: string;
-  value: number;
-  value_entered_by: EnteredBy;
   value_unit: string | null;
+  sets: SetValueState[];
 };
 
 export type BlockExerciseUpdateData = {
@@ -77,9 +83,8 @@ export type BlockExerciseUpdateData = {
   notes?: string;
   measurements: {
     unit_type: string;
-    value: number | null;
-    value_entered_by: EnteredBy;
     value_unit: string | null;
+    sets: { value: number | null; value_entered_by: EnteredBy }[];
   }[];
 };
 
@@ -92,14 +97,6 @@ interface BlockExerciseMeasurementModalProps {
    * Calendar-style, since target numbers often intentionally differ week to
    * week and don't fit a single always/never sync rule. */
   linkedWeeks?: number[];
-}
-
-/** How much each +/- tap changes a unit type's value by. */
-function stepFor(unitType: string): number {
-  if (unitType === "Weight") return 2.5;
-  if (unitType === "Distance" || unitType === "Time" || unitType === "% 1RM")
-    return 5;
-  return 1; // Reps, Reps Each Side, RPE, Shots, Makes
 }
 
 function ModalHeader({ name, onClose }: { name: string; onClose: () => void }) {
@@ -127,7 +124,7 @@ function SetsField({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-portal-text2 w-12 flex-shrink-0 text-xs font-bold">
+      <span className="text-portal-text2 w-14 flex-shrink-0 text-xs font-bold">
         Sets
       </span>
       <div className="flex flex-1 items-center gap-2">
@@ -171,17 +168,14 @@ function StepButton({
 }
 
 /** A static label when there's one (or zero) unit, or a real dropdown when
- * the unit type offers more than one — e.g. kg/lbs/g. Absolutely positioned
- * relative to the box so it never affects the input's centering. */
+ * the unit type offers more than one — e.g. kg/lbs/g. */
 function UnitControl({
   unit,
   options,
-  hidden,
   onChange,
 }: {
   unit: string;
   options: string[] | null;
-  hidden: boolean;
   onChange: (unit: string) => void;
 }) {
   if (!unit) return null;
@@ -191,7 +185,7 @@ function UnitControl({
         value={unit}
         onChange={(e) => onChange(e.target.value)}
         onPointerDown={(e) => e.stopPropagation()}
-        className="text-portal-text3 absolute left-1/2 ml-7 flex-shrink-0 border-none bg-transparent text-[11px] outline-none">
+        className="text-portal-text3 border-none bg-transparent text-[10px] outline-none">
         {options.map((opt) => (
           <option key={opt} value={opt}>
             {opt}
@@ -200,18 +194,13 @@ function UnitControl({
       </select>
     );
   }
-  if (hidden) return null;
-  return (
-    <span className="text-portal-text3 absolute left-1/2 ml-7 flex-shrink-0 text-[11px]">
-      {unit}
-    </span>
-  );
+  return <span className="text-portal-text3 text-[10px]">{unit}</span>;
 }
 
 /** Custom-drawn instead of relying on the native checkbox: browsers render
  * an unstyled unchecked `accent-color` checkbox as a solid black square, not
- * an empty box. */
-function AthleteEnteredToggle({
+ * an empty box. Small enough to sit inside a single set's cell. */
+function AthleteEnteredBadge({
   checked,
   onChange,
 }: {
@@ -219,106 +208,111 @@ function AthleteEnteredToggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="text-portal-text3 ml-[60px] flex items-center gap-1.5 text-[10px] font-semibold">
-      <span className="relative inline-flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          className="border-portal-border checked:bg-portal-orange checked:border-portal-orange peer h-3.5 w-3.5 shrink-0 appearance-none rounded-sm border bg-white"
-        />
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="white"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="pointer-events-none absolute hidden h-2.5 w-2.5 peer-checked:block">
-          <path d="M5 13l4 4L19 7" />
-        </svg>
-      </span>
-      Athlete enters this
-    </label>
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      title={
+        checked
+          ? "Athlete enters this set — click to plan a number instead"
+          : "Let the athlete enter this set"
+      }
+      className={cn(
+        "absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full border text-[8px] font-black",
+        checked
+          ? "border-portal-orange bg-portal-orange text-white"
+          : "border-portal-border bg-portal-card text-portal-text3",
+      )}>
+      A
+    </button>
   );
 }
 
-function NumberField({
-  label,
-  value,
-  step,
-  unit,
-  unitOptions,
-  athleteEntered,
-  onChange,
+/** One measurement column's header: unit-type label, its unit dropdown (if
+ * it has one), and a "copy set 1 to every set" action — the fast path that
+ * keeps a uniform placement a two-click job instead of typing the same
+ * number into every row. */
+export function MeasurementColumnHeader({
+  measurement,
   onUnitChange,
-  onAthleteEnteredChange,
+  onCopyFirstToAll,
 }: {
-  label: string;
-  value: number;
-  step: number;
-  unit: string;
-  unitOptions: string[] | null;
-  athleteEntered: boolean;
-  onChange: (v: number) => void;
+  measurement: MeasurementState;
   onUnitChange: (unit: string) => void;
-  onAthleteEnteredChange: (v: boolean) => void;
+  onCopyFirstToAll: () => void;
 }) {
-  const [focused, setFocused] = useState(false);
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-3">
-        <span className="text-portal-text2 w-12 flex-shrink-0 text-xs font-bold">
-          {label}
+    <div className="flex flex-col items-center gap-0.5">
+      <div className="flex items-center gap-1">
+        <span className="text-portal-text2 text-[10px] font-bold tracking-wide uppercase">
+          {measurement.unit_type}
         </span>
-        <div className="flex flex-1 items-center gap-2">
-          <StepButton
-            disabled={athleteEntered}
-            onClick={() =>
-              onChange(Math.max(0, Math.round((value - step) * 100) / 100))
-            }>
-            −
-          </StepButton>
-          {/* StepperInput has a fixed width and is always centered in the
-              box regardless of whether a unit label/dropdown is present
-              (positioned absolute, out of flow), so every field's digits
-              line up. */}
-          <div
-            className="border-portal-border bg-portal-card relative flex flex-1 items-center justify-center rounded-lg border py-1"
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}>
-            {athleteEntered ? (
-              <span className="text-portal-text3 text-[11px] italic">
-                Athlete enters
-              </span>
-            ) : (
-              <>
-                <StepperInput
-                  value={value}
-                  min={0}
-                  onChange={onChange}
-                  className="font-title text-portal-orange w-14 flex-shrink-0 text-center text-base font-black"
-                />
-                <UnitControl
-                  unit={unit}
-                  options={unitOptions}
-                  hidden={focused}
-                  onChange={onUnitChange}
-                />
-              </>
-            )}
-          </div>
-          <StepButton
-            disabled={athleteEntered}
-            onClick={() => onChange(Math.round((value + step) * 100) / 100)}>
-            +
-          </StepButton>
-        </div>
+        {measurement.sets.length > 1 && (
+          <button
+            type="button"
+            onClick={onCopyFirstToAll}
+            title="Copy set 1's value to every set"
+            className="text-portal-text3 hover:text-portal-orange">
+            <DuplicateIcon size={10} />
+          </button>
+        )}
       </div>
-      <AthleteEnteredToggle
-        checked={athleteEntered}
-        onChange={onAthleteEnteredChange}
+      <UnitControl
+        unit={measurement.value_unit ?? ""}
+        options={unitOptionsFor(measurement.unit_type)}
+        onChange={onUnitChange}
       />
+    </div>
+  );
+}
+
+export function SetRow({
+  setIndex,
+  measurements,
+  onChangeValue,
+  onToggleAthlete,
+}: {
+  setIndex: number;
+  measurements: MeasurementState[];
+  onChangeValue: (measurementIndex: number, value: number) => void;
+  onToggleAthlete: (measurementIndex: number, athleteEntered: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-portal-text3 w-14 flex-shrink-0 text-[11px] font-bold">
+        Set {setIndex + 1}
+      </span>
+      <div
+        className="grid flex-1 gap-2"
+        style={{
+          gridTemplateColumns: `repeat(${measurements.length}, minmax(0, 1fr))`,
+        }}>
+        {measurements.map((m, mi) => {
+          const cell = m.sets[setIndex];
+          const athleteEntered = cell.value_entered_by === "athlete";
+          return (
+            <div
+              key={m.unit_type}
+              className="border-portal-border bg-portal-card relative flex items-center justify-center rounded-lg border py-1.5">
+              {athleteEntered ? (
+                <span className="text-portal-text3 text-[11px] italic">
+                  Athlete enters
+                </span>
+              ) : (
+                <StepperInput
+                  value={cell.value}
+                  min={0}
+                  onChange={(v) => onChangeValue(mi, v)}
+                  className="font-title text-portal-orange w-full text-center text-base font-black"
+                />
+              )}
+              <AthleteEnteredBadge
+                checked={athleteEntered}
+                onChange={(v) => onToggleAthlete(mi, v)}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -327,10 +321,18 @@ interface ModalBodyProps {
   sets: number;
   onSets: (v: number) => void;
   measurements: MeasurementState[];
-  onUpdateMeasurement: (
-    index: number,
-    patch: Partial<MeasurementState>,
+  onChangeValue: (
+    measurementIndex: number,
+    setIndex: number,
+    value: number,
   ) => void;
+  onToggleAthlete: (
+    measurementIndex: number,
+    setIndex: number,
+    athleteEntered: boolean,
+  ) => void;
+  onUnitChange: (measurementIndex: number, unit: string) => void;
+  onCopyFirstToAll: (measurementIndex: number) => void;
   notes: string;
   onNotes: (v: string) => void;
 }
@@ -339,7 +341,10 @@ function ModalBody({
   sets,
   onSets,
   measurements,
-  onUpdateMeasurement,
+  onChangeValue,
+  onToggleAthlete,
+  onUnitChange,
+  onCopyFirstToAll,
   notes,
   onNotes,
 }: ModalBodyProps) {
@@ -347,38 +352,38 @@ function ModalBody({
     <div className="flex flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-4">
       <SetsField value={sets} onChange={onSets} />
       <div className="bg-portal-border h-px" />
-      {measurements.map((m, i) => (
-        <div key={m.unit_type} className="flex flex-col gap-2">
-          <NumberField
-            label={m.unit_type}
-            value={m.value}
-            step={stepFor(m.unit_type)}
-            unit={m.value_unit ?? ""}
-            unitOptions={unitOptionsFor(m.unit_type)}
-            athleteEntered={m.value_entered_by === "athlete"}
-            onChange={(v) => onUpdateMeasurement(i, { value: v })}
-            onUnitChange={(newUnit) =>
-              onUpdateMeasurement(i, {
-                value_unit: newUnit,
-                value: convertUnit(
-                  m.value,
-                  m.value_unit ?? newUnit,
-                  newUnit,
-                  m.unit_type,
-                ),
-              })
-            }
-            onAthleteEnteredChange={(v) =>
-              onUpdateMeasurement(i, {
-                value_entered_by: v ? "athlete" : "coach",
-              })
-            }
-          />
-          {i < measurements.length - 1 && (
-            <div className="bg-portal-border h-px" />
-          )}
+      {measurements.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-14 flex-shrink-0" />
+            <div
+              className="grid flex-1 gap-2"
+              style={{
+                gridTemplateColumns: `repeat(${measurements.length}, minmax(0, 1fr))`,
+              }}>
+              {measurements.map((m, mi) => (
+                <MeasurementColumnHeader
+                  key={m.unit_type}
+                  measurement={m}
+                  onUnitChange={(unit) => onUnitChange(mi, unit)}
+                  onCopyFirstToAll={() => onCopyFirstToAll(mi)}
+                />
+              ))}
+            </div>
+          </div>
+          {Array.from({ length: sets }, (_, setIndex) => (
+            <SetRow
+              key={setIndex}
+              setIndex={setIndex}
+              measurements={measurements}
+              onChangeValue={(mi, value) => onChangeValue(mi, setIndex, value)}
+              onToggleAthlete={(mi, athleteEntered) =>
+                onToggleAthlete(mi, setIndex, athleteEntered)
+              }
+            />
+          ))}
         </div>
-      ))}
+      )}
       <div className="bg-portal-border h-px" />
       <PortalTextarea
         label="Note"
@@ -484,17 +489,48 @@ function ScopeChoiceFooter({
 // Always show every unit type the exercise is currently configured with;
 // fall back to whatever this placement already had if the exercise has
 // since been reconfigured down to zero configured types.
-function resolveUnitTypes(blockExercise: BlockExerciseWithDetails): string[] {
+export function resolveUnitTypes(
+  blockExercise: BlockExerciseWithDetails,
+): string[] {
   if (blockExercise.exercise.unitTypes.length > 0)
     return blockExercise.exercise.unitTypes;
-  if (blockExercise.measurements.length > 0)
-    return blockExercise.measurements.map((m) => m.unit_type);
+  const seen = new Set(blockExercise.measurements.map((m) => m.unit_type));
+  if (seen.size > 0) return [...seen];
   return ["Reps"];
 }
 
-function initMeasurements(
+/** Builds `sets` per-set values for one unit type from whatever this
+ * placement already had — padding by repeating the last known set's value
+ * (rather than resetting to a default) when the placement's own row count
+ * doesn't match `sets` yet (e.g. this modal just grew the stepper). */
+function resolveSetValues(
+  blockExercise: BlockExerciseWithDetails,
+  unitType: string,
+  setsCount: number,
+): SetValueState[] {
+  const rows = blockExercise.measurements
+    .filter((m) => m.unit_type === unitType)
+    .sort((a, b) => a.set_index - b.set_index);
+  const last = rows[rows.length - 1];
+  return Array.from({ length: setsCount }, (_, i) => {
+    const row = rows[i] ?? last;
+    return {
+      value: row?.value ?? defaultValueFor(unitType),
+      value_entered_by: row?.value_entered_by ?? "coach",
+    };
+  });
+}
+
+/** Mirrors block.service.ts's defaultValueFor: Reps-like unit types default
+ * to a nonzero starting count; everything else starts at zero. */
+function defaultValueFor(unitType: string): number {
+  return unitType === "Reps" || unitType === "Reps Each Side" ? 8 : 0;
+}
+
+export function initMeasurements(
   unitTypes: string[],
   blockExercise: BlockExerciseWithDetails,
+  setsCount: number,
 ): MeasurementState[] {
   return unitTypes.map((unitType) => {
     const existing = blockExercise.measurements.find(
@@ -502,21 +538,120 @@ function initMeasurements(
     );
     return {
       unit_type: unitType,
-      value: existing?.value ?? 0,
-      value_entered_by: existing?.value_entered_by ?? "coach",
       value_unit: existing?.value_unit ?? defaultUnitFor(unitType),
+      sets: resolveSetValues(blockExercise, unitType, setsCount),
     };
   });
 }
 
+/** Pads (repeating the last set's value) or truncates every measurement's
+ * per-set values to a new sets count — the modal-local sibling of
+ * block.service.ts's resizeMeasurements, kept in sync with the Sets
+ * stepper as the coach adjusts it before saving. */
+export function resizeMeasurementSets(
+  measurements: MeasurementState[],
+  setsCount: number,
+): MeasurementState[] {
+  return measurements.map((m) => {
+    const last = m.sets[m.sets.length - 1];
+    return {
+      ...m,
+      sets: Array.from({ length: setsCount }, (_, i) => m.sets[i] ?? last),
+    };
+  });
+}
+
+/** Pure per-set-array edits, factored out so both the single-exercise editor
+ * (useMeasurementSetEditor) and the superset editor's per-exercise map
+ * (SupersetRoundsModal) can share the same update logic. */
+export function withCellPatch(
+  measurements: MeasurementState[],
+  measurementIndex: number,
+  setIndex: number,
+  patch: Partial<SetValueState>,
+): MeasurementState[] {
+  return measurements.map((m, mi) =>
+    mi === measurementIndex
+      ? {
+          ...m,
+          sets: m.sets.map((s, si) =>
+            si === setIndex ? { ...s, ...patch } : s,
+          ),
+        }
+      : m,
+  );
+}
+
+export function withUnitChange(
+  measurements: MeasurementState[],
+  measurementIndex: number,
+  newUnit: string,
+): MeasurementState[] {
+  return measurements.map((m, mi) => {
+    if (mi !== measurementIndex) return m;
+    const fromUnit = m.value_unit ?? newUnit;
+    return {
+      ...m,
+      value_unit: newUnit,
+      sets: m.sets.map((s) => ({
+        ...s,
+        value: convertUnit(s.value, fromUnit, newUnit, m.unit_type),
+      })),
+    };
+  });
+}
+
+export function withFirstCopiedToAll(
+  measurements: MeasurementState[],
+  measurementIndex: number,
+): MeasurementState[] {
+  return measurements.map((m, mi) =>
+    mi === measurementIndex
+      ? { ...m, sets: m.sets.map(() => ({ ...m.sets[0] })) }
+      : m,
+  );
+}
+
+/** Owns one placement's editable measurement state — extracted out of
+ * BlockExerciseMeasurementModal so the component itself stays under the
+ * lint's max-lines-per-function limit. */
+export function useMeasurementSetEditor(initializer: () => MeasurementState[]) {
+  const [measurements, setMeasurements] =
+    useState<MeasurementState[]>(initializer);
+
+  return {
+    measurements,
+    setMeasurements,
+    updateCell: (
+      measurementIndex: number,
+      setIndex: number,
+      patch: Partial<SetValueState>,
+    ) =>
+      setMeasurements((prev) =>
+        withCellPatch(prev, measurementIndex, setIndex, patch),
+      ),
+    updateUnit: (measurementIndex: number, newUnit: string) =>
+      setMeasurements((prev) =>
+        withUnitChange(prev, measurementIndex, newUnit),
+      ),
+    copyFirstToAll: (measurementIndex: number) =>
+      setMeasurements((prev) => withFirstCopiedToAll(prev, measurementIndex)),
+    resize: (setsCount: number) =>
+      setMeasurements((prev) => resizeMeasurementSets(prev, setsCount)),
+  };
+}
+
 /** Blanks out fields the athlete hasn't entered yet, for display purposes. */
 function toSummaryMeasurements(measurements: MeasurementState[]) {
-  return measurements.map((m) => ({
-    unit_type: m.unit_type,
-    value: m.value_entered_by === "athlete" ? null : m.value,
-    value_entered_by: m.value_entered_by,
-    value_unit: m.value_unit,
-  }));
+  return measurements.flatMap((m) =>
+    m.sets.map((s, set_index) => ({
+      unit_type: m.unit_type,
+      set_index,
+      value: s.value_entered_by === "athlete" ? null : s.value,
+      value_entered_by: s.value_entered_by,
+      value_unit: m.value_unit,
+    })),
+  );
 }
 
 /** Coerces athlete-entered fields to null so a stale in-memory number never
@@ -531,9 +666,11 @@ function toSavePayload(
     notes: notes.trim() || undefined,
     measurements: measurements.map((m) => ({
       unit_type: m.unit_type,
-      value: m.value_entered_by === "athlete" ? null : Math.max(0, m.value),
-      value_entered_by: m.value_entered_by,
       value_unit: m.value_unit,
+      sets: m.sets.map((s) => ({
+        value: s.value_entered_by === "athlete" ? null : Math.max(0, s.value),
+        value_entered_by: s.value_entered_by,
+      })),
     })),
   };
 }
@@ -548,28 +685,27 @@ export function BlockExerciseMeasurementModal({
   const unitTypes = resolveUnitTypes(blockExercise);
 
   const [sets, setSets] = useState(blockExercise.sets);
-  const [measurements, setMeasurements] = useState<MeasurementState[]>(() =>
-    initMeasurements(unitTypes, blockExercise),
+  const editor = useMeasurementSetEditor(() =>
+    initMeasurements(unitTypes, blockExercise, blockExercise.sets),
   );
   const [notes, setNotes] = useState(blockExercise.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [choosingScope, setChoosingScope] = useState(false);
   const onBackdropClick = useModalDismiss(onClose);
 
-  function updateMeasurement(index: number, patch: Partial<MeasurementState>) {
-    setMeasurements((prev) =>
-      prev.map((m, i) => (i === index ? { ...m, ...patch } : m)),
-    );
+  function updateSets(next: number) {
+    setSets(next);
+    editor.resize(next);
   }
 
   const summary = formatMeasurementSummary({
     sets,
-    measurements: toSummaryMeasurements(measurements),
+    measurements: toSummaryMeasurements(editor.measurements),
   });
 
   async function commit(scope?: LinkScope) {
     setSaving(true);
-    await onSave(toSavePayload(sets, notes, measurements), scope);
+    await onSave(toSavePayload(sets, notes, editor.measurements), scope);
     setSaving(false);
   }
 
@@ -589,9 +725,18 @@ export function BlockExerciseMeasurementModal({
         <ModalHeader name={exercise.name} onClose={onClose} />
         <ModalBody
           sets={sets}
-          onSets={setSets}
-          measurements={measurements}
-          onUpdateMeasurement={updateMeasurement}
+          onSets={updateSets}
+          measurements={editor.measurements}
+          onChangeValue={(mi, si, value) =>
+            editor.updateCell(mi, si, { value })
+          }
+          onToggleAthlete={(mi, si, athleteEntered) =>
+            editor.updateCell(mi, si, {
+              value_entered_by: athleteEntered ? "athlete" : "coach",
+            })
+          }
+          onUnitChange={editor.updateUnit}
+          onCopyFirstToAll={editor.copyFirstToAll}
           notes={notes}
           onNotes={setNotes}
         />

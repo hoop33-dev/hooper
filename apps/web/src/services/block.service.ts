@@ -12,13 +12,32 @@ import { defaultBlockColor } from "@hooper/shared";
 import { randomUUID } from "node:crypto";
 
 export type CreateBlockInput = { session_id: string; name: string };
-export type UpdateBlockInput = { name?: string };
+export type UpdateBlockInput = {
+  name?: string;
+  /** Turns this block into (or out of) a superset — a shared round count
+   * applied to every exercise placed in it. */
+  is_superset?: boolean;
+  /** The round count for a superset block. Only meaningful alongside
+   * is_superset: true (or when it's already true); changing it cascades
+   * `sets` (and resizes each placement's per-set measurement rows) to
+   * every exercise currently in the block. */
+  sets?: number;
+};
+
+/** One set's value within a unit-type slot (Reps, Weight, ...) — a
+ * placement's `sets` count determines how many of these each slot holds,
+ * so a pyramid/wave set can carry a distinct value per set. */
+export type MeasurementSetInput = {
+  value?: number | null;
+  value_entered_by?: EnteredBy;
+};
 
 export type MeasurementInput = {
   unit_type: string;
-  value?: number | null;
-  value_entered_by?: EnteredBy;
   value_unit?: string | null;
+  /** One entry per set, in set order — length should match the
+   * placement's `sets`. */
+  sets: MeasurementSetInput[];
 };
 
 export type BlockExerciseWithMeasurements = BlockExerciseRow & {
@@ -98,14 +117,19 @@ function defaultValueFor(unitType: string): number {
 }
 
 /** Sensible starting values for a freshly-placed measurement: coach-entered,
- * with a default value and default display unit for this unit type. */
-export function defaultMeasurementRow(unitType: string, position: number) {
+ * with a default value and default display unit for this unit type,
+ * repeated across every set (uniform until the coach pyramids it). */
+export function defaultMeasurementInput(
+  unitType: string,
+  setsCount: number,
+): MeasurementInput {
   return {
-    position,
     unit_type: unitType,
-    value: defaultValueFor(unitType),
-    value_entered_by: "coach" as const,
     value_unit: defaultUnitFor(unitType),
+    sets: Array.from({ length: setsCount }, () => ({
+      value: defaultValueFor(unitType),
+      value_entered_by: "coach" as const,
+    })),
   };
 }
 
@@ -113,14 +137,17 @@ function toMeasurementRows(
   blockExerciseId: string,
   measurements: MeasurementInput[],
 ) {
-  return measurements.map((m, position) => ({
-    block_exercise_id: blockExerciseId,
-    position,
-    unit_type: m.unit_type,
-    value: m.value ?? null,
-    value_entered_by: m.value_entered_by ?? "coach",
-    value_unit: m.value_unit ?? defaultUnitFor(m.unit_type),
-  }));
+  return measurements.flatMap((m, position) =>
+    m.sets.map((s, set_index) => ({
+      block_exercise_id: blockExerciseId,
+      position,
+      set_index,
+      unit_type: m.unit_type,
+      value: s.value ?? null,
+      value_entered_by: s.value_entered_by ?? "coach",
+      value_unit: m.value_unit ?? defaultUnitFor(m.unit_type),
+    })),
+  );
 }
 
 /** Fetches a single row's `link_group_id`, or null if the row/column is
@@ -182,6 +209,109 @@ export async function createBlock(
   }
 }
 
+/** Groups a placement's raw measurement rows by unit-type slot (`position`),
+ * each sorted by `set_index` — the shape `resizeMeasurements` needs to pad
+ * or truncate per slot. */
+function groupMeasurementsByPosition(
+  measurements: BlockExerciseMeasurementRow[],
+): BlockExerciseMeasurementRow[][] {
+  const byPosition = new Map<number, BlockExerciseMeasurementRow[]>();
+  for (const m of measurements) {
+    const list = byPosition.get(m.position) ?? [];
+    list.push(m);
+    byPosition.set(m.position, list);
+  }
+  return [...byPosition.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, rows]) => [...rows].sort((a, b) => a.set_index - b.set_index));
+}
+
+/** Pads or truncates each unit-type slot's per-set values to exactly
+ * `setsCount` — used whenever a placement's `sets` changes without the
+ * caller supplying a full new set of measurements (e.g. a superset's round
+ * count changing at the block level). Padding repeats the last known set's
+ * value rather than resetting to a default, since a coach growing 3 sets to
+ * 4 almost always wants the new set to start out matching the last one. */
+function resizeMeasurements(
+  measurements: BlockExerciseMeasurementRow[],
+  setsCount: number,
+): MeasurementInput[] {
+  return groupMeasurementsByPosition(measurements).map((rows) => {
+    const last = rows[rows.length - 1];
+    return {
+      unit_type: rows[0].unit_type,
+      value_unit: rows[0].value_unit,
+      sets: Array.from({ length: setsCount }, (_, i) => {
+        const row = rows[i] ?? last;
+        return {
+          value: row?.value ?? null,
+          value_entered_by: row?.value_entered_by ?? "coach",
+        };
+      }),
+    };
+  });
+}
+
+/** Forces every exercise currently placed in a superset block onto the same
+ * round count, resizing each placement's per-set measurement rows to match
+ * (padding/truncating, see resizeMeasurements) — the fan-out a block's
+ * `sets` stepper triggers. */
+async function cascadeSupersetSets(
+  supabase: SupabaseClient,
+  blockId: string,
+  newSets: number,
+): Promise<Result<void>> {
+  const { data: rawExercises, error } = await supabase
+    .from("block_exercises")
+    .select("*, block_exercise_measurements(*)")
+    .eq("block_id", blockId);
+  if (error) return err(error.message);
+
+  const exercises = (rawExercises ?? []) as unknown as {
+    id: string;
+    block_exercise_measurements: BlockExerciseMeasurementRow[];
+  }[];
+
+  for (const be of exercises) {
+    const { error: setsError } = await supabase
+      .from("block_exercises")
+      .update({ sets: newSets })
+      .eq("id", be.id);
+    if (setsError) return err(setsError.message);
+
+    const resized = resizeMeasurements(
+      be.block_exercise_measurements ?? [],
+      newSets,
+    );
+    const result = await replaceMeasurements(supabase, be.id, resized);
+    if (!result.ok) return err(result.error);
+  }
+  return ok(undefined);
+}
+
+/** Applies the same patch to every sibling block sharing `linkGroupId`,
+ * returning their ids so a superset sets cascade can also reach them. */
+async function syncSiblingBlocks(
+  supabase: SupabaseClient,
+  id: string,
+  linkGroupId: string,
+  patch: Record<string, unknown>,
+): Promise<Result<string[]>> {
+  const { error: siblingError } = await supabase
+    .from("blocks")
+    .update(patch)
+    .eq("link_group_id", linkGroupId)
+    .neq("id", id);
+  if (siblingError) return err(siblingError.message);
+
+  const { data: siblings } = await supabase
+    .from("blocks")
+    .select("id")
+    .eq("link_group_id", linkGroupId)
+    .neq("id", id);
+  return ok((siblings ?? []).map((b) => b.id));
+}
+
 export async function updateBlock(
   id: string,
   input: UpdateBlockInput,
@@ -195,6 +325,10 @@ export async function updateBlock(
         name: input.name,
         color: defaultBlockColor(input.name),
       }),
+      ...(input.is_superset !== undefined && {
+        is_superset: input.is_superset,
+      }),
+      ...(input.sets !== undefined && { sets: input.sets }),
     };
 
     const { data, error } = await supabase
@@ -206,13 +340,21 @@ export async function updateBlock(
 
     if (error) return err(error.message);
 
-    if (data.link_group_id && Object.keys(patch).length > 0) {
-      const { error: siblingError } = await supabase
-        .from("blocks")
-        .update(patch)
-        .eq("link_group_id", data.link_group_id)
-        .neq("id", id);
-      if (siblingError) return err(siblingError.message);
+    const siblingsResult =
+      data.link_group_id && Object.keys(patch).length > 0
+        ? await syncSiblingBlocks(supabase, id, data.link_group_id, patch)
+        : ok<string[]>([]);
+    if (!siblingsResult.ok) return err(siblingsResult.error);
+
+    if (input.sets !== undefined && data.is_superset) {
+      for (const blockId of [id, ...siblingsResult.data]) {
+        const cascadeResult = await cascadeSupersetSets(
+          supabase,
+          blockId,
+          input.sets,
+        );
+        if (!cascadeResult.ok) return err(cascadeResult.error);
+      }
     }
 
     return ok(data);
@@ -273,34 +415,66 @@ export async function reorderBlocks(
   }
 }
 
+/** Every block that a new placement in `blockId` needs a row in (itself,
+ * plus any siblings sharing its link group), and a fresh link group id to
+ * tag them all with when there's more than one. */
+async function resolveTargetBlocks(
+  supabase: SupabaseClient,
+  blockId: string,
+): Promise<{ targetBlockIds: string[]; linkGroupId: string | null }> {
+  const blockLinkGroupId = await linkGroupOf(supabase, "blocks", blockId);
+  const targetBlockIds = blockLinkGroupId
+    ? ((
+        await supabase
+          .from("blocks")
+          .select("id")
+          .eq("link_group_id", blockLinkGroupId)
+      ).data?.map((b) => b.id) ?? [blockId])
+    : [blockId];
+  return {
+    targetBlockIds,
+    linkGroupId: targetBlockIds.length > 1 ? randomUUID() : null,
+  };
+}
+
+/** A superset block's round count always wins over a caller-supplied sets,
+ * so a freshly-added exercise starts in sync with the rest of the block
+ * rather than needing an immediate manual fix-up. */
+async function resolveNewExerciseSets(
+  supabase: SupabaseClient,
+  blockId: string,
+  requestedSets: number | undefined,
+): Promise<number> {
+  const { data: block } = await supabase
+    .from("blocks")
+    .select("is_superset, sets")
+    .eq("id", blockId)
+    .single();
+  if (block?.is_superset && block.sets) return block.sets;
+  return requestedSets ?? 1;
+}
+
 export async function addExerciseToBlock(
   input: AddExerciseToBlockInput,
 ): Promise<Result<BlockExerciseWithMeasurements>> {
   try {
     const supabase = await createClient();
-    const blockLinkGroupId = await linkGroupOf(
+    const { targetBlockIds, linkGroupId } = await resolveTargetBlocks(
       supabase,
-      "blocks",
       input.block_id,
     );
-
-    const targetBlockIds = blockLinkGroupId
-      ? ((
-          await supabase
-            .from("blocks")
-            .select("id")
-            .eq("link_group_id", blockLinkGroupId)
-        ).data?.map((b) => b.id) ?? [input.block_id])
-      : [input.block_id];
-
-    const linkGroupId = targetBlockIds.length > 1 ? randomUUID() : null;
+    const setsCount = await resolveNewExerciseSets(
+      supabase,
+      input.block_id,
+      input.sets,
+    );
 
     const blockExerciseRows = await Promise.all(
       targetBlockIds.map(async (blockId) => ({
         block_id: blockId,
         exercise_id: input.exercise_id,
         position: await nextBlockExercisePosition(supabase, blockId),
-        sets: input.sets ?? 1,
+        sets: setsCount,
         notes: input.notes ?? null,
         link_group_id: linkGroupId,
       })),
@@ -318,12 +492,13 @@ export async function addExerciseToBlock(
       : await resolveConfiguredUnitTypes(supabase, input.exercise_id);
 
     const measurementRows = insertedBlockExercises.flatMap((be) =>
-      input.measurements
-        ? toMeasurementRows(be.id, input.measurements)
-        : unitTypes!.map((unitType, i) => ({
-            block_exercise_id: be.id,
-            ...defaultMeasurementRow(unitType, i),
-          })),
+      toMeasurementRows(
+        be.id,
+        input.measurements ??
+          unitTypes!.map((unitType) =>
+            defaultMeasurementInput(unitType, setsCount),
+          ),
+      ),
     );
 
     const { data: insertedMeasurements, error: measurementsError } =
@@ -483,7 +658,8 @@ async function currentMeasurements(
     .from("block_exercise_measurements")
     .select("*")
     .eq("block_exercise_id", blockExerciseId)
-    .order("position");
+    .order("position")
+    .order("set_index");
   return data ?? [];
 }
 
@@ -521,17 +697,42 @@ export async function updateBlockExercise(
       ...(input.sets !== undefined && { sets: input.sets }),
       ...("notes" in input && { notes: input.notes ?? null }),
     };
-    const { data: blockExercise, error } = await supabase
-      .from("block_exercises")
-      .update(patch)
-      .eq("id", id)
-      .select()
-      .single();
+    // A measurements-only save (e.g. from the superset rounds editor, which
+    // never touches sets/notes) leaves patch empty — an empty .update()
+    // still hits PostgREST and comes back with no row for .single() to
+    // coerce, so skip straight to a plain select in that case.
+    const { data: blockExercise, error } =
+      Object.keys(patch).length > 0
+        ? await supabase
+            .from("block_exercises")
+            .update(patch)
+            .eq("id", id)
+            .select()
+            .single()
+        : await supabase.from("block_exercises").select().eq("id", id).single();
     if (error) return err(error.message);
 
-    const measurementsResult = input.measurements
-      ? await replaceMeasurements(supabase, id, input.measurements)
-      : ok(await currentMeasurements(supabase, id));
+    // A sets-only change (no explicit new measurements) still has to keep
+    // each unit-type slot's row count in sync with the new sets — otherwise
+    // a placement grown from 3 sets to 5 would be left with stale/missing
+    // per-set rows for the two new sets.
+    let measurementsResult: Result<BlockExerciseMeasurementRow[]>;
+    if (input.measurements) {
+      measurementsResult = await replaceMeasurements(
+        supabase,
+        id,
+        input.measurements,
+      );
+    } else if (input.sets !== undefined) {
+      const existing = await currentMeasurements(supabase, id);
+      measurementsResult = await replaceMeasurements(
+        supabase,
+        id,
+        resizeMeasurements(existing, input.sets),
+      );
+    } else {
+      measurementsResult = ok(await currentMeasurements(supabase, id));
+    }
     if (!measurementsResult.ok) return err(measurementsResult.error);
 
     const siblingsResult = await resolveScopedSiblings(

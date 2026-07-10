@@ -46,7 +46,7 @@ export function shapeBlocksWithExercises(
           ...blockExercise,
           exercise: toExerciseWithDetails(exercise, allCategories),
           measurements: [...block_exercise_measurements].sort(
-            (a, b) => a.position - b.position,
+            (a, b) => a.position - b.position || a.set_index - b.set_index,
           ),
         })),
     }));

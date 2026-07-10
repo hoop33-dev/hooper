@@ -55,9 +55,11 @@ function ExerciseIcon() {
 
 function StatColumn({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex w-11 flex-shrink-0 flex-col items-center">
-      <span className="text-portal-text1 text-sm font-extrabold">{value}</span>
-      <span className="text-portal-text3 text-[9px] font-semibold tracking-wide">
+    <div className="flex min-w-16 flex-shrink-0 flex-col items-center">
+      <span className="text-portal-text1 text-sm font-extrabold whitespace-nowrap">
+        {value}
+      </span>
+      <span className="text-portal-text3 text-center text-[9px] font-semibold tracking-wide">
         {label}
       </span>
     </div>

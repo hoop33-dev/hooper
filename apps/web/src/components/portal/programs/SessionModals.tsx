@@ -1,6 +1,7 @@
-import type { LinkScope } from "@/src/services/block.service";
+import type { LinkScope, MeasurementInput } from "@/src/services/block.service";
 import type {
   BlockExerciseWithDetails,
+  BlockWithExercises,
   SessionRow,
   SessionTemplateSummary,
 } from "@hooper/db";
@@ -15,6 +16,7 @@ import {
 } from "./SessionCreateModal";
 import { SessionDuplicateModal } from "./SessionDuplicateModal";
 import { SessionRenamePopover } from "./SessionRenamePopover";
+import { SupersetRoundsModal } from "./SupersetRoundsModal";
 import type { SessionModalState } from "./useProgramCanvasState";
 
 interface SessionModalsProps {
@@ -39,6 +41,11 @@ interface SessionModalsProps {
     data: BlockExerciseUpdateData,
     scope?: LinkScope,
   ) => Promise<void>;
+  editingSupersetBlock: BlockWithExercises | null;
+  onCloseSupersetEditor: () => void;
+  onSaveSupersetMeasurements: (
+    perExercise: { id: string; measurements: MeasurementInput[] }[],
+  ) => Promise<void>;
 }
 
 export function SessionModals({
@@ -56,6 +63,9 @@ export function SessionModals({
   editingExerciseLinkedWeeks,
   onCloseExerciseEditor,
   onSaveExerciseMeasurement,
+  editingSupersetBlock,
+  onCloseSupersetEditor,
+  onSaveSupersetMeasurements,
 }: SessionModalsProps) {
   return (
     <>
@@ -99,6 +109,13 @@ export function SessionModals({
           linkedWeeks={editingExerciseLinkedWeeks}
           onClose={onCloseExerciseEditor}
           onSave={onSaveExerciseMeasurement}
+        />
+      )}
+      {editingSupersetBlock && (
+        <SupersetRoundsModal
+          block={editingSupersetBlock}
+          onClose={onCloseSupersetEditor}
+          onSave={onSaveSupersetMeasurements}
         />
       )}
     </>

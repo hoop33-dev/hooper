@@ -40,6 +40,7 @@ function makeBlockExercise(
       {
         block_exercise_id: id,
         position: 0,
+        set_index: 0,
         unit_type: "Reps",
         value: 10,
         value_entered_by: "coach",
@@ -64,6 +65,8 @@ function makeBlock(
     color: "#000000",
     position,
     link_group_id: null,
+    is_superset: false,
+    sets: null,
     created_at: "",
     updated_at: "",
     exercises: exerciseIds.map((exId, i) => ({

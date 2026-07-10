@@ -66,7 +66,9 @@ export function shapeBlockTemplatesWithExercises(
             link_group_id: null,
             exercise: toExerciseWithDetails(exercise, allCategories),
             measurements: [...block_template_exercise_measurements]
-              .sort((a, b) => a.position - b.position)
+              .sort(
+                (a, b) => a.position - b.position || a.set_index - b.set_index,
+              )
               .map(
                 ({
                   block_template_exercise_id,

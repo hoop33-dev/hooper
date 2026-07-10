@@ -3,7 +3,6 @@
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
 import Link from "next/link";
 import { useState } from "react";
-import { ExercisePreviewModal } from "../exercises/ExercisePreviewModal";
 import { CreateExerciseButton } from "./CreateExerciseButton";
 import { DraggableLibraryRow } from "./dnd/DraggableLibraryRow";
 import type { CreateExerciseActions } from "./exerciseActionsProps";
@@ -71,9 +70,7 @@ export function ExerciseLibraryShelfBody({
 }: ExerciseLibraryShelfProps) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [previewExercise, setPreviewExercise] =
-    useState<ExerciseWithDetails | null>(null);
-  const filtered = filterExercises(exercises, search, categoryId, categories);
+  const filtered = filterExercises(exercises, search, categoryId);
 
   return (
     <div className="flex h-[190px]">
@@ -86,12 +83,7 @@ export function ExerciseLibraryShelfBody({
       />
       <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto p-2.5">
         {filtered.map((ex) => (
-          <DraggableLibraryRow
-            key={ex.id}
-            exercise={ex}
-            variant="card"
-            onOpen={setPreviewExercise}
-          />
+          <DraggableLibraryRow key={ex.id} exercise={ex} variant="card" />
         ))}
         <CreateExerciseButton
           categories={categories}
@@ -102,12 +94,6 @@ export function ExerciseLibraryShelfBody({
           className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex h-[52px] w-[136px] flex-shrink-0 items-center justify-center rounded-lg border border-dashed px-2.5 text-center text-[11px] font-bold"
         />
       </div>
-      {previewExercise && (
-        <ExercisePreviewModal
-          exercise={previewExercise}
-          onClose={() => setPreviewExercise(null)}
-        />
-      )}
     </div>
   );
 }

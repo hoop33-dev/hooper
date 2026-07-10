@@ -7,16 +7,11 @@ import type { ExerciseWithDetails } from "@hooper/db";
 interface DraggableLibraryRowProps {
   exercise: ExerciseWithDetails;
   variant?: "list" | "card";
-  /** Opens the read-only preview modal — fires on a plain click, since the
-   * DndContext's PointerSensor only starts a drag past its 8px activation
-   * distance, leaving a no-movement click free for this. */
-  onOpen?: (exercise: ExerciseWithDetails) => void;
 }
 
 export function DraggableLibraryRow({
   exercise,
   variant = "list",
-  onOpen,
 }: DraggableLibraryRowProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `library:${exercise.id}`,
@@ -26,7 +21,6 @@ export function DraggableLibraryRow({
     return (
       <div
         ref={setNodeRef}
-        onClick={() => onOpen?.(exercise)}
         {...attributes}
         {...listeners}
         className={cn(
@@ -46,7 +40,6 @@ export function DraggableLibraryRow({
   return (
     <div
       ref={setNodeRef}
-      onClick={() => onOpen?.(exercise)}
       {...attributes}
       {...listeners}
       className={cn(

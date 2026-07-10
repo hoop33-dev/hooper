@@ -12,25 +12,27 @@ import type {
   ExerciseWithDetails,
 } from "@hooper/db";
 import { useState } from "react";
+import { BookmarkIcon, SpinnerIcon } from "../ui/icons";
+import { InlineConfirmDelete } from "../ui/InlineConfirmDelete";
 import { AddExercisePopover } from "./AddExercisePopover";
 import {
   useDragIndicator,
   type DragIndicator,
 } from "./dnd/DragIndicatorContext";
+import { isPending } from "./dnd/pendingRows";
 import { SortableBlockExerciseRow } from "./dnd/SortableBlockExerciseRow";
 
 type BlockDropVisual = {
-  lineEdge: "top" | "bottom" | null;
+  headerLineEdge: "bottom" | null;
   emptyHighlight: boolean;
 };
 
-/**
- * A block card shows either a block-reorder line (block drag hovering this
- * card), a front-insert line at its top (an exercise/library item dropped on
- * the block header rather than a specific row → goes first), or a fill
- * highlight (something dropped onto an empty block, which has no row to
- * anchor a line to).
- */
+/** A block/template hovering this card reorders whole blocks — that cue now
+ * lives on the gap either side of the card (see BlockGapDropZone), not on
+ * the card itself, so it's excluded here entirely. A block card only shows
+ * its own cue for an exercise/library drop: a header-bottom line (it goes
+ * first in the block) or a fill highlight for an empty block, which has no
+ * row to anchor a line to. */
 function computeBlockDropVisual(
   blockDomId: string,
   hasExercises: boolean,
@@ -38,20 +40,16 @@ function computeBlockDropVisual(
 ): BlockDropVisual {
   const activeId = indicator.activeId ?? "";
   if (!activeId || indicator.overId !== blockDomId)
-    return { lineEdge: null, emptyHighlight: false };
+    return { headerLineEdge: null, emptyHighlight: false };
 
-  if (activeId.startsWith("block:")) {
-    if (activeId === blockDomId)
-      return { lineEdge: null, emptyHighlight: false };
-    return {
-      lineEdge: indicator.after ? "bottom" : "top",
-      emptyHighlight: false,
-    };
-  }
-  // Exercise or library item dropped onto the block itself (its header) —
-  // it goes to the front, so the line sits at the top.
+  const isBlockLikeDrag =
+    activeId.startsWith("block:") ||
+    activeId.startsWith("block-template:") ||
+    activeId.startsWith("session-template:");
+  if (isBlockLikeDrag) return { headerLineEdge: null, emptyHighlight: false };
+
   return {
-    lineEdge: hasExercises ? "top" : null,
+    headerLineEdge: hasExercises ? "bottom" : null,
     emptyHighlight: !hasExercises,
   };
 }
@@ -65,21 +63,6 @@ function GripIcon() {
       <circle cx="7.5" cy="2.5" r="1.3" />
       <circle cx="7.5" cy="7" r="1.3" />
       <circle cx="7.5" cy="11.5" r="1.3" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round">
-      <path d="M18 6L6 18M6 6l12 12" />
     </svg>
   );
 }
@@ -139,9 +122,12 @@ function BlockNameField({
 interface BlockCardHeaderProps {
   block: BlockWithExercises;
   readOnly?: boolean;
+  pending?: boolean;
   dragHandleProps?: Record<string, unknown>;
+  dropLineEdge?: "bottom" | null;
   onRename: (name: string) => void;
   onDelete: () => void;
+  onSaveAsTemplate?: () => void;
   addExercise?: {
     exercises: ExerciseWithDetails[];
     onAdd: (id: string) => void;
@@ -151,27 +137,33 @@ interface BlockCardHeaderProps {
 function BlockCardHeader({
   block,
   readOnly,
+  pending,
   dragHandleProps,
+  dropLineEdge,
   onRename,
   onDelete,
+  onSaveAsTemplate,
   addExercise,
 }: BlockCardHeaderProps) {
   // The whole header is the block's grab area (a click on the name still
   // renames — the pointer sensor only starts a drag past an 8px threshold).
   return (
     <div
-      className="border-portal-border bg-portal-bg flex touch-none items-center gap-2 border-b px-3 py-2"
+      className="border-portal-border bg-portal-bg relative flex touch-none items-center gap-2 border-b px-3 py-2"
       {...dragHandleProps}>
+      {dropLineEdge && (
+        <div className="bg-portal-orange pointer-events-none absolute inset-x-0 bottom-0 z-10 h-0.5" />
+      )}
       <span className="text-portal-text3 flex-shrink-0 cursor-grab active:cursor-grabbing">
-        <GripIcon />
+        {pending ? <SpinnerIcon size={11} /> : <GripIcon />}
       </span>
       <BlockNameField
         name={block.name}
         color={block.color}
-        readOnly={readOnly}
+        readOnly={readOnly || pending}
         onRename={onRename}
       />
-      {!readOnly && addExercise && (
+      {!readOnly && !pending && addExercise && (
         <div onPointerDown={(e) => e.stopPropagation()}>
           <AddExercisePopover
             exercises={addExercise.exercises}
@@ -179,14 +171,22 @@ function BlockCardHeader({
           />
         </div>
       )}
-      {!readOnly && (
+      {!readOnly && !pending && onSaveAsTemplate && (
         <button
           type="button"
-          onClick={onDelete}
+          onClick={onSaveAsTemplate}
           onPointerDown={(e) => e.stopPropagation()}
-          className="text-portal-text3 flex-shrink-0 hover:text-red-500">
-          <XIcon />
+          title="Save as template"
+          className="text-portal-text3 hover:text-portal-orange flex-shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+          <BookmarkIcon />
         </button>
+      )}
+      {!readOnly && !pending && (
+        <InlineConfirmDelete
+          onDelete={onDelete}
+          idleTitle="Delete block"
+          idleClassName="text-portal-text3 opacity-0 hover:text-red-500 group-focus-within:opacity-100 group-hover:opacity-100"
+        />
       )}
     </div>
   );
@@ -241,6 +241,7 @@ interface BlockCardProps {
   onRemoveExercise: (id: string) => void;
   onRename: (name: string) => void;
   onDelete: () => void;
+  onSaveAsTemplate?: () => void;
 }
 
 export function BlockCard({
@@ -253,12 +254,15 @@ export function BlockCard({
   onRemoveExercise,
   onRename,
   onDelete,
+  onSaveAsTemplate,
 }: BlockCardProps) {
+  const pending = isPending(block);
   const blockDomId = `block:${block.id}`;
   const { attributes, listeners, setNodeRef, isDragging } = useSortable({
     id: blockDomId,
+    disabled: pending,
   });
-  const { lineEdge, emptyHighlight } = computeBlockDropVisual(
+  const { headerLineEdge, emptyHighlight } = computeBlockDropVisual(
     blockDomId,
     block.exercises.length > 0,
     useDragIndicator(),
@@ -270,24 +274,20 @@ export function BlockCard({
     <div
       ref={setNodeRef}
       className={cn(
-        "bg-portal-card border-portal-border relative overflow-hidden rounded-xl border",
+        "bg-portal-card border-portal-border group relative overflow-hidden rounded-xl border",
         emptyHighlight && "bg-portal-orange-soft",
         isDragging && "opacity-40",
+        pending && "opacity-60",
       )}>
-      {lineEdge && (
-        <div
-          className={cn(
-            "bg-portal-orange pointer-events-none absolute inset-x-0 z-10 h-0.5",
-            lineEdge === "bottom" ? "bottom-0" : "top-0",
-          )}
-        />
-      )}
       <BlockCardHeader
         block={block}
         readOnly={readOnly}
+        pending={pending}
         dragHandleProps={{ ...attributes, ...listeners }}
+        dropLineEdge={headerLineEdge}
         onRename={onRename}
         onDelete={onDelete}
+        onSaveAsTemplate={onSaveAsTemplate}
         addExercise={
           !dense && exercises && onAddExercise
             ? { exercises, onAdd: onAddExercise }

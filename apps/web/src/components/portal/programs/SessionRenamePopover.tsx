@@ -3,20 +3,25 @@
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
+import { XIcon } from "../ui/icons";
+import { useModalDismiss } from "../ui/useModalDismiss";
 
 interface SessionRenamePopoverProps {
   currentName: string;
+  title?: string;
   onClose: () => void;
   onRename: (name: string) => Promise<void>;
 }
 
 export function SessionRenamePopover({
   currentName,
+  title = "Rename session",
   onClose,
   onRename,
 }: SessionRenamePopoverProps) {
   const [name, setName] = useState(currentName);
   const [saving, setSaving] = useState(false);
+  const onBackdropClick = useModalDismiss(onClose);
 
   async function handleRename() {
     if (!name.trim() || saving) return;
@@ -26,17 +31,19 @@ export function SessionRenamePopover({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+    <div
+      onClick={onBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
       <div className="bg-portal-card w-full max-w-xs rounded-xl p-4 shadow-2xl">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-title text-portal-text1 text-sm font-extrabold tracking-wide">
-            Rename session
+            {title}
           </h3>
           <button
             type="button"
             onClick={onClose}
             className="border-portal-border text-portal-text2 flex h-6 w-6 items-center justify-center rounded-full border">
-            ×
+            <XIcon size={9} />
           </button>
         </div>
         <PortalInput

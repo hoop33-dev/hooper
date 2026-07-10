@@ -14,8 +14,9 @@ import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
 import { BlockCard } from "./BlockCard";
+import { BlockGapDropZone } from "./dnd/BlockGapDropZone";
 import { NewBlockDropZone } from "./dnd/NewBlockDropZone";
-import { sessionDropId } from "./dnd/useBlockExerciseDnd";
+import { blockGapDropId, sessionDropId } from "./dnd/useBlockExerciseDnd";
 
 interface BlockListProps {
   sessionId: string;
@@ -27,6 +28,7 @@ interface BlockListProps {
   onDeleteBlock: (blockId: string) => void;
   onAddBlock: (name: string) => Promise<void>;
   onAddExerciseToBlock: (blockId: string, exerciseId: string) => void;
+  onSaveBlockAsTemplate?: (blockId: string) => void;
 }
 
 function AddBlockForm({
@@ -105,30 +107,44 @@ export function BlockList({
   onDeleteBlock,
   onAddBlock,
   onAddExerciseToBlock,
+  onSaveBlockAsTemplate,
 }: BlockListProps) {
-  // Session-level drop target so a whole block can be dragged to the end of
-  // the list (below the last block) even though there's no row to hover.
+  // Session-level drop target so a whole block can be dragged into an empty
+  // session, which has no blocks (and therefore no gaps) to hover over.
   const { setNodeRef } = useDroppable({ id: sessionDropId(sessionId) });
   return (
-    <div
-      ref={setNodeRef}
-      className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
+    <div ref={setNodeRef} className="flex flex-col p-5">
       <SortableContext
         items={blocks.map((b) => `block:${b.id}`)}
         strategy={verticalListSortingStrategy}>
-        {blocks.map((block) => (
-          <BlockCard
-            key={block.id}
-            block={block}
-            exercises={exercises}
-            onOpenExercise={onOpenExercise}
-            onRemoveExercise={onRemoveExercise}
-            onRename={(name) => onRenameBlock(block.id, name)}
-            onDelete={() => onDeleteBlock(block.id)}
-            onAddExercise={(exerciseId) =>
-              onAddExerciseToBlock(block.id, exerciseId)
-            }
-          />
+        <BlockGapDropZone
+          id={blockGapDropId(sessionId, 0)}
+          afterBlockId={blocks[0]?.id ?? null}
+        />
+        {blocks.map((block, i) => (
+          <div key={block.id} className="contents">
+            <BlockCard
+              block={block}
+              exercises={exercises}
+              onOpenExercise={onOpenExercise}
+              onRemoveExercise={onRemoveExercise}
+              onRename={(name) => onRenameBlock(block.id, name)}
+              onDelete={() => onDeleteBlock(block.id)}
+              onSaveAsTemplate={
+                onSaveBlockAsTemplate
+                  ? () => onSaveBlockAsTemplate(block.id)
+                  : undefined
+              }
+              onAddExercise={(exerciseId) =>
+                onAddExerciseToBlock(block.id, exerciseId)
+              }
+            />
+            <BlockGapDropZone
+              id={blockGapDropId(sessionId, i + 1)}
+              beforeBlockId={block.id}
+              afterBlockId={blocks[i + 1]?.id ?? null}
+            />
+          </div>
         ))}
       </SortableContext>
       <AddBlockForm sessionId={sessionId} onAdd={onAddBlock} />

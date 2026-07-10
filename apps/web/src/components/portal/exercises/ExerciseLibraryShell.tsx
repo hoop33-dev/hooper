@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import Link from "next/link";
-import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
 import { getDescendantIds } from "@/src/lib/categoryTree";
-import { ExerciseModal } from "./ExerciseModal";
-import { ExerciseCard } from "./ExerciseCard";
+import type {
+  ExerciseCategoryRow,
+  ExerciseVideoSource,
+  ExerciseWithDetails,
+} from "@hooper/db";
+import Link from "next/link";
+import { useState, useTransition } from "react";
 import { PortalButton } from "../ui/PortalButton";
+import { ExerciseCard } from "./ExerciseCard";
 import type { ExerciseFormData } from "./ExerciseModal";
+import { ExerciseModal } from "./ExerciseModal";
+
+type ActionResult = { ok: boolean; error?: string; id?: string };
 
 interface ExerciseLibraryShellProps {
   exercises: ExerciseWithDetails[];
@@ -15,19 +21,14 @@ interface ExerciseLibraryShellProps {
   profileId: string;
   searchQuery: string;
   selectedCategoryId: string;
-  createAction: (
-    data: ExerciseFormData,
-  ) => Promise<{ ok: boolean; error?: string }>;
-  updateAction: (
+  createAction: (data: ExerciseFormData) => Promise<ActionResult>;
+  updateAction: (id: string, data: ExerciseFormData) => Promise<ActionResult>;
+  deleteAction: (id: string) => Promise<ActionResult>;
+  updateVideoUrlAction: (
     id: string,
-    data: ExerciseFormData,
-  ) => Promise<{ ok: boolean; error?: string }>;
-  deleteAction: (id: string) => Promise<{ ok: boolean; error?: string }>;
-  uploadVideoAction: (
-    exerciseId: string,
-    file: File,
-    profileId: string,
-  ) => Promise<{ ok: boolean; error?: string }>;
+    videoUrl: string,
+    videoSource: ExerciseVideoSource,
+  ) => Promise<ActionResult>;
 }
 
 function SearchBar({
@@ -44,8 +45,7 @@ function SearchBar({
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
-      >
+        strokeWidth="2">
         <circle cx="11" cy="11" r="8" />
         <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
       </svg>
@@ -92,8 +92,7 @@ function CategoryTabs({
         <TabButton
           key={cat.id}
           active={selected === cat.id}
-          onClick={() => onChange(cat.id)}
-        >
+          onClick={() => onChange(cat.id)}>
           {cat.name}
         </TabButton>
       ))}
@@ -118,8 +117,7 @@ function TabButton({
         active
           ? "bg-portal-orange text-white"
           : "text-portal-text2 hover:bg-portal-border-mid"
-      }`}
-    >
+      }`}>
       {children}
     </button>
   );
@@ -142,14 +140,26 @@ function LibraryToolbar({
 }) {
   return (
     <div className="border-portal-border bg-portal-card flex items-center gap-3 border-b px-7 py-3">
-      <CategoryTabs categories={categories} selected={categoryFilter} onChange={onCategoryChange} />
+      <CategoryTabs
+        categories={categories}
+        selected={categoryFilter}
+        onChange={onCategoryChange}
+      />
       <div className="ml-auto flex items-center gap-3">
         <Link
           href="/exercises/categories"
-          className="border-portal-border bg-portal-card text-portal-text1 hover:bg-portal-border/50 inline-flex h-9 items-center gap-1.5 rounded-lg border px-4 text-sm font-semibold transition"
-        >
-          <svg className="text-portal-text2 h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18M3 12h18M3 17h10" />
+          className="border-portal-border bg-portal-card text-portal-text1 hover:bg-portal-border/50 inline-flex h-9 items-center gap-1.5 rounded-lg border px-4 text-sm font-semibold transition">
+          <svg
+            className="text-portal-text2 h-3.5 w-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3 7h18M3 12h18M3 17h10"
+            />
           </svg>
           Categories
         </Link>
@@ -172,7 +182,7 @@ export function ExerciseLibraryShell({
   createAction,
   updateAction,
   deleteAction,
-  uploadVideoAction,
+  updateVideoUrlAction,
 }: ExerciseLibraryShellProps) {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -192,10 +202,22 @@ export function ExerciseLibraryShell({
         ex.categories.some((c) => categoryFilterIds.has(c.id))),
   );
 
-  function openCreate() { setEditingExercise(null); setModalOpen(true); }
-  function openEdit(exercise: ExerciseWithDetails) { setEditingExercise(exercise); setModalOpen(true); }
-  function closeModal() { setModalOpen(false); setEditingExercise(null); }
-  function handleSaved() { closeModal(); startTransition(() => {}); }
+  function openCreate() {
+    setEditingExercise(null);
+    setModalOpen(true);
+  }
+  function openEdit(exercise: ExerciseWithDetails) {
+    setEditingExercise(exercise);
+    setModalOpen(true);
+  }
+  function closeModal() {
+    setModalOpen(false);
+    setEditingExercise(null);
+  }
+  function handleSaved() {
+    closeModal();
+    startTransition(() => {});
+  }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -231,7 +253,7 @@ export function ExerciseLibraryShell({
           createAction={createAction}
           updateAction={updateAction}
           deleteAction={deleteAction}
-          uploadVideoAction={uploadVideoAction}
+          updateVideoUrlAction={updateVideoUrlAction}
         />
       )}
     </div>
@@ -253,12 +275,10 @@ function ExerciseTable({
             {["Exercise", "Categories", "Unit types", "Created"].map((h) => (
               <th
                 key={h}
-                className="text-portal-text3 pt-4 pr-4 pb-3 text-left text-[11px] font-semibold tracking-widest uppercase"
-              >
+                className="text-portal-text3 pt-4 pr-4 pb-3 text-left text-[11px] font-semibold tracking-widest uppercase">
                 {h}
               </th>
             ))}
-            <th />
           </tr>
         </thead>
         <tbody>
@@ -290,8 +310,7 @@ function EmptyState({
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.5"
-        >
+          strokeWidth="1.5">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"

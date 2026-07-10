@@ -1,15 +1,15 @@
-import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { ExerciseLibraryShell } from "@/src/components/portal/exercises/ExerciseLibraryShell";
+import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
+import { PageHeader } from "@/src/components/portal/ui/PageHeader";
+import { getCoachProfile } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
-import { getCoachProfile } from "@/src/services/auth.service";
 import {
   createExerciseAction,
-  updateExerciseAction,
   deleteExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
 } from "./actions";
-import { uploadExerciseVideo } from "@/src/services/exercise.service";
-import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
 
 export default async function ExercisesPage() {
   const [exercisesResult, categoriesResult, profileResult] = await Promise.all([
@@ -21,12 +21,6 @@ export default async function ExercisesPage() {
   const exercises = exercisesResult.ok ? exercisesResult.data : [];
   const categories = categoriesResult.ok ? categoriesResult.data : [];
   const profileId = profileResult.ok ? profileResult.data.id : "";
-
-  async function uploadVideoAction(exerciseId: string, file: File, pid: string) {
-    "use server";
-    const result = await uploadExerciseVideo(exerciseId, file, pid);
-    return result.ok ? { ok: true } : { ok: false, error: result.error };
-  }
 
   async function wrappedCreate(data: ExerciseFormData) {
     "use server";
@@ -48,7 +42,7 @@ export default async function ExercisesPage() {
         createAction={wrappedCreate}
         updateAction={updateExerciseAction}
         deleteAction={deleteExerciseAction}
-        uploadVideoAction={uploadVideoAction}
+        updateVideoUrlAction={updateExerciseVideoUrlAction}
       />
     </div>
   );

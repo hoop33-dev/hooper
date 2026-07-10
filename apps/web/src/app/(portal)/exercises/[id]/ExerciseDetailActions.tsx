@@ -1,19 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
+import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
 import { ExerciseModal } from "@/src/components/portal/exercises/ExerciseModal";
 import { PortalButton } from "@/src/components/portal/ui/PortalButton";
-import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
+import type {
+  ExerciseCategoryRow,
+  ExerciseVideoSource,
+  ExerciseWithDetails,
+} from "@hooper/db";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+type ActionResult = { ok: boolean; error?: string; id?: string };
 
 interface ExerciseDetailActionsProps {
   exercise: ExerciseWithDetails;
   categories: ExerciseCategoryRow[];
   profileId: string;
-  updateAction: (id: string, data: ExerciseFormData) => Promise<{ ok: boolean; error?: string }>;
-  deleteAction: (id: string) => Promise<{ ok: boolean; error?: string }>;
-  uploadVideoAction: (exerciseId: string, file: File, profileId: string) => Promise<{ ok: boolean; error?: string }>;
+  updateAction: (id: string, data: ExerciseFormData) => Promise<ActionResult>;
+  deleteAction: (id: string) => Promise<ActionResult>;
+  updateVideoUrlAction: (
+    id: string,
+    videoUrl: string,
+    videoSource: ExerciseVideoSource,
+  ) => Promise<ActionResult>;
 }
 
 export function ExerciseDetailActions({
@@ -22,7 +32,7 @@ export function ExerciseDetailActions({
   profileId,
   updateAction,
   deleteAction,
-  uploadVideoAction,
+  updateVideoUrlAction,
 }: ExerciseDetailActionsProps) {
   const [editing, setEditing] = useState(false);
   const router = useRouter();
@@ -53,7 +63,7 @@ export function ExerciseDetailActions({
           createAction={async () => ({ ok: false, error: "Not applicable" })}
           updateAction={updateAction}
           deleteAction={deleteAction}
-          uploadVideoAction={uploadVideoAction}
+          updateVideoUrlAction={updateVideoUrlAction}
         />
       )}
     </>

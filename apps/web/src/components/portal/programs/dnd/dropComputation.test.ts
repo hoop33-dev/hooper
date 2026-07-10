@@ -12,6 +12,7 @@ function makeExercise(id: string): ExerciseWithDetails {
     name: id,
     description: null,
     video_url: null,
+    video_source: null,
     created_by: "coach1",
     created_at: "",
     updated_at: "",
@@ -30,13 +31,23 @@ function makeBlockExercise(
     exercise_id: id,
     position,
     sets: 3,
-    unit_type: "Reps",
-    reps: 10,
-    value: null,
     notes: null,
+    link_group_id: null,
     created_at: "",
     updated_at: "",
     exercise: makeExercise(id),
+    measurements: [
+      {
+        block_exercise_id: id,
+        position: 0,
+        unit_type: "Reps",
+        value: 10,
+        value_entered_by: "coach",
+        value_unit: null,
+        created_at: "",
+        updated_at: "",
+      },
+    ],
   };
 }
 
@@ -52,6 +63,7 @@ function makeBlock(
     name: id,
     color: "#000000",
     position,
+    link_group_id: null,
     created_at: "",
     updated_at: "",
     exercises: exerciseIds.map((exId, i) => ({

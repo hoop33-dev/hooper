@@ -31,3 +31,13 @@ export type {
   SessionRow,
   SessionWithBlocks,
 } from "@hooper/db";
+
+// Block Library types (re-exported from @hooper/db)
+export type {
+  BlockTemplateExerciseMeasurementRow,
+  BlockTemplateExerciseRow,
+  BlockTemplateRow,
+  SessionTemplateRow,
+  SessionTemplateSummary,
+  SessionTemplateWithBlocks,
+} from "@hooper/db";

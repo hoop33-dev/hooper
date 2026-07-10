@@ -1,18 +1,30 @@
 "use client";
 
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { useState } from "react";
+import { CreateExerciseButton } from "./CreateExerciseButton";
 import { DraggableLibraryRow } from "./dnd/DraggableLibraryRow";
+import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { filterExercises } from "./exerciseFilter";
 
-interface ExerciseLibraryPanelProps {
+interface ExerciseLibraryPanelProps extends CreateExerciseActions {
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
+  /** Replaces the plain "Exercise Library" title — used to show the
+   * Exercises/Blocks tab switcher when a Block Library exists too. */
+  tabs?: ReactNode;
 }
 
 export function ExerciseLibraryPanel({
   exercises,
   categories,
+  tabs,
+  profileId,
+  createExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
 }: ExerciseLibraryPanelProps) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -21,10 +33,12 @@ export function ExerciseLibraryPanel({
   return (
     <div className="border-portal-border bg-portal-card flex w-[280px] flex-shrink-0 flex-col border-r">
       <div className="border-portal-border border-b px-3.5 py-3">
-        <div className="mb-2.5 flex items-center justify-between">
-          <span className="text-portal-text3 text-[11px] font-bold tracking-wide uppercase">
-            Exercise Library
-          </span>
+        <div className="mb-2.5 flex items-center justify-between gap-2">
+          {tabs ?? (
+            <span className="text-portal-text3 text-[11px] font-bold tracking-wide uppercase">
+              Exercise Library
+            </span>
+          )}
           <span className="text-portal-text3 text-[11px]">
             {filtered.length}
           </span>
@@ -48,15 +62,28 @@ export function ExerciseLibraryPanel({
         </select>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {filtered.length === 0 ? (
+        {filtered.map((ex) => (
+          <DraggableLibraryRow key={ex.id} exercise={ex} />
+        ))}
+        <CreateExerciseButton
+          categories={categories}
+          profileId={profileId}
+          createExerciseAction={createExerciseAction}
+          updateExerciseAction={updateExerciseAction}
+          updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+          className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex w-full items-center gap-2 border-b border-dashed px-3.5 py-2.5 text-left text-xs font-semibold"
+        />
+        {filtered.length === 0 && (
           <div className="text-portal-text3 px-3.5 py-6 text-center text-xs">
             No results
           </div>
-        ) : (
-          filtered.map((ex) => (
-            <DraggableLibraryRow key={ex.id} exercise={ex} />
-          ))
         )}
+      </div>
+      <div className="border-portal-border text-portal-text3 border-t px-3.5 py-2.5 text-[10px] leading-relaxed">
+        Drag a card up to add it here.{" "}
+        <Link href="/exercises" className="text-portal-orange hover:underline">
+          Manage Exercise Library →
+        </Link>
       </div>
     </div>
   );

@@ -52,11 +52,15 @@ export type ExerciseCategoryRow = {
   updated_at: string;
 };
 
+export type ExerciseVideoSource = "upload" | "link";
+
 export type ExerciseRow = {
   id: string;
   name: string;
   description: string | null;
   video_url: string | null;
+  /** Whether video_url points at an uploaded file or an external link. Null iff video_url is null. */
+  video_source: ExerciseVideoSource | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -79,8 +83,8 @@ export type ProgramRow = {
   id: string;
   name: string;
   description: string | null;
+  notes: string | null;
   weeks: number;
-  sessions_per_week: number;
   status: ProgramStatus;
   created_by: string;
   created_at: string;
@@ -93,6 +97,9 @@ export type SessionRow = {
   week_number: number;
   name: string;
   position: number;
+  /** Shared across sessions duplicated together across weeks — null when
+   * this session isn't linked to any others. */
+  link_group_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -103,6 +110,8 @@ export type BlockRow = {
   name: string;
   color: string;
   position: number;
+  /** Shared across the corresponding block in each linked sibling session. */
+  link_group_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -113,10 +122,69 @@ export type BlockExerciseRow = {
   exercise_id: string;
   position: number;
   sets: number;
-  unit_type: string;
-  reps: number | null;
-  value: number | null;
   notes: string | null;
+  /** Shared across the corresponding placement in each linked sibling block. */
+  link_group_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EnteredBy = "coach" | "athlete";
+
+export type BlockExerciseMeasurementRow = {
+  block_exercise_id: string;
+  position: number;
+  unit_type: string;
+  value: number | null;
+  value_entered_by: EnteredBy;
+  value_unit: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProgramSourceRow = {
+  id: string;
+  source_program_id: string;
+  destination_program_id: string;
+  created_at: string;
+};
+
+export type SessionTemplateRow = {
+  id: string;
+  name: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BlockTemplateRow = {
+  id: string;
+  session_template_id: string;
+  name: string;
+  color: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BlockTemplateExerciseRow = {
+  id: string;
+  block_template_id: string;
+  exercise_id: string;
+  position: number;
+  sets: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BlockTemplateExerciseMeasurementRow = {
+  block_template_exercise_id: string;
+  position: number;
+  unit_type: string;
+  value: number | null;
+  value_entered_by: EnteredBy;
+  value_unit: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -164,10 +232,7 @@ export type Database = {
       programs: {
         Row: ProgramRow;
         Insert: Partial<ProgramRow> &
-          Pick<
-            ProgramRow,
-            "name" | "weeks" | "sessions_per_week" | "created_by"
-          >;
+          Pick<ProgramRow, "name" | "weeks" | "created_by">;
         Update: Partial<ProgramRow>;
         Relationships: [];
       };
@@ -188,8 +253,59 @@ export type Database = {
       block_exercises: {
         Row: BlockExerciseRow;
         Insert: Partial<BlockExerciseRow> &
-          Pick<BlockExerciseRow, "block_id" | "exercise_id" | "unit_type">;
+          Pick<BlockExerciseRow, "block_id" | "exercise_id">;
         Update: Partial<BlockExerciseRow>;
+        Relationships: [];
+      };
+      block_exercise_measurements: {
+        Row: BlockExerciseMeasurementRow;
+        Insert: Partial<BlockExerciseMeasurementRow> &
+          Pick<
+            BlockExerciseMeasurementRow,
+            "block_exercise_id" | "position" | "unit_type"
+          >;
+        Update: Partial<BlockExerciseMeasurementRow>;
+        Relationships: [];
+      };
+      program_sources: {
+        Row: ProgramSourceRow;
+        Insert: Partial<ProgramSourceRow> &
+          Pick<
+            ProgramSourceRow,
+            "source_program_id" | "destination_program_id"
+          >;
+        Update: Partial<ProgramSourceRow>;
+        Relationships: [];
+      };
+      session_templates: {
+        Row: SessionTemplateRow;
+        Insert: Partial<SessionTemplateRow> &
+          Pick<SessionTemplateRow, "name" | "created_by">;
+        Update: Partial<SessionTemplateRow>;
+        Relationships: [];
+      };
+      block_templates: {
+        Row: BlockTemplateRow;
+        Insert: Partial<BlockTemplateRow> &
+          Pick<BlockTemplateRow, "session_template_id" | "name" | "color">;
+        Update: Partial<BlockTemplateRow>;
+        Relationships: [];
+      };
+      block_template_exercises: {
+        Row: BlockTemplateExerciseRow;
+        Insert: Partial<BlockTemplateExerciseRow> &
+          Pick<BlockTemplateExerciseRow, "block_template_id" | "exercise_id">;
+        Update: Partial<BlockTemplateExerciseRow>;
+        Relationships: [];
+      };
+      block_template_exercise_measurements: {
+        Row: BlockTemplateExerciseMeasurementRow;
+        Insert: Partial<BlockTemplateExerciseMeasurementRow> &
+          Pick<
+            BlockTemplateExerciseMeasurementRow,
+            "block_template_exercise_id" | "position" | "unit_type"
+          >;
+        Update: Partial<BlockTemplateExerciseMeasurementRow>;
         Relationships: [];
       };
     };

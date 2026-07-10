@@ -8,26 +8,45 @@ import {
   addExerciseToBlock,
   createBlock,
   deleteBlock,
+  getLinkedWeeksForExercise,
   removeExerciseFromBlock,
   reorderBlockExercises,
   reorderBlocks,
   updateBlock,
   updateBlockExercise,
   type AddExerciseToBlockInput,
+  type BlockExerciseWithMeasurements,
   type CreateBlockInput,
+  type LinkScope,
   type UpdateBlockExerciseInput,
   type UpdateBlockInput,
 } from "@/src/services/block.service";
+import {
+  addBlankProgramWeeks,
+  deleteProgramWeek,
+} from "@/src/services/program.service";
+import {
+  copyProgramWeeks,
+  listEligibleImportSources,
+  type CopyProgramWeeksInput,
+} from "@/src/services/programImport.service";
 import {
   createSession,
   deleteSession,
   duplicateSession,
   reorderSessions,
+  setLinkedWeeks,
   updateSessionName,
   type CreateSessionInput,
   type DuplicateSessionInput,
+  type SetLinkedWeeksInput,
 } from "@/src/services/session.service";
-import type { BlockExerciseRow, BlockRow, SessionRow } from "@hooper/db";
+import type {
+  BlockRow,
+  ProgramRow,
+  ProgramSummary,
+  SessionRow,
+} from "@hooper/db";
 import { revalidatePath } from "next/cache";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
@@ -69,6 +88,55 @@ export async function duplicateSessionAction(
   input: DuplicateSessionInput,
 ): Promise<ActionResult<SessionRow[]>> {
   const result = await duplicateSession(input);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function setLinkedWeeksAction(
+  input: SetLinkedWeeksInput,
+): Promise<ActionResult> {
+  const result = await setLinkedWeeks(input);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+export async function deleteProgramWeekAction(
+  programId: string,
+  weekNumber: number,
+): Promise<ActionResult<ProgramRow>> {
+  const result = await deleteProgramWeek(programId, weekNumber);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function addBlankProgramWeeksAction(
+  programId: string,
+  count: number,
+): Promise<ActionResult<ProgramRow>> {
+  const result = await addBlankProgramWeeks(programId, count);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function listEligibleImportSourcesAction(
+  destinationProgramId: string,
+): Promise<ActionResult<ProgramSummary[]>> {
+  const result = await listEligibleImportSources(destinationProgramId);
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function copyProgramWeeksAction(
+  input: CopyProgramWeeksInput,
+): Promise<ActionResult<ProgramRow>> {
+  const result = await copyProgramWeeks(input);
   if (result.ok) revalidateProgramRoutes();
   return result.ok
     ? { ok: true, data: result.data }
@@ -120,7 +188,7 @@ export async function reorderBlocksAction(
 
 export async function addExerciseToBlockAction(
   input: AddExerciseToBlockInput,
-): Promise<ActionResult<BlockExerciseRow>> {
+): Promise<ActionResult<BlockExerciseWithMeasurements>> {
   const result = await addExerciseToBlock(input);
   if (result.ok) revalidateProgramRoutes();
   return result.ok
@@ -131,9 +199,19 @@ export async function addExerciseToBlockAction(
 export async function updateBlockExerciseAction(
   id: string,
   input: UpdateBlockExerciseInput,
-): Promise<ActionResult<BlockExerciseRow>> {
-  const result = await updateBlockExercise(id, input);
+  scope: LinkScope = "this",
+): Promise<ActionResult<BlockExerciseWithMeasurements>> {
+  const result = await updateBlockExercise(id, input, scope);
   if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function getLinkedWeeksForExerciseAction(
+  id: string,
+): Promise<ActionResult<number[]>> {
+  const result = await getLinkedWeeksForExercise(id);
   return result.ok
     ? { ok: true, data: result.data }
     : { ok: false, error: result.error };

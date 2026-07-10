@@ -1,38 +1,16 @@
 "use client";
 
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
+import Link from "next/link";
 import { useState } from "react";
+import { CreateExerciseButton } from "./CreateExerciseButton";
 import { DraggableLibraryRow } from "./dnd/DraggableLibraryRow";
+import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { filterExercises } from "./exerciseFilter";
 
-interface ExerciseLibraryShelfProps {
+interface ExerciseLibraryShelfProps extends CreateExerciseActions {
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
-}
-
-function ShelfToggle({
-  open,
-  count,
-  onToggle,
-}: {
-  open: boolean;
-  count: number;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="border-portal-border bg-portal-card flex h-9 w-full flex-shrink-0 items-center gap-2 border-t px-4 text-left">
-      <span className="text-portal-text1 text-[12px] font-bold">
-        Exercise Library
-      </span>
-      <span className="text-portal-text3 text-[11px]">— {count} exercises</span>
-      <span className="text-portal-text3 ml-auto text-[10px]">
-        {open ? "Collapse" : "Expand"}
-      </span>
-    </button>
-  );
 }
 
 function ShelfSidebar({
@@ -70,42 +48,52 @@ function ShelfSidebar({
       <p className="text-portal-text3 mt-auto text-[10px] leading-relaxed">
         Drag a card up into any block above to add it.
       </p>
+      <Link
+        href="/exercises"
+        className="text-portal-orange text-[10px] font-semibold hover:underline">
+        Manage Exercise Library →
+      </Link>
     </div>
   );
 }
 
-export function ExerciseLibraryShelf({
+/** The shelf's expandable content — mounted only while the containing
+ * ProgramLibraryShelf toggle is open (see ProgramLibraryShelf.tsx, which
+ * owns the shared open/collapsed + Exercises/Blocks tab chrome). */
+export function ExerciseLibraryShelfBody({
   exercises,
   categories,
+  profileId,
+  createExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
 }: ExerciseLibraryShelfProps) {
-  const [open, setOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const filtered = filterExercises(exercises, search, categoryId);
 
   return (
-    <div className="bg-portal-card flex-shrink-0">
-      <ShelfToggle
-        open={open}
-        count={exercises.length}
-        onToggle={() => setOpen((o) => !o)}
+    <div className="flex h-[190px]">
+      <ShelfSidebar
+        search={search}
+        onSearch={setSearch}
+        categoryId={categoryId}
+        onCategory={setCategoryId}
+        categories={categories}
       />
-      {open && (
-        <div className="border-portal-border flex h-[190px] border-t">
-          <ShelfSidebar
-            search={search}
-            onSearch={setSearch}
-            categoryId={categoryId}
-            onCategory={setCategoryId}
-            categories={categories}
-          />
-          <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto p-2.5">
-            {filtered.map((ex) => (
-              <DraggableLibraryRow key={ex.id} exercise={ex} variant="card" />
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto p-2.5">
+        {filtered.map((ex) => (
+          <DraggableLibraryRow key={ex.id} exercise={ex} variant="card" />
+        ))}
+        <CreateExerciseButton
+          categories={categories}
+          profileId={profileId}
+          createExerciseAction={createExerciseAction}
+          updateExerciseAction={updateExerciseAction}
+          updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+          className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex h-[52px] w-[136px] flex-shrink-0 items-center justify-center rounded-lg border border-dashed px-2.5 text-center text-[11px] font-bold"
+        />
+      </div>
     </div>
   );
 }

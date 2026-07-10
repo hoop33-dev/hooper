@@ -2,15 +2,16 @@
 
 import type { ProgramSummary } from "@hooper/db";
 import { useState } from "react";
+import { InlineConfirmBar } from "../ui/InlineConfirmBar";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
-import { NumberStepper } from "./NumberStepper";
+import { XIcon } from "../ui/icons";
+import { useModalDismiss } from "../ui/useModalDismiss";
 
 export type ProgramEditFormData = {
   name: string;
   description?: string;
-  weeks: number;
-  sessions_per_week: number;
+  notes?: string;
 };
 
 interface ProgramEditDrawerProps {
@@ -30,7 +31,26 @@ function DangerZone({
   onPublish: () => Promise<void>;
   onDelete: () => Promise<void>;
 }) {
-  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await onDelete();
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function handlePublish() {
+    setPublishing(true);
+    try {
+      await onPublish();
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   return (
     <div className="border-portal-border mt-1 border-t pt-4">
@@ -38,36 +58,22 @@ function DangerZone({
         Danger zone
       </div>
       {status === "draft" && (
-        <PortalButton
-          variant="secondary"
-          className="mb-2 w-full justify-start"
-          onClick={onPublish}>
-          Publish this program
-        </PortalButton>
+        <InlineConfirmBar
+          idleLabel="Publish this program"
+          confirmLabel="Publish this program?"
+          confirmActionLabel="Publish"
+          onConfirm={handlePublish}
+          loading={publishing}
+          tone="success"
+          className="mb-2"
+        />
       )}
-      {confirming ? (
-        <div className="flex h-9 items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4">
-          <span className="flex-1 text-sm text-red-700">
-            Delete this program?
-          </span>
-          <PortalButton
-            variant="ghost"
-            size="sm"
-            onClick={() => setConfirming(false)}>
-            Cancel
-          </PortalButton>
-          <PortalButton variant="danger" size="sm" onClick={onDelete}>
-            Delete
-          </PortalButton>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
-          className="w-full rounded-lg border border-red-200 bg-red-50 px-3.5 py-2 text-left text-xs font-semibold text-red-500">
-          Delete this program…
-        </button>
-      )}
+      <InlineConfirmBar
+        idleLabel="Delete this program"
+        confirmLabel="Delete this program?"
+        onConfirm={handleDelete}
+        loading={deleting}
+      />
     </div>
   );
 }
@@ -91,7 +97,7 @@ function DrawerHeader({
         type="button"
         onClick={onClose}
         className="border-portal-border text-portal-text2 flex h-8 w-8 items-center justify-center rounded-full border">
-        ×
+        <XIcon />
       </button>
     </div>
   );
@@ -102,10 +108,8 @@ interface DrawerFieldsProps {
   onName: (v: string) => void;
   description: string;
   onDescription: (v: string) => void;
-  weeks: number;
-  onWeeks: (v: number) => void;
-  sessionsPerWeek: number;
-  onSessionsPerWeek: (v: number) => void;
+  notes: string;
+  onNotes: (v: string) => void;
   program: ProgramSummary;
   onPublish: () => Promise<void>;
   onDelete: () => Promise<void>;
@@ -116,10 +120,8 @@ function DrawerFields({
   onName,
   description,
   onDescription,
-  weeks,
-  onWeeks,
-  sessionsPerWeek,
-  onSessionsPerWeek,
+  notes,
+  onNotes,
   program,
   onPublish,
   onDelete,
@@ -137,22 +139,13 @@ function DrawerFields({
         onChange={(e) => onDescription(e.target.value)}
         rows={2}
       />
-      <div className="grid grid-cols-2 gap-3">
-        <NumberStepper
-          label="Duration (weeks)"
-          value={weeks}
-          onChange={onWeeks}
-          min={1}
-          max={52}
-        />
-        <NumberStepper
-          label="Sessions/week"
-          value={sessionsPerWeek}
-          onChange={onSessionsPerWeek}
-          min={1}
-          max={7}
-        />
-      </div>
+      <PortalTextarea
+        label="Notes (optional)"
+        value={notes}
+        onChange={(e) => onNotes(e.target.value)}
+        placeholder="e.g. Do things at this tempo, rest 90s between sets…"
+        rows={2}
+      />
       <DangerZone
         status={program.status}
         onPublish={onPublish}
@@ -171,25 +164,24 @@ export function ProgramEditDrawer({
 }: ProgramEditDrawerProps) {
   const [name, setName] = useState(program.name);
   const [description, setDescription] = useState(program.description ?? "");
-  const [weeks, setWeeks] = useState(program.weeks);
-  const [sessionsPerWeek, setSessionsPerWeek] = useState(
-    program.sessions_per_week,
-  );
+  const [notes, setNotes] = useState(program.notes ?? "");
   const [saving, setSaving] = useState(false);
+  const onBackdropClick = useModalDismiss(onClose);
 
   async function handleSave() {
     setSaving(true);
     await onSave({
       name: name.trim(),
       description: description.trim() || undefined,
-      weeks,
-      sessions_per_week: sessionsPerWeek,
+      notes: notes.trim() || undefined,
     });
     setSaving(false);
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/35">
+    <div
+      onClick={onBackdropClick}
+      className="fixed inset-0 z-50 flex justify-end bg-black/35">
       <div className="bg-portal-card flex h-full w-full max-w-md flex-col shadow-2xl">
         <DrawerHeader programName={program.name} onClose={onClose} />
         <DrawerFields
@@ -197,10 +189,8 @@ export function ProgramEditDrawer({
           onName={setName}
           description={description}
           onDescription={setDescription}
-          weeks={weeks}
-          onWeeks={setWeeks}
-          sessionsPerWeek={sessionsPerWeek}
-          onSessionsPerWeek={setSessionsPerWeek}
+          notes={notes}
+          onNotes={setNotes}
           program={program}
           onPublish={onPublish}
           onDelete={onDelete}

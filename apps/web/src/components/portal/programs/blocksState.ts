@@ -1,5 +1,5 @@
 import type {
-  BlockExerciseRow,
+  BlockExerciseWithDetails,
   BlockRow,
   BlockWithExercises,
 } from "@hooper/db";
@@ -22,7 +22,7 @@ export function removeBlock(
 export function patchExercise(
   blocks: BlockWithExercises[],
   exerciseRowId: string,
-  patch: Partial<BlockExerciseRow>,
+  patch: Partial<BlockExerciseWithDetails>,
 ): BlockWithExercises[] {
   return blocks.map((b) => ({
     ...b,

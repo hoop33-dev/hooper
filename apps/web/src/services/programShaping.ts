@@ -1,4 +1,5 @@
 import type {
+  BlockExerciseMeasurementRow,
   BlockExerciseRow,
   BlockRow,
   BlockWithExercises,
@@ -7,7 +8,7 @@ import type {
 import { toExerciseWithDetails, type RawExercise } from "./exercise.service";
 
 export const BLOCK_EXERCISE_SELECT =
-  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type, position))";
+  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type, position)), block_exercise_measurements(*)";
 
 // Select content for a single `blocks` row, embedding its placed exercises.
 const BLOCK_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
@@ -18,7 +19,10 @@ const BLOCK_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
 // getProgramById (`sessions(${SESSION_SELECT})`).
 export const SESSION_SELECT = `*, blocks(${BLOCK_SELECT})`;
 
-export type RawBlockExercise = BlockExerciseRow & { exercise: RawExercise };
+export type RawBlockExercise = BlockExerciseRow & {
+  exercise: RawExercise;
+  block_exercise_measurements: BlockExerciseMeasurementRow[];
+};
 export type RawBlock = BlockRow & { block_exercises: RawBlockExercise[] };
 
 /**
@@ -38,9 +42,12 @@ export function shapeBlocksWithExercises(
       ...block,
       exercises: [...block_exercises]
         .sort((a, b) => a.position - b.position)
-        .map(({ exercise, ...blockExercise }) => ({
+        .map(({ exercise, block_exercise_measurements, ...blockExercise }) => ({
           ...blockExercise,
           exercise: toExerciseWithDetails(exercise, allCategories),
+          measurements: [...block_exercise_measurements].sort(
+            (a, b) => a.position - b.position,
+          ),
         })),
     }));
 }

@@ -74,6 +74,13 @@ const NAV_ITEMS: NavItem[] = [
     active: true,
   },
   {
+    id: "programs",
+    label: "Programs",
+    href: "/programs",
+    Icon: LayersIcon,
+    active: true,
+  },
+  {
     id: "library",
     label: "Library",
     Icon: LibraryIcon,
@@ -94,13 +101,6 @@ const NAV_ITEMS: NavItem[] = [
         active: true,
       },
     ],
-  },
-  {
-    id: "programs",
-    label: "Programs",
-    href: "/programs",
-    Icon: LayersIcon,
-    active: true,
   },
   {
     id: "athletes",

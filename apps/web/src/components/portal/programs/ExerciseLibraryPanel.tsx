@@ -4,6 +4,7 @@ import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { ExercisePreviewModal } from "../exercises/ExercisePreviewModal";
 import { CreateExerciseButton } from "./CreateExerciseButton";
 import { DraggableLibraryRow } from "./dnd/DraggableLibraryRow";
 import type { CreateExerciseActions } from "./exerciseActionsProps";
@@ -28,7 +29,9 @@ export function ExerciseLibraryPanel({
 }: ExerciseLibraryPanelProps) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const filtered = filterExercises(exercises, search, categoryId);
+  const [previewExercise, setPreviewExercise] =
+    useState<ExerciseWithDetails | null>(null);
+  const filtered = filterExercises(exercises, search, categoryId, categories);
 
   return (
     <div className="border-portal-border bg-portal-card flex w-[280px] flex-shrink-0 flex-col border-r">
@@ -63,7 +66,11 @@ export function ExerciseLibraryPanel({
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {filtered.map((ex) => (
-          <DraggableLibraryRow key={ex.id} exercise={ex} />
+          <DraggableLibraryRow
+            key={ex.id}
+            exercise={ex}
+            onOpen={setPreviewExercise}
+          />
         ))}
         <CreateExerciseButton
           categories={categories}
@@ -85,6 +92,12 @@ export function ExerciseLibraryPanel({
           Manage Exercise Library →
         </Link>
       </div>
+      {previewExercise && (
+        <ExercisePreviewModal
+          exercise={previewExercise}
+          onClose={() => setPreviewExercise(null)}
+        />
+      )}
     </div>
   );
 }

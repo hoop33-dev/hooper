@@ -96,36 +96,6 @@ export async function listExercises(
   }
 }
 
-export async function getExerciseById(
-  id: string,
-): Promise<Result<ExerciseWithDetails>> {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("exercises")
-      .select(
-        "*, exercise_category_links(category_id), exercise_unit_types(unit_type, position)",
-      )
-      .eq("id", id)
-      .single();
-
-    if (error) return err(error.message);
-
-    const { data: cats } = await supabase
-      .from("exercise_categories")
-      .select("*");
-
-    return ok(
-      toExerciseWithDetails(
-        data as unknown as RawExercise,
-        (cats ?? []) as ExerciseCategoryRow[],
-      ),
-    );
-  } catch (e) {
-    return err(toErrorMessage(e));
-  }
-}
-
 async function insertCategoryLinks(
   supabase: Awaited<ReturnType<typeof createClient>>,
   exerciseId: string,

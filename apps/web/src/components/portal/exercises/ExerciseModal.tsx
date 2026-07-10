@@ -3,7 +3,7 @@
 import type { UnitType } from "@/src/constants/unitTypes";
 import type { ExerciseCategoryRow, ExerciseVideoSource } from "@hooper/db";
 import type { MouseEvent } from "react";
-import { InlineConfirmDeleteBar } from "../ui/InlineConfirmDeleteBar";
+import { InlineConfirmBar } from "../ui/InlineConfirmBar";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
 import { useModalDismiss } from "../ui/useModalDismiss";
@@ -251,11 +251,11 @@ function ModalFooter({
       <div className="flex items-center justify-between">
         <div>
           {mode === "edit" && deleteAction && (
-            <InlineConfirmDeleteBar
+            <InlineConfirmBar
               idleLabel="Delete exercise"
               confirmLabel="Delete this exercise?"
-              onDelete={onDelete}
-              deleting={saving}
+              onConfirm={onDelete}
+              loading={saving}
             />
           )}
         </div>

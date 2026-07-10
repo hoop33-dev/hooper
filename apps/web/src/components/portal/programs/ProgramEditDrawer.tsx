@@ -2,18 +2,16 @@
 
 import type { ProgramSummary } from "@hooper/db";
 import { useState } from "react";
-import { InlineConfirmDeleteBar } from "../ui/InlineConfirmDeleteBar";
+import { InlineConfirmBar } from "../ui/InlineConfirmBar";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
 import { XIcon } from "../ui/icons";
 import { useModalDismiss } from "../ui/useModalDismiss";
-import { NumberStepper } from "./NumberStepper";
 
 export type ProgramEditFormData = {
   name: string;
   description?: string;
   notes?: string;
-  weeks: number;
 };
 
 interface ProgramEditDrawerProps {
@@ -34,6 +32,7 @@ function DangerZone({
   onDelete: () => Promise<void>;
 }) {
   const [deleting, setDeleting] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   async function handleDelete() {
     setDeleting(true);
@@ -44,24 +43,36 @@ function DangerZone({
     }
   }
 
+  async function handlePublish() {
+    setPublishing(true);
+    try {
+      await onPublish();
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   return (
     <div className="border-portal-border mt-1 border-t pt-4">
       <div className="text-portal-text3 mb-2.5 text-[10px] font-bold tracking-wider uppercase">
         Danger zone
       </div>
       {status === "draft" && (
-        <PortalButton
-          variant="secondary"
-          className="mb-2 w-full justify-start"
-          onClick={onPublish}>
-          Publish this program
-        </PortalButton>
+        <InlineConfirmBar
+          idleLabel="Publish this program"
+          confirmLabel="Publish this program?"
+          confirmActionLabel="Publish"
+          onConfirm={handlePublish}
+          loading={publishing}
+          tone="success"
+          className="mb-2"
+        />
       )}
-      <InlineConfirmDeleteBar
+      <InlineConfirmBar
         idleLabel="Delete this program"
         confirmLabel="Delete this program?"
-        onDelete={handleDelete}
-        deleting={deleting}
+        onConfirm={handleDelete}
+        loading={deleting}
       />
     </div>
   );
@@ -99,8 +110,6 @@ interface DrawerFieldsProps {
   onDescription: (v: string) => void;
   notes: string;
   onNotes: (v: string) => void;
-  weeks: number;
-  onWeeks: (v: number) => void;
   program: ProgramSummary;
   onPublish: () => Promise<void>;
   onDelete: () => Promise<void>;
@@ -113,8 +122,6 @@ function DrawerFields({
   onDescription,
   notes,
   onNotes,
-  weeks,
-  onWeeks,
   program,
   onPublish,
   onDelete,
@@ -139,13 +146,6 @@ function DrawerFields({
         placeholder="e.g. Do things at this tempo, rest 90s between sets…"
         rows={2}
       />
-      <NumberStepper
-        label="Duration (weeks)"
-        value={weeks}
-        onChange={onWeeks}
-        min={1}
-        max={52}
-      />
       <DangerZone
         status={program.status}
         onPublish={onPublish}
@@ -165,7 +165,6 @@ export function ProgramEditDrawer({
   const [name, setName] = useState(program.name);
   const [description, setDescription] = useState(program.description ?? "");
   const [notes, setNotes] = useState(program.notes ?? "");
-  const [weeks, setWeeks] = useState(program.weeks);
   const [saving, setSaving] = useState(false);
   const onBackdropClick = useModalDismiss(onClose);
 
@@ -175,7 +174,6 @@ export function ProgramEditDrawer({
       name: name.trim(),
       description: description.trim() || undefined,
       notes: notes.trim() || undefined,
-      weeks,
     });
     setSaving(false);
   }
@@ -193,8 +191,6 @@ export function ProgramEditDrawer({
           onDescription={setDescription}
           notes={notes}
           onNotes={setNotes}
-          weeks={weeks}
-          onWeeks={setWeeks}
           program={program}
           onPublish={onPublish}
           onDelete={onDelete}

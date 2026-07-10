@@ -3,7 +3,7 @@
 import { getDescendantIds } from "@/src/lib/categoryTree";
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
 import { useState } from "react";
-import { InlineConfirmDeleteBar } from "../ui/InlineConfirmDeleteBar";
+import { InlineConfirmBar } from "../ui/InlineConfirmBar";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
 
@@ -210,11 +210,11 @@ function DeleteZone({ onDelete }: { onDelete: () => Promise<void> }) {
   }
 
   return (
-    <InlineConfirmDeleteBar
+    <InlineConfirmBar
       idleLabel="Delete category"
       confirmLabel="Delete this category?"
-      onDelete={handleDelete}
-      deleting={deleting}
+      onConfirm={handleDelete}
+      loading={deleting}
     />
   );
 }

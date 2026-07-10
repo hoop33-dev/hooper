@@ -1,4 +1,7 @@
+"use client";
+
 import type { ProgramSummary } from "@hooper/db";
+import { useRouter } from "next/navigation";
 import { ProgramStatusBadge } from "./ProgramStatusBadge";
 
 function formatUpdatedAt(iso: string): string {
@@ -43,6 +46,7 @@ interface ProgramsTableProps {
 }
 
 export function ProgramsTable({ programs, onEdit }: ProgramsTableProps) {
+  const router = useRouter();
   const columns = ["Program", "Length", "Sessions", "Status", "Updated"];
   return (
     <table className="w-full border-collapse">
@@ -60,11 +64,12 @@ export function ProgramsTable({ programs, onEdit }: ProgramsTableProps) {
       </thead>
       <tbody>
         {programs.map((program) => (
-          <tr key={program.id} className="border-portal-border border-b">
+          <tr
+            key={program.id}
+            onClick={() => router.push(`/programs/${program.id}`)}
+            className="border-portal-border hover:bg-portal-bg cursor-pointer border-b">
             <td className="py-3.5 pr-4">
-              <a href={`/programs/${program.id}`} className="block">
-                <ProgramNameCell program={program} />
-              </a>
+              <ProgramNameCell program={program} />
             </td>
             <td className="text-portal-text2 py-3.5 pr-4 text-[13px]">
               {program.weeks} wk ·{" "}
@@ -82,8 +87,11 @@ export function ProgramsTable({ programs, onEdit }: ProgramsTableProps) {
             <td className="py-3.5 text-right">
               <button
                 type="button"
-                onClick={() => onEdit(program)}
-                className="border-portal-border text-portal-text2 hover:bg-portal-bg rounded-lg border px-3 py-1 text-xs font-semibold">
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(program);
+                }}
+                className="border-portal-border text-portal-text2 hover:bg-portal-card rounded-lg border px-3 py-1 text-xs font-semibold">
                 Edit
               </button>
             </td>

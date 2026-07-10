@@ -4,13 +4,11 @@ import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
 import { useModalDismiss } from "../ui/useModalDismiss";
-import { NumberStepper } from "./NumberStepper";
 
 export type ProgramCreateFormData = {
   name: string;
   description?: string;
   notes?: string;
-  weeks: number;
 };
 
 interface ProgramCreateModalProps {
@@ -43,8 +41,6 @@ interface ModalFieldsProps {
   onDescription: (v: string) => void;
   notes: string;
   onNotes: (v: string) => void;
-  weeks: number;
-  onWeeks: (v: number) => void;
 }
 
 function ModalFields({
@@ -54,8 +50,6 @@ function ModalFields({
   onDescription,
   notes,
   onNotes,
-  weeks,
-  onWeeks,
 }: ModalFieldsProps) {
   return (
     <div className="flex flex-col gap-4 px-6 py-5">
@@ -80,16 +74,8 @@ function ModalFields({
         placeholder="e.g. Do things at this tempo, rest 90s between sets…"
         rows={2}
       />
-      <NumberStepper
-        label="Duration (weeks)"
-        value={weeks}
-        onChange={onWeeks}
-        min={1}
-        max={52}
-      />
       <p className="text-portal-text3 text-xs">
-        You&apos;ll add sessions individually after creating the program — weeks
-        is just a planning target for now.
+        You&apos;ll add weeks and sessions after creating the program.
       </p>
     </div>
   );
@@ -125,7 +111,6 @@ export function ProgramCreateModal({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
-  const [weeks, setWeeks] = useState(8);
   const [saving, setSaving] = useState(false);
   const onBackdropClick = useModalDismiss(onClose);
 
@@ -136,7 +121,6 @@ export function ProgramCreateModal({
       name: name.trim(),
       description: description.trim() || undefined,
       notes: notes.trim() || undefined,
-      weeks,
     });
     setSaving(false);
   }
@@ -154,8 +138,6 @@ export function ProgramCreateModal({
           onDescription={setDescription}
           notes={notes}
           onNotes={setNotes}
-          weeks={weeks}
-          onWeeks={setWeeks}
         />
         <ModalFooter
           onClose={onClose}

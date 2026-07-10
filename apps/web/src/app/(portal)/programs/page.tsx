@@ -21,7 +21,7 @@ export default async function ProgramsPage() {
 
   async function wrappedCreate(data: ProgramCreateFormData) {
     "use server";
-    return createProgramAction({ ...data, created_by: profileId });
+    return createProgramAction({ ...data, weeks: 0, created_by: profileId });
   }
 
   return (

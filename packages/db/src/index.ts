@@ -125,8 +125,12 @@ export type SessionTemplateSummary = SessionTemplateRow & {
 
 // Full depth: the program canvas renders real blocks + placed exercises
 // inline, not a count summary, so this needs the whole tree.
+// updatedByName is the creator's display name — only `created_by` can ever
+// write to a program (see programs_update_own RLS), so "last edited by"
+// and "created by" are always the same person.
 export type ProgramWithSessions = ProgramRow & {
   sessions: SessionWithBlocks[];
+  updatedByName: string | null;
 };
 
 // sessionCount is a real COUNT(*) over `sessions`, and sessionsPerWeek is the

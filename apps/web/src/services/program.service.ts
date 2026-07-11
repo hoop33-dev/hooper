@@ -32,6 +32,18 @@ export type UpdateProgramInput = {
 type RawSession = SessionRow & { blocks: RawBlock[] };
 type RawProgram = ProgramRow & { sessions: RawSession[] };
 
+/** "First L." — short enough to sit at the end of the week-tabs row without
+ * crowding it. */
+function formatProfileName(
+  profile: { first_name: string | null; last_name: string | null } | null,
+): string | null {
+  if (!profile) return null;
+  const first = profile.first_name?.trim() ?? "";
+  const lastInitial = profile.last_name?.trim()?.[0];
+  const name = lastInitial ? `${first} ${lastInitial}.` : first;
+  return name.trim() || null;
+}
+
 /** [min, max] sessions-per-week across weeks that have at least one session,
  * or null if none do. Derived from real rows rather than a stored target. */
 function sessionsPerWeekRange(
@@ -92,6 +104,13 @@ export async function getProgramById(
     const allCategories = (cats ?? []) as ExerciseCategoryRow[];
 
     const raw = data as unknown as RawProgram;
+
+    const { data: creator } = await supabase
+      .from("profiles")
+      .select("first_name, last_name")
+      .eq("id", raw.created_by)
+      .single();
+
     const sessions = [...raw.sessions]
       .sort((a, b) => a.week_number - b.week_number || a.position - b.position)
       .map(({ blocks, ...session }) => ({
@@ -99,7 +118,11 @@ export async function getProgramById(
         blocks: shapeBlocksWithExercises(blocks, allCategories),
       }));
 
-    return ok({ ...raw, sessions });
+    return ok({
+      ...raw,
+      sessions,
+      updatedByName: formatProfileName(creator),
+    });
   } catch (e) {
     return err(toErrorMessage(e));
   }

@@ -71,6 +71,8 @@ function ProgramCanvasBody({
         onSelect={state.selectWeek}
         onOpenAddWeek={state.openWeekAddModal}
         onDeleteWeek={state.deleteWeek}
+        updatedAt={program.updated_at}
+        updatedByName={program.updatedByName}
       />
       <SessionCanvasRow
         programId={program.id}

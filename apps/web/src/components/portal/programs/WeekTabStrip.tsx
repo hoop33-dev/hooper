@@ -7,6 +7,17 @@ interface WeekTabStripProps {
   onSelect: (week: number) => void;
   onOpenAddWeek: () => void;
   onDeleteWeek: (week: number) => void;
+  updatedAt: string;
+  updatedByName: string | null;
+}
+
+function formatEditedAt(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 function WeekTab({
@@ -87,27 +98,35 @@ export function WeekTabStrip({
   onSelect,
   onOpenAddWeek,
   onDeleteWeek,
+  updatedAt,
+  updatedByName,
 }: WeekTabStripProps) {
   const weeks = Array.from({ length: totalWeeks }, (_, i) => i + 1);
   return (
-    <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-1 overflow-x-auto border-b px-5 py-2">
-      {weeks.map((w) => (
-        <WeekTab
-          key={w}
-          week={w}
-          selected={w === selectedWeek}
-          showDelete={totalWeeks > 1}
-          onSelect={() => onSelect(w)}
-          onDelete={() => onDeleteWeek(w)}
-        />
-      ))}
-      <button
-        type="button"
-        onClick={onOpenAddWeek}
-        title="Add week"
-        className="border-portal-border-mid text-portal-text3 h-7 flex-shrink-0 rounded-md border border-dashed px-3 text-xs font-semibold">
-        + Week
-      </button>
+    <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-3 border-b px-5 py-2">
+      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+        {weeks.map((w) => (
+          <WeekTab
+            key={w}
+            week={w}
+            selected={w === selectedWeek}
+            showDelete={totalWeeks > 1}
+            onSelect={() => onSelect(w)}
+            onDelete={() => onDeleteWeek(w)}
+          />
+        ))}
+        <button
+          type="button"
+          onClick={onOpenAddWeek}
+          title="Add week"
+          className="border-portal-border-mid text-portal-text3 h-7 flex-shrink-0 rounded-md border border-dashed px-3 text-xs font-semibold">
+          + Week
+        </button>
+      </div>
+      <span className="text-portal-text3 flex-shrink-0 text-xs">
+        Last edited{updatedByName ? ` by ${updatedByName}` : ""} at{" "}
+        {formatEditedAt(updatedAt)}
+      </span>
     </div>
   );
 }

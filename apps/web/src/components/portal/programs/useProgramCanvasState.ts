@@ -132,11 +132,78 @@ export interface ProgramCanvasActions {
 }
 
 export type SessionModalState =
-  | { type: "create"; weekNumber: number }
+  | {
+      type: "create";
+      weekNumber: number;
+      /** Set when this modal was opened by dropping a library exercise on
+       * the "+ Add session" zone — once the session is named, a new block
+       * gets created in it and this exercise added to that block. */
+      seedExerciseId?: string;
+    }
   | { type: "rename"; session: SessionWithBlocks }
   | { type: "duplicate"; session: SessionWithBlocks }
   | { type: "saveAsTemplate"; session: SessionWithBlocks }
   | null;
+
+/** Weeks aren't a stored entity of their own — just a count on the program
+ * plus a `week_number` on each session (see program.service.ts) — so a
+ * program with zero weeks happily accepts a session for week 1 without that
+ * count ever moving, leaving it stuck showing "0 weeks" despite having a
+ * session. Bumps the count first so the week a new session lands in
+ * actually exists. */
+async function ensureWeekExists(
+  weekNumber: number,
+  program: ProgramWithSessions,
+  actions: ProgramCanvasActions,
+): Promise<{ ok: boolean; error?: string }> {
+  if (program.weeks >= weekNumber) return { ok: true };
+  return actions.addBlankProgramWeeksAction(
+    program.id,
+    weekNumber - program.weeks,
+  );
+}
+
+/** Builds the seeded create-session modal state for a library-exercise drop
+ * on the "+ Add session" zone — split out purely to keep the state that
+ * builds it under the line-count limit. */
+function seededCreateModalState(
+  exerciseId: string,
+  weekNumber: number,
+): SessionModalState {
+  return { type: "create", weekNumber, seedExerciseId: exerciseId };
+}
+
+/** Creates a blank session, then a first block in it seeded with
+ * `exerciseId` — backs dropping a library exercise onto the "+ Add session"
+ * zone, where the modal only needs to ask for a name since the block and
+ * exercise are already decided. */
+async function createSeededSession(
+  data: Extract<SessionCreateData, { mode: "blank" }>,
+  exerciseId: string,
+  program: ProgramWithSessions,
+  actions: ProgramCanvasActions,
+): Promise<{ ok: boolean; error?: string }> {
+  const weekResult = await ensureWeekExists(data.week_number, program, actions);
+  if (!weekResult.ok) return weekResult;
+
+  const sessionResult = await actions.createSessionAction({
+    program_id: program.id,
+    week_number: data.week_number,
+    name: data.name,
+  });
+  if (!sessionResult.ok || !sessionResult.data) return sessionResult;
+
+  const blockResult = await actions.createBlockAction({
+    session_id: sessionResult.data.id,
+    name: "New block",
+  });
+  if (!blockResult.ok || !blockResult.data) return blockResult;
+
+  return actions.addExerciseToBlockAction({
+    block_id: blockResult.data.id,
+    exercise_id: exerciseId,
+  });
+}
 
 /** Resolves the create-session request against whichever backing action its
  * mode calls for — a blank session, a copy of an existing one, or a copy of
@@ -146,6 +213,9 @@ async function resolveCreateSession(
   program: ProgramWithSessions,
   actions: ProgramCanvasActions,
 ): Promise<{ ok: boolean; error?: string }> {
+  const weekResult = await ensureWeekExists(data.week_number, program, actions);
+  if (!weekResult.ok) return weekResult;
+
   if (data.mode === "template") {
     if (!actions.createSessionFromTemplateAction) return { ok: false };
     return actions.createSessionFromTemplateAction({
@@ -209,6 +279,12 @@ function useSessionModalHandlers(
   }
 
   async function handleCreateSession(data: SessionCreateData) {
+    const seedExerciseId =
+      sessionModal?.type === "create" ? sessionModal.seedExerciseId : undefined;
+    if (data.mode === "blank" && seedExerciseId) {
+      finish(await createSeededSession(data, seedExerciseId, program, actions));
+      return;
+    }
     finish(await resolveCreateSession(data, program, actions));
   }
 
@@ -382,6 +458,7 @@ function useCanvasBlockState(
   blockTemplateNamesById: Map<string, string>,
   sessionTemplatesById: Map<string, SessionTemplateSummary>,
   router: ReturnType<typeof useRouter>,
+  onLibraryDropOnNewSession: (exerciseId: string, weekNumber: number) => void,
 ) {
   const weekBlocks = weekSessions.flatMap((s) => s.blocks);
   const linkAware = useLinkAwareActions(weekBlocks, actions, router);
@@ -404,6 +481,7 @@ function useCanvasBlockState(
     weekSessions,
     setWeekSessionOrder,
     reorderSessionsAction: actions.reorderSessionsAction,
+    onLibraryDropOnNewSession,
   });
 
   const blockActions = useBlockActions({
@@ -670,6 +748,8 @@ export function useProgramCanvasState(
     blockTemplateNamesById,
     sessionTemplatesById,
     router,
+    (exerciseId, weekNumber) =>
+      setSessionModal(seededCreateModalState(exerciseId, weekNumber)),
   );
 
   function selectWeek(week: number) {

@@ -19,7 +19,7 @@ function allowedTargets(activeType: string): string[] {
     return ["block-exercise", "block", "gap"];
   if (activeType === "block") return ["block", "session", "gap"];
   if (activeType === "library")
-    return ["block-exercise", "block", "new-block", "gap"];
+    return ["block-exercise", "block", "new-block", "new-session", "gap"];
   // A block template always creates a whole new block, so it targets the
   // same zones a whole block does, plus "+ Add block" (equivalent to its
   // session — see resolveTargetSession in useBlockExerciseDnd.ts). A
@@ -41,6 +41,7 @@ function allowedTargets(activeType: string): string[] {
 const TYPE_PRIORITY = [
   "block-exercise",
   "new-block",
+  "new-session",
   "gap",
   "block",
   "session",

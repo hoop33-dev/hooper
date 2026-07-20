@@ -1,4 +1,5 @@
 import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
+import { ProgramAssignButton } from "@/src/components/portal/programs/ProgramAssignButton";
 import { ProgramCanvasShell } from "@/src/components/portal/programs/ProgramCanvasShell";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { getCoachProfile } from "@/src/services/auth.service";
@@ -6,8 +7,10 @@ import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
 import { getProgramById } from "@/src/services/program.service";
 import { listSessionTemplates } from "@/src/services/sessionTemplate.service";
+import { listTeams } from "@/src/services/team.service";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { lookupAthleteByUsernameAction } from "../../athletes/actions";
 import {
   createBlockFromTemplateAction,
   createBlocksFromSessionTemplateAction,
@@ -24,6 +27,8 @@ import { getImportSourceProgramAction, updateProgramAction } from "../actions";
 import {
   addBlankProgramWeeksAction,
   addExerciseToBlockAction,
+  assignProgramToPlayerAction,
+  assignProgramToTeamAction,
   copyProgramWeeksAction,
   createBlockAction,
   createSessionAction,
@@ -76,12 +81,14 @@ export default async function ProgramCanvasPage({
     categoriesResult,
     profileResult,
     sessionTemplatesResult,
+    teamsResult,
   ] = await Promise.all([
     getProgramById(id),
     listExercises(),
     listCategories(),
     getCoachProfile(),
     listSessionTemplates(),
+    listTeams(),
   ]);
 
   if (!programResult.ok) notFound();
@@ -92,6 +99,7 @@ export default async function ProgramCanvasPage({
   const sessionTemplates = sessionTemplatesResult.ok
     ? sessionTemplatesResult.data
     : [];
+  const teams = teamsResult.ok ? teamsResult.data : [];
 
   async function wrappedSaveBlockAsTemplate(blockId: string, name: string) {
     "use server";
@@ -113,7 +121,19 @@ export default async function ProgramCanvasPage({
       <PageHeader
         title={programResult.data.name}
         subtitle={`${programResult.data.weeks} weeks · ${formatSessionsPerWeek(programResult.data.sessions)}`}
-        action={<BackToProgramsLink />}
+        action={
+          <>
+            <BackToProgramsLink />
+            <ProgramAssignButton
+              programId={id}
+              profileId={profileId}
+              teams={teams}
+              lookupAthleteAction={lookupAthleteByUsernameAction}
+              assignToTeamAction={assignProgramToTeamAction}
+              assignToPlayerAction={assignProgramToPlayerAction}
+            />
+          </>
+        }
       />
       <ProgramCanvasShell
         program={programResult.data}

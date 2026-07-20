@@ -373,7 +373,18 @@ export type Database = {
       };
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      lookup_athlete_by_username: {
+        Args: { p_username: string };
+        Returns: {
+          id: string;
+          first_name: string;
+          last_name: string;
+          username: string;
+          avatar_url: string | null;
+        }[];
+      };
+    };
     Enums: {
       user_role: UserRoleEnum;
       program_status: ProgramStatus;

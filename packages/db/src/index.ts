@@ -144,3 +144,28 @@ export type ProgramSummary = ProgramRow & {
   sessionCount: number;
   sessionsPerWeek: [min: number, max: number] | null;
 };
+
+import type { TeamRow } from "./schema";
+
+export type TeamSummary = TeamRow & { memberCount: number };
+
+export type TeamMemberSummary = {
+  player_id: string;
+  first_name: string;
+  last_name: string;
+  username: string;
+  avatar_url: string | null;
+  added_at: string;
+};
+
+export type TeamWithMembers = TeamRow & { members: TeamMemberSummary[] };
+
+// Shape of a lookup_athlete_by_username RPC result row — not a table Row
+// since it's a narrowed projection of `profiles`, returned only to coaches.
+export type AthleteMatch = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  username: string;
+  avatar_url: string | null;
+};

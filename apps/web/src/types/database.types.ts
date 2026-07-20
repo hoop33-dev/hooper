@@ -41,3 +41,14 @@ export type {
   SessionTemplateSummary,
   SessionTemplateWithBlocks,
 } from "@hooper/db";
+
+// Teams and Program Assignments types (re-exported from @hooper/db)
+export type {
+  AthleteMatch,
+  ProgramAssignmentRow,
+  TeamMemberRow,
+  TeamMemberSummary,
+  TeamRow,
+  TeamSummary,
+  TeamWithMembers,
+} from "@hooper/db";

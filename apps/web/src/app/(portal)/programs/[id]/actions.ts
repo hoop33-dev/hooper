@@ -5,6 +5,12 @@ import type {
   BlockPositionUpdate,
 } from "@/src/components/portal/programs/dnd/dropComputation";
 import {
+  assignProgramToPlayer,
+  assignProgramToTeam,
+  type AssignToPlayerInput,
+  type AssignToTeamInput,
+} from "@/src/services/assignment.service";
+import {
   addExerciseToBlock,
   createBlock,
   deleteBlock,
@@ -43,6 +49,7 @@ import {
 } from "@/src/services/session.service";
 import type {
   BlockRow,
+  ProgramAssignmentRow,
   ProgramRow,
   ProgramSummary,
   SessionRow,
@@ -231,4 +238,24 @@ export async function reorderBlockExercisesAction(
   const result = await reorderBlockExercises(updates);
   if (result.ok) revalidateProgramRoutes();
   return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+export async function assignProgramToTeamAction(
+  input: AssignToTeamInput,
+): Promise<ActionResult<ProgramAssignmentRow>> {
+  const result = await assignProgramToTeam(input);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function assignProgramToPlayerAction(
+  input: AssignToPlayerInput,
+): Promise<ActionResult<ProgramAssignmentRow>> {
+  const result = await assignProgramToPlayer(input);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
 }

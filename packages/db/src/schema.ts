@@ -204,6 +204,31 @@ export type BlockTemplateExerciseMeasurementRow = {
   updated_at: string;
 };
 
+export type TeamRow = {
+  id: string;
+  name: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TeamMemberRow = {
+  team_id: string;
+  player_id: string;
+  added_at: string;
+};
+
+export type ProgramAssignmentRow = {
+  id: string;
+  program_id: string;
+  team_id: string | null;
+  player_id: string | null;
+  assigned_by: string;
+  start_date: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -321,6 +346,29 @@ export type Database = {
             "block_template_exercise_id" | "position" | "unit_type"
           >;
         Update: Partial<BlockTemplateExerciseMeasurementRow>;
+        Relationships: [];
+      };
+      teams: {
+        Row: TeamRow;
+        Insert: Partial<TeamRow> & Pick<TeamRow, "name" | "created_by">;
+        Update: Partial<TeamRow>;
+        Relationships: [];
+      };
+      team_members: {
+        Row: TeamMemberRow;
+        Insert: Partial<TeamMemberRow> &
+          Pick<TeamMemberRow, "team_id" | "player_id">;
+        Update: Partial<TeamMemberRow>;
+        Relationships: [];
+      };
+      program_assignments: {
+        Row: ProgramAssignmentRow;
+        Insert: Partial<ProgramAssignmentRow> &
+          Pick<
+            ProgramAssignmentRow,
+            "program_id" | "assigned_by" | "start_date"
+          >;
+        Update: Partial<ProgramAssignmentRow>;
         Relationships: [];
       };
     };

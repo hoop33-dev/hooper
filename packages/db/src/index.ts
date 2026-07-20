@@ -6,10 +6,13 @@ export type {
   ExerciseCategoryRow,
   ExerciseRow,
   ExerciseUnitTypeRow,
+  ProgramAssignmentRow,
   ProgramRow,
   ProgramSourceRow,
   ProgramStatus,
   SessionRow,
+  TeamMemberRow,
+  TeamRow,
 } from "./schema";
 
 export type RoleType = "player" | "coach" | "parent";

@@ -2,6 +2,7 @@
 
 import type { AthleteMatch } from "@hooper/db";
 import { useState } from "react";
+import { PortalAvatar } from "../ui/PortalAvatar";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
 
@@ -81,9 +82,10 @@ export function AthleteUsernameSearch({
       )}
       {match && (
         <div className="border-portal-border bg-portal-bg flex items-center gap-3 rounded-lg border p-3">
-          <div className="bg-portal-orange-soft text-portal-orange flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-sm font-extrabold">
-            {(match.first_name.charAt(0) || "?").toUpperCase()}
-          </div>
+          <PortalAvatar
+            firstName={match.first_name}
+            avatarUrl={match.avatar_url}
+          />
           <div className="min-w-0 flex-1">
             <div className="text-portal-text1 truncate text-[13px] font-bold">
               {match.first_name} {match.last_name}

@@ -2,6 +2,7 @@
 
 import type { TeamSummary } from "@hooper/db";
 import { useRouter } from "next/navigation";
+import { PortalBadge } from "../ui/PortalBadge";
 
 function TeamNameCell({ team }: { team: TeamSummary }) {
   const initial = team.name.trim().charAt(0).toUpperCase() || "T";
@@ -21,7 +22,7 @@ interface TeamsTableProps {
 
 export function TeamsTable({ teams }: TeamsTableProps) {
   const router = useRouter();
-  const columns = ["Team", "Athletes", "Created"];
+  const columns = ["Team", "Athletes", "Assigned", "Created"];
 
   return (
     <table className="w-full border-collapse">
@@ -47,6 +48,16 @@ export function TeamsTable({ teams }: TeamsTableProps) {
             </td>
             <td className="text-portal-text2 py-3.5 pr-4 text-[13px]">
               {team.memberCount}
+            </td>
+            <td className="py-3.5 pr-4">
+              {team.assignedCount > 0 ? (
+                <PortalBadge variant="orange">
+                  {team.assignedCount}{" "}
+                  {team.assignedCount === 1 ? "assignment" : "assignments"}
+                </PortalBadge>
+              ) : (
+                <PortalBadge variant="neutral">Not assigned</PortalBadge>
+              )}
             </td>
             <td className="text-portal-text3 py-3.5 pr-4 text-xs">
               {new Date(team.created_at).toLocaleDateString(undefined, {

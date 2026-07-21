@@ -108,7 +108,7 @@ export function AthletesPageShell({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-3 border-b px-7 py-4">
+      <div className="border-portal-border bg-portal-card flex min-h-9 flex-shrink-0 items-center gap-3 border-b px-7 py-4">
         <TabPills tab={tab} onChange={setTab} />
         {tab === "teams" && (
           <PortalButton

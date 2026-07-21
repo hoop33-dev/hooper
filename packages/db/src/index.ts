@@ -149,7 +149,10 @@ export type ProgramSummary = ProgramRow & {
 
 import type { TeamRow } from "./schema";
 
-export type TeamSummary = TeamRow & { memberCount: number };
+export type TeamSummary = TeamRow & {
+  memberCount: number;
+  assignedCount: number;
+};
 
 export type TeamMemberSummary = {
   player_id: string;

@@ -8,23 +8,29 @@ import type {
   TeamWithMembers,
 } from "@hooper/db";
 
-type RawTeamRow = TeamRow & { team_members: { player_id: string }[] };
+type RawTeamRow = TeamRow & {
+  team_members: { player_id: string }[];
+  program_assignments: { id: string }[];
+};
 
 export async function listTeams(): Promise<Result<TeamSummary[]>> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("teams")
-      .select("*, team_members(player_id)")
+      .select("*, team_members(player_id), program_assignments(id)")
       .order("created_at", { ascending: false });
 
     if (error) return err(error.message);
 
     const rows = (data ?? []) as unknown as RawTeamRow[];
-    const summaries = rows.map(({ team_members, ...team }) => ({
-      ...team,
-      memberCount: team_members.length,
-    }));
+    const summaries = rows.map(
+      ({ team_members, program_assignments, ...team }) => ({
+        ...team,
+        memberCount: team_members.length,
+        assignedCount: program_assignments.length,
+      }),
+    );
 
     return ok(summaries);
   } catch (e) {

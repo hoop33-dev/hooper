@@ -10,7 +10,10 @@ import type {
 
 type RawTeamRow = TeamRow & {
   team_members: { player_id: string }[];
-  program_assignments: { id: string }[];
+  program_assignments: {
+    program_id: string;
+    programs: { name: string } | null;
+  }[];
 };
 
 export async function listTeams(): Promise<Result<TeamSummary[]>> {
@@ -18,18 +21,32 @@ export async function listTeams(): Promise<Result<TeamSummary[]>> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("teams")
-      .select("*, team_members(player_id), program_assignments(id)")
+      .select(
+        "*, team_members(player_id), program_assignments(program_id, programs(name))",
+      )
       .order("created_at", { ascending: false });
 
     if (error) return err(error.message);
 
     const rows = (data ?? []) as unknown as RawTeamRow[];
     const summaries = rows.map(
-      ({ team_members, program_assignments, ...team }) => ({
-        ...team,
-        memberCount: team_members.length,
-        assignedCount: program_assignments.length,
-      }),
+      ({ team_members, program_assignments, ...team }) => {
+        // Dedupe by program: a team's roster could theoretically end up
+        // assigned the same program more than once.
+        const programsById = new Map(
+          program_assignments.map((a) => [
+            a.program_id,
+            a.programs?.name ?? "Unknown program",
+          ]),
+        );
+        return {
+          ...team,
+          memberCount: team_members.length,
+          assignedPrograms: [...programsById.entries()]
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name)),
+        };
+      },
     );
 
     return ok(summaries);

@@ -103,7 +103,7 @@ export function WeekTabStrip({
 }: WeekTabStripProps) {
   const weeks = Array.from({ length: totalWeeks }, (_, i) => i + 1);
   return (
-    <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-3 border-b px-5 py-2">
+    <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-3 border-b px-7 py-2">
       <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
         {weeks.map((w) => (
           <WeekTab

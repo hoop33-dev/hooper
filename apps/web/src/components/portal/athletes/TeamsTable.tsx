@@ -1,8 +1,13 @@
 "use client";
 
-import type { TeamSummary } from "@hooper/db";
+import type { AssignedProgramRef, TeamSummary } from "@hooper/db";
 import { useRouter } from "next/navigation";
-import { PortalBadge } from "../ui/PortalBadge";
+
+function formatAssignedPrograms(programs: AssignedProgramRef[]): string {
+  if (programs.length === 0) return "";
+  if (programs.length === 1) return programs[0].name;
+  return `${programs[0].name} +${programs.length - 1}`;
+}
 
 function TeamNameCell({ team }: { team: TeamSummary }) {
   const initial = team.name.trim().charAt(0).toUpperCase() || "T";
@@ -18,11 +23,12 @@ function TeamNameCell({ team }: { team: TeamSummary }) {
 
 interface TeamsTableProps {
   teams: TeamSummary[];
+  onAssignClick: (team: TeamSummary) => void;
 }
 
-export function TeamsTable({ teams }: TeamsTableProps) {
+export function TeamsTable({ teams, onAssignClick }: TeamsTableProps) {
   const router = useRouter();
-  const columns = ["Team", "Athletes", "Assigned", "Created"];
+  const columns = ["Team", "Program", "Athletes"];
 
   return (
     <table className="w-full border-collapse">
@@ -35,6 +41,7 @@ export function TeamsTable({ teams }: TeamsTableProps) {
               {h}
             </th>
           ))}
+          <th className="w-24" />
         </tr>
       </thead>
       <tbody>
@@ -47,23 +54,21 @@ export function TeamsTable({ teams }: TeamsTableProps) {
               <TeamNameCell team={team} />
             </td>
             <td className="text-portal-text2 py-3.5 pr-4 text-[13px]">
+              {formatAssignedPrograms(team.assignedPrograms)}
+            </td>
+            <td className="text-portal-text2 py-3.5 pr-4 text-[13px]">
               {team.memberCount}
             </td>
-            <td className="py-3.5 pr-4">
-              {team.assignedCount > 0 ? (
-                <PortalBadge variant="orange">
-                  {team.assignedCount}{" "}
-                  {team.assignedCount === 1 ? "assignment" : "assignments"}
-                </PortalBadge>
-              ) : (
-                <PortalBadge variant="neutral">Not assigned</PortalBadge>
-              )}
-            </td>
-            <td className="text-portal-text3 py-3.5 pr-4 text-xs">
-              {new Date(team.created_at).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-              })}
+            <td className="py-3.5 text-right">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAssignClick(team);
+                }}
+                className="bg-portal-orange rounded-lg px-3 py-1 text-xs font-semibold text-white hover:brightness-110">
+                Assign
+              </button>
             </td>
           </tr>
         ))}

@@ -23,7 +23,12 @@ export async function lookupAthleteByUsername(
 }
 
 type Membership = { team_id: string; player_id: string };
-type Assignment = { team_id: string | null; player_id: string | null };
+type RawAssignment = {
+  team_id: string | null;
+  player_id: string | null;
+  program_id: string;
+  programs: { name: string } | null;
+};
 
 /** player_id -> set of (this coach's) team ids they belong to. */
 function groupTeamsByPlayer(
@@ -38,19 +43,30 @@ function groupTeamsByPlayer(
   return teamsByPlayer;
 }
 
-/** Splits assignment counts into direct-to-player and per-team buckets, so
- * a player's total can later be direct + sum of their teams' counts. */
-function countAssignments(assignments: Assignment[]): {
-  byPlayer: Map<string, number>;
-  byTeam: Map<string, number>;
+/** Splits assignments into direct-to-player and per-team (program_id ->
+ * name) maps, so a player's full set can later be direct ∪ their teams'. */
+function addProgram(
+  map: Map<string, Map<string, string>>,
+  key: string,
+  programId: string,
+  programName: string,
+) {
+  if (!map.has(key)) map.set(key, new Map());
+  map.get(key)!.set(programId, programName);
+}
+
+function groupProgramsByTarget(assignments: RawAssignment[]): {
+  byPlayer: Map<string, Map<string, string>>;
+  byTeam: Map<string, Map<string, string>>;
 } {
-  const byPlayer = new Map<string, number>();
-  const byTeam = new Map<string, number>();
+  const byPlayer = new Map<string, Map<string, string>>();
+  const byTeam = new Map<string, Map<string, string>>();
   for (const a of assignments) {
+    const name = a.programs?.name ?? "Unknown program";
     if (a.player_id) {
-      byPlayer.set(a.player_id, (byPlayer.get(a.player_id) ?? 0) + 1);
+      addProgram(byPlayer, a.player_id, a.program_id, name);
     } else if (a.team_id) {
-      byTeam.set(a.team_id, (byTeam.get(a.team_id) ?? 0) + 1);
+      addProgram(byTeam, a.team_id, a.program_id, name);
     }
   }
   return { byPlayer, byTeam };
@@ -59,7 +75,9 @@ function countAssignments(assignments: Assignment[]): {
 /** Every athlete this coach has a relationship with — on one of their
  * teams, individually assigned a program, or both. Requires the
  * profiles_select_team_members and profiles_select_assigned_players RLS
- * policies, since profiles is otherwise locked to your own row. */
+ * policies, since profiles is otherwise locked to your own row.
+ * assignedPrograms is deduplicated by program: a program assigned both
+ * directly and via a team still shows up once. */
 export async function listAthletesForCoach(
   coachId: string,
 ): Promise<Result<AthleteSummary[]>> {
@@ -68,11 +86,10 @@ export async function listAthletesForCoach(
 
     const { data: teams, error: teamsError } = await supabase
       .from("teams")
-      .select("id, name")
+      .select("id")
       .eq("created_by", coachId);
     if (teamsError) return err(teamsError.message);
     const teamIds = (teams ?? []).map((t) => t.id);
-    const teamNameById = new Map((teams ?? []).map((t) => [t.id, t.name]));
 
     const { data: memberships, error: membersError } = teamIds.length
       ? await supabase
@@ -84,18 +101,17 @@ export async function listAthletesForCoach(
 
     const { data: assignments, error: assignmentsError } = await supabase
       .from("program_assignments")
-      .select("team_id, player_id")
+      .select("team_id, player_id, program_id, programs(name)")
       .eq("assigned_by", coachId);
     if (assignmentsError) return err(assignmentsError.message);
 
     const teamsByPlayer = groupTeamsByPlayer(memberships ?? []);
-    const { byPlayer: directCounts, byTeam: teamCounts } = countAssignments(
-      assignments ?? [],
-    );
+    const { byPlayer: directPrograms, byTeam: teamPrograms } =
+      groupProgramsByTarget((assignments ?? []) as unknown as RawAssignment[]);
 
     const playerIds = new Set<string>([
       ...teamsByPlayer.keys(),
-      ...directCounts.keys(),
+      ...directPrograms.keys(),
     ]);
     if (playerIds.size === 0) return ok([]);
 
@@ -106,19 +122,23 @@ export async function listAthletesForCoach(
     if (profilesError) return err(profilesError.message);
 
     const summaries: AthleteSummary[] = (profiles ?? []).map((p) => {
-      const memberTeamIds = [...(teamsByPlayer.get(p.id) ?? [])];
-      const teamAssignedCount = memberTeamIds.reduce(
-        (sum, id) => sum + (teamCounts.get(id) ?? 0),
-        0,
-      );
+      const programMap = new Map<string, string>(directPrograms.get(p.id));
+      for (const teamId of teamsByPlayer.get(p.id) ?? []) {
+        for (const [programId, name] of teamPrograms.get(teamId) ?? []) {
+          programMap.set(programId, name);
+        }
+      }
+      const assignedPrograms = [...programMap.entries()]
+        .map(([id, name]) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
       return {
         id: p.id,
         first_name: p.first_name ?? "",
         last_name: p.last_name ?? "",
         username: p.username ?? "",
         avatar_url: p.avatar_url,
-        teamNames: memberTeamIds.map((id) => teamNameById.get(id) ?? ""),
-        assignedProgramCount: (directCounts.get(p.id) ?? 0) + teamAssignedCount,
+        assignedPrograms,
       };
     });
 

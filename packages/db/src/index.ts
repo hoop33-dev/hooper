@@ -149,9 +149,11 @@ export type ProgramSummary = ProgramRow & {
 
 import type { TeamRow } from "./schema";
 
+export type AssignedProgramRef = { id: string; name: string };
+
 export type TeamSummary = TeamRow & {
   memberCount: number;
-  assignedCount: number;
+  assignedPrograms: AssignedProgramRef[];
 };
 
 export type TeamMemberSummary = {
@@ -176,17 +178,16 @@ export type AthleteMatch = {
 };
 
 // One row per athlete a coach has a relationship with — on one of their
-// teams, individually assigned a program, or both. teamNames is only the
-// coach's own teams (never another coach's), and assignedProgramCount
-// counts direct assignments plus assignments made to any of those teams.
+// teams, individually assigned a program, or both. assignedPrograms is
+// deduplicated by program: direct assignments plus assignments made to any
+// team the athlete is on, so a program assigned both ways still counts once.
 export type AthleteSummary = {
   id: string;
   first_name: string;
   last_name: string;
   username: string;
   avatar_url: string | null;
-  teamNames: string[];
-  assignedProgramCount: number;
+  assignedPrograms: AssignedProgramRef[];
 };
 
 import type { ProgramAssignmentRow, ProgramStatus } from "./schema";

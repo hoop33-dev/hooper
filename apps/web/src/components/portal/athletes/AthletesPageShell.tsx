@@ -50,7 +50,7 @@ interface AthletesPageShellProps {
 
 function TabPills({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
   return (
-    <div className="border-portal-border bg-portal-bg flex gap-0.5 rounded-lg border p-0.5">
+    <div className="border-portal-border bg-portal-bg my-0.5 flex gap-0.5 rounded-lg border p-0.5">
       {(["individuals", "teams"] as const).map((t) => (
         <button
           key={t}

@@ -2,6 +2,7 @@
 
 import type { ProgramSummary } from "@hooper/db";
 import { useRouter } from "next/navigation";
+import { PortalBadge } from "../ui/PortalBadge";
 import { ProgramStatusBadge } from "./ProgramStatusBadge";
 
 function formatUpdatedAt(iso: string): string {
@@ -47,7 +48,14 @@ interface ProgramsTableProps {
 
 export function ProgramsTable({ programs, onEdit }: ProgramsTableProps) {
   const router = useRouter();
-  const columns = ["Program", "Length", "Sessions", "Status", "Updated"];
+  const columns = [
+    "Program",
+    "Length",
+    "Sessions",
+    "Assigned",
+    "Status",
+    "Updated",
+  ];
   return (
     <table className="w-full border-collapse">
       <thead>
@@ -77,6 +85,16 @@ export function ProgramsTable({ programs, onEdit }: ProgramsTableProps) {
             </td>
             <td className="text-portal-text2 py-3.5 pr-4 text-[13px]">
               {program.sessionCount}
+            </td>
+            <td className="py-3.5 pr-4">
+              {program.assignedCount > 0 ? (
+                <PortalBadge variant="orange">
+                  {program.assignedCount}{" "}
+                  {program.assignedCount === 1 ? "assignment" : "assignments"}
+                </PortalBadge>
+              ) : (
+                <PortalBadge variant="neutral">Not assigned</PortalBadge>
+              )}
             </td>
             <td className="py-3.5 pr-4">
               <ProgramStatusBadge status={program.status} />

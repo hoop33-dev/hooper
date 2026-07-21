@@ -63,7 +63,7 @@ export async function listPrograms(): Promise<Result<ProgramSummary[]>> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("programs")
-      .select("*, sessions(week_number)")
+      .select("*, sessions(week_number), program_assignments(id)")
       .order("updated_at", { ascending: false });
 
     if (error) return err(error.message);
@@ -72,10 +72,14 @@ export async function listPrograms(): Promise<Result<ProgramSummary[]>> {
       const sessions = Array.isArray(row.sessions)
         ? (row.sessions as { week_number: number }[])
         : [];
+      const assignments = Array.isArray(row.program_assignments)
+        ? (row.program_assignments as { id: string }[])
+        : [];
       return {
         ...row,
         sessionCount: sessions.length,
         sessionsPerWeek: sessionsPerWeekRange(sessions),
+        assignedCount: assignments.length,
       };
     });
 

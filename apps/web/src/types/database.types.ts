@@ -44,7 +44,9 @@ export type {
 
 // Teams and Program Assignments types (re-exported from @hooper/db)
 export type {
+  AssignmentWithProgram,
   AthleteMatch,
+  AthleteSummary,
   ProgramAssignmentRow,
   TeamMemberRow,
   TeamMemberSummary,

@@ -1,6 +1,12 @@
 "use client";
 
-import type { AthleteMatch, TeamRow, TeamWithMembers } from "@hooper/db";
+import { AssignedProgramsList } from "@/src/components/portal/programs/AssignedProgramsList";
+import type {
+  AssignmentWithProgram,
+  AthleteMatch,
+  TeamRow,
+  TeamWithMembers,
+} from "@hooper/db";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -15,6 +21,7 @@ type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
 interface TeamRosterShellProps {
   team: TeamWithMembers;
+  assignments: AssignmentWithProgram[];
   renameAction: (id: string, name: string) => Promise<ActionResult<TeamRow>>;
   deleteAction: (id: string) => Promise<ActionResult>;
   addMemberAction: (teamId: string, playerId: string) => Promise<ActionResult>;
@@ -25,6 +32,7 @@ interface TeamRosterShellProps {
   lookupAthleteAction: (
     username: string,
   ) => Promise<ActionResult<AthleteMatch | null>>;
+  revokeAssignmentAction: (id: string) => Promise<ActionResult>;
 }
 
 function TeamNameField({
@@ -142,6 +150,27 @@ function EmptyRoster({ onAddClick }: { onAddClick: () => void }) {
   );
 }
 
+function AssignedProgramsSection({
+  assignments,
+  onRevoke,
+}: {
+  assignments: AssignmentWithProgram[];
+  onRevoke: (id: string) => void | Promise<void>;
+}) {
+  return (
+    <div className="mt-8">
+      <div className="text-portal-text3 mb-2.5 text-[10px] font-bold tracking-wider uppercase">
+        Assigned programs
+      </div>
+      <AssignedProgramsList
+        assignments={assignments}
+        onRevoke={onRevoke}
+        emptyMessage="No programs assigned to this team yet."
+      />
+    </div>
+  );
+}
+
 function DangerZone({
   onDelete,
   deleting,
@@ -166,16 +195,27 @@ function DangerZone({
 
 export function TeamRosterShell({
   team,
+  assignments,
   renameAction,
   deleteAction,
   addMemberAction,
   removeMemberAction,
   lookupAthleteAction,
+  revokeAssignmentAction,
 }: TeamRosterShellProps) {
   const router = useRouter();
   const { showError, showSuccess } = useToast();
   const [addOpen, setAddOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  async function handleRevoke(id: string) {
+    const result = await revokeAssignmentAction(id);
+    if (result.ok) {
+      router.refresh();
+    } else {
+      showError(result.error ?? "Unable to revoke assignment.");
+    }
+  }
 
   async function handleRename(name: string) {
     const result = await renameAction(team.id, name);
@@ -232,6 +272,11 @@ export function TeamRosterShell({
         ) : (
           <TeamRosterTable members={team.members} onRemove={handleRemove} />
         )}
+
+        <AssignedProgramsSection
+          assignments={assignments}
+          onRevoke={handleRevoke}
+        />
 
         <DangerZone onDelete={handleDeleteTeam} deleting={deleting} />
       </div>

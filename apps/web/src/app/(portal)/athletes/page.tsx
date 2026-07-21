@@ -1,17 +1,25 @@
-import { TeamsListShell } from "@/src/components/portal/athletes/TeamsListShell";
+import { AthletesPageShell } from "@/src/components/portal/athletes/AthletesPageShell";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
+import { listAthletesForCoach } from "@/src/services/athlete.service";
 import { getCoachProfile } from "@/src/services/auth.service";
 import { listTeams } from "@/src/services/team.service";
-import { createTeamAction } from "./actions";
+import {
+  createTeamAction,
+  listAssignmentsForPlayerAction,
+  revokeAssignmentAction,
+} from "./actions";
 
 export default async function AthletesPage() {
-  const [teamsResult, profileResult] = await Promise.all([
+  const profileResult = await getCoachProfile();
+  const profileId = profileResult.ok ? profileResult.data.id : "";
+
+  const [athletesResult, teamsResult] = await Promise.all([
+    listAthletesForCoach(profileId),
     listTeams(),
-    getCoachProfile(),
   ]);
 
+  const athletes = athletesResult.ok ? athletesResult.data : [];
   const teams = teamsResult.ok ? teamsResult.data : [];
-  const profileId = profileResult.ok ? profileResult.data.id : "";
 
   async function wrappedCreate(name: string) {
     "use server";
@@ -24,7 +32,13 @@ export default async function AthletesPage() {
         title="Athletes"
         subtitle="Group athletes into teams and assign them programs"
       />
-      <TeamsListShell teams={teams} createAction={wrappedCreate} />
+      <AthletesPageShell
+        athletes={athletes}
+        teams={teams}
+        createTeamAction={wrappedCreate}
+        loadAssignmentsAction={listAssignmentsForPlayerAction}
+        revokeAssignmentAction={revokeAssignmentAction}
+      />
     </div>
   );
 }

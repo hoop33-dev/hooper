@@ -8,6 +8,7 @@ import { listCategories } from "@/src/services/exerciseCategory.service";
 import { getProgramById } from "@/src/services/program.service";
 import { listSessionTemplates } from "@/src/services/sessionTemplate.service";
 import { listTeams } from "@/src/services/team.service";
+import type { TeamSummary } from "@hooper/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { lookupAthleteByUsernameAction } from "../../athletes/actions";
@@ -69,6 +70,30 @@ function BackToProgramsLink() {
   );
 }
 
+function ProgramHeaderActions({
+  programId,
+  profileId,
+  teams,
+}: {
+  programId: string;
+  profileId: string;
+  teams: TeamSummary[];
+}) {
+  return (
+    <>
+      <BackToProgramsLink />
+      <ProgramAssignButton
+        programId={programId}
+        profileId={profileId}
+        teams={teams}
+        lookupAthleteAction={lookupAthleteByUsernameAction}
+        assignToTeamAction={assignProgramToTeamAction}
+        assignToPlayerAction={assignProgramToPlayerAction}
+      />
+    </>
+  );
+}
+
 export default async function ProgramCanvasPage({
   params,
 }: {
@@ -121,18 +146,13 @@ export default async function ProgramCanvasPage({
       <PageHeader
         title={programResult.data.name}
         subtitle={`${programResult.data.weeks} weeks · ${formatSessionsPerWeek(programResult.data.sessions)}`}
+        borderVariant="strong"
         action={
-          <>
-            <BackToProgramsLink />
-            <ProgramAssignButton
-              programId={id}
-              profileId={profileId}
-              teams={teams}
-              lookupAthleteAction={lookupAthleteByUsernameAction}
-              assignToTeamAction={assignProgramToTeamAction}
-              assignToPlayerAction={assignProgramToPlayerAction}
-            />
-          </>
+          <ProgramHeaderActions
+            programId={id}
+            profileId={profileId}
+            teams={teams}
+          />
         }
       />
       <ProgramCanvasShell

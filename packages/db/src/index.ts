@@ -139,10 +139,12 @@ export type ProgramWithSessions = ProgramRow & {
 // sessionCount is a real COUNT(*) over `sessions`, and sessionsPerWeek is the
 // [min, max] session count across the weeks that have at least one session —
 // both derived from real rows since sessions are created manually, not from
-// a fixed per-week target. null when no sessions exist yet.
+// a fixed per-week target. null when no sessions exist yet. assignedCount is
+// a real COUNT(*) over program_assignments (teams and individuals combined).
 export type ProgramSummary = ProgramRow & {
   sessionCount: number;
   sessionsPerWeek: [min: number, max: number] | null;
+  assignedCount: number;
 };
 
 import type { TeamRow } from "./schema";
@@ -168,4 +170,27 @@ export type AthleteMatch = {
   last_name: string;
   username: string;
   avatar_url: string | null;
+};
+
+// One row per athlete a coach has a relationship with — on one of their
+// teams, individually assigned a program, or both. teamNames is only the
+// coach's own teams (never another coach's), and assignedProgramCount
+// counts direct assignments plus assignments made to any of those teams.
+export type AthleteSummary = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  username: string;
+  avatar_url: string | null;
+  teamNames: string[];
+  assignedProgramCount: number;
+};
+
+import type { ProgramAssignmentRow, ProgramStatus } from "./schema";
+
+// A program_assignments row enriched with the program's name/status for
+// display — the raw row only carries program_id.
+export type AssignmentWithProgram = ProgramAssignmentRow & {
+  programName: string;
+  programStatus: ProgramStatus;
 };

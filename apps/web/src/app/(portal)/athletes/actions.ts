@@ -1,6 +1,14 @@
 "use server";
 
-import { lookupAthleteByUsername } from "@/src/services/athlete.service";
+import {
+  listAssignmentsForPlayer,
+  listAssignmentsForTeam,
+  revokeAssignment,
+} from "@/src/services/assignment.service";
+import {
+  listAthletesForCoach,
+  lookupAthleteByUsername,
+} from "@/src/services/athlete.service";
 import {
   addTeamMember,
   createTeam,
@@ -8,7 +16,12 @@ import {
   removeTeamMember,
   renameTeam,
 } from "@/src/services/team.service";
-import type { AthleteMatch, TeamRow } from "@hooper/db";
+import type {
+  AssignmentWithProgram,
+  AthleteMatch,
+  AthleteSummary,
+  TeamRow,
+} from "@hooper/db";
 import { revalidatePath } from "next/cache";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
@@ -71,4 +84,39 @@ export async function lookupAthleteByUsernameAction(
   return result.ok
     ? { ok: true, data: result.data }
     : { ok: false, error: result.error };
+}
+
+export async function listAthletesForCoachAction(
+  coachId: string,
+): Promise<ActionResult<AthleteSummary[]>> {
+  const result = await listAthletesForCoach(coachId);
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function listAssignmentsForPlayerAction(
+  playerId: string,
+): Promise<ActionResult<AssignmentWithProgram[]>> {
+  const result = await listAssignmentsForPlayer(playerId);
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function listAssignmentsForTeamAction(
+  teamId: string,
+): Promise<ActionResult<AssignmentWithProgram[]>> {
+  const result = await listAssignmentsForTeam(teamId);
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function revokeAssignmentAction(
+  id: string,
+): Promise<ActionResult> {
+  const result = await revokeAssignment(id);
+  if (result.ok) revalidateAthleteRoutes();
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

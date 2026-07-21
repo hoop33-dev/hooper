@@ -2,6 +2,7 @@
 
 import type { TeamMemberSummary } from "@hooper/db";
 import { InlineConfirmDelete } from "../ui/InlineConfirmDelete";
+import { PortalAvatar } from "../ui/PortalAvatar";
 
 interface TeamRosterTableProps {
   members: TeamMemberSummary[];
@@ -32,9 +33,10 @@ export function TeamRosterTable({ members, onRemove }: TeamRosterTableProps) {
             className="border-portal-border hover:bg-portal-bg border-b">
             <td className="py-3.5 pr-4">
               <div className="flex items-center gap-3">
-                <div className="bg-portal-orange-soft text-portal-orange flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-sm font-extrabold">
-                  {(member.first_name.charAt(0) || "?").toUpperCase()}
-                </div>
+                <PortalAvatar
+                  firstName={member.first_name}
+                  avatarUrl={member.avatar_url}
+                />
                 <div className="text-portal-text1 text-[13px] font-bold">
                   {member.first_name} {member.last_name}
                 </div>

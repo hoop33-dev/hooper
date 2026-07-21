@@ -1,20 +1,23 @@
 "use client";
 
 import { AssignedProgramsList } from "@/src/components/portal/programs/AssignedProgramsList";
+import { AssignProgramPickerModal } from "@/src/components/portal/programs/AssignProgramPickerModal";
+import type { AssignToTeamInput } from "@/src/services/assignment.service";
 import type {
   AssignmentWithProgram,
   AthleteMatch,
+  ProgramAssignmentRow,
+  ProgramSummary,
   TeamRow,
   TeamWithMembers,
 } from "@hooper/db";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { InlineConfirmBar } from "../ui/InlineConfirmBar";
+import { useState, type ReactNode } from "react";
 import { PortalButton } from "../ui/PortalButton";
-import { PortalInput } from "../ui/PortalInput";
 import { useToast } from "../ui/Toast";
 import { AddAthleteModal } from "./AddAthleteModal";
+import { TeamEditDrawer } from "./TeamEditDrawer";
 import { TeamRosterTable } from "./TeamRosterTable";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
@@ -22,6 +25,8 @@ type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 interface TeamRosterShellProps {
   team: TeamWithMembers;
   assignments: AssignmentWithProgram[];
+  programs: ProgramSummary[];
+  profileId: string;
   renameAction: (id: string, name: string) => Promise<ActionResult<TeamRow>>;
   deleteAction: (id: string) => Promise<ActionResult>;
   addMemberAction: (teamId: string, playerId: string) => Promise<ActionResult>;
@@ -33,82 +38,21 @@ interface TeamRosterShellProps {
     username: string,
   ) => Promise<ActionResult<AthleteMatch | null>>;
   revokeAssignmentAction: (id: string) => Promise<ActionResult>;
-}
-
-function TeamNameField({
-  team,
-  onSave,
-}: {
-  team: TeamRow;
-  onSave: (name: string) => Promise<void>;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(team.name);
-  const [saving, setSaving] = useState(false);
-
-  if (!editing) {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          setName(team.name);
-          setEditing(true);
-        }}
-        title="Rename team"
-        className="font-title text-portal-text1 text-[22px] font-extrabold tracking-wide hover:underline">
-        {team.name}
-      </button>
-    );
-  }
-
-  async function handleSave() {
-    if (!name.trim() || saving) return;
-    setSaving(true);
-    await onSave(name.trim());
-    setSaving(false);
-    setEditing(false);
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <PortalInput
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        autoFocus
-        className="h-9 w-64"
-        onKeyDown={(e) => {
-          if (e.key === "Enter") handleSave();
-          if (e.key === "Escape") setEditing(false);
-        }}
-      />
-      <PortalButton
-        size="sm"
-        variant="primary"
-        onClick={handleSave}
-        disabled={saving || !name.trim()}>
-        Save
-      </PortalButton>
-      <PortalButton
-        size="sm"
-        variant="ghost"
-        onClick={() => setEditing(false)}
-        disabled={saving}>
-        Cancel
-      </PortalButton>
-    </div>
-  );
+  assignToTeamAction: (
+    input: AssignToTeamInput,
+  ) => Promise<ActionResult<ProgramAssignmentRow>>;
 }
 
 function RosterHeader({
   team,
   memberCount,
-  onRename,
-  onAddClick,
+  onEditClick,
+  onAssignClick,
 }: {
   team: TeamRow;
   memberCount: number;
-  onRename: (name: string) => Promise<void>;
-  onAddClick: () => void;
+  onEditClick: () => void;
+  onAssignClick: () => void;
 }) {
   return (
     <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-3 border-b px-7 py-6">
@@ -118,143 +62,243 @@ function RosterHeader({
           className="text-portal-text2 text-xs font-semibold hover:underline">
           ← Back to teams
         </Link>
-        <div className="mt-1">
-          <TeamNameField team={team} onSave={onRename} />
-        </div>
+        <h1 className="font-title text-portal-text1 mt-1 text-[22px] font-extrabold tracking-wide">
+          {team.name}
+        </h1>
         <p className="text-portal-text2 mt-0.5 text-sm">
           {memberCount} {memberCount === 1 ? "athlete" : "athletes"}
         </p>
       </div>
-      <PortalButton variant="primary" className="ml-auto" onClick={onAddClick}>
-        Add athlete
-      </PortalButton>
+      <div className="ml-auto flex items-center gap-2">
+        <PortalButton variant="secondary" onClick={onEditClick}>
+          Edit
+        </PortalButton>
+        <PortalButton variant="primary" onClick={onAssignClick}>
+          Assign
+        </PortalButton>
+      </div>
+    </div>
+  );
+}
+
+function Panel({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="border-portal-border bg-portal-card overflow-hidden rounded-xl border">
+      <div className="border-portal-border flex items-center justify-between border-b px-5 py-3">
+        <h2 className="text-portal-text1 text-sm font-bold">{title}</h2>
+        {action}
+      </div>
+      <div className="px-5">{children}</div>
     </div>
   );
 }
 
 function EmptyRoster({ onAddClick }: { onAddClick: () => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 py-20">
-      <div className="text-center">
-        <p className="text-portal-text1 font-semibold">
-          No athletes on this team yet
-        </p>
-        <p className="text-portal-text3 mt-1 text-sm">
-          Add athletes by their username
-        </p>
-      </div>
-      <PortalButton variant="primary" onClick={onAddClick}>
+    <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+      <p className="text-portal-text1 text-sm font-semibold">
+        No athletes on this team yet
+      </p>
+      <PortalButton size="sm" variant="primary" onClick={onAddClick}>
         Add athlete
       </PortalButton>
     </div>
   );
 }
 
-function AssignedProgramsSection({
+function RosterPanels({
+  team,
   assignments,
+  onRemove,
   onRevoke,
+  onAddClick,
 }: {
+  team: TeamWithMembers;
   assignments: AssignmentWithProgram[];
-  onRevoke: (id: string) => void | Promise<void>;
+  onRemove: (playerId: string) => void;
+  onRevoke: (id: string) => void;
+  onAddClick: () => void;
 }) {
   return (
-    <div className="mt-8">
-      <div className="text-portal-text3 mb-2.5 text-[10px] font-bold tracking-wider uppercase">
-        Assigned programs
-      </div>
-      <AssignedProgramsList
-        assignments={assignments}
-        onRevoke={onRevoke}
-        emptyMessage="No programs assigned to this team yet."
-      />
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1.5fr_1fr]">
+      <Panel
+        title={`Athletes (${team.members.length})`}
+        action={
+          <PortalButton size="sm" variant="secondary" onClick={onAddClick}>
+            + Add athlete
+          </PortalButton>
+        }>
+        {team.members.length === 0 ? (
+          <EmptyRoster onAddClick={onAddClick} />
+        ) : (
+          <TeamRosterTable members={team.members} onRemove={onRemove} />
+        )}
+      </Panel>
+
+      <Panel title={`Programs (${assignments.length})`}>
+        <AssignedProgramsList
+          assignments={assignments}
+          onRevoke={onRevoke}
+          emptyMessage="No programs assigned to this team yet."
+        />
+      </Panel>
     </div>
   );
 }
 
-function DangerZone({
+function RosterModals({
+  team,
+  addOpen,
+  onAddClose,
+  onAdd,
+  lookupAthleteAction,
+  editOpen,
+  onEditClose,
+  onRename,
   onDelete,
-  deleting,
+  assignOpen,
+  onAssignClose,
+  programs,
+  onAssignProgram,
 }: {
-  onDelete: () => void;
-  deleting: boolean;
+  team: TeamWithMembers;
+  addOpen: boolean;
+  onAddClose: () => void;
+  onAdd: (playerId: string) => Promise<void>;
+  lookupAthleteAction: (
+    username: string,
+  ) => Promise<ActionResult<AthleteMatch | null>>;
+  editOpen: boolean;
+  onEditClose: () => void;
+  onRename: (name: string) => Promise<void>;
+  onDelete: () => Promise<void>;
+  assignOpen: boolean;
+  onAssignClose: () => void;
+  programs: ProgramSummary[];
+  onAssignProgram: (programId: string, startDate: string) => Promise<void>;
 }) {
   return (
-    <div className="mt-8 max-w-sm">
-      <div className="text-portal-text3 mb-2.5 text-[10px] font-bold tracking-wider uppercase">
-        Danger zone
-      </div>
-      <InlineConfirmBar
-        idleLabel="Delete this team"
-        confirmLabel="Delete this team?"
-        onConfirm={onDelete}
-        loading={deleting}
-      />
-    </div>
+    <>
+      {addOpen && (
+        <AddAthleteModal
+          onClose={onAddClose}
+          onLookup={lookupAthleteAction}
+          onAdd={onAdd}
+          excludePlayerIds={team.members.map((m) => m.player_id)}
+        />
+      )}
+
+      {editOpen && (
+        <TeamEditDrawer
+          team={team}
+          onClose={onEditClose}
+          onSave={onRename}
+          onDelete={onDelete}
+        />
+      )}
+
+      {assignOpen && (
+        <AssignProgramPickerModal
+          title={`Assign a program to ${team.name}`}
+          programs={programs}
+          onClose={onAssignClose}
+          onAssign={onAssignProgram}
+        />
+      )}
+    </>
   );
+}
+
+function applyResult<T>(
+  result: ActionResult<T>,
+  showError: (message: string) => void,
+  fallbackError: string,
+  onSuccess: () => void,
+) {
+  if (result.ok) {
+    onSuccess();
+  } else {
+    showError(result.error ?? fallbackError);
+  }
 }
 
 export function TeamRosterShell({
   team,
   assignments,
+  programs,
+  profileId,
   renameAction,
   deleteAction,
   addMemberAction,
   removeMemberAction,
   lookupAthleteAction,
   revokeAssignmentAction,
+  assignToTeamAction,
 }: TeamRosterShellProps) {
   const router = useRouter();
   const { showError, showSuccess } = useToast();
   const [addOpen, setAddOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
 
   async function handleRevoke(id: string) {
     const result = await revokeAssignmentAction(id);
-    if (result.ok) {
-      router.refresh();
-    } else {
-      showError(result.error ?? "Unable to revoke assignment.");
-    }
+    applyResult(result, showError, "Unable to revoke assignment.", () =>
+      router.refresh(),
+    );
   }
 
   async function handleRename(name: string) {
     const result = await renameAction(team.id, name);
-    if (result.ok) {
+    applyResult(result, showError, "Unable to rename team.", () => {
+      setEditOpen(false);
       router.refresh();
-    } else {
-      showError(result.error ?? "Unable to rename team.");
-    }
+    });
   }
 
   async function handleDeleteTeam() {
-    setDeleting(true);
     const result = await deleteAction(team.id);
-    setDeleting(false);
-    if (result.ok) {
-      router.push("/athletes");
-    } else {
-      showError(result.error ?? "Unable to delete team.");
-    }
+    applyResult(result, showError, "Unable to delete team.", () =>
+      router.push("/athletes"),
+    );
   }
 
   async function handleAdd(playerId: string) {
     const result = await addMemberAction(team.id, playerId);
-    if (result.ok) {
+    applyResult(result, showError, "Unable to add athlete.", () => {
       setAddOpen(false);
       showSuccess("Athlete added to team.");
       router.refresh();
-    } else {
-      showError(result.error ?? "Unable to add athlete.");
-    }
+    });
   }
 
   async function handleRemove(playerId: string) {
     const result = await removeMemberAction(team.id, playerId);
-    if (result.ok) {
+    applyResult(result, showError, "Unable to remove athlete.", () =>
+      router.refresh(),
+    );
+  }
+
+  async function handleAssignProgram(programId: string, startDate: string) {
+    const result = await assignToTeamAction({
+      programId,
+      teamId: team.id,
+      assignedBy: profileId,
+      startDate,
+    });
+    applyResult(result, showError, "Unable to assign program.", () => {
+      setAssignOpen(false);
+      showSuccess("Program assigned.");
       router.refresh();
-    } else {
-      showError(result.error ?? "Unable to remove athlete.");
-    }
+    });
   }
 
   return (
@@ -262,33 +306,35 @@ export function TeamRosterShell({
       <RosterHeader
         team={team}
         memberCount={team.members.length}
-        onRename={handleRename}
-        onAddClick={() => setAddOpen(true)}
+        onEditClick={() => setEditOpen(true)}
+        onAssignClick={() => setAssignOpen(true)}
       />
 
       <div className="flex-1 overflow-y-auto px-7 py-4">
-        {team.members.length === 0 ? (
-          <EmptyRoster onAddClick={() => setAddOpen(true)} />
-        ) : (
-          <TeamRosterTable members={team.members} onRemove={handleRemove} />
-        )}
-
-        <AssignedProgramsSection
+        <RosterPanels
+          team={team}
           assignments={assignments}
+          onRemove={handleRemove}
           onRevoke={handleRevoke}
+          onAddClick={() => setAddOpen(true)}
         />
-
-        <DangerZone onDelete={handleDeleteTeam} deleting={deleting} />
       </div>
 
-      {addOpen && (
-        <AddAthleteModal
-          onClose={() => setAddOpen(false)}
-          onLookup={lookupAthleteAction}
-          onAdd={handleAdd}
-          excludePlayerIds={team.members.map((m) => m.player_id)}
-        />
-      )}
+      <RosterModals
+        team={team}
+        addOpen={addOpen}
+        onAddClose={() => setAddOpen(false)}
+        onAdd={handleAdd}
+        lookupAthleteAction={lookupAthleteAction}
+        editOpen={editOpen}
+        onEditClose={() => setEditOpen(false)}
+        onRename={handleRename}
+        onDelete={handleDeleteTeam}
+        assignOpen={assignOpen}
+        onAssignClose={() => setAssignOpen(false)}
+        programs={programs}
+        onAssignProgram={handleAssignProgram}
+      />
     </div>
   );
 }

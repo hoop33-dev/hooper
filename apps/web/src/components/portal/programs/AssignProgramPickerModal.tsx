@@ -23,16 +23,75 @@ interface AssignProgramPickerModalProps {
   onAssign: (programId: string, startDate: string) => Promise<void>;
 }
 
-/** The inverse of AssignProgramModal: there the program is fixed and you
- * pick a team/athlete; here the target (a specific team or athlete) is
- * fixed and you pick a program from the library. */
+function ProgramPicker({
+  programs,
+  programId,
+  onChange,
+}: {
+  programs: ProgramSummary[];
+  programId: string;
+  onChange: (id: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+
+  if (programs.length === 0) {
+    return (
+      <p className="text-portal-text3 text-xs">
+        You don&apos;t have any programs yet. Create one from the Programs page
+        first.
+      </p>
+    );
+  }
+
+  const filtered = programs.filter((p) =>
+    p.name.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+
+  return (
+    <div className="flex flex-col gap-2">
+      <PortalInput
+        label="Program"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search programs by name…"
+      />
+      <div className="border-portal-border max-h-48 overflow-y-auto rounded-lg border">
+        {filtered.length === 0 ? (
+          <p className="text-portal-text3 p-3 text-xs">
+            No programs match that search.
+          </p>
+        ) : (
+          <table className="w-full border-collapse">
+            <tbody>
+              {filtered.map((p) => (
+                <tr
+                  key={p.id}
+                  onClick={() => onChange(p.id)}
+                  className={`border-portal-border cursor-pointer border-b last:border-b-0 ${
+                    p.id === programId
+                      ? "bg-portal-orange-soft"
+                      : "hover:bg-portal-bg"
+                  }`}>
+                  <td className="text-portal-text1 px-3 py-2 text-[13px] font-bold">
+                    {p.name}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function AssignProgramPickerModal({
   title,
   programs,
   onClose,
   onAssign,
 }: AssignProgramPickerModalProps) {
-  const [programId, setProgramId] = useState(programs[0]?.id ?? "");
+  const [programId, setProgramId] = useState("");
   const [startDate, setStartDate] = useState(todayLocalDate());
   const [assigning, setAssigning] = useState(false);
   const onBackdropClick = useModalDismiss(onClose);
@@ -52,28 +111,11 @@ export function AssignProgramPickerModal({
         <ModalHeader title={title} onClose={onClose} />
 
         <div className="flex flex-col gap-4 px-6 py-5">
-          {programs.length === 0 ? (
-            <p className="text-portal-text3 text-xs">
-              You don&apos;t have any programs yet. Create one from the Programs
-              page first.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              <label className="text-portal-text2 text-xs font-semibold">
-                Program
-              </label>
-              <select
-                value={programId}
-                onChange={(e) => setProgramId(e.target.value)}
-                className="border-portal-border bg-portal-card text-portal-text1 focus:border-portal-orange focus:ring-portal-orange h-9 w-full rounded-lg border px-3 text-sm focus:ring-1 focus:outline-none">
-                {programs.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <ProgramPicker
+            programs={programs}
+            programId={programId}
+            onChange={setProgramId}
+          />
 
           <PortalInput
             label="Start date"

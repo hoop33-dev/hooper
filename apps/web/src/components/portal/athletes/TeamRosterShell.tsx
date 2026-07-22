@@ -47,12 +47,10 @@ function RosterHeader({
   team,
   memberCount,
   onEditClick,
-  onAssignClick,
 }: {
   team: TeamRow;
   memberCount: number;
   onEditClick: () => void;
-  onAssignClick: () => void;
 }) {
   return (
     <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-3 border-b px-7 py-6">
@@ -69,14 +67,12 @@ function RosterHeader({
           {memberCount} {memberCount === 1 ? "athlete" : "athletes"}
         </p>
       </div>
-      <div className="ml-auto flex items-center gap-2">
-        <PortalButton variant="secondary" onClick={onEditClick}>
-          Edit
-        </PortalButton>
-        <PortalButton variant="primary" onClick={onAssignClick}>
-          Assign
-        </PortalButton>
-      </div>
+      <PortalButton
+        variant="secondary"
+        className="ml-auto"
+        onClick={onEditClick}>
+        Edit
+      </PortalButton>
     </div>
   );
 }
@@ -120,12 +116,14 @@ function RosterPanels({
   onRemove,
   onRevoke,
   onAddClick,
+  onAssignClick,
 }: {
   team: TeamWithMembers;
   assignments: AssignmentWithProgram[];
   onRemove: (playerId: string) => void;
   onRevoke: (id: string) => void;
   onAddClick: () => void;
+  onAssignClick: () => void;
 }) {
   return (
     <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1.5fr_1fr]">
@@ -143,7 +141,13 @@ function RosterPanels({
         )}
       </Panel>
 
-      <Panel title={`Programs (${assignments.length})`}>
+      <Panel
+        title={`Programs (${assignments.length})`}
+        action={
+          <PortalButton size="sm" variant="secondary" onClick={onAssignClick}>
+            + Assign
+          </PortalButton>
+        }>
         <AssignedProgramsList
           assignments={assignments}
           onRevoke={onRevoke}
@@ -307,7 +311,6 @@ export function TeamRosterShell({
         team={team}
         memberCount={team.members.length}
         onEditClick={() => setEditOpen(true)}
-        onAssignClick={() => setAssignOpen(true)}
       />
 
       <div className="flex-1 overflow-y-auto px-7 py-4">
@@ -317,6 +320,7 @@ export function TeamRosterShell({
           onRemove={handleRemove}
           onRevoke={handleRevoke}
           onAddClick={() => setAddOpen(true)}
+          onAssignClick={() => setAssignOpen(true)}
         />
       </div>
 

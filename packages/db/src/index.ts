@@ -6,6 +6,10 @@ export type {
   ExerciseCategoryRow,
   ExerciseRow,
   ExerciseUnitTypeRow,
+  FormQuestionOptionRow,
+  FormQuestionRow,
+  FormQuestionType,
+  FormRow,
   ProgramRow,
   ProgramSourceRow,
   ProgramStatus,
@@ -140,4 +144,22 @@ export type ProgramWithSessions = ProgramRow & {
 export type ProgramSummary = ProgramRow & {
   sessionCount: number;
   sessionsPerWeek: [min: number, max: number] | null;
+};
+
+import type { FormQuestionOptionRow, FormQuestionRow, FormRow } from "./schema";
+
+export type FormQuestionWithOptions = FormQuestionRow & {
+  options: FormQuestionOptionRow[];
+};
+
+export type FormWithQuestions = FormRow & {
+  questions: FormQuestionWithOptions[];
+};
+
+// questionCount and programCount are both real COUNT(*)s (over
+// form_questions and programs.form_id respectively), derived from real rows
+// the same way ProgramSummary derives sessionCount above.
+export type FormSummary = FormRow & {
+  questionCount: number;
+  programCount: number;
 };

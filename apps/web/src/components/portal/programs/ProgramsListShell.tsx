@@ -1,6 +1,6 @@
 "use client";
 
-import type { ProgramRow, ProgramSummary } from "@hooper/db";
+import type { FormSummary, ProgramRow, ProgramSummary } from "@hooper/db";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
@@ -18,6 +18,7 @@ type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
 interface ProgramsListShellProps {
   programs: ProgramSummary[];
+  forms: FormSummary[];
   createAction: (
     data: ProgramCreateFormData,
   ) => Promise<ActionResult<ProgramRow>>;
@@ -27,6 +28,10 @@ interface ProgramsListShellProps {
   ) => Promise<ActionResult<ProgramRow>>;
   deleteAction: (id: string) => Promise<ActionResult>;
   publishAction: (id: string) => Promise<ActionResult<ProgramRow>>;
+  attachFormAction: (
+    programId: string,
+    formId: string | null,
+  ) => Promise<ActionResult<ProgramRow>>;
 }
 
 const STATUS_FILTERS = ["All", "Draft", "Active"] as const;
@@ -75,10 +80,12 @@ function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
 
 export function ProgramsListShell({
   programs,
+  forms,
   createAction,
   updateAction,
   deleteAction,
   publishAction,
+  attachFormAction,
 }: ProgramsListShellProps) {
   const router = useRouter();
   const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>("All");
@@ -120,6 +127,15 @@ export function ProgramsListShell({
     router.refresh();
   }
 
+  async function handleAttachForm(formId: string | null) {
+    if (!editing) return;
+    const result = await attachFormAction(editing.id, formId);
+    if (result.ok && result.data) {
+      setEditing({ ...editing, form_id: result.data.form_id });
+    }
+    router.refresh();
+  }
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-3 border-b px-7 py-4">
@@ -149,10 +165,12 @@ export function ProgramsListShell({
       {editing && (
         <ProgramEditDrawer
           program={editing}
+          forms={forms}
           onClose={() => setEditing(null)}
           onSave={handleSave}
           onPublish={handlePublish}
           onDelete={handleDelete}
+          onAttachForm={handleAttachForm}
         />
       )}
     </div>

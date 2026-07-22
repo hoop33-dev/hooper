@@ -51,6 +51,21 @@ export async function publishProgramAction(
     : { ok: false, error: result.error };
 }
 
+/** Sets or clears a program's attached form. Shared by the program edit
+ * drawer (picking a form for this program) and the form editor's attached-
+ * programs panel (attaching/detaching this form from a program) — both just
+ * need to flip the one `form_id` column, so one action covers both. */
+export async function attachFormToProgramAction(
+  programId: string,
+  formId: string | null,
+): Promise<ActionResult<ProgramRow>> {
+  const result = await updateProgram(programId, { form_id: formId });
+  if (result.ok) revalidatePath("/programs");
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
 /** Fetches an arbitrary program's full week/session tree — used to preview
  * a source program's weeks in the "import weeks" picker. Not scoped to the
  * program currently being edited, so it lives here rather than in

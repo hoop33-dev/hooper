@@ -27,10 +27,10 @@ export function TeamRosterTable({ members, onRemove }: TeamRosterTableProps) {
         </tr>
       </thead>
       <tbody>
-        {members.map((member) => (
+        {members.map((member, i) => (
           <tr
             key={member.player_id}
-            className="border-portal-border hover:bg-portal-bg border-b">
+            className={`border-portal-border ${i !== members.length - 1 ? "border-b" : ""}`}>
             <td className="py-3.5 pr-4">
               <div className="flex items-center gap-3">
                 <PortalAvatar

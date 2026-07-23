@@ -1,12 +1,13 @@
 import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
 import { ProgramCanvasShell } from "@/src/components/portal/programs/ProgramCanvasShell";
+import { ProgramDetailActions } from "@/src/components/portal/programs/ProgramDetailActions";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { getCoachProfile } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
+import { listForms } from "@/src/services/form.service";
 import { getProgramById } from "@/src/services/program.service";
 import { listSessionTemplates } from "@/src/services/sessionTemplate.service";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   createBlockFromTemplateAction,
@@ -20,7 +21,13 @@ import {
   updateExerciseAction,
   updateExerciseVideoUrlAction,
 } from "../../exercises/actions";
-import { getImportSourceProgramAction, updateProgramAction } from "../actions";
+import {
+  attachFormToProgramAction,
+  deleteProgramAction,
+  getImportSourceProgramAction,
+  publishProgramAction,
+  updateProgramAction,
+} from "../actions";
 import {
   addBlankProgramWeeksAction,
   addExerciseToBlockAction,
@@ -54,16 +61,6 @@ function formatSessionsPerWeek(sessions: { week_number: number }[]): string {
   return min === max ? `${min} sessions/week` : `${min}-${max} sessions/week`;
 }
 
-function BackToProgramsLink() {
-  return (
-    <Link
-      href="/programs"
-      className="text-portal-text2 text-xs font-semibold hover:underline">
-      ← Back to programs
-    </Link>
-  );
-}
-
 export default async function ProgramCanvasPage({
   params,
 }: {
@@ -76,12 +73,14 @@ export default async function ProgramCanvasPage({
     categoriesResult,
     profileResult,
     sessionTemplatesResult,
+    formsResult,
   ] = await Promise.all([
     getProgramById(id),
     listExercises(),
     listCategories(),
     getCoachProfile(),
     listSessionTemplates(),
+    listForms(),
   ]);
 
   if (!programResult.ok) notFound();
@@ -92,6 +91,7 @@ export default async function ProgramCanvasPage({
   const sessionTemplates = sessionTemplatesResult.ok
     ? sessionTemplatesResult.data
     : [];
+  const forms = formsResult.ok ? formsResult.data : [];
 
   async function wrappedSaveBlockAsTemplate(blockId: string, name: string) {
     "use server";
@@ -113,7 +113,16 @@ export default async function ProgramCanvasPage({
       <PageHeader
         title={programResult.data.name}
         subtitle={`${programResult.data.weeks} weeks · ${formatSessionsPerWeek(programResult.data.sessions)}`}
-        action={<BackToProgramsLink />}
+        action={
+          <ProgramDetailActions
+            program={programResult.data}
+            forms={forms}
+            updateAction={updateProgramAction}
+            deleteAction={deleteProgramAction}
+            publishAction={publishProgramAction}
+            attachFormAction={attachFormToProgramAction}
+          />
+        }
       />
       <ProgramCanvasShell
         program={programResult.data}

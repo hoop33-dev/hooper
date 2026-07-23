@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormSummary, ProgramSummary } from "@hooper/db";
+import type { FormSummary, ProgramRow } from "@hooper/db";
 import { useState } from "react";
 import { InlineConfirmBar } from "../ui/InlineConfirmBar";
 import { PortalButton } from "../ui/PortalButton";
@@ -15,7 +15,7 @@ export type ProgramEditFormData = {
 };
 
 interface ProgramEditDrawerProps {
-  program: ProgramSummary;
+  program: ProgramRow;
   forms: FormSummary[];
   onClose: () => void;
   onSave: (data: ProgramEditFormData) => Promise<void>;
@@ -103,7 +103,7 @@ function DangerZone({
   onPublish,
   onDelete,
 }: {
-  status: ProgramSummary["status"];
+  status: ProgramRow["status"];
   onPublish: () => Promise<void>;
   onDelete: () => Promise<void>;
 }) {
@@ -186,7 +186,7 @@ interface DrawerFieldsProps {
   onDescription: (v: string) => void;
   notes: string;
   onNotes: (v: string) => void;
-  program: ProgramSummary;
+  program: ProgramRow;
   forms: FormSummary[];
   onPublish: () => Promise<void>;
   onDelete: () => Promise<void>;

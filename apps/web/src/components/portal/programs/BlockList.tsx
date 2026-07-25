@@ -78,7 +78,7 @@ function AddBlockForm({
         placeholder="Block name, e.g. Warm-Up"
         autoFocus
         onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-        className="flex-1"
+        wrapperClassName="flex-1"
       />
       <PortalButton
         size="sm"

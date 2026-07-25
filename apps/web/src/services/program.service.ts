@@ -24,9 +24,10 @@ export type CreateProgramInput = {
 
 export type UpdateProgramInput = {
   name?: string;
-  description?: string;
-  notes?: string;
+  description?: string | null;
+  notes?: string | null;
   weeks?: number;
+  form_id?: string | null;
 };
 
 type RawSession = SessionRow & { blocks: RawBlock[] };
@@ -167,6 +168,7 @@ export async function updateProgram(
         }),
         ...(input.notes !== undefined && { notes: input.notes }),
         ...(input.weeks !== undefined && { weeks: input.weeks }),
+        ...("form_id" in input && { form_id: input.form_id }),
       })
       .eq("id", id)
       .select()

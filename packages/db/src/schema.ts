@@ -87,6 +87,9 @@ export type ProgramRow = {
   weeks: number;
   status: ProgramStatus;
   created_by: string;
+  /** At most one form per program; the same form may be attached to many
+   * programs (see FormRow) — null when no form is attached. */
+  form_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -202,6 +205,44 @@ export type BlockTemplateExerciseMeasurementRow = {
   value_unit: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type FormRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FormQuestionType =
+  | "short_text"
+  | "number"
+  | "slider"
+  | "dropdown"
+  | "yes_no";
+
+export type FormQuestionRow = {
+  id: string;
+  form_id: string;
+  position: number;
+  prompt: string;
+  type: FormQuestionType;
+  required: boolean;
+  /** Only meaningful for 'number' and 'slider' questions — a UI concern,
+   * same convention as block_exercises.reps/value. */
+  min_value: number | null;
+  max_value: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FormQuestionOptionRow = {
+  question_id: string;
+  /** 0-4 — up to 5 options, 'dropdown' questions only. */
+  position: number;
+  label: string;
 };
 
 export type Database = {
@@ -321,6 +362,25 @@ export type Database = {
             "block_template_exercise_id" | "position" | "unit_type"
           >;
         Update: Partial<BlockTemplateExerciseMeasurementRow>;
+        Relationships: [];
+      };
+      forms: {
+        Row: FormRow;
+        Insert: Partial<FormRow> & Pick<FormRow, "name" | "created_by">;
+        Update: Partial<FormRow>;
+        Relationships: [];
+      };
+      form_questions: {
+        Row: FormQuestionRow;
+        Insert: Partial<FormQuestionRow> &
+          Pick<FormQuestionRow, "form_id" | "prompt" | "type">;
+        Update: Partial<FormQuestionRow>;
+        Relationships: [];
+      };
+      form_question_options: {
+        Row: FormQuestionOptionRow;
+        Insert: FormQuestionOptionRow;
+        Update: Partial<FormQuestionOptionRow>;
         Relationships: [];
       };
     };

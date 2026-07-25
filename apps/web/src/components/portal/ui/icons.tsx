@@ -282,6 +282,30 @@ export function LibraryIcon({
   );
 }
 
+export function ClipboardIcon({
+  size = 15,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round">
+      <rect x="8" y="2" width="8" height="4" rx="1" />
+      <path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3" />
+      <path d="M9 12h6M9 16h6M9 8h1" />
+    </svg>
+  );
+}
+
 export function LogOutIcon({ size = 14 }: { size?: number }) {
   return (
     <svg

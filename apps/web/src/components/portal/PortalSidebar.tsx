@@ -8,6 +8,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactElement } from "react";
 import {
+  ClipboardIcon,
   DumbbellIcon,
   HomeIcon,
   LayersIcon,
@@ -101,6 +102,13 @@ const NAV_ITEMS: NavItem[] = [
         active: true,
       },
     ],
+  },
+  {
+    id: "forms",
+    label: "Forms",
+    href: "/forms",
+    Icon: ClipboardIcon,
+    active: true,
   },
   {
     id: "athletes",

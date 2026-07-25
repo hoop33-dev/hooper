@@ -10,8 +10,8 @@ import { useModalDismiss } from "../ui/useModalDismiss";
 
 export type ProgramEditFormData = {
   name: string;
-  description?: string;
-  notes?: string;
+  description?: string | null;
+  notes?: string | null;
 };
 
 interface ProgramEditDrawerProps {
@@ -259,8 +259,8 @@ export function ProgramEditDrawer({
     setSaving(true);
     await onSave({
       name: name.trim(),
-      description: description.trim() || undefined,
-      notes: notes.trim() || undefined,
+      description: description.trim() === "" ? null : description.trim(),
+      notes: notes.trim() === "" ? null : notes.trim(),
     });
     setSaving(false);
   }

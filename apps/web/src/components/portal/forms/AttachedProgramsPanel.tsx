@@ -91,7 +91,7 @@ export function AttachedProgramsPanel({
   onDetach,
 }: AttachedProgramsPanelProps) {
   const attached = programs.filter((p) => p.form_id === formId);
-  const unattached = programs.filter((p) => p.form_id !== formId);
+  const unattached = programs.filter((p) => p.form_id === null);
 
   return (
     <div>

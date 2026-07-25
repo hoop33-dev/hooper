@@ -67,9 +67,13 @@ export function useFormEditorState(
   }, [form.questions]);
 
   async function handleAddQuestion() {
+    const nextPosition =
+      questions.length === 0
+        ? 0
+        : Math.max(...questions.map((q) => q.position)) + 1;
     const result = await actions.createQuestionAction({
       form_id: form.id,
-      position: questions.length,
+      position: nextPosition,
       prompt: "Untitled question",
       type: "short_text",
     });

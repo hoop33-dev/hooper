@@ -25,7 +25,7 @@ export type CreateFormInput = {
 
 export type UpdateFormInput = {
   name?: string;
-  description?: string;
+  description?: string | null;
 };
 
 export type CreateFormQuestionInput = {

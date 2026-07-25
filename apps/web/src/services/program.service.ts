@@ -24,8 +24,8 @@ export type CreateProgramInput = {
 
 export type UpdateProgramInput = {
   name?: string;
-  description?: string;
-  notes?: string;
+  description?: string | null;
+  notes?: string | null;
   weeks?: number;
   form_id?: string | null;
 };

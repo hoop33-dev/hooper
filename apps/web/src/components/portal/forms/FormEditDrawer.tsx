@@ -10,7 +10,7 @@ import { useModalDismiss } from "../ui/useModalDismiss";
 
 export type FormEditFormData = {
   name: string;
-  description?: string;
+  description?: string | null;
 };
 
 interface FormEditDrawerProps {
@@ -87,7 +87,7 @@ export function FormEditDrawer({
     setSaving(true);
     await onSave({
       name: name.trim(),
-      description: description.trim() || undefined,
+      description: description.trim() === "" ? null : description.trim(),
     });
     setSaving(false);
   }

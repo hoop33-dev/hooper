@@ -82,6 +82,20 @@ const NAV_ITEMS: NavItem[] = [
     active: true,
   },
   {
+    id: "athletes",
+    label: "Athletes",
+    href: "/athletes",
+    Icon: UsersIcon,
+    active: true,
+  },
+  {
+    id: "forms",
+    label: "Forms",
+    href: "/forms",
+    Icon: ClipboardIcon,
+    active: true,
+  },
+  {
     id: "library",
     label: "Library",
     Icon: LibraryIcon,
@@ -102,20 +116,6 @@ const NAV_ITEMS: NavItem[] = [
         active: true,
       },
     ],
-  },
-  {
-    id: "forms",
-    label: "Forms",
-    href: "/forms",
-    Icon: ClipboardIcon,
-    active: true,
-  },
-  {
-    id: "athletes",
-    label: "Athletes",
-    href: "/athletes",
-    Icon: UsersIcon,
-    active: true,
   },
 ];
 
@@ -257,7 +257,6 @@ function SidebarCoachFooter({ profile }: { profile: CoachProfile | null }) {
         <div className="truncate text-[12px] leading-tight font-bold text-white">
           {name}
         </div>
-        <div className="text-[10px] text-white/40">Head Coach</div>
       </div>
       <form action={signOut}>
         <button

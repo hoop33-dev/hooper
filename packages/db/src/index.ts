@@ -10,10 +10,16 @@ export type {
   FormQuestionRow,
   FormQuestionType,
   FormRow,
+  ProfileWithVerificationRow,
+  ProgramAthleteRow,
   ProgramRow,
   ProgramSourceRow,
   ProgramStatus,
+  ProgramTeamRow,
+  RegionRow,
   SessionRow,
+  TeamMemberRow,
+  TeamRow,
 } from "./schema";
 
 export type RoleType = "player" | "coach" | "parent";
@@ -162,4 +168,36 @@ export type FormWithQuestions = FormRow & {
 export type FormSummary = FormRow & {
   questionCount: number;
   programCount: number;
+};
+
+import type { ProfileRow, TeamRow } from "./schema";
+
+export type AssignedProgramRef = { id: string; name: string };
+
+// last_sign_in_at comes from the get_athlete_last_sign_ins() SECURITY
+// DEFINER RPC (auth.users isn't grant-accessible to a plain authenticated
+// session — see the migration comment), gated to coach callers only.
+export type AthleteSummary = ProfileRow & {
+  last_sign_in_at: string | null;
+  programs: AssignedProgramRef[];
+};
+
+export type AthleteDetail = ProfileRow & {
+  last_sign_in_at: string | null;
+  regionName: string | null;
+  programs: AssignedProgramRef[];
+};
+
+export type TeamSummary = TeamRow & {
+  memberCount: number;
+  programs: AssignedProgramRef[];
+};
+
+// joined_at is the team_members row's created_at — when this profile was
+// added to the team, not the profile's own created_at.
+export type TeamMember = ProfileRow & { joined_at: string };
+
+export type TeamDetail = TeamRow & {
+  programs: AssignedProgramRef[];
+  members: TeamMember[];
 };

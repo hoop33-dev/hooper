@@ -115,7 +115,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Athletes",
     href: "/athletes",
     Icon: UsersIcon,
-    active: false,
+    active: true,
   },
 ];
 

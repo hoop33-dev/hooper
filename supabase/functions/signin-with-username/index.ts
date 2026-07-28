@@ -136,12 +136,16 @@ Deno.serve(async (req: Request) => {
   // Step 4: enforce coach-only restriction after password is verified, so
   // attackers can't enumerate coach accounts without knowing the password.
   if (isCoachOnly) {
-    const { data: coachRole } = await admin
+    const { data: coachRole, error: coachRoleError } = await admin
       .from("user_roles")
       .select("id")
       .eq("profile_id", profile.id)
       .eq("role", "coach")
       .maybeSingle();
+
+    if (coachRoleError) {
+      console.error("coach role lookup failed", coachRoleError);
+    }
 
     if (!coachRole) {
       await admin.auth.admin.signOut(signInData.session.user.id);

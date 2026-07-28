@@ -8,6 +8,7 @@ import {
   StackIcon,
   UsersIcon,
 } from "@/src/components/portal/ui/icons";
+import { listAthletes } from "@/src/services/athlete.service";
 import { getCoachProfile } from "@/src/services/auth.service";
 import { listPrograms } from "@/src/services/program.service";
 import Link from "next/link";
@@ -15,12 +16,14 @@ import Link from "next/link";
 const RECENT_PROGRAMS_LIMIT = 5;
 
 export default async function DashboardPage() {
-  const [programsResult, profileResult] = await Promise.all([
+  const [programsResult, athletesResult, profileResult] = await Promise.all([
     listPrograms(),
+    listAthletes(),
     getCoachProfile(),
   ]);
 
   const programs = programsResult.ok ? programsResult.data : [];
+  const athletes = athletesResult.ok ? athletesResult.data : [];
   const profile = profileResult.ok ? profileResult.data : null;
   const recentPrograms = programs.slice(0, RECENT_PROGRAMS_LIMIT);
   const greeting = profile?.first_name
@@ -43,9 +46,9 @@ export default async function DashboardPage() {
           />
           <StatCard
             label="Athletes"
-            value="—"
+            value={athletes.length}
             icon={<UsersIcon size={18} />}
-            comingSoon
+            href="/athletes"
           />
         </div>
 

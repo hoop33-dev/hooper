@@ -29,6 +29,12 @@ export type ProfileRow = {
   first_name: string | null;
   last_name: string | null;
   username: string | null;
+  date_of_birth: string | null;
+  mobile: string | null;
+  region_id: string | null;
+  bio: string | null;
+  is_private: boolean;
+  show_age: boolean;
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
@@ -38,6 +44,50 @@ export type UserRoleRow = {
   id: string;
   profile_id: string;
   role: UserRoleEnum;
+  created_at: string;
+};
+
+export type RegionRow = {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: string;
+};
+
+/** view: profile_with_verification (security_invoker) — profiles joined to
+ * auth.users, only readable where the caller's own profiles RLS allows the
+ * underlying row. */
+export type ProfileWithVerificationRow = ProfileRow & {
+  is_verified: boolean;
+  auth_email: string | null;
+  last_sign_in_at: string | null;
+};
+
+export type TeamRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  avatar_url: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TeamMemberRow = {
+  team_id: string;
+  profile_id: string;
+  created_at: string;
+};
+
+export type ProgramAthleteRow = {
+  program_id: string;
+  profile_id: string;
+  created_at: string;
+};
+
+export type ProgramTeamRow = {
+  program_id: string;
+  team_id: string;
   created_at: string;
 };
 
@@ -260,6 +310,39 @@ export type Database = {
         Update: Partial<UserRoleRow>;
         Relationships: [];
       };
+      regions: {
+        Row: RegionRow;
+        Insert: Partial<RegionRow> & Pick<RegionRow, "name" | "slug">;
+        Update: Partial<RegionRow>;
+        Relationships: [];
+      };
+      teams: {
+        Row: TeamRow;
+        Insert: Partial<TeamRow> & Pick<TeamRow, "name" | "created_by">;
+        Update: Partial<TeamRow>;
+        Relationships: [];
+      };
+      team_members: {
+        Row: TeamMemberRow;
+        Insert: Partial<TeamMemberRow> &
+          Pick<TeamMemberRow, "team_id" | "profile_id">;
+        Update: Partial<TeamMemberRow>;
+        Relationships: [];
+      };
+      program_athletes: {
+        Row: ProgramAthleteRow;
+        Insert: Partial<ProgramAthleteRow> &
+          Pick<ProgramAthleteRow, "program_id" | "profile_id">;
+        Update: Partial<ProgramAthleteRow>;
+        Relationships: [];
+      };
+      program_teams: {
+        Row: ProgramTeamRow;
+        Insert: Partial<ProgramTeamRow> &
+          Pick<ProgramTeamRow, "program_id" | "team_id">;
+        Update: Partial<ProgramTeamRow>;
+        Relationships: [];
+      };
       exercise_categories: {
         Row: ExerciseCategoryRow;
         Insert: Partial<ExerciseCategoryRow> &
@@ -384,8 +467,18 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Views: {
+      profile_with_verification: {
+        Row: ProfileWithVerificationRow;
+        Relationships: [];
+      };
+    };
+    Functions: {
+      get_athlete_last_sign_ins: {
+        Args: { p_profile_ids: string[] };
+        Returns: { profile_id: string; last_sign_in_at: string | null }[];
+      };
+    };
     Enums: {
       user_role: UserRoleEnum;
       program_status: ProgramStatus;

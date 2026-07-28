@@ -6,10 +6,12 @@ import { InlineConfirmDelete } from "../../ui/InlineConfirmDelete";
 import { PortalButton } from "../../ui/PortalButton";
 import { AddTeamMembersModal } from "./AddTeamMembersModal";
 
+type ActionResult = { ok: boolean; error?: string };
+
 interface TeamMembersPanelProps {
   members: TeamMember[];
   candidates: AthleteSummary[];
-  onAdd: (profileIds: string[]) => Promise<void>;
+  onAdd: (profileIds: string[]) => Promise<ActionResult>;
   onRemove: (profileId: string) => Promise<void>;
 }
 

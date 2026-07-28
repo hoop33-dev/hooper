@@ -56,17 +56,27 @@ export function TeamsListShell({
     }
 
     if (data.avatarFile) {
+      // The team row already exists at this point, so avatar failures are
+      // reported as a warning rather than an overall failure — treating
+      // them as `ok: false` would let the user retry and create a
+      // duplicate team.
       const uploadResult = await uploadTeamAvatar(
         result.data.id,
         data.avatarFile,
       );
-      if (!uploadResult.ok) {
-        router.refresh();
-        return { ok: false, error: uploadResult.error };
+      if (uploadResult.ok) {
+        const avatarUpdateResult = await updateAvatarAction(result.data.id, {
+          avatar_url: uploadResult.data,
+        });
+        if (!avatarUpdateResult.ok) {
+          console.error(
+            "Failed to save team avatar:",
+            avatarUpdateResult.error,
+          );
+        }
+      } else {
+        console.error("Failed to upload team avatar:", uploadResult.error);
       }
-      await updateAvatarAction(result.data.id, {
-        avatar_url: uploadResult.data,
-      });
     }
 
     router.refresh();

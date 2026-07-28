@@ -18,6 +18,8 @@ type ProgramTeamJoinRow = {
 async function fetchAssignedPrograms(
   teamIds: string[],
 ): Promise<Result<Map<string, AssignedProgramRef[]>>> {
+  if (teamIds.length === 0) return ok(new Map());
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("program_teams")

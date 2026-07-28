@@ -22,7 +22,7 @@ type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 interface TeamMembersSectionProps {
   team: TeamDetail;
   athletes: AthleteSummary[];
-  onAddMembers: (profileIds: string[]) => Promise<void>;
+  onAddMembers: (profileIds: string[]) => Promise<ActionResult>;
   onRemoveMember: (profileId: string) => Promise<void>;
   onAssignClick: () => void;
   onUnassignProgram: (programId: string) => Promise<void>;
@@ -55,6 +55,18 @@ function TeamMembersSection({
       </div>
     </>
   );
+}
+
+async function addTeamMembers(
+  teamId: string,
+  profileIds: string[],
+  addTeamMemberAction: TeamDetailShellProps["addTeamMemberAction"],
+): Promise<ActionResult> {
+  const results = await Promise.all(
+    profileIds.map((profileId) => addTeamMemberAction(teamId, profileId)),
+  );
+  const failed = results.find((r) => !r.ok);
+  return failed ? { ok: false, error: failed.error } : { ok: true };
 }
 
 function TeamDetailHeaderActions({ onEdit }: { onEdit: () => void }) {
@@ -125,6 +137,7 @@ export function TeamDetailShell({
     handleSave,
     handleAvatarSelected,
     handleDelete,
+    resetForm,
   } = useTeamDetailForm({ team, updateTeamAction, deleteTeamAction });
 
   async function handleSaveAndClose() {
@@ -144,12 +157,13 @@ export function TeamDetailShell({
           team={team}
           athletes={athletes}
           onAddMembers={async (profileIds) => {
-            await Promise.all(
-              profileIds.map((profileId) =>
-                addTeamMemberAction(team.id, profileId),
-              ),
+            const result = await addTeamMembers(
+              team.id,
+              profileIds,
+              addTeamMemberAction,
             );
             router.refresh();
+            return result;
           }}
           onRemoveMember={async (profileId) => {
             await removeTeamMemberAction(team.id, profileId);
@@ -191,7 +205,10 @@ export function TeamDetailShell({
           onSave={handleSaveAndClose}
           onAvatarSelected={handleAvatarSelected}
           onDelete={handleDelete}
-          onClose={() => setEditOpen(false)}
+          onClose={() => {
+            resetForm();
+            setEditOpen(false);
+          }}
         />
       )}
     </div>

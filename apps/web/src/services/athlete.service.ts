@@ -110,10 +110,11 @@ export async function getAthleteById(
     let regionName: string | null = null;
     if (profile.region_id) {
       const regionsResult = await listRegions();
-      if (!regionsResult.ok) return err(regionsResult.error);
-      regionName =
-        regionsResult.data.find((r) => r.id === profile.region_id)?.name ??
-        null;
+      if (regionsResult.ok) {
+        regionName =
+          regionsResult.data.find((r) => r.id === profile.region_id)?.name ??
+          null;
+      }
     }
 
     const [programsResult, lastSignInsResult] = await Promise.all([

@@ -7,9 +7,11 @@ import { PortalButton } from "../../ui/PortalButton";
 import { PortalInput } from "../../ui/PortalInput";
 import { useModalDismiss } from "../../ui/useModalDismiss";
 
+type ActionResult = { ok: boolean; error?: string };
+
 interface AddTeamMembersModalProps {
   candidates: AthleteSummary[];
-  onSubmit: (profileIds: string[]) => Promise<void>;
+  onSubmit: (profileIds: string[]) => Promise<ActionResult>;
   onClose: () => void;
 }
 
@@ -150,6 +152,7 @@ function ModalBody({
   selectedIds,
   selected,
   onToggle,
+  error,
 }: {
   search: string;
   onSearch: (v: string) => void;
@@ -157,6 +160,7 @@ function ModalBody({
   selectedIds: string[];
   selected: AthleteSummary[];
   onToggle: (id: string) => void;
+  error: string | null;
 }) {
   return (
     <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-6 py-5">
@@ -165,6 +169,8 @@ function ModalBody({
         onChange={(e) => onSearch(e.target.value)}
         placeholder="Search athletes by name…"
       />
+
+      {error && <p className="text-xs text-red-500">{error}</p>}
 
       {search.trim().length > 0 &&
         (filtered.length > 0 ? (
@@ -235,6 +241,7 @@ export function AddTeamMembersModal({
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const onBackdropClick = useModalDismiss(onClose);
 
   const candidateById = useMemo(
@@ -260,7 +267,13 @@ export function AddTeamMembersModal({
   async function handleSubmit() {
     if (selectedIds.length === 0 || saving) return;
     setSaving(true);
-    await onSubmit(selectedIds);
+    setError(null);
+    const result = await onSubmit(selectedIds);
+    setSaving(false);
+    if (!result.ok) {
+      setError(result.error ?? "Failed to add athletes.");
+      return;
+    }
     onClose();
   }
 
@@ -281,6 +294,7 @@ export function AddTeamMembersModal({
           selectedIds={selectedIds}
           selected={selected}
           onToggle={toggle}
+          error={error}
         />
         <ModalFooter
           selectedCount={selectedIds.length}

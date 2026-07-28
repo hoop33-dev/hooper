@@ -1,6 +1,9 @@
 "use client";
 
-import { uploadTeamAvatar } from "@/src/services/teamAvatar.client";
+import {
+  deleteTeamAvatar,
+  uploadTeamAvatar,
+} from "@/src/services/teamAvatar.client";
 import type { TeamDetail, TeamRow } from "@hooper/db";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -52,20 +55,41 @@ export function useTeamDetailForm({
   async function handleAvatarSelected(file: File) {
     setUploadingAvatar(true);
     setError(null);
+    // The new upload always writes to `avatar.${ext}`, so a replacement
+    // with a different extension would otherwise orphan the old file.
+    if (team.avatar_url) {
+      await deleteTeamAvatar(team.id);
+    }
     const uploadResult = await uploadTeamAvatar(team.id, file);
     if (!uploadResult.ok) {
       setUploadingAvatar(false);
       setError(uploadResult.error);
       return;
     }
-    await updateTeamAction(team.id, { avatar_url: uploadResult.data });
+    const updateResult = await updateTeamAction(team.id, {
+      avatar_url: uploadResult.data,
+    });
     setUploadingAvatar(false);
+    if (!updateResult.ok) {
+      setError(updateResult.error ?? "Failed to save avatar.");
+      return;
+    }
     router.refresh();
   }
 
   async function handleDelete() {
     const result = await deleteTeamAction(team.id);
-    if (result.ok) router.push("/athletes/teams");
+    if (result.ok) {
+      router.push("/athletes/teams");
+    } else {
+      setError(result.error ?? "Failed to delete team.");
+    }
+  }
+
+  function resetForm() {
+    setName(team.name);
+    setDescription(team.description ?? "");
+    setError(null);
   }
 
   return {
@@ -80,5 +104,6 @@ export function useTeamDetailForm({
     handleSave,
     handleAvatarSelected,
     handleDelete,
+    resetForm,
   };
 }

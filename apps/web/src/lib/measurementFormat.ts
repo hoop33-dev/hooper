@@ -1,3 +1,4 @@
+import { sortUnitTypes } from "@/src/constants/unitTypes";
 import type { EnteredBy } from "@hooper/db";
 
 // One row: a single unit-type slot's value for a single set. A placement
@@ -20,8 +21,8 @@ export type MeasurementsFields = {
 // Each family's units convert through a shared base unit (perBase = how many
 // base units make up one of `unit`), so switching a field's unit can convert
 // the number instead of just relabeling it. Unit types outside this map
-// (Reps, Reps Each Side, RPE, Shots, Makes, % 1RM) are plain numbers with no
-// switchable unit.
+// (Reps, Reps Each Side, RPE, RIR, Shots, Makes, % 1RM) are plain numbers
+// with no switchable unit.
 type UnitDef = { unit: string; perBase: number };
 
 const UNIT_FAMILIES: Record<string, UnitDef[]> = {
@@ -77,8 +78,8 @@ type GroupedMeasurement = {
 
 /** Groups flat per-set measurement rows by unit-type slot, each slot's
  * values sorted into set order — independent of the input array's order, so
- * callers don't have to pre-sort. Slot order in the result follows each
- * unit type's first appearance in `measurements`. */
+ * callers don't have to pre-sort. Slot order in the result follows the
+ * canonical unit-type priority (see sortUnitTypes), not appearance order. */
 function groupByUnitType(measurements: Measurement[]): GroupedMeasurement[] {
   const order: string[] = [];
   const map = new Map<string, Measurement[]>();
@@ -88,7 +89,7 @@ function groupByUnitType(measurements: Measurement[]): GroupedMeasurement[] {
     rows.push(m);
     map.set(m.unit_type, rows);
   }
-  return order.map((unitType) => {
+  return sortUnitTypes(order).map((unitType) => {
     const rows = [...map.get(unitType)!].sort(
       (a, b) => a.set_index - b.set_index,
     );

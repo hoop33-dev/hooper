@@ -1,4 +1,4 @@
-import type { ExerciseVideoSource } from "@hooper/db";
+import type { ExerciseCategoryRow, ExerciseVideoSource } from "@hooper/db";
 import type {
   ActionResult,
   ExerciseFormData,
@@ -18,4 +18,10 @@ export interface CreateExerciseActions {
     videoUrl: string,
     videoSource: ExerciseVideoSource,
   ) => Promise<ActionResult>;
+  /** Optional — powers the "+ Add category" affordance inside the create
+   * exercise modal's category combobox. */
+  createCategoryAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: ExerciseCategoryRow; error?: string }>;
 }

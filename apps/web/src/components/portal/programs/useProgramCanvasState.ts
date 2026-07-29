@@ -35,6 +35,7 @@ import type {
   BlockExercisePositionUpdate,
   BlockPositionUpdate,
 } from "./dnd/dropComputation";
+import { isPending } from "./dnd/pendingRows";
 import {
   useBlockExerciseDnd,
   type SessionPositionUpdate,
@@ -465,6 +466,19 @@ function useCanvasBlockState(
   const createBlockAction = (sessionId: string, name: string) =>
     actions.createBlockAction({ session_id: sessionId, name });
 
+  const blockActions = useBlockActions({
+    blocks: weekBlocks,
+    setBlocks: setWeekBlocks,
+    createBlockAction,
+    updateBlockAction: linkAware.updateBlockAction,
+    deleteBlockAction: linkAware.deleteBlockAction,
+    updateBlockExerciseAction: linkAware.updateBlockExerciseAction,
+    removeExerciseFromBlockAction: linkAware.removeExerciseFromBlockAction,
+    addExerciseToBlockAction: linkAware.addExerciseToBlockAction,
+    saveBlockAsTemplateAction: actions.saveBlockAsTemplateAction,
+    exercisesById,
+  });
+
   const dnd = useBlockExerciseDnd({
     blocks: weekBlocks,
     setBlocks: setWeekBlocks,
@@ -482,19 +496,10 @@ function useCanvasBlockState(
     setWeekSessionOrder,
     reorderSessionsAction: actions.reorderSessionsAction,
     onLibraryDropOnNewSession,
-  });
-
-  const blockActions = useBlockActions({
-    blocks: weekBlocks,
-    setBlocks: setWeekBlocks,
-    createBlockAction,
-    updateBlockAction: linkAware.updateBlockAction,
-    deleteBlockAction: linkAware.deleteBlockAction,
-    updateBlockExerciseAction: linkAware.updateBlockExerciseAction,
-    removeExerciseFromBlockAction: linkAware.removeExerciseFromBlockAction,
-    addExerciseToBlockAction: linkAware.addExerciseToBlockAction,
-    saveBlockAsTemplateAction: actions.saveBlockAsTemplateAction,
-    exercisesById,
+    onExercisePlaced: (be) =>
+      isPending(be)
+        ? blockActions.openExerciseEditor(be)
+        : blockActions.reconcileEditingExercise(be),
   });
 
   return { dnd, blockActions, weekBlocks };

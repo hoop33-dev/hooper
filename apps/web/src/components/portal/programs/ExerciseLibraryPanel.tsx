@@ -26,11 +26,13 @@ export function ExerciseLibraryPanel({
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
+  createCategoryAction,
 }: ExerciseLibraryPanelProps) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [previewExercise, setPreviewExercise] =
     useState<ExerciseWithDetails | null>(null);
+  const [creating, setCreating] = useState(false);
   const filtered = filterExercises(exercises, search, categoryId, categories);
 
   return (
@@ -78,8 +80,16 @@ export function ExerciseLibraryPanel({
           createExerciseAction={createExerciseAction}
           updateExerciseAction={updateExerciseAction}
           updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+          createCategoryAction={createCategoryAction}
+          onPendingChange={setCreating}
           className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex w-full items-center gap-2 border-b border-dashed px-3.5 py-2.5 text-left text-xs font-semibold"
         />
+        {creating && (
+          <div className="text-portal-text3 flex items-center gap-2 px-3.5 py-2.5 text-xs">
+            <span className="border-portal-text3 h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2 border-t-transparent" />
+            Adding exercise…
+          </div>
+        )}
         {filtered.length === 0 && (
           <div className="text-portal-text3 px-3.5 py-6 text-center text-xs">
             No results

@@ -25,6 +25,7 @@ export function ProgramLibraryShelf({
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
+  createCategoryAction,
 }: ProgramLibraryShelfProps) {
   const [open, setOpen] = useState(true);
   const [tab, setTab] = useState<LibraryTab>("exercises");
@@ -57,6 +58,7 @@ export function ProgramLibraryShelf({
               createExerciseAction={createExerciseAction}
               updateExerciseAction={updateExerciseAction}
               updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+              createCategoryAction={createCategoryAction}
             />
           ) : (
             <BlockLibraryShelfBody sessionTemplates={sessionTemplates} />

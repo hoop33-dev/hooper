@@ -2,7 +2,7 @@
 
 import type { MeasurementInput } from "@/src/services/block.service";
 import type { BlockWithExercises } from "@hooper/db";
-import { useState } from "react";
+import { useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { XIcon } from "../ui/icons";
 import { useModalDismiss } from "../ui/useModalDismiss";
@@ -11,8 +11,8 @@ import {
   MeasurementColumnHeader,
   resolveUnitTypes,
   SetRow,
+  withCellCopiedToAllBelow,
   withCellPatch,
-  withFirstCopiedToAll,
   withUnitChange,
   type MeasurementState,
 } from "./BlockExerciseMeasurementModal";
@@ -58,14 +58,20 @@ function ExerciseSection({
   name,
   measurements,
   rounds,
+  isLast,
   onChangeValue,
   onToggleAthlete,
   onUnitChange,
-  onCopyFirstToAll,
+  onCopyToAllBelow,
 }: {
   name: string;
   measurements: MeasurementState[];
   rounds: number;
+  /** Whether this is the last exercise in the block — its last round's Enter
+   * reaches all the way to the Save button, mirroring the single-exercise
+   * modal. Earlier exercises just stop at their own last round rather than
+   * jumping into the next exercise's (possibly differently-shaped) columns. */
+  isLast: boolean;
   onChangeValue: (
     measurementIndex: number,
     setIndex: number,
@@ -77,10 +83,40 @@ function ExerciseSection({
     athleteEntered: boolean,
   ) => void;
   onUnitChange: (measurementIndex: number, unit: string) => void;
-  onCopyFirstToAll: (measurementIndex: number) => void;
+  onCopyToAllBelow: (measurementIndex: number, setIndex: number) => void;
 }) {
+  function handleKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
+    const target = e.target as HTMLElement;
+    if (target.dataset.role !== "set-value") return;
+    const setIndex = Number(target.dataset.setIndex);
+    const measurementIndex = Number(target.dataset.measurementIndex);
+    if (Number.isNaN(setIndex) || Number.isNaN(measurementIndex)) return;
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+
+    const root = e.currentTarget;
+    if (e.shiftKey) {
+      onCopyToAllBelow(measurementIndex, setIndex);
+      root
+        .querySelector<HTMLElement>(
+          `[data-role="set-value"][data-set-index="${rounds - 1}"][data-measurement-index="${measurementIndex}"]`,
+        )
+        ?.focus();
+      return;
+    }
+    if (setIndex < rounds - 1) {
+      root
+        .querySelector<HTMLElement>(
+          `[data-role="set-value"][data-set-index="${setIndex + 1}"][data-measurement-index="${measurementIndex}"]`,
+        )
+        ?.focus();
+    } else if (isLast) {
+      document.querySelector<HTMLElement>('[data-role="save-button"]')?.focus();
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2" onKeyDown={handleKeyDown}>
       <span className="text-portal-text1 text-[13px] font-bold">{name}</span>
       {measurements.length > 0 && (
         <>
@@ -96,7 +132,7 @@ function ExerciseSection({
                   key={m.unit_type}
                   measurement={m}
                   onUnitChange={(unit) => onUnitChange(mi, unit)}
-                  onCopyFirstToAll={() => onCopyFirstToAll(mi)}
+                  onCopyFirstToAll={() => onCopyToAllBelow(mi, 0)}
                 />
               ))}
             </div>
@@ -168,6 +204,7 @@ function ModalFooter({
       <PortalButton
         variant="primary"
         size="sm"
+        data-role="save-button"
         onClick={onSave}
         disabled={saving}>
         {saving ? "Saving…" : "Save"}
@@ -220,10 +257,14 @@ export function SupersetRoundsModal({
     );
   }
 
-  function copyFirstToAll(exerciseId: string, measurementIndex: number) {
+  function copyToAllBelow(
+    exerciseId: string,
+    measurementIndex: number,
+    setIndex: number,
+  ) {
     setByExercise((prev) =>
       withExerciseEdit(prev, exerciseId, (m) =>
-        withFirstCopiedToAll(m, measurementIndex),
+        withCellCopiedToAllBelow(m, measurementIndex, setIndex),
       ),
     );
   }
@@ -243,15 +284,16 @@ export function SupersetRoundsModal({
     <div
       onClick={onBackdropClick}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
-      <div className="bg-portal-card flex max-h-[640px] w-full max-w-sm flex-col overflow-hidden rounded-2xl shadow-2xl">
+      <div className="bg-portal-card flex h-[640px] max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl shadow-2xl">
         <ModalHeader name={block.name} rounds={rounds} onClose={onClose} />
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 py-4">
-          {block.exercises.map((be) => (
+          {block.exercises.map((be, index) => (
             <ExerciseSection
               key={be.id}
               name={be.exercise.name}
               measurements={byExercise[be.id]}
               rounds={rounds}
+              isLast={index === block.exercises.length - 1}
               onChangeValue={(mi, si, value) =>
                 updateCell(be.id, mi, si, { value })
               }
@@ -261,7 +303,7 @@ export function SupersetRoundsModal({
                 })
               }
               onUnitChange={(mi, unit) => updateUnit(be.id, mi, unit)}
-              onCopyFirstToAll={(mi) => copyFirstToAll(be.id, mi)}
+              onCopyToAllBelow={(mi, si) => copyToAllBelow(be.id, mi, si)}
             />
           ))}
         </div>

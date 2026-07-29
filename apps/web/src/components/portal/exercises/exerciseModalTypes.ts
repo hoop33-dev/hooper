@@ -32,4 +32,11 @@ export interface ExerciseModalProps {
     videoUrl: string,
     videoSource: ExerciseVideoSource,
   ) => Promise<ActionResult>;
+  /** Powers the category combobox's inline "+ Add category" affordance.
+   * Optional so callers that haven't wired it yet just don't get the
+   * inline-create UI. */
+  createCategoryAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: ExerciseCategoryRow; error?: string }>;
 }

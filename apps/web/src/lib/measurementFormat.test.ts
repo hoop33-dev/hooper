@@ -177,7 +177,7 @@ describe("formatMeasurementSummary", () => {
           ),
         ],
       }),
-    ).toBe("3 sets × 100m + —");
+    ).toBe("3 sets × — + 100m");
   });
 
   it("shows a first→last range for a pyramid/wave set", () => {
@@ -222,7 +222,7 @@ describe("formatMeasurementCompact", () => {
           ),
         ],
       }),
-    ).toBe("3×100m+—");
+    ).toBe("3×—+100m");
   });
 
   it("collapses a pyramid/wave measurement to a terse first-last range", () => {
@@ -278,8 +278,8 @@ describe("measurementStatColumns", () => {
     expect(new Set(keys).size).toBe(keys.length); // no duplicate React keys
     expect(columns).toEqual([
       { key: "sets", label: "SETS", value: "3" },
-      { key: "Distance", label: "DISTANCE", value: "100m" },
       { key: "Time", label: "TIME", value: "—" },
+      { key: "Distance", label: "DISTANCE", value: "100m" },
     ]);
   });
 });

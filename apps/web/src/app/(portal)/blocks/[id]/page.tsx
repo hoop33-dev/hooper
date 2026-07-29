@@ -20,6 +20,7 @@ import {
   updateExerciseAction,
   updateExerciseVideoUrlAction,
 } from "../../exercises/actions";
+import { createCategoryAction } from "../../exercises/categories/actions";
 import {
   addExerciseToBlockTemplateAction,
   createBlockTemplateAction,
@@ -183,6 +184,7 @@ export default async function BlockTemplateEditorPage({
         createExerciseAction={wrappedCreateExercise}
         updateExerciseAction={updateExerciseAction}
         updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+        createCategoryAction={createCategoryAction}
       />
     </div>
   );

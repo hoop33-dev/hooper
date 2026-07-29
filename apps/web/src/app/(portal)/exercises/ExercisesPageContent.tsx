@@ -11,6 +11,7 @@ import {
   updateExerciseAction,
   updateExerciseVideoUrlAction,
 } from "./actions";
+import { createCategoryAction } from "./categories/actions";
 
 /** Shared by /exercises and /exercises/[id] — the latter renders the same
  * library with the edit modal for that exercise pre-opened, so the URL
@@ -56,6 +57,7 @@ export async function ExercisesPageContent({
         updateAction={updateExerciseAction}
         deleteAction={deleteExerciseAction}
         updateVideoUrlAction={updateExerciseVideoUrlAction}
+        createCategoryAction={createCategoryAction}
       />
     </div>
   );

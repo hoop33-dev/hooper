@@ -57,7 +57,15 @@ function ExerciseFormFields({
 }
 
 export function ExerciseModal(props: ExerciseModalProps) {
-  const { mode, exercise, categories, onClose, deleteAction } = props;
+  const {
+    mode,
+    exercise,
+    categories,
+    onClose,
+    deleteAction,
+    createCategoryAction,
+    profileId,
+  } = props;
   const form = useExerciseModalForm(props);
   const onBackdropClick = useModalDismiss(onClose);
 
@@ -74,6 +82,8 @@ export function ExerciseModal(props: ExerciseModalProps) {
       categories={categories}
       categoryIds={form.categoryIds}
       onCategoryChange={form.setCategoryIds}
+      createCategoryAction={createCategoryAction}
+      profileId={profileId}
       videoUrl={exercise?.video_url}
       videoSource={exercise?.video_source}
       onVideoChange={form.setVideoState}
@@ -100,6 +110,8 @@ function ModalLayout({
   categories,
   categoryIds,
   onCategoryChange,
+  createCategoryAction,
+  profileId,
   videoUrl,
   videoSource,
   onVideoChange,
@@ -122,6 +134,8 @@ function ModalLayout({
   categories: ExerciseCategoryRow[];
   categoryIds: string[];
   onCategoryChange: (ids: string[]) => void;
+  createCategoryAction?: ExerciseModalProps["createCategoryAction"];
+  profileId: string;
   videoUrl?: string | null;
   videoSource?: ExerciseVideoSource | null;
   onVideoChange: (value: VideoFieldState) => void;
@@ -148,6 +162,8 @@ function ModalLayout({
           categories={categories}
           categoryIds={categoryIds}
           onCategoryChange={onCategoryChange}
+          createCategoryAction={createCategoryAction}
+          profileId={profileId}
           videoUrl={videoUrl}
           videoSource={videoSource}
           onVideoChange={onVideoChange}
@@ -177,6 +193,8 @@ function ModalColumnBody({
   categories,
   categoryIds,
   onCategoryChange,
+  createCategoryAction,
+  profileId,
   videoUrl,
   videoSource,
   onVideoChange,
@@ -189,6 +207,8 @@ function ModalColumnBody({
   categories: ExerciseCategoryRow[];
   categoryIds: string[];
   onCategoryChange: (ids: string[]) => void;
+  createCategoryAction?: ExerciseModalProps["createCategoryAction"];
+  profileId: string;
   videoUrl?: string | null;
   videoSource?: ExerciseVideoSource | null;
   onVideoChange: (value: VideoFieldState) => void;
@@ -207,6 +227,8 @@ function ModalColumnBody({
           categories={categories}
           selected={categoryIds}
           onChange={onCategoryChange}
+          createCategoryAction={createCategoryAction}
+          profileId={profileId}
         />
       </div>
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { getDescendantIds } from "@/src/lib/categoryTree";
 import type {
   ExerciseCategoryRow,
   ExerciseVideoSource,
@@ -9,6 +8,7 @@ import type {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { filterExercises } from "../programs/exerciseFilter";
 import { PortalButton } from "../ui/PortalButton";
 import { ExerciseCard } from "./ExerciseCard";
 import type { ExerciseFormData } from "./ExerciseModal";
@@ -33,6 +33,10 @@ interface ExerciseLibraryShellProps {
     videoUrl: string,
     videoSource: ExerciseVideoSource,
   ) => Promise<ActionResult>;
+  createCategoryAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: ExerciseCategoryRow; error?: string }>;
 }
 
 function SearchBar({
@@ -244,6 +248,7 @@ export function ExerciseLibraryShell({
   updateAction,
   deleteAction,
   updateVideoUrlAction,
+  createCategoryAction,
 }: ExerciseLibraryShellProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -251,7 +256,7 @@ export function ExerciseLibraryShell({
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExercise, setEditingExercise] =
     useState<ExerciseWithDetails | null>(null);
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!initialEditExerciseId) return;
@@ -262,15 +267,11 @@ export function ExerciseLibraryShell({
     }
   }, [initialEditExerciseId, exercises]);
 
-  const categoryFilterIds = categoryFilter
-    ? new Set([categoryFilter, ...getDescendantIds(categoryFilter, categories)])
-    : null;
-
-  const filtered = exercises.filter(
-    (ex) =>
-      (!search || ex.name.toLowerCase().includes(search.toLowerCase())) &&
-      (!categoryFilterIds ||
-        ex.categories.some((c) => categoryFilterIds.has(c.id))),
+  const filtered = filterExercises(
+    exercises,
+    search,
+    categoryFilter,
+    categories,
   );
 
   function openCreate() {
@@ -290,7 +291,9 @@ export function ExerciseLibraryShell({
   }
   function handleSaved() {
     closeModal();
-    startTransition(() => {});
+    startTransition(() => {
+      router.refresh();
+    });
   }
 
   return (
@@ -303,6 +306,12 @@ export function ExerciseLibraryShell({
         onSearchChange={setSearch}
         onCreateClick={openCreate}
       />
+
+      {isPending && (
+        <div className="text-portal-text3 border-portal-border border-b px-4 py-1.5 text-xs">
+          Refreshing…
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
@@ -328,6 +337,7 @@ export function ExerciseLibraryShell({
           updateAction={updateAction}
           deleteAction={deleteAction}
           updateVideoUrlAction={updateVideoUrlAction}
+          createCategoryAction={createCategoryAction}
         />
       )}
     </div>

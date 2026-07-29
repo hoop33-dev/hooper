@@ -114,6 +114,11 @@ export interface UseBlockExerciseDndOptions {
   reorderSessionsAction?: (
     updates: SessionPositionUpdate[],
   ) => Promise<ActionResult>;
+  /** Fires with the pending placeholder the instant an exercise lands in a
+   * block (library drop or new-block drop), then again with the real row
+   * once the request resolves — lets the caller auto-open the edit modal on
+   * the placeholder so it's up before the network round trip finishes. */
+  onExercisePlaced?: (blockExercise: BlockExerciseWithDetails) => void;
 }
 
 type ParsedId = {
@@ -545,6 +550,7 @@ async function createBlockForExercise(
       pendingBlock,
     ).blocks,
   );
+  options.onExercisePlaced?.(pendingBlock.exercises[0]);
 
   const blockResult = await options.createBlockAction(sessionId, "New block");
   if (!blockResult.ok || !blockResult.data) {
@@ -571,6 +577,7 @@ async function createBlockForExercise(
     realBlock,
   );
   options.setBlocks(placed.blocks);
+  if (exercises[0]) options.onExercisePlaced?.(exercises[0]);
   if (placed.updates.length > 0 && options.reorderBlocksAction) {
     reportIfFailed(onError, await options.reorderBlocksAction(placed.updates));
   }
@@ -596,6 +603,7 @@ async function placeLibraryExerciseInBlock(
   // so nothing visibly reshuffles once the real row swaps in below.
   const pendingRow = createPendingExercise(target.blockId, exercise);
   options.setBlocks(placeExercise(originalBlocks, target, pendingRow));
+  options.onExercisePlaced?.(pendingRow);
 
   const result = await options.addExerciseToBlockAction({
     block_id: target.blockId,
@@ -608,6 +616,7 @@ async function placeLibraryExerciseInBlock(
   }
 
   const newRow = { ...result.data, exercise };
+  options.onExercisePlaced?.(newRow);
   const appended = appendExerciseToBlock(
     originalBlocks,
     target.blockId,

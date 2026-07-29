@@ -64,6 +64,7 @@ export function FormEditorShell({
                 onOpenQuestion={state.setEditingQuestion}
                 onReorder={state.handleReorder}
                 onAddQuestion={state.handleAddQuestion}
+                onDeleteQuestion={state.handleDeleteQuestion}
               />
             </div>
 
@@ -84,7 +85,6 @@ export function FormEditorShell({
           question={state.editingQuestion}
           onClose={() => state.setEditingQuestion(null)}
           onSave={state.handleSaveQuestion}
-          onDelete={state.handleDeleteQuestion}
         />
       )}
 

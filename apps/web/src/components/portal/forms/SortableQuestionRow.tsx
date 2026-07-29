@@ -3,6 +3,7 @@
 import { cn } from "@/src/lib/cn";
 import { useSortable } from "@dnd-kit/sortable";
 import type { FormQuestionWithOptions } from "@hooper/db";
+import { InlineConfirmDelete } from "../ui/InlineConfirmDelete";
 import { PortalBadge } from "../ui/PortalBadge";
 import { questionTypeLabel } from "./questionTypes";
 
@@ -23,6 +24,7 @@ interface SortableQuestionRowProps {
   question: FormQuestionWithOptions;
   index: number;
   onOpen: () => void;
+  onDelete: () => void;
   isDropTarget: boolean;
   dropAfter: boolean;
   dragActive: boolean;
@@ -32,6 +34,7 @@ export function SortableQuestionRow({
   question,
   index,
   onOpen,
+  onDelete,
   isDropTarget,
   dropAfter,
   dragActive,
@@ -49,7 +52,7 @@ export function SortableQuestionRow({
     <div
       ref={setNodeRef}
       className={cn(
-        "border-portal-border bg-portal-card relative flex cursor-pointer touch-none items-center gap-3 rounded-xl border px-4 py-3.5 select-none",
+        "border-portal-border bg-portal-card group relative flex cursor-pointer touch-none items-center gap-3 rounded-xl border px-4 py-3.5 select-none",
         !dragActive && "hover:bg-portal-bg",
         isDragging && "opacity-40",
       )}
@@ -79,6 +82,11 @@ export function SortableQuestionRow({
       {question.required && (
         <PortalBadge variant="orange">Required</PortalBadge>
       )}
+      <InlineConfirmDelete
+        onDelete={onDelete}
+        idleTitle="Delete question"
+        idleClassName="text-portal-text3 hover:text-red-500"
+      />
     </div>
   );
 }

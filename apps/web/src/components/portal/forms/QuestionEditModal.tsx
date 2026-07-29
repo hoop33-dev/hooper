@@ -1,9 +1,9 @@
 "use client";
 
+import { FORM_UNITS } from "@/src/constants/formUnits";
 import { cn } from "@/src/lib/cn";
 import type { UpdateFormQuestionInput } from "@/src/services/form.service";
-import type { FormQuestionWithOptions } from "@hooper/db";
-import { InlineConfirmBar } from "../ui/InlineConfirmBar";
+import type { FormQuestionUnit, FormQuestionWithOptions } from "@hooper/db";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
 import { XIcon } from "../ui/icons";
@@ -18,7 +18,6 @@ interface QuestionEditModalProps {
   question: FormQuestionWithOptions;
   onClose: () => void;
   onSave: (data: UpdateFormQuestionInput) => Promise<void>;
-  onDelete: () => Promise<void>;
 }
 
 type QuestionEditForm = ReturnType<typeof useQuestionEditForm>;
@@ -87,6 +86,64 @@ function RangeFields({
   );
 }
 
+function UnitField({
+  value,
+  onChange,
+}: {
+  value: FormQuestionUnit | "";
+  onChange: (v: FormQuestionUnit | "") => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-portal-text2 text-xs font-semibold">
+        Units (optional)
+      </label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as FormQuestionUnit | "")}
+        className="border-portal-border bg-portal-card text-portal-text1 focus:border-portal-orange focus:ring-portal-orange h-11 w-full rounded-lg border px-3.5 text-sm focus:ring-1 focus:outline-none">
+        <option value="">None</option>
+        {FORM_UNITS.map((u) => (
+          <option key={u.value} value={u.value}>
+            {u.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function SliderLabelFields({
+  minLabel,
+  maxLabel,
+  onMinLabel,
+  onMaxLabel,
+}: {
+  minLabel: string;
+  maxLabel: string;
+  onMinLabel: (v: string) => void;
+  onMaxLabel: (v: string) => void;
+}) {
+  return (
+    <div className="flex gap-3">
+      <PortalInput
+        label="Low label (optional)"
+        value={minLabel}
+        onChange={(e) => onMinLabel(e.target.value)}
+        placeholder="e.g. Need Recovery"
+        wrapperClassName="flex-1"
+      />
+      <PortalInput
+        label="High label (optional)"
+        value={maxLabel}
+        onChange={(e) => onMaxLabel(e.target.value)}
+        placeholder="e.g. Ready to grind"
+        wrapperClassName="flex-1"
+      />
+    </div>
+  );
+}
+
 function OptionsFields({
   options,
   onChange,
@@ -142,13 +199,7 @@ function OptionsFields({
   );
 }
 
-function QuestionEditFields({
-  form,
-  onDelete,
-}: {
-  form: QuestionEditForm;
-  onDelete: () => Promise<void>;
-}) {
+function QuestionEditFields({ form }: { form: QuestionEditForm }) {
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
       <PortalTextarea
@@ -159,30 +210,37 @@ function QuestionEditFields({
         rows={2}
         autoFocus
       />
+      <PortalTextarea
+        label="Description (optional)"
+        value={form.description}
+        onChange={(e) => form.setDescription(e.target.value)}
+        placeholder="e.g. Bodyweight of user without shoes"
+        rows={2}
+      />
       <QuestionTypeSelector selected={form.type} onChange={form.onTypeChange} />
-      {(form.type === "number" || form.type === "slider") && (
-        <RangeFields
-          minValue={form.minValue}
-          maxValue={form.maxValue}
-          onMinValue={form.setMinValue}
-          onMaxValue={form.setMaxValue}
+      {form.type === "number" && (
+        <>
+          <RangeFields
+            minValue={form.minValue}
+            maxValue={form.maxValue}
+            onMinValue={form.setMinValue}
+            onMaxValue={form.setMaxValue}
+          />
+          <UnitField value={form.unit} onChange={form.setUnit} />
+        </>
+      )}
+      {form.type === "slider" && (
+        <SliderLabelFields
+          minLabel={form.minLabel}
+          maxLabel={form.maxLabel}
+          onMinLabel={form.setMinLabel}
+          onMaxLabel={form.setMaxLabel}
         />
       )}
       {form.type === "dropdown" && (
         <OptionsFields options={form.options} onChange={form.setOptions} />
       )}
       <RequiredToggle required={form.required} onChange={form.setRequired} />
-
-      <div className="border-portal-border mt-1 border-t pt-4">
-        <div className="text-portal-text3 mb-2.5 text-[10px] font-bold tracking-wider uppercase">
-          Danger zone
-        </div>
-        <InlineConfirmBar
-          idleLabel="Delete this question"
-          confirmLabel="Delete this question?"
-          onConfirm={onDelete}
-        />
-      </div>
     </div>
   );
 }
@@ -191,7 +249,6 @@ export function QuestionEditModal({
   question,
   onClose,
   onSave,
-  onDelete,
 }: QuestionEditModalProps) {
   const form = useQuestionEditForm(question, onSave);
   const onBackdropClick = useModalDismiss(onClose);
@@ -213,7 +270,7 @@ export function QuestionEditModal({
           </button>
         </div>
 
-        <QuestionEditFields form={form} onDelete={onDelete} />
+        <QuestionEditFields form={form} />
 
         <div className="border-portal-border flex justify-end gap-2 border-t px-6 py-4">
           <PortalButton

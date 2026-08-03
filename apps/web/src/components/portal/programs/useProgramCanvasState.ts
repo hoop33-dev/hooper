@@ -496,9 +496,9 @@ function useCanvasBlockState(
     setWeekSessionOrder,
     reorderSessionsAction: actions.reorderSessionsAction,
     onLibraryDropOnNewSession,
-    onExercisePlaced: (be) =>
+    onExercisePlaced: (be, parentBlock) =>
       isPending(be)
-        ? blockActions.openExerciseEditor(be)
+        ? blockActions.openExerciseEditor(be, parentBlock)
         : blockActions.reconcileEditingExercise(be),
   });
 

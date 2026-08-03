@@ -176,9 +176,9 @@ export function useSessionViewState(
       actions.createBlocksFromSessionTemplateAction,
     blockTemplateNamesById,
     sessionTemplatesById,
-    onExercisePlaced: (be) =>
+    onExercisePlaced: (be, parentBlock) =>
       isPending(be)
-        ? blockActions.openExerciseEditor(be)
+        ? blockActions.openExerciseEditor(be, parentBlock)
         : blockActions.reconcileEditingExercise(be),
   });
 

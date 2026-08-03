@@ -71,6 +71,7 @@ export function SessionViewShell({
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
+  createCategoryAction,
   ...actions
 }: SessionViewShellProps) {
   const state = useSessionViewState(
@@ -98,6 +99,7 @@ export function SessionViewShell({
             createExerciseAction={createExerciseAction}
             updateExerciseAction={updateExerciseAction}
             updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+            createCategoryAction={createCategoryAction}
           />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
             <BlockList

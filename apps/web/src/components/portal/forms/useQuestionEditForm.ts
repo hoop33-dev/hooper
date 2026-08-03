@@ -1,5 +1,9 @@
 import type { UpdateFormQuestionInput } from "@/src/services/form.service";
-import type { FormQuestionType, FormQuestionWithOptions } from "@hooper/db";
+import type {
+  FormQuestionType,
+  FormQuestionUnit,
+  FormQuestionWithOptions,
+} from "@hooper/db";
 import { useState } from "react";
 
 const MIN_OPTIONS = 2;
@@ -11,6 +15,7 @@ export function useQuestionEditForm(
   onSave: (data: UpdateFormQuestionInput) => Promise<void>,
 ) {
   const [prompt, setPrompt] = useState(question.prompt);
+  const [description, setDescription] = useState(question.description ?? "");
   const [type, setType] = useState<FormQuestionType>(question.type);
   const [required, setRequired] = useState(question.required);
   const [minValue, setMinValue] = useState(
@@ -19,6 +24,9 @@ export function useQuestionEditForm(
   const [maxValue, setMaxValue] = useState(
     question.max_value !== null ? String(question.max_value) : "",
   );
+  const [unit, setUnit] = useState<FormQuestionUnit | "">(question.unit ?? "");
+  const [minLabel, setMinLabel] = useState(question.min_label ?? "");
+  const [maxLabel, setMaxLabel] = useState(question.max_label ?? "");
   const [options, setOptions] = useState(
     question.options.length > 0
       ? question.options.map((o) => o.label)
@@ -45,10 +53,16 @@ export function useQuestionEditForm(
     setSaving(true);
     await onSave({
       prompt: prompt.trim(),
+      description: description.trim() === "" ? null : description.trim(),
       type,
       required,
       min_value: minValue.trim() === "" ? null : Number(minValue),
       max_value: maxValue.trim() === "" ? null : Number(maxValue),
+      unit: type === "number" && unit !== "" ? unit : null,
+      min_label:
+        type === "slider" && minLabel.trim() !== "" ? minLabel.trim() : null,
+      max_label:
+        type === "slider" && maxLabel.trim() !== "" ? maxLabel.trim() : null,
       options: type === "dropdown" ? trimmedOptions.filter(Boolean) : [],
     });
     setSaving(false);
@@ -57,6 +71,8 @@ export function useQuestionEditForm(
   return {
     prompt,
     setPrompt,
+    description,
+    setDescription,
     type,
     onTypeChange,
     required,
@@ -65,6 +81,12 @@ export function useQuestionEditForm(
     setMinValue,
     maxValue,
     setMaxValue,
+    unit,
+    setUnit,
+    minLabel,
+    setMinLabel,
+    maxLabel,
+    setMaxLabel,
     options,
     setOptions,
     saving,

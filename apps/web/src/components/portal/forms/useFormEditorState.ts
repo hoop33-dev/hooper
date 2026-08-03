@@ -74,7 +74,7 @@ export function useFormEditorState(
     const result = await actions.createQuestionAction({
       form_id: form.id,
       position: nextPosition,
-      prompt: "Untitled question",
+      prompt: "",
       type: "short_text",
     });
     if (result.ok && result.data) {
@@ -92,11 +92,10 @@ export function useFormEditorState(
     }
   }
 
-  async function handleDeleteQuestion() {
-    if (!editingQuestion) return;
-    await actions.deleteQuestionAction(editingQuestion.id);
+  async function handleDeleteQuestion(id: string) {
+    await actions.deleteQuestionAction(id);
+    if (editingQuestion?.id === id) setEditingQuestion(null);
     router.refresh();
-    setEditingQuestion(null);
   }
 
   /** Applies the new order immediately (before the server call resolves) so

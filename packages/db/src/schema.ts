@@ -273,17 +273,33 @@ export type FormQuestionType =
   | "dropdown"
   | "yes_no";
 
+export type FormQuestionUnit =
+  | "secs"
+  | "mins"
+  | "hrs"
+  | "kg"
+  | "lbs"
+  | "reps"
+  | "%";
+
 export type FormQuestionRow = {
   id: string;
   form_id: string;
   position: number;
   prompt: string;
+  description: string | null;
   type: FormQuestionType;
   required: boolean;
   /** Only meaningful for 'number' and 'slider' questions — a UI concern,
    * same convention as block_exercises.reps/value. */
   min_value: number | null;
   max_value: number | null;
+  /** Only meaningful for 'number' questions. */
+  unit: FormQuestionUnit | null;
+  /** Only meaningful for 'slider' questions — labels for the fixed 1-10
+   * scale's low/high ends (e.g. "Need Recovery" / "Ready to grind"). */
+  min_label: string | null;
+  max_label: string | null;
   created_at: string;
   updated_at: string;
 };

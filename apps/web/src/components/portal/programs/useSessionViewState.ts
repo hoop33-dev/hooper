@@ -19,6 +19,7 @@ import type {
   BlockExercisePositionUpdate,
   BlockPositionUpdate,
 } from "./dnd/dropComputation";
+import { isPending } from "./dnd/pendingRows";
 import { useBlockExerciseDnd } from "./dnd/useBlockExerciseDnd";
 import { useBlockActions } from "./useBlockActions";
 
@@ -147,6 +148,20 @@ export function useSessionViewState(
   );
   const sessionTemplatesById = new Map(sessionTemplates.map((t) => [t.id, t]));
 
+  const blockActions = useBlockActions({
+    blocks,
+    setBlocks,
+    createBlockAction: (sessionId, name) =>
+      actions.createBlockAction({ session_id: sessionId, name }),
+    updateBlockAction: actions.updateBlockAction,
+    deleteBlockAction: actions.deleteBlockAction,
+    updateBlockExerciseAction: actions.updateBlockExerciseAction,
+    removeExerciseFromBlockAction: actions.removeExerciseFromBlockAction,
+    addExerciseToBlockAction: actions.addExerciseToBlockAction,
+    saveBlockAsTemplateAction: actions.saveBlockAsTemplateAction,
+    exercisesById,
+  });
+
   const dnd = useBlockExerciseDnd({
     blocks,
     setBlocks,
@@ -161,20 +176,10 @@ export function useSessionViewState(
       actions.createBlocksFromSessionTemplateAction,
     blockTemplateNamesById,
     sessionTemplatesById,
-  });
-
-  const blockActions = useBlockActions({
-    blocks,
-    setBlocks,
-    createBlockAction: (sessionId, name) =>
-      actions.createBlockAction({ session_id: sessionId, name }),
-    updateBlockAction: actions.updateBlockAction,
-    deleteBlockAction: actions.deleteBlockAction,
-    updateBlockExerciseAction: actions.updateBlockExerciseAction,
-    removeExerciseFromBlockAction: actions.removeExerciseFromBlockAction,
-    addExerciseToBlockAction: actions.addExerciseToBlockAction,
-    saveBlockAsTemplateAction: actions.saveBlockAsTemplateAction,
-    exercisesById,
+    onExercisePlaced: (be, parentBlock) =>
+      isPending(be)
+        ? blockActions.openExerciseEditor(be, parentBlock)
+        : blockActions.reconcileEditingExercise(be),
   });
 
   const editingExerciseLinkedWeeks = useEditingExerciseLinkedWeeks(

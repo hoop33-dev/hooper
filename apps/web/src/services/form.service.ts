@@ -5,6 +5,7 @@ import type {
   FormQuestionOptionRow,
   FormQuestionRow,
   FormQuestionType,
+  FormQuestionUnit,
   FormRow,
   FormSummary,
   FormWithQuestions,
@@ -32,19 +33,27 @@ export type CreateFormQuestionInput = {
   form_id: string;
   position: number;
   prompt: string;
+  description?: string | null;
   type: FormQuestionType;
   required?: boolean;
   min_value?: number | null;
   max_value?: number | null;
+  unit?: FormQuestionUnit | null;
+  min_label?: string | null;
+  max_label?: string | null;
   options?: string[];
 };
 
 export type UpdateFormQuestionInput = {
   prompt?: string;
+  description?: string | null;
   type?: FormQuestionType;
   required?: boolean;
   min_value?: number | null;
   max_value?: number | null;
+  unit?: FormQuestionUnit | null;
+  min_label?: string | null;
+  max_label?: string | null;
   options?: string[];
 };
 
@@ -198,10 +207,14 @@ export async function createFormQuestion(
         form_id: input.form_id,
         position: input.position,
         prompt: input.prompt,
+        description: input.description ?? null,
         type: input.type,
         required: input.required ?? true,
         min_value: input.min_value ?? null,
         max_value: input.max_value ?? null,
+        unit: input.unit ?? null,
+        min_label: input.min_label ?? null,
+        max_label: input.max_label ?? null,
       })
       .select()
       .single();
@@ -232,10 +245,14 @@ export async function updateFormQuestion(
       .from("form_questions")
       .update({
         ...(input.prompt !== undefined && { prompt: input.prompt }),
+        ...("description" in input && { description: input.description }),
         ...(input.type !== undefined && { type: input.type }),
         ...(input.required !== undefined && { required: input.required }),
         ...("min_value" in input && { min_value: input.min_value }),
         ...("max_value" in input && { max_value: input.max_value }),
+        ...("unit" in input && { unit: input.unit }),
+        ...("min_label" in input && { min_label: input.min_label }),
+        ...("max_label" in input && { max_label: input.max_label }),
       })
       .eq("id", id)
       .select()

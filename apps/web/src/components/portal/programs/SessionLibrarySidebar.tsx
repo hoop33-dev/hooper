@@ -28,6 +28,7 @@ export function SessionLibrarySidebar({
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
+  createCategoryAction,
 }: SessionLibrarySidebarProps) {
   const [tab, setTab] = useState<LibraryTab>("exercises");
   const tabs = (
@@ -43,6 +44,7 @@ export function SessionLibrarySidebar({
       createExerciseAction={createExerciseAction}
       updateExerciseAction={updateExerciseAction}
       updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+      createCategoryAction={createCategoryAction}
     />
   ) : (
     <BlockLibraryPanel sessionTemplates={sessionTemplates} tabs={tabs} />

@@ -1,5 +1,6 @@
 "use client";
 
+import { sortUnitTypes } from "@/src/constants/unitTypes";
 import { cn } from "@/src/lib/cn";
 import {
   convertUnit,
@@ -9,7 +10,11 @@ import {
 } from "@/src/lib/measurementFormat";
 import type { LinkScope } from "@/src/services/block.service";
 import type { BlockExerciseWithDetails, EnteredBy } from "@hooper/db";
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalTextarea } from "../ui/PortalInput";
 import { DuplicateIcon, XIcon } from "../ui/icons";
@@ -24,11 +29,17 @@ function StepperInput({
   min,
   onChange,
   className,
+  dataSetIndex,
+  dataMeasurementIndex,
 }: {
   value: number;
   min: number;
   onChange: (v: number) => void;
   className: string;
+  /** Set on a set-value cell (not the Sets stepper) — identifies this input
+   * for the modal's delegated Tab/Enter/Shift+Enter keyboard handling. */
+  dataSetIndex?: number;
+  dataMeasurementIndex?: number;
 }) {
   const [text, setText] = useState(String(value));
   // Keep the field in sync when value changes elsewhere (e.g. +/- buttons).
@@ -54,6 +65,10 @@ function StepperInput({
         onChange(resolved);
         setText(String(resolved));
       }}
+      onFocus={(e) => e.currentTarget.select()}
+      data-role={dataSetIndex !== undefined ? "set-value" : undefined}
+      data-set-index={dataSetIndex}
+      data-measurement-index={dataMeasurementIndex}
       className={cn(
         "[appearance:textfield] outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
         className,
@@ -210,6 +225,7 @@ function AthleteEnteredBadge({
   return (
     <button
       type="button"
+      tabIndex={-1}
       onClick={() => onChange(!checked)}
       title={
         checked
@@ -292,7 +308,7 @@ export function SetRow({
           return (
             <div
               key={m.unit_type}
-              className="border-portal-border bg-portal-card relative flex items-center justify-center rounded-lg border py-1.5">
+              className="border-portal-border bg-portal-card relative flex min-h-9 items-center justify-center rounded-lg border py-1.5">
               {athleteEntered ? (
                 <span className="text-portal-text3 text-[11px] italic">
                   Athlete enters
@@ -302,6 +318,8 @@ export function SetRow({
                   value={cell.value}
                   min={0}
                   onChange={(v) => onChangeValue(mi, v)}
+                  dataSetIndex={setIndex}
+                  dataMeasurementIndex={mi}
                   className="font-title text-portal-orange w-full text-center text-base font-black"
                 />
               )}
@@ -422,6 +440,7 @@ function ModalFooter({
       <PortalButton
         variant="primary"
         size="sm"
+        data-role="save-button"
         onClick={onSave}
         disabled={saving}>
         {saving ? "Saving…" : "Save"}
@@ -493,9 +512,9 @@ export function resolveUnitTypes(
   blockExercise: BlockExerciseWithDetails,
 ): string[] {
   if (blockExercise.exercise.unitTypes.length > 0)
-    return blockExercise.exercise.unitTypes;
+    return sortUnitTypes(blockExercise.exercise.unitTypes);
   const seen = new Set(blockExercise.measurements.map((m) => m.unit_type));
-  if (seen.size > 0) return [...seen];
+  if (seen.size > 0) return sortUnitTypes([...seen]);
   return ["Reps"];
 }
 
@@ -522,7 +541,8 @@ function resolveSetValues(
 }
 
 /** Mirrors block.service.ts's defaultValueFor: Reps-like unit types default
- * to a nonzero starting count; everything else starts at zero. */
+ * to a nonzero starting count; everything else (including RPE/RIR) starts
+ * at zero. */
 function defaultValueFor(unitType: string): number {
   return unitType === "Reps" || unitType === "Reps Each Side" ? 8 : 0;
 }
@@ -601,13 +621,22 @@ export function withUnitChange(
   });
 }
 
-export function withFirstCopiedToAll(
+/** Copies one set's value down into every set below it in the same column,
+ * leaving sets above untouched — the Shift+Enter keyboard shortcut, and
+ * (called with setIndex 0) the "copy set 1 to every set" header button. */
+export function withCellCopiedToAllBelow(
   measurements: MeasurementState[],
   measurementIndex: number,
+  setIndex: number,
 ): MeasurementState[] {
   return measurements.map((m, mi) =>
     mi === measurementIndex
-      ? { ...m, sets: m.sets.map(() => ({ ...m.sets[0] })) }
+      ? {
+          ...m,
+          sets: m.sets.map((s, si) =>
+            si > setIndex ? { ...m.sets[setIndex] } : s,
+          ),
+        }
       : m,
   );
 }
@@ -634,8 +663,10 @@ export function useMeasurementSetEditor(initializer: () => MeasurementState[]) {
       setMeasurements((prev) =>
         withUnitChange(prev, measurementIndex, newUnit),
       ),
-    copyFirstToAll: (measurementIndex: number) =>
-      setMeasurements((prev) => withFirstCopiedToAll(prev, measurementIndex)),
+    copyToAllBelow: (measurementIndex: number, setIndex: number) =>
+      setMeasurements((prev) =>
+        withCellCopiedToAllBelow(prev, measurementIndex, setIndex),
+      ),
     resize: (setsCount: number) =>
       setMeasurements((prev) => resizeMeasurementSets(prev, setsCount)),
   };
@@ -673,6 +704,50 @@ function toSavePayload(
       })),
     })),
   };
+}
+
+function focusCell(
+  root: HTMLElement,
+  setIndex: number,
+  measurementIndex: number,
+) {
+  root
+    .querySelector<HTMLElement>(
+      `[data-role="set-value"][data-set-index="${setIndex}"][data-measurement-index="${measurementIndex}"]`,
+    )
+    ?.focus();
+}
+
+/** Excel-style set-grid navigation: Tab already moves horizontally across a
+ * row (DOM order, with the "A" badge excluded via tabIndex=-1); Enter here
+ * moves vertically to the same column's next set, or focuses Save on the
+ * last set. Shift+Enter copies the focused cell down to every set below it,
+ * then moves the cursor to that last (now-filled) set, mirroring where plain
+ * Enter would have ended up. */
+function handleGridKeyDown(
+  e: ReactKeyboardEvent<HTMLDivElement>,
+  sets: number,
+  copyToAllBelow: (measurementIndex: number, setIndex: number) => void,
+) {
+  const target = e.target as HTMLElement;
+  if (target.dataset.role !== "set-value") return;
+  const setIndex = Number(target.dataset.setIndex);
+  const measurementIndex = Number(target.dataset.measurementIndex);
+  if (Number.isNaN(setIndex) || Number.isNaN(measurementIndex)) return;
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+
+  const root = e.currentTarget;
+  if (e.shiftKey) {
+    copyToAllBelow(measurementIndex, setIndex);
+    focusCell(root, sets - 1, measurementIndex);
+    return;
+  }
+  if (setIndex < sets - 1) {
+    focusCell(root, setIndex + 1, measurementIndex);
+  } else {
+    root.querySelector<HTMLElement>('[data-role="save-button"]')?.focus();
+  }
 }
 
 export function BlockExerciseMeasurementModal({
@@ -721,7 +796,9 @@ export function BlockExerciseMeasurementModal({
     <div
       onClick={onBackdropClick}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
-      <div className="bg-portal-card flex max-h-[560px] w-full max-w-sm flex-col overflow-hidden rounded-2xl shadow-2xl">
+      <div
+        onKeyDown={(e) => handleGridKeyDown(e, sets, editor.copyToAllBelow)}
+        className="bg-portal-card flex h-[560px] max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl shadow-2xl">
         <ModalHeader name={exercise.name} onClose={onClose} />
         <ModalBody
           sets={sets}
@@ -736,7 +813,7 @@ export function BlockExerciseMeasurementModal({
             })
           }
           onUnitChange={editor.updateUnit}
-          onCopyFirstToAll={editor.copyFirstToAll}
+          onCopyFirstToAll={(mi) => editor.copyToAllBelow(mi, 0)}
           notes={notes}
           onNotes={setNotes}
         />

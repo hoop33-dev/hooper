@@ -196,6 +196,7 @@ export function ProgramCanvasShell({
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
+  createCategoryAction,
   ...actions
 }: ProgramCanvasShellProps) {
   const createExerciseActions: CreateExerciseActions = {
@@ -203,6 +204,7 @@ export function ProgramCanvasShell({
     createExerciseAction,
     updateExerciseAction,
     updateExerciseVideoUrlAction,
+    createCategoryAction,
   };
   const state = useProgramCanvasState(
     program,

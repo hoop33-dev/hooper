@@ -68,11 +68,13 @@ export function ExerciseLibraryShelfBody({
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
+  createCategoryAction,
 }: ExerciseLibraryShelfProps) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [previewExercise, setPreviewExercise] =
     useState<ExerciseWithDetails | null>(null);
+  const [creating, setCreating] = useState(false);
   const filtered = filterExercises(exercises, search, categoryId, categories);
 
   return (
@@ -99,8 +101,16 @@ export function ExerciseLibraryShelfBody({
           createExerciseAction={createExerciseAction}
           updateExerciseAction={updateExerciseAction}
           updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+          createCategoryAction={createCategoryAction}
+          onPendingChange={setCreating}
           className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex h-[52px] w-[136px] flex-shrink-0 items-center justify-center rounded-lg border border-dashed px-2.5 text-center text-[11px] font-bold"
         />
+        {creating && (
+          <div className="border-portal-border text-portal-text3 flex h-[52px] w-[136px] flex-shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-bold">
+            <span className="border-portal-text3 h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2 border-t-transparent" />
+            Adding…
+          </div>
+        )}
       </div>
       {previewExercise && (
         <ExercisePreviewModal

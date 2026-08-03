@@ -16,14 +16,7 @@ interface QuestionListProps {
   onOpenQuestion: (question: FormQuestionWithOptions) => void;
   onReorder: (reordered: FormQuestionWithOptions[]) => void;
   onAddQuestion: () => Promise<void>;
-}
-
-function EmptyState() {
-  return (
-    <div className="border-portal-border text-portal-text3 rounded-xl border border-dashed py-12 text-center text-sm">
-      No questions yet — add one to get started.
-    </div>
-  );
+  onDeleteQuestion: (id: string) => Promise<void>;
 }
 
 export function QuestionList({
@@ -31,6 +24,7 @@ export function QuestionList({
   onOpenQuestion,
   onReorder,
   onAddQuestion,
+  onDeleteQuestion,
 }: QuestionListProps) {
   const [adding, setAdding] = useState(false);
   const dnd = useQuestionListDnd(questions, onReorder);
@@ -43,9 +37,7 @@ export function QuestionList({
 
   return (
     <div className="flex flex-col gap-3">
-      {questions.length === 0 ? (
-        <EmptyState />
-      ) : (
+      {questions.length > 0 && (
         <DndContext
           sensors={dnd.sensors}
           collisionDetection={dnd.collisionDetection}
@@ -63,6 +55,7 @@ export function QuestionList({
                   question={question}
                   index={i}
                   onOpen={() => onOpenQuestion(question)}
+                  onDelete={() => onDeleteQuestion(question.id)}
                   isDropTarget={
                     !!dnd.activeId &&
                     dnd.dropTarget?.overId === question.id &&

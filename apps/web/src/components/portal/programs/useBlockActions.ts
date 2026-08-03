@@ -11,10 +11,11 @@ import type {
   BlockExerciseWithDetails,
   BlockRow,
   BlockWithExercises,
+  EnteredBy,
   ExerciseWithDetails,
 } from "@hooper/db";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useToast } from "../ui/Toast";
 import type { BlockExerciseUpdateData } from "./BlockExerciseMeasurementModal";
 import {
@@ -23,6 +24,7 @@ import {
   removeBlock,
   removeExercise,
 } from "./blocksState";
+import { isPending } from "./dnd/pendingRows";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
@@ -131,7 +133,55 @@ function findParentBlock(
   return blocks.find((b) => b.exercises.some((e) => e.id === blockExerciseId));
 }
 
-async function runSaveExerciseMeasurement(
+/** The measurements a specific exercise row currently has, or undefined if
+ * it isn't in any of the currently-loaded blocks — used to recover a
+ * superset save's pre-edit values for exercises whose optimistic guess
+ * needs rolling back after a later exercise in the same batch fails. */
+export function findExerciseMeasurements(
+  blocks: BlockWithExercises[],
+  exerciseRowId: string,
+): BlockExerciseWithDetails["measurements"] | undefined {
+  for (const b of blocks) {
+    const row = b.exercises.find((e) => e.id === exerciseRowId);
+    if (row) return row.measurements;
+  }
+  return undefined;
+}
+
+/** Flattens the modal's per-column, per-set edit payload back into the flat
+ * per-set measurement rows a placement carries — the shape needed to patch
+ * local state optimistically, ahead of the server's own flattened response.
+ * `created_at`/`updated_at` are placeholders; they're overwritten the moment
+ * the real (server-confirmed) row swaps in. */
+function toOptimisticMeasurements(
+  blockExerciseId: string,
+  measurements: {
+    unit_type: string;
+    value_unit?: string | null;
+    sets: { value?: number | null; value_entered_by?: EnteredBy }[];
+  }[],
+): BlockExerciseWithDetails["measurements"] {
+  const now = new Date().toISOString();
+  return measurements.flatMap((m, position) =>
+    m.sets.map((s, set_index) => ({
+      block_exercise_id: blockExerciseId,
+      position,
+      set_index,
+      unit_type: m.unit_type,
+      value: s.value ?? null,
+      value_entered_by: s.value_entered_by ?? ("coach" as EnteredBy),
+      value_unit: m.value_unit ?? null,
+      created_at: now,
+      updated_at: now,
+    })),
+  );
+}
+
+/** Patches local state and closes the modal immediately with the predicted
+ * result, rather than waiting on the round trip — mirrors the optimistic
+ * insert pattern in useBlockExerciseDnd.ts, just for an edit instead of a
+ * placement. Rolls back to the pre-edit blocks on failure. */
+export async function runSaveExerciseMeasurement(
   data: BlockExerciseUpdateData,
   scope: LinkScope | undefined,
   editingExercise: BlockExerciseWithDetails | null,
@@ -139,46 +189,103 @@ async function runSaveExerciseMeasurement(
     UseBlockActionsOptions,
     "blocks" | "setBlocks" | "updateBlockExerciseAction"
   > & {
+    getBlocks: () => BlockWithExercises[];
     showError: (message: string) => void;
     onSaved: () => void;
   },
 ) {
   if (!editingExercise) return;
+  ctx.setBlocks(
+    patchExercise(ctx.blocks, editingExercise.id, {
+      sets: data.sets,
+      notes: data.notes ?? null,
+      measurements: toOptimisticMeasurements(
+        editingExercise.id,
+        data.measurements,
+      ),
+    }),
+  );
+  ctx.onSaved();
+
   const result = await ctx.updateBlockExerciseAction(
     editingExercise.id,
     data,
     scope,
   );
   if (result.ok && result.data) {
-    ctx.setBlocks(patchExercise(ctx.blocks, editingExercise.id, result.data));
-    ctx.onSaved();
+    // Patch against the latest blocks, not the pre-edit snapshot — the modal
+    // closed before this awaited, so the coach may have made other changes
+    // in the meantime that would otherwise be discarded here.
+    ctx.setBlocks(
+      patchExercise(ctx.getBlocks(), editingExercise.id, result.data),
+    );
   } else {
+    // Roll back only this row to its pre-save state, not the whole array,
+    // so any unrelated edits made while this save was in flight survive.
+    ctx.setBlocks(
+      patchExercise(ctx.getBlocks(), editingExercise.id, editingExercise),
+    );
     reportError(ctx.showError, result);
   }
 }
 
 /** Saves every exercise's measurements in a superset block one placement at
  * a time — there's no batched endpoint, but a superset is a handful of
- * exercises at most, so N sequential saves is simple and fast enough. */
-async function runSaveSupersetMeasurements(
+ * exercises at most, so N sequential saves is simple and fast enough.
+ * Patches every exercise's predicted values in immediately and closes the
+ * modal, then reconciles (or rolls every exercise back) as the sequential
+ * saves land. */
+export async function runSaveSupersetMeasurements(
   perExercise: { id: string; measurements: MeasurementInput[] }[],
   ctx: Pick<
     UseBlockActionsOptions,
     "blocks" | "setBlocks" | "updateBlockExerciseAction"
   > & {
+    getBlocks: () => BlockWithExercises[];
     showError: (message: string) => void;
     onSaved: () => void;
   },
 ) {
-  for (const { id, measurements } of perExercise) {
+  // Snapshot each exercise's pre-edit measurements up front, purely so a
+  // later failure can restore an individual row's optimistic guess — the
+  // setBlocks calls below always apply against ctx.getBlocks() (the latest
+  // state), not this snapshot, so concurrent edits made elsewhere survive.
+  const originalMeasurementsById = new Map(
+    perExercise.map(({ id }) => [id, findExerciseMeasurements(ctx.blocks, id)]),
+  );
+  const optimistic = perExercise.reduce(
+    (blocks, { id, measurements }) =>
+      patchExercise(blocks, id, {
+        measurements: toOptimisticMeasurements(id, measurements),
+      }),
+    ctx.blocks,
+  );
+  ctx.setBlocks(optimistic);
+  ctx.onSaved();
+
+  for (let i = 0; i < perExercise.length; i++) {
+    const { id, measurements } = perExercise[i];
     const result = await ctx.updateBlockExerciseAction(id, { measurements });
     if (!result.ok || !result.data) {
+      // Roll back only the exercises that never got a server-confirmed
+      // result — this one, and any later in the loop that were never even
+      // attempted. Exercises earlier in the loop that already succeeded
+      // keep their confirmed data, and any unrelated edits made elsewhere
+      // during the in-flight window are untouched.
+      const unconfirmed = perExercise.slice(i);
+      ctx.setBlocks(
+        unconfirmed.reduce((blocks, p) => {
+          const original = originalMeasurementsById.get(p.id);
+          return original === undefined
+            ? blocks
+            : patchExercise(blocks, p.id, { measurements: original });
+        }, ctx.getBlocks()),
+      );
       reportError(ctx.showError, result);
       return;
     }
-    ctx.setBlocks(patchExercise(ctx.blocks, id, result.data));
+    ctx.setBlocks(patchExercise(ctx.getBlocks(), id, result.data));
   }
-  ctx.onSaved();
 }
 
 async function runDeleteBlock(
@@ -265,20 +372,61 @@ export function useBlockActions(options: UseBlockActionsOptions) {
     useState<BlockWithExercises | null>(null);
   const { showError, showSuccess } = useToast();
   const router = useRouter();
-  const ctx = { ...options, showError, refresh: () => router.refresh() };
+
+  // ctx (and the async save functions it's handed to) is rebuilt fresh every
+  // render, but a save's continuation after an await keeps running against
+  // the ctx it captured at call time — if the coach edits something else
+  // while the save is in flight, that render's options.blocks is stale by
+  // the time the continuation resolves. Mirroring it into a ref lets those
+  // continuations read the latest blocks instead of clobbering concurrent
+  // edits with a stale snapshot.
+  const blocksRef = useRef(options.blocks);
+  blocksRef.current = options.blocks;
+
+  const ctx = {
+    ...options,
+    showError,
+    refresh: () => router.refresh(),
+    getBlocks: () => blocksRef.current,
+  };
 
   // A superset block edits all of its exercises together (shared rounds), so
   // opening any one of its placements opens the block-level editor instead
-  // of the usual single-exercise one.
-  function openExerciseEditor(blockExercise: BlockExerciseWithDetails) {
-    const parentBlock = findParentBlock(options.blocks, blockExercise.id);
-    if (parentBlock?.is_superset) setEditingSupersetBlock(parentBlock);
+  // of the usual single-exercise one. Used both for a direct click on a row
+  // and as the dnd flow's first onExercisePlaced call (with the optimistic
+  // pending row, right after a drop) — both should unconditionally open.
+  // `parentBlock`, when passed, is the block the placement landed in as of
+  // the drop itself — preferred over the options.blocks lookup below, which
+  // can be a render behind for a pending row that was only just placed.
+  function openExerciseEditor(
+    blockExercise: BlockExerciseWithDetails,
+    parentBlock?: BlockWithExercises,
+  ) {
+    const resolved =
+      parentBlock ?? findParentBlock(options.blocks, blockExercise.id);
+    if (resolved?.is_superset) setEditingSupersetBlock(resolved);
     else setEditingExercise(blockExercise);
+  }
+
+  // The dnd flow's second onExercisePlaced call, once the real row resolves.
+  // Only swaps the editor's target when it's still showing the matching
+  // pending placeholder — if the coach has since closed the modal or opened
+  // something else, this is a no-op rather than stealing focus back.
+  // Matches on exercise_id alone: block_id isn't a valid match key here,
+  // since a drop that creates a new block carries a temporary block_id on
+  // the pending row but the real server block_id on the resolved row.
+  function reconcileEditingExercise(blockExercise: BlockExerciseWithDetails) {
+    setEditingExercise((prev) =>
+      prev && isPending(prev) && prev.exercise_id === blockExercise.exercise_id
+        ? blockExercise
+        : prev,
+    );
   }
 
   return {
     editingExercise,
     openExerciseEditor,
+    reconcileEditingExercise,
     closeExerciseEditor: () => setEditingExercise(null),
     editingSupersetBlock,
     closeSupersetEditor: () => setEditingSupersetBlock(null),

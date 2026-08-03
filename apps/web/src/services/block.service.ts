@@ -111,7 +111,8 @@ export async function resolveConfiguredUnitTypes(
 }
 
 /** Reps-like unit types default to a nonzero starting count; everything
- * else (Weight, Time, Distance, RPE, Shots, Makes, % 1RM) starts at zero. */
+ * else (Weight, Time, Distance, RPE, RIR, Shots, Makes, % 1RM) starts at
+ * zero. */
 function defaultValueFor(unitType: string): number {
   return unitType === "Reps" || unitType === "Reps Each Side" ? 8 : 0;
 }

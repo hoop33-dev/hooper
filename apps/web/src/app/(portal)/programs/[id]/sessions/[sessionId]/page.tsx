@@ -26,6 +26,7 @@ import {
   updateExerciseAction,
   updateExerciseVideoUrlAction,
 } from "../../../../exercises/actions";
+import { createCategoryAction } from "../../../../exercises/categories/actions";
 import {
   addExerciseToBlockAction,
   createBlockAction,
@@ -175,6 +176,7 @@ export default async function SessionViewPage({
         createExerciseAction={wrappedCreateExercise}
         updateExerciseAction={updateExerciseAction}
         updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+        createCategoryAction={createCategoryAction}
       />
     </div>
   );

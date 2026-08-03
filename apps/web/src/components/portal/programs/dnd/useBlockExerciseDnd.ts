@@ -114,6 +114,19 @@ export interface UseBlockExerciseDndOptions {
   reorderSessionsAction?: (
     updates: SessionPositionUpdate[],
   ) => Promise<ActionResult>;
+  /** Fires with the pending placeholder the instant an exercise lands in a
+   * block (library drop or new-block drop), then again with the real row
+   * once the request resolves — lets the caller auto-open the edit modal on
+   * the placeholder so it's up before the network round trip finishes.
+   * `parentBlock`, when passed, is the block the placement landed in as of
+   * this exact call — not re-derived from options.blocks, which may not
+   * have caught up with the just-issued setBlocks yet. Currently only
+   * supplied by placeLibraryExerciseInBlock, where the target block already
+   * exists and so is safe to look up synchronously. */
+  onExercisePlaced?: (
+    blockExercise: BlockExerciseWithDetails,
+    parentBlock?: BlockWithExercises,
+  ) => void;
 }
 
 type ParsedId = {
@@ -545,6 +558,7 @@ async function createBlockForExercise(
       pendingBlock,
     ).blocks,
   );
+  options.onExercisePlaced?.(pendingBlock.exercises[0]);
 
   const blockResult = await options.createBlockAction(sessionId, "New block");
   if (!blockResult.ok || !blockResult.data) {
@@ -571,6 +585,7 @@ async function createBlockForExercise(
     realBlock,
   );
   options.setBlocks(placed.blocks);
+  if (exercises[0]) options.onExercisePlaced?.(exercises[0]);
   if (placed.updates.length > 0 && options.reorderBlocksAction) {
     reportIfFailed(onError, await options.reorderBlocksAction(placed.updates));
   }
@@ -590,12 +605,21 @@ async function placeLibraryExerciseInBlock(
 ) {
   markCommitted();
   const originalBlocks = options.blocks;
+  // Resolved from originalBlocks, not the post-drop array — target.blockId
+  // is an existing block, so it's already present here, but the pending row
+  // itself isn't yet (setBlocks below hasn't re-rendered). Passing it
+  // straight through avoids a downstream lookup (openExerciseEditor) that
+  // would otherwise search for the pending row's id in a blocks array that
+  // doesn't contain it yet, wrongly treating every placement into an
+  // existing superset as a non-superset one.
+  const parentBlock = originalBlocks.find((b) => b.id === target.blockId);
 
   // Show the row immediately (dimmed/pending) rather than waiting on the
   // network round trip — placeExercise puts it exactly where it'll end up,
   // so nothing visibly reshuffles once the real row swaps in below.
   const pendingRow = createPendingExercise(target.blockId, exercise);
   options.setBlocks(placeExercise(originalBlocks, target, pendingRow));
+  options.onExercisePlaced?.(pendingRow, parentBlock);
 
   const result = await options.addExerciseToBlockAction({
     block_id: target.blockId,
@@ -608,6 +632,7 @@ async function placeLibraryExerciseInBlock(
   }
 
   const newRow = { ...result.data, exercise };
+  options.onExercisePlaced?.(newRow);
   const appended = appendExerciseToBlock(
     originalBlocks,
     target.blockId,

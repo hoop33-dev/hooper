@@ -38,7 +38,7 @@ function variantClasses(variant: ButtonVariant, disabled: boolean) {
     case "primary":
       return "bg-brand-orange";
     case "secondary":
-      return "bg-transparent border border-border-strong";
+      return "bg-white";
     case "navy":
       return "bg-brand-navy";
     case "ghost":
@@ -53,9 +53,10 @@ function variantTextColor(variant: ButtonVariant, disabled: boolean): string {
   switch (variant) {
     case "primary":
     case "navy":
-    case "secondary":
     case "icon":
       return colors.textPrimary;
+    case "secondary":
+      return colors.transparent;
     case "ghost":
       return colors.brandOrange;
   }
@@ -79,7 +80,7 @@ export function Button({
         disabled={disabled}
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
-        className={`h-12 w-12 items-center justify-center rounded-full ${variantClasses(
+        className={`h-12 w-12 items-center justify-center rounded-2xl ${variantClasses(
           "icon",
           disabled,
         )} ${className}`}
@@ -102,7 +103,7 @@ export function Button({
       disabled={disabled}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
-      className={`flex-row items-center justify-center rounded-full ${sizeClasses[size]} ${variantClasses(
+      className={`flex-row items-center justify-center rounded-2xl ${sizeClasses[size]} ${variantClasses(
         variant,
         disabled,
       )} ${className}`}

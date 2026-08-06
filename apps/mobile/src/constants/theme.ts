@@ -40,6 +40,8 @@ export const colors = {
   orangeTint10: "rgba(241,88,37,0.10)",
   orangeTint20: "rgba(241,88,37,0.20)",
   orangeTint40: "rgba(241,88,37,0.40)",
+
+  transparent: "transparent",
 } as const;
 
 export const radii = {

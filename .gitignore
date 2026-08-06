@@ -47,6 +47,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+apps/mobile/ios
+apps/mobile/android
 
 # Python
 __pycache__/

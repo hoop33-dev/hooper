@@ -13,7 +13,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hoop33.hooper"
     },
     "runtimeVersion": {
       "policy": "fingerprint"

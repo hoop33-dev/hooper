@@ -4,8 +4,8 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "lint": "eslint .",
     "lint:dead": "knip",
     "lint:deps": "depcruise src app --config .dependency-cruiser.cjs",

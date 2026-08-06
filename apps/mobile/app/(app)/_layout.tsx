@@ -32,6 +32,26 @@ export default function AppLayout() {
         name="parent/view-as-child"
         options={{ animation: "slide_from_right" }}
       />
+      <Stack.Screen
+        name="training/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="training/program"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="training/pre-form"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="training/play"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="training/complete"
+        options={{ animation: "slide_from_right" }}
+      />
     </Stack>
   );
 }

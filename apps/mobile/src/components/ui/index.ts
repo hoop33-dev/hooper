@@ -19,7 +19,7 @@ export {
   Title,
 } from "./Typography";
 
-export { BODY_FONT } from "./Typography";
+export { BODY_FONT, HEADING_FONT } from "./Typography";
 
 export { IconTile } from "./IconTile";
 

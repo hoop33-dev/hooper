@@ -4,6 +4,7 @@ import { createClient } from "@/src/lib/supabase/server";
 import type {
   EnteredBy,
   ExerciseCategoryRow,
+  ExerciseStyleRow,
   SessionRow,
   SessionTemplateRow,
   SessionTemplateSummary,
@@ -68,15 +69,18 @@ export async function getSessionTemplateById(
       .single();
     if (error) return err(error.message);
 
-    const { data: cats } = await supabase
-      .from("exercise_categories")
-      .select("*");
+    const [{ data: cats }, { data: styles }] = await Promise.all([
+      supabase.from("exercise_categories").select("*"),
+      supabase.from("exercise_styles").select("*"),
+    ]);
     const allCategories = (cats ?? []) as ExerciseCategoryRow[];
+    const allStyles = (styles ?? []) as ExerciseStyleRow[];
 
     return ok(
       shapeSessionTemplate(
         data as unknown as RawSessionTemplate,
         allCategories,
+        allStyles,
       ),
     );
   } catch (e) {

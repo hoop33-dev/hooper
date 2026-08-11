@@ -3,6 +3,7 @@ import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type {
   ExerciseCategoryRow,
+  ExerciseStyleRow,
   ProgramRow,
   ProgramSummary,
   ProgramWithSessions,
@@ -99,10 +100,12 @@ export async function getProgramById(
 
     if (error) return err(error.message);
 
-    const { data: cats } = await supabase
-      .from("exercise_categories")
-      .select("*");
+    const [{ data: cats }, { data: styles }] = await Promise.all([
+      supabase.from("exercise_categories").select("*"),
+      supabase.from("exercise_styles").select("*"),
+    ]);
     const allCategories = (cats ?? []) as ExerciseCategoryRow[];
+    const allStyles = (styles ?? []) as ExerciseStyleRow[];
 
     const raw = data as unknown as RawProgram;
 
@@ -116,7 +119,7 @@ export async function getProgramById(
       .sort((a, b) => a.week_number - b.week_number || a.position - b.position)
       .map(({ blocks, ...session }) => ({
         ...session,
-        blocks: shapeBlocksWithExercises(blocks, allCategories),
+        blocks: shapeBlocksWithExercises(blocks, allCategories, allStyles),
       }));
 
     return ok({

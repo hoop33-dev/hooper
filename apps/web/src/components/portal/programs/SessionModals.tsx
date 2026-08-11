@@ -2,6 +2,8 @@ import type { LinkScope, MeasurementInput } from "@/src/services/block.service";
 import type {
   BlockExerciseWithDetails,
   BlockWithExercises,
+  ExerciseStyleRow,
+  ExerciseWithDetails,
   SessionRow,
   SessionTemplateSummary,
 } from "@hooper/db";
@@ -18,6 +20,7 @@ import { SessionDuplicateModal } from "./SessionDuplicateModal";
 import { SessionRenamePopover } from "./SessionRenamePopover";
 import { SupersetRoundsModal } from "./SupersetRoundsModal";
 import type { SessionModalState } from "./useProgramCanvasState";
+import { variantOptionsFor } from "./variantOptions";
 
 interface SessionModalsProps {
   sessionModal: SessionModalState;
@@ -25,6 +28,8 @@ interface SessionModalsProps {
   existingSessions: SessionRow[];
   sessionTemplates?: SessionTemplateSummary[];
   totalWeeks: number;
+  exercises: ExerciseWithDetails[];
+  styles: ExerciseStyleRow[];
   /** The duplicate modal's session's current linked weeks (its own week
    * only, if it isn't linked to anything). */
   linkedWeeks: number[];
@@ -58,6 +63,8 @@ export function SessionModals({
   existingSessions,
   sessionTemplates,
   totalWeeks,
+  exercises,
+  styles,
   linkedWeeks,
   seedExerciseName,
   onCreateSession,
@@ -115,6 +122,11 @@ export function SessionModals({
           linkedWeeks={editingExerciseLinkedWeeks}
           onClose={onCloseExerciseEditor}
           onSave={onSaveExerciseMeasurement}
+          variantOptions={variantOptionsFor(
+            editingExercise.exercise,
+            exercises,
+          )}
+          styles={styles}
         />
       )}
       {editingSupersetBlock && (

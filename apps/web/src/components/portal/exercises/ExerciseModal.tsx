@@ -1,13 +1,20 @@
 "use client";
 
 import type { UnitType } from "@/src/constants/unitTypes";
-import type { ExerciseCategoryRow, ExerciseVideoSource } from "@hooper/db";
+import type {
+  ExerciseCategoryRow,
+  ExerciseStyleRow,
+  ExerciseVideoSource,
+  ExerciseWithDetails,
+} from "@hooper/db";
 import type { MouseEvent } from "react";
 import { InlineConfirmBar } from "../ui/InlineConfirmBar";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
 import { useModalDismiss } from "../ui/useModalDismiss";
 import { CategoryCombobox } from "./CategoryCombobox";
+import { ParentExerciseSelect } from "./ParentExerciseSelect";
+import { StyleSelect } from "./StyleSelect";
 import { UnitTypeSelector } from "./UnitTypeSelector";
 import { VideoField } from "./VideoField";
 import type { ActionResult, ExerciseModalProps } from "./exerciseModalTypes";
@@ -61,13 +68,16 @@ export function ExerciseModal(props: ExerciseModalProps) {
     mode,
     exercise,
     categories,
+    baseExercises,
     onClose,
     deleteAction,
     createCategoryAction,
+    createStyleAction,
     profileId,
   } = props;
   const form = useExerciseModalForm(props);
   const onBackdropClick = useModalDismiss(onClose);
+  const hasVariants = !!exercise && exercise.variants.length > 0;
 
   return (
     <ModalLayout
@@ -87,6 +97,16 @@ export function ExerciseModal(props: ExerciseModalProps) {
       videoUrl={exercise?.video_url}
       videoSource={exercise?.video_source}
       onVideoChange={form.setVideoState}
+      baseExercises={baseExercises}
+      parentId={form.parentId}
+      onParentChange={form.setParentId}
+      hasVariants={hasVariants}
+      lockedParentId={props.lockedParentId}
+      styles={form.styles}
+      defaultStyleId={form.defaultStyleId}
+      onDefaultStyleChange={form.setDefaultStyleId}
+      onStyleCreated={form.addStyle}
+      createStyleAction={createStyleAction}
       unitTypes={form.unitTypes}
       onUnitTypesChange={form.setUnitTypes}
       error={form.error}
@@ -97,6 +117,42 @@ export function ExerciseModal(props: ExerciseModalProps) {
     />
   );
 }
+
+type ModalLayoutProps = {
+  mode: "create" | "edit";
+  onClose: () => void;
+  onBackdropClick: (e: MouseEvent<HTMLDivElement>) => void;
+  name: string;
+  description: string;
+  nameError?: string;
+  onNameChange: (v: string) => void;
+  onDescriptionChange: (v: string) => void;
+  categories: ExerciseCategoryRow[];
+  categoryIds: string[];
+  onCategoryChange: (ids: string[]) => void;
+  createCategoryAction?: ExerciseModalProps["createCategoryAction"];
+  profileId: string;
+  videoUrl?: string | null;
+  videoSource?: ExerciseVideoSource | null;
+  onVideoChange: (value: VideoFieldState) => void;
+  baseExercises: ExerciseWithDetails[];
+  parentId: string;
+  onParentChange: (id: string) => void;
+  hasVariants: boolean;
+  lockedParentId?: string;
+  styles: ExerciseStyleRow[];
+  defaultStyleId: string;
+  onDefaultStyleChange: (id: string) => void;
+  onStyleCreated: (style: ExerciseStyleRow) => void;
+  createStyleAction?: ExerciseModalProps["createStyleAction"];
+  unitTypes: UnitType[];
+  onUnitTypesChange: (types: UnitType[]) => void;
+  error: string | null;
+  deleteAction?: (id: string) => Promise<ActionResult>;
+  onDelete: () => void;
+  saving: boolean;
+  onSave: () => void;
+};
 
 function ModalLayout({
   mode,
@@ -115,6 +171,16 @@ function ModalLayout({
   videoUrl,
   videoSource,
   onVideoChange,
+  baseExercises,
+  parentId,
+  onParentChange,
+  hasVariants,
+  lockedParentId,
+  styles,
+  defaultStyleId,
+  onDefaultStyleChange,
+  onStyleCreated,
+  createStyleAction,
   unitTypes,
   onUnitTypesChange,
   error,
@@ -122,31 +188,7 @@ function ModalLayout({
   onDelete,
   saving,
   onSave,
-}: {
-  mode: "create" | "edit";
-  onClose: () => void;
-  onBackdropClick: (e: MouseEvent<HTMLDivElement>) => void;
-  name: string;
-  description: string;
-  nameError?: string;
-  onNameChange: (v: string) => void;
-  onDescriptionChange: (v: string) => void;
-  categories: ExerciseCategoryRow[];
-  categoryIds: string[];
-  onCategoryChange: (ids: string[]) => void;
-  createCategoryAction?: ExerciseModalProps["createCategoryAction"];
-  profileId: string;
-  videoUrl?: string | null;
-  videoSource?: ExerciseVideoSource | null;
-  onVideoChange: (value: VideoFieldState) => void;
-  unitTypes: UnitType[];
-  onUnitTypesChange: (types: UnitType[]) => void;
-  error: string | null;
-  deleteAction?: (id: string) => Promise<ActionResult>;
-  onDelete: () => void;
-  saving: boolean;
-  onSave: () => void;
-}) {
+}: ModalLayoutProps) {
   return (
     <div
       onClick={onBackdropClick}
@@ -167,8 +209,19 @@ function ModalLayout({
           videoUrl={videoUrl}
           videoSource={videoSource}
           onVideoChange={onVideoChange}
+          baseExercises={baseExercises}
+          parentId={parentId}
+          onParentChange={onParentChange}
+          hasVariants={hasVariants}
+          lockedParentId={lockedParentId}
         />
         <ModalFooter
+          styles={styles}
+          defaultStyleId={defaultStyleId}
+          onDefaultStyleChange={onDefaultStyleChange}
+          onStyleCreated={onStyleCreated}
+          createStyleAction={createStyleAction}
+          profileId={profileId}
           unitTypes={unitTypes}
           onUnitTypesChange={onUnitTypesChange}
           error={error}
@@ -198,6 +251,11 @@ function ModalColumnBody({
   videoUrl,
   videoSource,
   onVideoChange,
+  baseExercises,
+  parentId,
+  onParentChange,
+  hasVariants,
+  lockedParentId,
 }: {
   name: string;
   description: string;
@@ -212,6 +270,11 @@ function ModalColumnBody({
   videoUrl?: string | null;
   videoSource?: ExerciseVideoSource | null;
   onVideoChange: (value: VideoFieldState) => void;
+  baseExercises: ExerciseWithDetails[];
+  parentId: string;
+  onParentChange: (id: string) => void;
+  hasVariants: boolean;
+  lockedParentId?: string;
 }) {
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -230,6 +293,13 @@ function ModalColumnBody({
           createCategoryAction={createCategoryAction}
           profileId={profileId}
         />
+        <ParentExerciseSelect
+          baseExercises={baseExercises}
+          value={lockedParentId ?? parentId}
+          onChange={onParentChange}
+          disabled={hasVariants}
+          locked={!!lockedParentId}
+        />
       </div>
 
       <div className="flex w-72 flex-shrink-0 flex-col gap-5 overflow-y-auto p-6">
@@ -244,6 +314,12 @@ function ModalColumnBody({
 }
 
 function ModalFooter({
+  styles,
+  defaultStyleId,
+  onDefaultStyleChange,
+  onStyleCreated,
+  createStyleAction,
+  profileId,
   unitTypes,
   onUnitTypesChange,
   error,
@@ -254,6 +330,12 @@ function ModalFooter({
   saving,
   onSave,
 }: {
+  styles: ExerciseStyleRow[];
+  defaultStyleId: string;
+  onDefaultStyleChange: (id: string) => void;
+  onStyleCreated: (style: ExerciseStyleRow) => void;
+  createStyleAction?: ExerciseModalProps["createStyleAction"];
+  profileId: string;
   unitTypes: UnitType[];
   onUnitTypesChange: (types: UnitType[]) => void;
   error: string | null;
@@ -266,6 +348,17 @@ function ModalFooter({
 }) {
   return (
     <div className="border-portal-border flex flex-col gap-3 border-t p-4">
+      <div className="max-w-xs">
+        <StyleSelect
+          styles={styles}
+          value={defaultStyleId}
+          onChange={onDefaultStyleChange}
+          createStyleAction={createStyleAction}
+          profileId={profileId}
+          onStyleCreated={onStyleCreated}
+        />
+      </div>
+
       <UnitTypeSelector selected={unitTypes} onChange={onUnitTypesChange} />
 
       {error && <p className="text-sm text-red-500">{error}</p>}

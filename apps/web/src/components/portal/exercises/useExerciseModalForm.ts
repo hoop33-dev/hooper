@@ -5,7 +5,7 @@ import {
   deleteExerciseVideo,
   uploadExerciseVideo,
 } from "@/src/services/exerciseVideo.client";
-import type { ExerciseVideoSource } from "@hooper/db";
+import type { ExerciseStyleRow, ExerciseVideoSource } from "@hooper/db";
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type {
   ExerciseFormData,
@@ -37,6 +37,8 @@ function buildFormData(
   description: string,
   categoryIds: string[],
   unitTypes: UnitType[],
+  parentId: string,
+  defaultStyleId: string,
   videoState: VideoFieldState,
   existingSource: ExerciseVideoSource | null,
 ): ExerciseFormData {
@@ -46,6 +48,8 @@ function buildFormData(
     description: description.trim(),
     categoryIds,
     unitTypes,
+    parentId: parentId || null,
+    defaultStyleId: defaultStyleId || null,
   };
   if (decision.action === "clear")
     return { ...base, videoUrl: null, videoSource: null };
@@ -101,6 +105,8 @@ type FormFields = {
   description: string;
   categoryIds: string[];
   unitTypes: UnitType[];
+  parentId: string;
+  defaultStyleId: string;
   videoState: VideoFieldState;
 };
 
@@ -124,7 +130,15 @@ async function runSave(
     updateAction,
     updateVideoUrlAction,
   } = props;
-  const { name, description, categoryIds, unitTypes, videoState } = fields;
+  const {
+    name,
+    description,
+    categoryIds,
+    unitTypes,
+    parentId,
+    defaultStyleId,
+    videoState,
+  } = fields;
   const { setNameError, setSaving, setError } = setters;
 
   if (!name.trim()) {
@@ -141,6 +155,8 @@ async function runSave(
     description,
     categoryIds,
     unitTypes,
+    parentId,
+    defaultStyleId,
     videoState,
     existingSource,
   );
@@ -199,7 +215,7 @@ async function runDelete(
 }
 
 export function useExerciseModalForm(props: ExerciseModalProps) {
-  const { exercise } = props;
+  const { exercise, lockedParentId } = props;
   const [name, setName] = useState(exercise?.name ?? "");
   const [description, setDescription] = useState(exercise?.description ?? "");
   const [categoryIds, setCategoryIds] = useState<string[]>(
@@ -208,6 +224,13 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
   const [unitTypes, setUnitTypes] = useState<UnitType[]>(
     (exercise?.unitTypes ?? []) as UnitType[],
   );
+  const [parentId, setParentId] = useState<string>(
+    lockedParentId ?? exercise?.parent_id ?? "",
+  );
+  const [defaultStyleId, setDefaultStyleId] = useState<string>(
+    exercise?.default_style_id ?? "",
+  );
+  const [styles, setStyles] = useState<ExerciseStyleRow[]>(props.styles);
   const [videoState, setVideoState] = useState<VideoFieldState>(() =>
     initialVideoState(exercise),
   );
@@ -215,10 +238,22 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | undefined>();
 
+  function addStyle(style: ExerciseStyleRow) {
+    setStyles((prev) => [...prev, style]);
+  }
+
   const handleSave = () =>
     runSave(
       props,
-      { name, description, categoryIds, unitTypes, videoState },
+      {
+        name,
+        description,
+        categoryIds,
+        unitTypes,
+        parentId,
+        defaultStyleId,
+        videoState,
+      },
       { setNameError, setSaving, setError },
     );
 
@@ -233,6 +268,12 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
     setCategoryIds,
     unitTypes,
     setUnitTypes,
+    parentId,
+    setParentId,
+    defaultStyleId,
+    setDefaultStyleId,
+    styles,
+    addStyle,
     setVideoState,
     saving,
     error,

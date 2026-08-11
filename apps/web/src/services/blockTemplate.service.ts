@@ -10,6 +10,7 @@ import type {
   BlockWithExercises,
   EnteredBy,
   ExerciseCategoryRow,
+  ExerciseStyleRow,
   SessionTemplateRow,
 } from "@hooper/db";
 import { defaultBlockColor } from "@hooper/shared";
@@ -133,6 +134,8 @@ function toBlockExerciseWithMeasurements(
     ...rest,
     block_id: block_template_id,
     link_group_id: null,
+    // Block templates have no style_id column of their own.
+    style_id: null,
     measurements,
   };
 }
@@ -646,6 +649,7 @@ async function copyTemplateExercisesIntoBlock(
         position: be.position,
         sets: be.sets,
         notes: be.notes,
+        style_id: be.exercise.default_style_id,
       })),
     )
     .select();
@@ -669,16 +673,23 @@ async function copyTemplateExercisesIntoBlock(
       .select();
   if (measurementsError) return err(measurementsError.message);
 
-  const { data: cats } = await supabase.from("exercise_categories").select("*");
+  const [{ data: cats }, { data: styles }] = await Promise.all([
+    supabase.from("exercise_categories").select("*"),
+    supabase.from("exercise_styles").select("*"),
+  ]);
   const allCategories = (cats ?? []) as ExerciseCategoryRow[];
+  const allStyles = (styles ?? []) as ExerciseStyleRow[];
 
   return ok(
     sourceExercises.map((be, i) => ({
       ...newExercises[i],
-      exercise: toExerciseWithDetails(be.exercise, allCategories),
+      exercise: toExerciseWithDetails(be.exercise, allCategories, allStyles),
       measurements: (insertedMeasurements ?? []).filter(
         (m) => m.block_exercise_id === newExercises[i].id,
       ),
+      // Per-set variant overrides aren't copied when a block template is
+      // instantiated — a coach can add them fresh in the new placement.
+      setVariants: {},
     })),
   );
 }
@@ -793,8 +804,12 @@ async function copyTemplateExercisesIntoBlockTemplate(
       .select();
   if (measurementsError) return err(measurementsError.message);
 
-  const { data: cats } = await supabase.from("exercise_categories").select("*");
+  const [{ data: cats }, { data: styles }] = await Promise.all([
+    supabase.from("exercise_categories").select("*"),
+    supabase.from("exercise_styles").select("*"),
+  ]);
   const allCategories = (cats ?? []) as ExerciseCategoryRow[];
+  const allStyles = (styles ?? []) as ExerciseStyleRow[];
 
   return ok(
     sourceExercises.map((be, i) => ({
@@ -807,7 +822,8 @@ async function copyTemplateExercisesIntoBlockTemplate(
             block_exercise_id: block_template_exercise_id,
           })),
       ),
-      exercise: toExerciseWithDetails(be.exercise, allCategories),
+      exercise: toExerciseWithDetails(be.exercise, allCategories, allStyles),
+      setVariants: {},
     })),
   );
 }

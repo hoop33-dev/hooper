@@ -9,12 +9,18 @@ import {
   unitOptionsFor,
 } from "@/src/lib/measurementFormat";
 import type { LinkScope } from "@/src/services/block.service";
-import type { BlockExerciseWithDetails, EnteredBy } from "@hooper/db";
+import type {
+  BlockExerciseWithDetails,
+  EnteredBy,
+  ExerciseRow,
+  ExerciseStyleRow,
+} from "@hooper/db";
 import {
   useEffect,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { StyleSelect } from "../exercises/StyleSelect";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalTextarea } from "../ui/PortalInput";
 import { DuplicateIcon, XIcon } from "../ui/icons";
@@ -101,6 +107,14 @@ export type BlockExerciseUpdateData = {
     value_unit: string | null;
     sets: { value: number | null; value_entered_by: EnteredBy }[];
   }[];
+  /** Swaps which variant the whole placement points at — the grid's
+   * unit-type columns stay put, only which drill they refer to changes. */
+  exercise_id?: string;
+  /** Null clears the placement's style back to "none". */
+  style_id?: string | null;
+  /** Sparse, keyed by set_index — a set with no entry uses the placement's
+   * own variant (`exercise_id`). */
+  set_variants?: Record<number, string>;
 };
 
 interface BlockExerciseMeasurementModalProps {
@@ -112,6 +126,11 @@ interface BlockExerciseMeasurementModalProps {
    * Calendar-style, since target numbers often intentionally differ week to
    * week and don't fit a single always/never sync rule. */
   linkedWeeks?: number[];
+  /** The placement's base exercise + all its siblings — always at least a
+   * single-entry list containing the placement's own exercise. Powers the
+   * variant selectors; see variantOptionsFor. */
+  variantOptions: ExerciseRow[];
+  styles: ExerciseStyleRow[];
 }
 
 function ModalHeader({ name, onClose }: { name: string; onClose: () => void }) {
@@ -159,6 +178,76 @@ function SetsField({
         </StepButton>
       </div>
     </div>
+  );
+}
+
+/** Only rendered when the exercise has variants (options.length > 1) — a
+ * base exercise with no variants of its own never shows this row. */
+function VariantField({
+  options,
+  value,
+  onChange,
+  onApplyToAll,
+  showApplyToAll,
+}: {
+  options: ExerciseRow[];
+  value: string;
+  onChange: (id: string) => void;
+  onApplyToAll: () => void;
+  showApplyToAll: boolean;
+}) {
+  if (options.length <= 1) return null;
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-portal-text2 w-14 flex-shrink-0 text-xs font-bold">
+        Variant
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="border-portal-border bg-portal-card text-portal-text1 focus:border-portal-orange h-8 flex-1 rounded-lg border px-2 text-sm focus:outline-none">
+        {options.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.name}
+          </option>
+        ))}
+      </select>
+      {showApplyToAll && (
+        <button
+          type="button"
+          onClick={onApplyToAll}
+          title="Use this variant for every set"
+          className="text-portal-orange flex-shrink-0 text-[11px] font-semibold whitespace-nowrap hover:underline">
+          Apply to all sets
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Compact per-set variant override — only rendered alongside a SetRow when
+ * the exercise has variants; picks the set's own override if one exists,
+ * else the placement's default variant. */
+function SetVariantSelect({
+  options,
+  value,
+  onChange,
+}: {
+  options: ExerciseRow[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="border-portal-border bg-portal-card text-portal-text3 h-6 w-20 flex-shrink-0 rounded-md border px-1 text-[10px] focus:outline-none">
+      {options.map((o) => (
+        <option key={o.id} value={o.id}>
+          {o.name}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -286,17 +375,35 @@ export function SetRow({
   measurements,
   onChangeValue,
   onToggleAthlete,
+  variantOptions,
+  variantId,
+  onVariantChange,
 }: {
   setIndex: number;
   measurements: MeasurementState[];
   onChangeValue: (measurementIndex: number, value: number) => void;
   onToggleAthlete: (measurementIndex: number, athleteEntered: boolean) => void;
+  /** Omitted (or a single-entry list) when the exercise has no variants —
+   * the per-set selector only renders when there's an actual choice. */
+  variantOptions?: ExerciseRow[];
+  variantId?: string;
+  onVariantChange?: (id: string) => void;
 }) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-portal-text3 w-14 flex-shrink-0 text-[11px] font-bold">
         Set {setIndex + 1}
       </span>
+      {variantOptions &&
+        variantOptions.length > 1 &&
+        variantId !== undefined &&
+        onVariantChange && (
+          <SetVariantSelect
+            options={variantOptions}
+            value={variantId}
+            onChange={onVariantChange}
+          />
+        )}
       <div
         className="grid flex-1 gap-2"
         style={{
@@ -353,6 +460,15 @@ interface ModalBodyProps {
   onCopyFirstToAll: (measurementIndex: number) => void;
   notes: string;
   onNotes: (v: string) => void;
+  variantOptions: ExerciseRow[];
+  exerciseId: string;
+  onExerciseIdChange: (id: string) => void;
+  setVariants: Record<number, string>;
+  onSetVariantChange: (setIndex: number, id: string) => void;
+  onApplyVariantToAll: () => void;
+  styles: ExerciseStyleRow[];
+  styleId: string;
+  onStyleIdChange: (id: string) => void;
 }
 
 function ModalBody({
@@ -365,10 +481,27 @@ function ModalBody({
   onCopyFirstToAll,
   notes,
   onNotes,
+  variantOptions,
+  exerciseId,
+  onExerciseIdChange,
+  setVariants,
+  onSetVariantChange,
+  onApplyVariantToAll,
+  styles,
+  styleId,
+  onStyleIdChange,
 }: ModalBodyProps) {
+  const hasSetOverrides = Object.keys(setVariants).length > 0;
   return (
     <div className="flex flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-4">
       <SetsField value={sets} onChange={onSets} />
+      <VariantField
+        options={variantOptions}
+        value={exerciseId}
+        onChange={onExerciseIdChange}
+        onApplyToAll={onApplyVariantToAll}
+        showApplyToAll={hasSetOverrides}
+      />
       <div className="bg-portal-border h-px" />
       {measurements.length > 0 && (
         <div className="flex flex-col gap-2">
@@ -398,11 +531,20 @@ function ModalBody({
               onToggleAthlete={(mi, athleteEntered) =>
                 onToggleAthlete(mi, setIndex, athleteEntered)
               }
+              variantOptions={variantOptions}
+              variantId={setVariants[setIndex] ?? exerciseId}
+              onVariantChange={(id) => onSetVariantChange(setIndex, id)}
             />
           ))}
         </div>
       )}
       <div className="bg-portal-border h-px" />
+      <StyleSelect
+        styles={styles}
+        value={styleId}
+        onChange={onStyleIdChange}
+        label="Style"
+      />
       <PortalTextarea
         label="Note"
         value={notes}
@@ -691,6 +833,9 @@ function toSavePayload(
   sets: number,
   notes: string,
   measurements: MeasurementState[],
+  exerciseId: string,
+  styleId: string,
+  setVariants: Record<number, string>,
 ): BlockExerciseUpdateData {
   return {
     sets: Math.max(1, sets),
@@ -703,6 +848,9 @@ function toSavePayload(
         value_entered_by: s.value_entered_by,
       })),
     })),
+    exercise_id: exerciseId,
+    style_id: styleId || null,
+    set_variants: setVariants,
   };
 }
 
@@ -750,11 +898,82 @@ function handleGridKeyDown(
   }
 }
 
+/** Footer or scope-choice footer, whichever the save flow currently needs —
+ * extracted out of BlockExerciseMeasurementModal so the component itself
+ * stays under the lint's max-lines-per-function limit. */
+function ModalFooterArea({
+  choosingScope,
+  linkedWeeks,
+  summary,
+  onClose,
+  onSaveClick,
+  onChooseScope,
+  onBackFromScope,
+  saving,
+}: {
+  choosingScope: boolean;
+  linkedWeeks?: number[];
+  summary: string;
+  onClose: () => void;
+  onSaveClick: () => void;
+  onChooseScope: (scope: LinkScope) => void;
+  onBackFromScope: () => void;
+  saving: boolean;
+}) {
+  if (choosingScope && linkedWeeks) {
+    return (
+      <ScopeChoiceFooter
+        linkedWeeks={linkedWeeks}
+        onChoose={onChooseScope}
+        onBack={onBackFromScope}
+        saving={saving}
+      />
+    );
+  }
+  return (
+    <ModalFooter
+      summary={summary}
+      onClose={onClose}
+      onSave={onSaveClick}
+      saving={saving}
+    />
+  );
+}
+
+/** Owns the placement's variant/style editable state — extracted out of
+ * BlockExerciseMeasurementModal so the component itself stays under the
+ * lint's max-lines-per-function limit. */
+function useVariantAndStyleState(blockExercise: BlockExerciseWithDetails) {
+  const [exerciseId, setExerciseId] = useState(blockExercise.exercise_id);
+  const [styleId, setStyleId] = useState(blockExercise.style_id ?? "");
+  const [setVariants, setSetVariants] = useState<Record<number, string>>(() =>
+    Object.fromEntries(
+      Object.entries(blockExercise.setVariants).map(([setIndex, variant]) => [
+        setIndex,
+        variant.id,
+      ]),
+    ),
+  );
+
+  return {
+    exerciseId,
+    setExerciseId,
+    styleId,
+    setStyleId,
+    setVariants,
+    updateSetVariant: (setIndex: number, id: string) =>
+      setSetVariants((prev) => ({ ...prev, [setIndex]: id })),
+    clearSetVariants: () => setSetVariants({}),
+  };
+}
+
 export function BlockExerciseMeasurementModal({
   blockExercise,
   onClose,
   onSave,
   linkedWeeks,
+  variantOptions,
+  styles,
 }: BlockExerciseMeasurementModalProps) {
   const { exercise } = blockExercise;
   const unitTypes = resolveUnitTypes(blockExercise);
@@ -764,6 +983,7 @@ export function BlockExerciseMeasurementModal({
     initMeasurements(unitTypes, blockExercise, blockExercise.sets),
   );
   const [notes, setNotes] = useState(blockExercise.notes ?? "");
+  const variant = useVariantAndStyleState(blockExercise);
   const [saving, setSaving] = useState(false);
   const [choosingScope, setChoosingScope] = useState(false);
   const onBackdropClick = useModalDismiss(onClose);
@@ -780,7 +1000,17 @@ export function BlockExerciseMeasurementModal({
 
   async function commit(scope?: LinkScope) {
     setSaving(true);
-    await onSave(toSavePayload(sets, notes, editor.measurements), scope);
+    await onSave(
+      toSavePayload(
+        sets,
+        notes,
+        editor.measurements,
+        variant.exerciseId,
+        variant.styleId,
+        variant.setVariants,
+      ),
+      scope,
+    );
     setSaving(false);
   }
 
@@ -792,6 +1022,10 @@ export function BlockExerciseMeasurementModal({
     void commit();
   }
 
+  const headerName =
+    variantOptions.find((v) => v.id === variant.exerciseId)?.name ??
+    exercise.name;
+
   return (
     <div
       onClick={onBackdropClick}
@@ -799,7 +1033,7 @@ export function BlockExerciseMeasurementModal({
       <div
         onKeyDown={(e) => handleGridKeyDown(e, sets, editor.copyToAllBelow)}
         className="bg-portal-card flex h-[560px] max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl shadow-2xl">
-        <ModalHeader name={exercise.name} onClose={onClose} />
+        <ModalHeader name={headerName} onClose={onClose} />
         <ModalBody
           sets={sets}
           onSets={updateSets}
@@ -816,22 +1050,26 @@ export function BlockExerciseMeasurementModal({
           onCopyFirstToAll={(mi) => editor.copyToAllBelow(mi, 0)}
           notes={notes}
           onNotes={setNotes}
+          variantOptions={variantOptions}
+          exerciseId={variant.exerciseId}
+          onExerciseIdChange={variant.setExerciseId}
+          setVariants={variant.setVariants}
+          onSetVariantChange={variant.updateSetVariant}
+          onApplyVariantToAll={variant.clearSetVariants}
+          styles={styles}
+          styleId={variant.styleId}
+          onStyleIdChange={variant.setStyleId}
         />
-        {choosingScope && linkedWeeks ? (
-          <ScopeChoiceFooter
-            linkedWeeks={linkedWeeks}
-            onChoose={(scope) => void commit(scope)}
-            onBack={() => setChoosingScope(false)}
-            saving={saving}
-          />
-        ) : (
-          <ModalFooter
-            summary={summary}
-            onClose={onClose}
-            onSave={handleSaveClick}
-            saving={saving}
-          />
-        )}
+        <ModalFooterArea
+          choosingScope={choosingScope}
+          linkedWeeks={linkedWeeks}
+          summary={summary}
+          onClose={onClose}
+          onSaveClick={handleSaveClick}
+          onChooseScope={(scope) => void commit(scope)}
+          onBackFromScope={() => setChoosingScope(false)}
+          saving={saving}
+        />
       </div>
     </div>
   );

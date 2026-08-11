@@ -65,6 +65,18 @@ export type UpdateBlockExerciseInput = {
   notes?: string;
   /** When provided, fully replaces this placement's measurement rows. */
   measurements?: MeasurementInput[];
+  /** Swaps which variant the whole placement points at — the exercise's own
+   * unit-type columns in the measurement grid stay put; only which drill
+   * they refer to changes. */
+  exercise_id?: string;
+  /** Null clears the placement's style back to "none" — distinct from
+   * omitting the field, which leaves it untouched. */
+  style_id?: string | null;
+  /** Sparse, keyed by set_index — when provided, fully replaces this
+   * placement's per-set variant overrides. A set with no entry here (and
+   * none already differing from `exercise_id`) uses the placement's own
+   * variant. Passing `{}` clears every override ("apply to all sets"). */
+  set_variants?: Record<number, string>;
 };
 
 export type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -469,6 +481,11 @@ export async function addExerciseToBlock(
       input.block_id,
       input.sets,
     );
+    const { data: exerciseRow } = await supabase
+      .from("exercises")
+      .select("default_style_id")
+      .eq("id", input.exercise_id)
+      .single();
 
     const blockExerciseRows = await Promise.all(
       targetBlockIds.map(async (blockId) => ({
@@ -478,6 +495,7 @@ export async function addExerciseToBlock(
         sets: setsCount,
         notes: input.notes ?? null,
         link_group_id: linkGroupId,
+        style_id: exerciseRow?.default_style_id ?? null,
       })),
     );
 
@@ -664,6 +682,38 @@ async function currentMeasurements(
   return data ?? [];
 }
 
+/** Full replace, sparse: only inserts rows for sets whose variant differs
+ * from the placement's own `exercise_id` — a set matching the placement
+ * default simply has no row, so "apply to all sets" is just deleting
+ * everything for this placement. */
+async function replaceSetVariants(
+  supabase: SupabaseClient,
+  blockExerciseId: string,
+  exerciseId: string,
+  setVariants: Record<number, string>,
+): Promise<Result<void>> {
+  const { error: deleteError } = await supabase
+    .from("block_exercise_set_variants")
+    .delete()
+    .eq("block_exercise_id", blockExerciseId);
+  if (deleteError) return err(deleteError.message);
+
+  const rows = Object.entries(setVariants)
+    .filter(([, variantExerciseId]) => variantExerciseId !== exerciseId)
+    .map(([setIndex, variantExerciseId]) => ({
+      block_exercise_id: blockExerciseId,
+      set_index: Number(setIndex),
+      exercise_id: variantExerciseId,
+    }));
+  if (rows.length === 0) return ok(undefined);
+
+  const { error } = await supabase
+    .from("block_exercise_set_variants")
+    .insert(rows);
+  if (error) return err(error.message);
+  return ok(undefined);
+}
+
 /** Applies the same sets/notes patch (and, for a full value sync, the same
  * measurement replace) that was just made to the primary row onto one
  * scoped-in sibling placement. */
@@ -687,6 +737,43 @@ async function applyToSibling(
   return ok(undefined);
 }
 
+/** Only the columns the caller actually touched — `exercise_id`/`style_id`
+ * use `in`/`!== undefined` checks so a swap to null (style_id) is
+ * distinguishable from "leave it alone" (omitted entirely). */
+function buildBlockExercisePatch(input: UpdateBlockExerciseInput) {
+  return {
+    ...(input.sets !== undefined && { sets: input.sets }),
+    ...("notes" in input && { notes: input.notes ?? null }),
+    ...(input.exercise_id !== undefined && {
+      exercise_id: input.exercise_id,
+    }),
+    ...("style_id" in input && { style_id: input.style_id ?? null }),
+  };
+}
+
+/** A sets-only change (no explicit new measurements) still has to keep each
+ * unit-type slot's row count in sync with the new sets — otherwise a
+ * placement grown from 3 sets to 5 would be left with stale/missing per-set
+ * rows for the two new sets. */
+async function resolveMeasurementsForUpdate(
+  supabase: SupabaseClient,
+  id: string,
+  input: UpdateBlockExerciseInput,
+): Promise<Result<BlockExerciseMeasurementRow[]>> {
+  if (input.measurements) {
+    return replaceMeasurements(supabase, id, input.measurements);
+  }
+  if (input.sets !== undefined) {
+    const existing = await currentMeasurements(supabase, id);
+    return replaceMeasurements(
+      supabase,
+      id,
+      resizeMeasurements(existing, input.sets),
+    );
+  }
+  return ok(await currentMeasurements(supabase, id));
+}
+
 export async function updateBlockExercise(
   id: string,
   input: UpdateBlockExerciseInput,
@@ -694,10 +781,7 @@ export async function updateBlockExercise(
 ): Promise<Result<BlockExerciseWithMeasurements>> {
   try {
     const supabase = await createClient();
-    const patch = {
-      ...(input.sets !== undefined && { sets: input.sets }),
-      ...("notes" in input && { notes: input.notes ?? null }),
-    };
+    const patch = buildBlockExercisePatch(input);
     // A measurements-only save (e.g. from the superset rounds editor, which
     // never touches sets/notes) leaves patch empty — an empty .update()
     // still hits PostgREST and comes back with no row for .single() to
@@ -713,28 +797,22 @@ export async function updateBlockExercise(
         : await supabase.from("block_exercises").select().eq("id", id).single();
     if (error) return err(error.message);
 
-    // A sets-only change (no explicit new measurements) still has to keep
-    // each unit-type slot's row count in sync with the new sets — otherwise
-    // a placement grown from 3 sets to 5 would be left with stale/missing
-    // per-set rows for the two new sets.
-    let measurementsResult: Result<BlockExerciseMeasurementRow[]>;
-    if (input.measurements) {
-      measurementsResult = await replaceMeasurements(
-        supabase,
-        id,
-        input.measurements,
-      );
-    } else if (input.sets !== undefined) {
-      const existing = await currentMeasurements(supabase, id);
-      measurementsResult = await replaceMeasurements(
-        supabase,
-        id,
-        resizeMeasurements(existing, input.sets),
-      );
-    } else {
-      measurementsResult = ok(await currentMeasurements(supabase, id));
-    }
+    const measurementsResult = await resolveMeasurementsForUpdate(
+      supabase,
+      id,
+      input,
+    );
     if (!measurementsResult.ok) return err(measurementsResult.error);
+
+    if (input.set_variants) {
+      const setVariantsResult = await replaceSetVariants(
+        supabase,
+        id,
+        blockExercise.exercise_id,
+        input.set_variants,
+      );
+      if (!setVariantsResult.ok) return err(setVariantsResult.error);
+    }
 
     const siblingsResult = await resolveScopedSiblings(
       supabase,

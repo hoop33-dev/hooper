@@ -16,11 +16,15 @@ const exercise = {
   description: null,
   video_url: null,
   video_source: null,
+  parent_id: null,
+  default_style_id: null,
   created_by: "coach-1",
   created_at: "",
   updated_at: "",
   categories: [],
   unitTypes: [],
+  defaultStyle: null,
+  variants: [],
 };
 
 function makeMeasurement(
@@ -53,10 +57,12 @@ function makeExerciseRow(
     sets: 1,
     notes: null,
     link_group_id: null,
+    style_id: null,
     created_at: "",
     updated_at: "",
     exercise,
     measurements: [makeMeasurement(id, value)],
+    setVariants: {},
   };
 }
 

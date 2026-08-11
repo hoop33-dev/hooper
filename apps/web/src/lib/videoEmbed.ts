@@ -33,6 +33,34 @@ export function getEmbedUrl(url: string): string | null {
   return null;
 }
 
+/** Returns a static thumbnail image for hosts that expose one without an API call (YouTube only). */
+export function getThumbnailUrl(url: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+
+  const host = parsed.hostname.replace(/^www\./, "");
+
+  if (host === "youtube.com" || host === "m.youtube.com") {
+    const id = parsed.searchParams.get("v");
+    const shortsMatch = parsed.pathname.match(/^\/shorts\/([^/]+)/);
+    const videoId = id ?? shortsMatch?.[1];
+    return videoId
+      ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+      : null;
+  }
+
+  if (host === "youtu.be") {
+    const id = parsed.pathname.slice(1);
+    return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
+  }
+
+  return null;
+}
+
 /** A video link only needs to be a well-formed http(s) URL — not every host is embeddable. */
 export function isValidVideoUrl(url: string): boolean {
   try {

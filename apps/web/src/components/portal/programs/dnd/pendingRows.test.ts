@@ -11,11 +11,15 @@ const exercise = {
   description: null,
   video_url: null,
   video_source: null,
+  parent_id: null,
+  default_style_id: null,
   created_by: "coach-1",
   created_at: "",
   updated_at: "",
   categories: [],
   unitTypes: [],
+  defaultStyle: null,
+  variants: [],
 };
 
 describe("isPending", () => {

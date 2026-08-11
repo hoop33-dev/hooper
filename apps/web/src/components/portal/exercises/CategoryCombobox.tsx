@@ -1,8 +1,16 @@
 "use client";
 
-import { cn } from "@/src/lib/cn";
+import {
+  DropdownAddRow,
+  DropdownList,
+  DropdownListItem,
+  DropdownPanel,
+  DropdownSearchInput,
+  DropdownTrigger,
+  useDropdown,
+} from "@/src/components/portal/ui/Dropdown";
 import type { ExerciseCategoryRow } from "@hooper/db";
-import { useEffect, useRef, useState } from "react";
+import { useState, type RefObject } from "react";
 
 interface CategoryComboboxProps {
   categories: ExerciseCategoryRow[];
@@ -27,27 +35,16 @@ export function CategoryCombobox({
   createCategoryAction,
   profileId,
 }: CategoryComboboxProps) {
-  const [open, setOpen] = useState(false);
+  const { open, setOpen, anchorRef, panelRef } = useDropdown();
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [extraCategories, setExtraCategories] = useState<ExerciseCategoryRow[]>(
     [],
   );
-  const ref = useRef<HTMLDivElement>(null);
   const allCategories =
     extraCategories.length > 0
       ? [...categories, ...extraCategories]
       : categories;
-
-  useEffect(() => {
-    function onOutsideClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onOutsideClick);
-    return () => document.removeEventListener("mousedown", onOutsideClick);
-  }, []);
 
   function toggle(id: string) {
     if (selected.includes(id)) {
@@ -80,7 +77,7 @@ export function CategoryCombobox({
   }
 
   return (
-    <div ref={ref} className="relative flex flex-col gap-1">
+    <div className="flex flex-col gap-1">
       <p className="text-portal-text2 text-xs font-semibold">Categories</p>
 
       <SelectedChips
@@ -89,27 +86,14 @@ export function CategoryCombobox({
         onRemove={toggle}
       />
 
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="border-portal-border bg-portal-card text-portal-text2 hover:border-portal-orange flex h-9 w-full items-center justify-between rounded-lg border px-3 text-sm focus:outline-none">
-        <span>
-          {selected.length > 0 ? `${selected.length} selected` : placeholder}
-        </span>
-        <svg
-          className="text-portal-text3 h-4 w-4"
-          viewBox="0 0 20 20"
-          fill="currentColor">
-          <path
-            fillRule="evenodd"
-            d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-            clipRule="evenodd"
-          />
-        </svg>
-      </button>
+      <DropdownTrigger anchorRef={anchorRef} onClick={() => setOpen((o) => !o)}>
+        {selected.length > 0 ? `${selected.length} selected` : placeholder}
+      </DropdownTrigger>
 
       {open && (
         <CategoryDropdown
+          anchorRef={anchorRef}
+          panelRef={panelRef}
           categories={allCategories}
           selected={selected}
           search={search}
@@ -122,78 +106,6 @@ export function CategoryCombobox({
           }
         />
       )}
-    </div>
-  );
-}
-
-function AddCategoryRow({
-  onCreate,
-}: {
-  onCreate: (
-    name: string,
-  ) => Promise<{ ok: boolean; error?: string } | undefined>;
-}) {
-  const [adding, setAdding] = useState(false);
-  const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit() {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    setSaving(true);
-    setError(null);
-    const result = await onCreate(trimmed);
-    setSaving(false);
-    if (result && !result.ok) {
-      setError(result.error ?? "Couldn't create category.");
-      return;
-    }
-    setName("");
-    setAdding(false);
-  }
-
-  if (!adding) {
-    return (
-      <button
-        type="button"
-        onClick={() => setAdding(true)}
-        className="text-portal-orange hover:bg-portal-bg flex w-full items-center gap-1.5 px-3 py-2 text-left text-sm font-semibold">
-        <span className="text-base leading-none">+</span> Add category
-      </button>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-1 px-3 py-2">
-      <div className="flex items-center gap-1.5">
-        <input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              void submit();
-            }
-            if (e.key === "Escape") {
-              e.preventDefault();
-              setAdding(false);
-              setName("");
-            }
-          }}
-          placeholder="New category name…"
-          className="border-portal-border text-portal-text1 placeholder:text-portal-text3 focus:border-portal-orange h-8 flex-1 rounded-lg border px-2.5 text-sm focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={() => void submit()}
-          disabled={saving || !name.trim()}
-          className="bg-portal-orange h-8 rounded-lg px-2.5 text-xs font-bold text-white disabled:opacity-50">
-          {saving ? "Adding…" : "Add"}
-        </button>
-      </div>
-      {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
 }
@@ -233,6 +145,8 @@ function SelectedChips({
 }
 
 function CategoryDropdown({
+  anchorRef,
+  panelRef,
   categories,
   selected,
   search,
@@ -242,6 +156,8 @@ function CategoryDropdown({
   onToggleExpand,
   onCreateCategory,
 }: {
+  anchorRef: RefObject<HTMLButtonElement | null>;
+  panelRef: RefObject<HTMLDivElement | null>;
   categories: ExerciseCategoryRow[];
   selected: string[];
   search: string;
@@ -262,17 +178,13 @@ function CategoryDropdown({
   }
 
   return (
-    <div className="border-portal-border bg-portal-card absolute top-full z-50 mt-1 w-full rounded-xl border shadow-lg">
-      <div className="p-2">
-        <input
-          autoFocus
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search categories…"
-          className="border-portal-border text-portal-text1 placeholder:text-portal-text3 focus:border-portal-orange h-8 w-full rounded-lg border px-3 text-sm focus:outline-none"
-        />
-      </div>
-      <div className="max-h-60 overflow-y-auto pb-2">
+    <DropdownPanel anchorRef={anchorRef} panelRef={panelRef}>
+      <DropdownSearchInput
+        value={search}
+        onChange={onSearchChange}
+        placeholder="Search categories…"
+      />
+      <DropdownList>
         {topLevel
           .filter(
             (cat) =>
@@ -286,95 +198,35 @@ function CategoryDropdown({
             const isExpanded = expanded.has(cat.id) || !!search;
             return (
               <div key={cat.id}>
-                <CategoryComboboxItem
-                  name={cat.name}
-                  checked={selected.includes(cat.id)}
+                <DropdownListItem
+                  variant="checkbox"
+                  label={cat.name}
+                  selected={selected.includes(cat.id)}
                   hasChildren={children.length > 0}
                   isExpanded={isExpanded}
-                  onToggle={() => onToggle(cat.id)}
+                  onSelect={() => onToggle(cat.id)}
                   onExpand={() => onToggleExpand(cat.id)}
                 />
                 {isExpanded &&
                   children.map((child) => (
-                    <CategoryComboboxItem
+                    <DropdownListItem
                       key={child.id}
-                      name={child.name}
-                      checked={selected.includes(child.id)}
-                      hasChildren={false}
-                      isExpanded={false}
+                      variant="checkbox"
+                      label={child.name}
+                      selected={selected.includes(child.id)}
                       indent
-                      onToggle={() => onToggle(child.id)}
-                      onExpand={() => {}}
+                      onSelect={() => onToggle(child.id)}
                     />
                   ))}
               </div>
             );
           })}
-      </div>
+      </DropdownList>
       {onCreateCategory && (
         <div className="border-portal-border border-t">
-          <AddCategoryRow onCreate={onCreateCategory} />
+          <DropdownAddRow itemLabel="category" onCreate={onCreateCategory} />
         </div>
       )}
-    </div>
-  );
-}
-
-function CategoryComboboxItem({
-  name,
-  checked,
-  hasChildren,
-  isExpanded,
-  indent = false,
-  onToggle,
-  onExpand,
-}: {
-  name: string;
-  checked: boolean;
-  hasChildren: boolean;
-  isExpanded: boolean;
-  indent?: boolean;
-  onToggle: () => void;
-  onExpand: () => void;
-}) {
-  return (
-    <div
-      className={cn(
-        "hover:bg-portal-bg flex cursor-pointer items-center gap-2 px-3 py-2",
-        indent && "pl-8",
-      )}
-      onClick={onToggle}>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onToggle}
-        onClick={(e) => e.stopPropagation()}
-        className="accent-portal-orange h-3.5 w-3.5 rounded"
-      />
-      <span className="text-portal-text1 flex-1 text-sm">{name}</span>
-      {hasChildren && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onExpand();
-          }}
-          className="text-portal-text3 hover:text-portal-text2">
-          <svg
-            className={cn(
-              "h-4 w-4 transition-transform",
-              isExpanded && "rotate-90",
-            )}
-            viewBox="0 0 20 20"
-            fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </button>
-      )}
-    </div>
+    </DropdownPanel>
   );
 }

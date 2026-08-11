@@ -20,12 +20,14 @@ interface ProgramLibraryShelfProps extends CreateExerciseActions {
 export function ProgramLibraryShelf({
   exercises,
   categories,
+  styles,
   sessionTemplates,
   profileId,
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
   createCategoryAction,
+  createStyleAction,
 }: ProgramLibraryShelfProps) {
   const [open, setOpen] = useState(true);
   const [tab, setTab] = useState<LibraryTab>("exercises");
@@ -54,11 +56,13 @@ export function ProgramLibraryShelf({
             <ExerciseLibraryShelfBody
               exercises={exercises}
               categories={categories}
+              styles={styles}
               profileId={profileId}
               createExerciseAction={createExerciseAction}
               updateExerciseAction={updateExerciseAction}
               updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
               createCategoryAction={createCategoryAction}
+              createStyleAction={createStyleAction}
             />
           ) : (
             <BlockLibraryShelfBody sessionTemplates={sessionTemplates} />

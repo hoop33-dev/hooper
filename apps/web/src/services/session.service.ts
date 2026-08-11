@@ -79,16 +79,17 @@ export async function getSessionById(
 
     if (error) return err(error.message);
 
-    const { data: cats } = await supabase
-      .from("exercise_categories")
-      .select("*");
+    const [{ data: cats }, { data: styles }] = await Promise.all([
+      supabase.from("exercise_categories").select("*"),
+      supabase.from("exercise_styles").select("*"),
+    ]);
 
     const { blocks, ...session } = data as unknown as SessionRow & {
       blocks: RawBlock[];
     };
     return ok({
       ...session,
-      blocks: shapeBlocksWithExercises(blocks, cats ?? []),
+      blocks: shapeBlocksWithExercises(blocks, cats ?? [], styles ?? []),
     });
   } catch (e) {
     return err(toErrorMessage(e));

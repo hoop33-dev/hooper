@@ -4,6 +4,7 @@ import { createClient } from "@/src/lib/supabase/server";
 import type {
   ExerciseCategoryRow,
   ExerciseRow,
+  ExerciseStyleRow,
   ExerciseVideoSource,
   ExerciseWithDetails,
 } from "@hooper/db";
@@ -15,6 +16,9 @@ export type CreateExerciseInput = {
   videoSource?: ExerciseVideoSource | null;
   categoryIds: string[];
   unitTypes: string[];
+  /** The base exercise this is a variant of — omit/null for a base exercise. */
+  parentId?: string | null;
+  defaultStyleId?: string | null;
   created_by: string;
 };
 
@@ -25,6 +29,8 @@ export type UpdateExerciseInput = {
   videoSource?: ExerciseVideoSource | null;
   categoryIds: string[];
   unitTypes: string[];
+  parentId?: string | null;
+  defaultStyleId?: string | null;
 };
 
 export type RawExercise = ExerciseRow & {
@@ -35,6 +41,7 @@ export type RawExercise = ExerciseRow & {
 export function toExerciseWithDetails(
   raw: RawExercise,
   allCategories: ExerciseCategoryRow[],
+  allStyles: ExerciseStyleRow[],
 ): ExerciseWithDetails {
   const categoryIds = new Set(
     raw.exercise_category_links.map((l) => l.category_id),
@@ -43,7 +50,20 @@ export function toExerciseWithDetails(
   const unitTypes = [...raw.exercise_unit_types]
     .sort((a, b) => a.position - b.position)
     .map((u) => u.unit_type);
-  return { ...raw, categories, unitTypes };
+  const defaultStyle =
+    allStyles.find((s) => s.id === raw.default_style_id) ?? null;
+  return { ...raw, categories, unitTypes, defaultStyle, variants: [] };
+}
+
+/** Attaches each base exercise's variants (the other exercises whose
+ * parent_id points back at it) — single-level, so a variant's own
+ * `variants` stays empty. */
+function withVariants(exercises: ExerciseWithDetails[]): ExerciseWithDetails[] {
+  return exercises.map((ex) =>
+    ex.parent_id
+      ? ex
+      : { ...ex, variants: exercises.filter((v) => v.parent_id === ex.id) },
+  );
 }
 
 export type ExerciseListOptions = {
@@ -81,13 +101,21 @@ export async function listExercises(
     const { data, error } = await query;
     if (error) return err(error.message);
 
-    const { data: cats } = await supabase
-      .from("exercise_categories")
-      .select("*");
+    const [{ data: cats }, { data: styles }] = await Promise.all([
+      supabase.from("exercise_categories").select("*"),
+      supabase.from("exercise_styles").select("*"),
+    ]);
 
     const allCategories = (cats ?? []) as ExerciseCategoryRow[];
-    const exercises = (data ?? []).map((raw) =>
-      toExerciseWithDetails(raw as unknown as RawExercise, allCategories),
+    const allStyles = (styles ?? []) as ExerciseStyleRow[];
+    const exercises = withVariants(
+      (data ?? []).map((raw) =>
+        toExerciseWithDetails(
+          raw as unknown as RawExercise,
+          allCategories,
+          allStyles,
+        ),
+      ),
     );
 
     return ok(exercises);
@@ -140,6 +168,8 @@ export async function createExercise(
         description: input.description ?? null,
         video_url: input.videoUrl ?? null,
         video_source: input.videoSource ?? null,
+        parent_id: input.parentId ?? null,
+        default_style_id: input.defaultStyleId ?? null,
         created_by: input.created_by,
       })
       .select()
@@ -178,6 +208,9 @@ export async function updateExercise(
       updatePayload.video_url = input.videoUrl ?? null;
       updatePayload.video_source = input.videoSource ?? null;
     }
+    if ("parentId" in input) updatePayload.parent_id = input.parentId ?? null;
+    if ("defaultStyleId" in input)
+      updatePayload.default_style_id = input.defaultStyleId ?? null;
 
     const { data, error } = await supabase
       .from("exercises")

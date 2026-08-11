@@ -5,6 +5,7 @@ import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { getCoachProfile } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
+import { listStyles } from "@/src/services/exerciseStyle.service";
 import { listForms } from "@/src/services/form.service";
 import { getProgramById } from "@/src/services/program.service";
 import { listSessionTemplates } from "@/src/services/sessionTemplate.service";
@@ -22,6 +23,7 @@ import {
   updateExerciseVideoUrlAction,
 } from "../../exercises/actions";
 import { createCategoryAction } from "../../exercises/categories/actions";
+import { createStyleAction } from "../../exercises/styles/actions";
 import {
   attachFormToProgramAction,
   deleteProgramAction,
@@ -62,16 +64,12 @@ function formatSessionsPerWeek(sessions: { week_number: number }[]): string {
   return min === max ? `${min} sessions/week` : `${min}-${max} sessions/week`;
 }
 
-export default async function ProgramCanvasPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+async function loadProgramCanvasPageData(id: string) {
   const [
     programResult,
     exercisesResult,
     categoriesResult,
+    stylesResult,
     profileResult,
     sessionTemplatesResult,
     formsResult,
@@ -79,20 +77,42 @@ export default async function ProgramCanvasPage({
     getProgramById(id),
     listExercises(),
     listCategories(),
+    listStyles(),
     getCoachProfile(),
     listSessionTemplates(),
     listForms(),
   ]);
 
-  if (!programResult.ok) notFound();
+  return {
+    program: programResult,
+    exercises: exercisesResult.ok ? exercisesResult.data : [],
+    categories: categoriesResult.ok ? categoriesResult.data : [],
+    styles: stylesResult.ok ? stylesResult.data : [],
+    profileId: profileResult.ok ? profileResult.data.id : "",
+    sessionTemplates: sessionTemplatesResult.ok
+      ? sessionTemplatesResult.data
+      : [],
+    forms: formsResult.ok ? formsResult.data : [],
+  };
+}
 
-  const exercises = exercisesResult.ok ? exercisesResult.data : [];
-  const categories = categoriesResult.ok ? categoriesResult.data : [];
-  const profileId = profileResult.ok ? profileResult.data.id : "";
-  const sessionTemplates = sessionTemplatesResult.ok
-    ? sessionTemplatesResult.data
-    : [];
-  const forms = formsResult.ok ? formsResult.data : [];
+export default async function ProgramCanvasPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const {
+    program: programResult,
+    exercises,
+    categories,
+    styles,
+    profileId,
+    sessionTemplates,
+    forms,
+  } = await loadProgramCanvasPageData(id);
+
+  if (!programResult.ok) notFound();
 
   async function wrappedSaveBlockAsTemplate(blockId: string, name: string) {
     "use server";
@@ -129,6 +149,7 @@ export default async function ProgramCanvasPage({
         program={programResult.data}
         exercises={exercises}
         categories={categories}
+        styles={styles}
         sessionTemplates={sessionTemplates}
         createSessionAction={createSessionAction}
         updateSessionNameAction={updateSessionNameAction}
@@ -162,6 +183,7 @@ export default async function ProgramCanvasPage({
         updateExerciseAction={updateExerciseAction}
         updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
         createCategoryAction={createCategoryAction}
+        createStyleAction={createStyleAction}
       />
     </div>
   );

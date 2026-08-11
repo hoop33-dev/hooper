@@ -3,6 +3,7 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import type {
   ExerciseCategoryRow,
+  ExerciseStyleRow,
   ExerciseWithDetails,
   SessionTemplateSummary,
   SessionWithBlocks,
@@ -19,6 +20,7 @@ import {
   useSessionViewState,
   type SessionViewActions,
 } from "./useSessionViewState";
+import { variantOptionsFor } from "./variantOptions";
 
 interface SessionViewShellProps
   extends SessionViewActions, CreateExerciseActions {
@@ -30,7 +32,15 @@ interface SessionViewShellProps
 
 type SessionViewState = ReturnType<typeof useSessionViewState>;
 
-function SessionViewModals({ state }: { state: SessionViewState }) {
+function SessionViewModals({
+  state,
+  exercises,
+  styles,
+}: {
+  state: SessionViewState;
+  exercises: ExerciseWithDetails[];
+  styles: ExerciseStyleRow[];
+}) {
   return (
     <>
       {state.blockActions.editingExercise && (
@@ -39,6 +49,11 @@ function SessionViewModals({ state }: { state: SessionViewState }) {
           linkedWeeks={state.editingExerciseLinkedWeeks}
           onClose={state.blockActions.closeExerciseEditor}
           onSave={state.blockActions.saveExerciseMeasurement}
+          variantOptions={variantOptionsFor(
+            state.blockActions.editingExercise.exercise,
+            exercises,
+          )}
+          styles={styles}
         />
       )}
 
@@ -66,12 +81,14 @@ export function SessionViewShell({
   session,
   exercises,
   categories,
+  styles,
   sessionTemplates = [],
   profileId,
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
   createCategoryAction,
+  createStyleAction,
   ...actions
 }: SessionViewShellProps) {
   const state = useSessionViewState(
@@ -94,12 +111,14 @@ export function SessionViewShell({
           <SessionLibrarySidebar
             exercises={exercises}
             categories={categories}
+            styles={styles}
             sessionTemplates={sessionTemplates}
             profileId={profileId}
             createExerciseAction={createExerciseAction}
             updateExerciseAction={updateExerciseAction}
             updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
             createCategoryAction={createCategoryAction}
+            createStyleAction={createStyleAction}
           />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
             <BlockList
@@ -137,7 +156,7 @@ export function SessionViewShell({
         </DragIndicatorContext.Provider>
       </DndContext>
 
-      <SessionViewModals state={state} />
+      <SessionViewModals state={state} exercises={exercises} styles={styles} />
     </div>
   );
 }

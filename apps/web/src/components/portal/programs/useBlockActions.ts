@@ -53,7 +53,7 @@ async function runAddExerciseToBlock(
     reportError(ctx.showError, result);
     return;
   }
-  const newRow = { ...result.data, exercise };
+  const newRow = { ...result.data, exercise, setVariants: {} };
   ctx.setBlocks(
     ctx.blocks.map((b) =>
       b.id === blockId ? { ...b, exercises: [...b.exercises, newRow] } : b,

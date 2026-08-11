@@ -3,6 +3,7 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import type {
   ExerciseCategoryRow,
+  ExerciseStyleRow,
   ExerciseWithDetails,
   ProgramWithSessions,
   SessionTemplateSummary,
@@ -132,9 +133,13 @@ function ProgramCanvasBody({
 function ProgramCanvasModals({
   state,
   totalWeeks,
+  exercises,
+  styles,
 }: {
   state: CanvasState;
   totalWeeks: number;
+  exercises: ExerciseWithDetails[];
+  styles: ExerciseStyleRow[];
 }) {
   const seedExerciseName =
     state.sessionModal?.type === "create" && state.sessionModal.seedExerciseId
@@ -149,6 +154,8 @@ function ProgramCanvasModals({
         existingSessions={state.sessions}
         sessionTemplates={state.sessionTemplates}
         totalWeeks={totalWeeks}
+        exercises={exercises}
+        styles={styles}
         linkedWeeks={state.linkedWeeksForSessionModal}
         seedExerciseName={seedExerciseName}
         onCreateSession={state.handleCreateSession}
@@ -197,6 +204,8 @@ export function ProgramCanvasShell({
   updateExerciseAction,
   updateExerciseVideoUrlAction,
   createCategoryAction,
+  styles,
+  createStyleAction,
   ...actions
 }: ProgramCanvasShellProps) {
   const createExerciseActions: CreateExerciseActions = {
@@ -205,6 +214,8 @@ export function ProgramCanvasShell({
     updateExerciseAction,
     updateExerciseVideoUrlAction,
     createCategoryAction,
+    styles,
+    createStyleAction,
   };
   const state = useProgramCanvasState(
     program,
@@ -240,7 +251,12 @@ export function ProgramCanvasShell({
         </DragIndicatorContext.Provider>
       </DndContext>
 
-      <ProgramCanvasModals state={state} totalWeeks={program.weeks} />
+      <ProgramCanvasModals
+        state={state}
+        totalWeeks={program.weeks}
+        exercises={exercises}
+        styles={styles}
+      />
     </div>
   );
 }

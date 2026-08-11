@@ -53,7 +53,10 @@ export function AddExercisePopover({
     right: number;
   } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const filtered = filterExercises(exercises, search, "");
+  // Variants are chosen inside the measurement modal, not dragged/added as
+  // their own picker rows — only base exercises show up here.
+  const baseExercises = exercises.filter((ex) => !ex.parent_id);
+  const filtered = filterExercises(baseExercises, search, "");
 
   // Blocks clip overflow, so a normal absolutely-positioned dropdown gets cut
   // off at the card's edge. Portal it to the body and position it against the

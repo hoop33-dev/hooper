@@ -49,6 +49,7 @@ function ProgramCanvasBody({
   program,
   exercises,
   categories,
+  styles,
   sessionTemplates,
   state,
   onSaveBlockAsTemplate,
@@ -58,6 +59,7 @@ function ProgramCanvasBody({
   program: ProgramWithSessions;
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
+  styles: ExerciseStyleRow[];
   sessionTemplates: SessionTemplateSummary[];
   state: CanvasState;
   onSaveBlockAsTemplate: ((blockId: string) => void) | undefined;
@@ -79,6 +81,7 @@ function ProgramCanvasBody({
         programId={program.id}
         weekNumber={state.selectedWeek}
         sessions={state.weekSessions}
+        styles={styles}
         onRenameSession={(session) =>
           state.setSessionModal({ type: "rename", session })
         }
@@ -242,6 +245,7 @@ export function ProgramCanvasShell({
             program={program}
             exercises={exercises}
             categories={categories}
+            styles={styles}
             sessionTemplates={sessionTemplates}
             state={state}
             onSaveBlockAsTemplate={onSaveBlockAsTemplate}

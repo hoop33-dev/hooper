@@ -1,120 +1,61 @@
 "use client";
 
 import { sortUnitTypes } from "@/src/constants/unitTypes";
+import { resolveMostCommonId } from "@/src/lib/blockExerciseDisplay";
 import { cn } from "@/src/lib/cn";
-import {
-  convertUnit,
-  defaultUnitFor,
-  formatMeasurementSummary,
-  unitOptionsFor,
-} from "@/src/lib/measurementFormat";
-import type { LinkScope } from "@/src/services/block.service";
+import { formatMeasurementSummary } from "@/src/lib/measurementFormat";
+import type { LinkScope, MeasurementInput } from "@/src/services/block.service";
 import type {
   BlockExerciseWithDetails,
-  EnteredBy,
   ExerciseRow,
   ExerciseStyleRow,
 } from "@hooper/db";
 import {
-  useEffect,
   useState,
+  type FocusEvent as ReactFocusEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { StyleSelect } from "../exercises/StyleSelect";
-import { PortalButton } from "../ui/PortalButton";
-import { PortalTextarea } from "../ui/PortalInput";
 import { DuplicateIcon, XIcon } from "../ui/icons";
+import { PortalButton } from "../ui/PortalButton";
 import { useModalDismiss } from "../ui/useModalDismiss";
-
-/**
- * Number entry that allows the field to be blank while typing and coerces to
- * `min` on blur, with the native up/down spinner arrows hidden.
- */
-function StepperInput({
-  value,
-  min,
-  onChange,
-  className,
-  dataSetIndex,
-  dataMeasurementIndex,
-}: {
-  value: number;
-  min: number;
-  onChange: (v: number) => void;
-  className: string;
-  /** Set on a set-value cell (not the Sets stepper) — identifies this input
-   * for the modal's delegated Tab/Enter/Shift+Enter keyboard handling. */
-  dataSetIndex?: number;
-  dataMeasurementIndex?: number;
-}) {
-  const [text, setText] = useState(String(value));
-  // Keep the field in sync when value changes elsewhere (e.g. +/- buttons).
-  useEffect(() => setText(String(value)), [value]);
-
-  return (
-    <input
-      type="number"
-      inputMode="decimal"
-      min={min}
-      value={text}
-      onChange={(e) => {
-        const next = e.target.value;
-        setText(next);
-        if (next === "") return; // allow transient blank while typing
-        const parsed = Number(next);
-        if (!Number.isNaN(parsed)) onChange(parsed);
-      }}
-      onBlur={() => {
-        const parsed = Number(text);
-        const resolved =
-          text === "" || Number.isNaN(parsed) ? min : Math.max(min, parsed);
-        onChange(resolved);
-        setText(String(resolved));
-      }}
-      onFocus={(e) => e.currentTarget.select()}
-      data-role={dataSetIndex !== undefined ? "set-value" : undefined}
-      data-set-index={dataSetIndex}
-      data-measurement-index={dataMeasurementIndex}
-      className={cn(
-        "[appearance:textfield] outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-        className,
-      )}
-    />
-  );
-}
-
-/** One set's value within a unit-type slot — a placement's `sets` count
- * determines how many of these each slot holds, so a pyramid/wave set can
- * carry a distinct value per set instead of one value applied uniformly. */
-export type SetValueState = { value: number; value_entered_by: EnteredBy };
-
-/** Each unit type is its own independent column (Reps, Weight, Time, RPE,
- * Distance, Shots, Makes, etc.) — a placement is whichever of these an
- * exercise is configured with, shown simultaneously, never bundled. Its
- * display unit is shared across every set (switching kg→lbs affects the
- * whole column, not one set). */
-export type MeasurementState = {
-  unit_type: string;
-  value_unit: string | null;
-  sets: SetValueState[];
-};
+import {
+  applyStyleToAll,
+  applyUnitTypesToAll,
+  applyVariantToAll,
+  copySlotValueToAllBelow,
+  initSetConfigs,
+  resizeSetConfigs,
+  toFlatMeasurements,
+  toMeasurementInput,
+  toSetStylesPayload,
+  toSetVariantsPayload,
+  updateSetStyle,
+  updateSetUnitTypes,
+  updateSetVariant,
+  updateSlotValue,
+  type SetConfigState,
+} from "./measurementGrid/setConfig";
+import { SetInlineSelect } from "./measurementGrid/SetInlineSelect";
+import { SetUnitTypeSelect } from "./measurementGrid/SetUnitTypeSelect";
+import { SetValueCell } from "./measurementGrid/SetValueCell";
 
 export type BlockExerciseUpdateData = {
   sets: number;
   notes?: string;
-  measurements: {
-    unit_type: string;
-    value_unit: string | null;
-    sets: { value: number | null; value_entered_by: EnteredBy }[];
-  }[];
-  /** Swaps which variant the whole placement points at — the grid's
-   * unit-type columns stay put, only which drill they refer to changes. */
+  measurements: MeasurementInput;
+  /** The winning variant across every set (see resolveMostCommonId) —
+   * becomes the placement's own new default; per-set entries in
+   * `set_variants` that already match it need no override row. */
   exercise_id?: string;
   /** Null clears the placement's style back to "none". */
   style_id?: string | null;
-  /** Sparse, keyed by set_index — a set with no entry uses the placement's
-   * own variant (`exercise_id`). */
   set_variants?: Record<number, string>;
+  set_styles?: Record<number, string | null>;
+  /** Pre-resolved (id -> object) versions of the two maps above, for
+   * optimistic local-state patching only — the server save itself only
+   * consumes the plain id maps. */
+  resolvedSetVariants?: Record<number, ExerciseRow>;
+  resolvedSetStyles?: Record<number, ExerciseStyleRow | null>;
 };
 
 interface BlockExerciseMeasurementModalProps {
@@ -128,7 +69,7 @@ interface BlockExerciseMeasurementModalProps {
   linkedWeeks?: number[];
   /** The placement's base exercise + all its siblings — always at least a
    * single-entry list containing the placement's own exercise. Powers the
-   * variant selectors; see variantOptionsFor. */
+   * variant selectors. */
   variantOptions: ExerciseRow[];
   styles: ExerciseStyleRow[];
 }
@@ -146,108 +87,6 @@ function ModalHeader({ name, onClose }: { name: string; onClose: () => void }) {
         <XIcon />
       </button>
     </div>
-  );
-}
-
-function SetsField({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-portal-text2 w-14 flex-shrink-0 text-xs font-bold">
-        Sets
-      </span>
-      <div className="flex flex-1 items-center gap-2">
-        <StepButton
-          disabled={false}
-          onClick={() => onChange(Math.max(1, value - 1))}>
-          −
-        </StepButton>
-        <StepperInput
-          value={value}
-          min={1}
-          onChange={onChange}
-          className="font-title text-portal-text1 w-full flex-1 rounded-lg text-center text-lg font-black"
-        />
-        <StepButton disabled={false} onClick={() => onChange(value + 1)}>
-          +
-        </StepButton>
-      </div>
-    </div>
-  );
-}
-
-/** Only rendered when the exercise has variants (options.length > 1) — a
- * base exercise with no variants of its own never shows this row. */
-function VariantField({
-  options,
-  value,
-  onChange,
-  onApplyToAll,
-  showApplyToAll,
-}: {
-  options: ExerciseRow[];
-  value: string;
-  onChange: (id: string) => void;
-  onApplyToAll: () => void;
-  showApplyToAll: boolean;
-}) {
-  if (options.length <= 1) return null;
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-portal-text2 w-14 flex-shrink-0 text-xs font-bold">
-        Variant
-      </span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="border-portal-border bg-portal-card text-portal-text1 focus:border-portal-orange h-8 flex-1 rounded-lg border px-2 text-sm focus:outline-none">
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.name}
-          </option>
-        ))}
-      </select>
-      {showApplyToAll && (
-        <button
-          type="button"
-          onClick={onApplyToAll}
-          title="Use this variant for every set"
-          className="text-portal-orange flex-shrink-0 text-[11px] font-semibold whitespace-nowrap hover:underline">
-          Apply to all sets
-        </button>
-      )}
-    </div>
-  );
-}
-
-/** Compact per-set variant override — only rendered alongside a SetRow when
- * the exercise has variants; picks the set's own override if one exists,
- * else the placement's default variant. */
-function SetVariantSelect({
-  options,
-  value,
-  onChange,
-}: {
-  options: ExerciseRow[];
-  value: string;
-  onChange: (id: string) => void;
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="border-portal-border bg-portal-card text-portal-text3 h-6 w-20 flex-shrink-0 rounded-md border px-1 text-[10px] focus:outline-none">
-      {options.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.name}
-        </option>
-      ))}
-    </select>
   );
 }
 
@@ -271,173 +110,167 @@ function StepButton({
   );
 }
 
-/** A static label when there's one (or zero) unit, or a real dropdown when
- * the unit type offers more than one — e.g. kg/lbs/g. */
-function UnitControl({
-  unit,
-  options,
+function SetsField({
+  value,
   onChange,
 }: {
-  unit: string;
-  options: string[] | null;
-  onChange: (unit: string) => void;
-}) {
-  if (!unit) return null;
-  if (options && options.length > 1) {
-    return (
-      <select
-        value={unit}
-        onChange={(e) => onChange(e.target.value)}
-        onPointerDown={(e) => e.stopPropagation()}
-        className="text-portal-text3 border-none bg-transparent text-[10px] outline-none">
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
-    );
-  }
-  return <span className="text-portal-text3 text-[10px]">{unit}</span>;
-}
-
-/** Custom-drawn instead of relying on the native checkbox: browsers render
- * an unstyled unchecked `accent-color` checkbox as a solid black square, not
- * an empty box. Small enough to sit inside a single set's cell. */
-function AthleteEnteredBadge({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
+  value: number;
+  onChange: (v: number) => void;
 }) {
   return (
-    <button
-      type="button"
-      tabIndex={-1}
-      onClick={() => onChange(!checked)}
-      title={
-        checked
-          ? "Athlete enters this set — click to plan a number instead"
-          : "Let the athlete enter this set"
-      }
-      className={cn(
-        "absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full border text-[8px] font-black",
-        checked
-          ? "border-portal-orange bg-portal-orange text-white"
-          : "border-portal-border bg-portal-card text-portal-text3",
-      )}>
-      A
-    </button>
-  );
-}
-
-/** One measurement column's header: unit-type label, its unit dropdown (if
- * it has one), and a "copy set 1 to every set" action — the fast path that
- * keeps a uniform placement a two-click job instead of typing the same
- * number into every row. */
-export function MeasurementColumnHeader({
-  measurement,
-  onUnitChange,
-  onCopyFirstToAll,
-}: {
-  measurement: MeasurementState;
-  onUnitChange: (unit: string) => void;
-  onCopyFirstToAll: () => void;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-0.5">
-      <div className="flex items-center gap-1">
-        <span className="text-portal-text2 text-[10px] font-bold tracking-wide uppercase">
-          {measurement.unit_type}
+    <div className="flex items-center gap-3">
+      <span className="text-portal-text2 w-14 flex-shrink-0 text-xs font-bold">
+        Sets
+      </span>
+      <div className="flex flex-1 items-center gap-2">
+        <StepButton
+          disabled={false}
+          onClick={() => onChange(Math.max(1, value - 1))}>
+          −
+        </StepButton>
+        <span className="font-title text-portal-text1 w-full flex-1 text-center text-lg font-black">
+          {value}
         </span>
-        {measurement.sets.length > 1 && (
-          <button
-            type="button"
-            onClick={onCopyFirstToAll}
-            title="Copy set 1's value to every set"
-            className="text-portal-text3 hover:text-portal-orange">
-            <DuplicateIcon size={10} />
-          </button>
-        )}
+        <StepButton disabled={false} onClick={() => onChange(value + 1)}>
+          +
+        </StepButton>
       </div>
-      <UnitControl
-        unit={measurement.value_unit ?? ""}
-        options={unitOptionsFor(measurement.unit_type)}
-        onChange={onUnitChange}
-      />
     </div>
   );
 }
 
-export function SetRow({
-  setIndex,
-  measurements,
-  onChangeValue,
-  onToggleAthlete,
+/** Bordered quick-set panel: picking a value in any of its three controls
+ * immediately overwrites every set's corresponding field — the generalized,
+ * always-visible sibling of the old single "apply variant to all" link.
+ * The units control keeps its own local pending selection (since it's a
+ * multi-pick, up to 3) and re-applies the whole combo on every toggle, so
+ * picking "Shots" then "Makes" converges to Shots+Makes on every set rather
+ * than each click reverting to a single unit type. */
+function ApplyToAllSetsPanel({
   variantOptions,
-  variantId,
-  onVariantChange,
+  styles,
+  onApplyUnitTypes,
+  onApplyVariant,
+  onApplyStyle,
 }: {
-  setIndex: number;
-  measurements: MeasurementState[];
-  onChangeValue: (measurementIndex: number, value: number) => void;
-  onToggleAthlete: (measurementIndex: number, athleteEntered: boolean) => void;
-  /** Omitted (or a single-entry list) when the exercise has no variants —
-   * the per-set selector only renders when there's an actual choice. */
-  variantOptions?: ExerciseRow[];
-  variantId?: string;
-  onVariantChange?: (id: string) => void;
+  variantOptions: ExerciseRow[];
+  styles: ExerciseStyleRow[];
+  onApplyUnitTypes: (unitTypes: string[]) => void;
+  onApplyVariant: (id: string) => void;
+  onApplyStyle: (id: string) => void;
 }) {
+  const [pendingUnitTypes, setPendingUnitTypes] = useState<string[]>([]);
+
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-portal-text3 w-14 flex-shrink-0 text-[11px] font-bold">
-        Set {setIndex + 1}
-      </span>
-      {variantOptions &&
-        variantOptions.length > 1 &&
-        variantId !== undefined &&
-        onVariantChange && (
-          <SetVariantSelect
+    <div className="border-portal-border bg-portal-bg flex flex-col gap-2 rounded-xl border p-3">
+      <div className="text-portal-text2 flex items-center gap-1.5 text-xs font-bold">
+        <DuplicateIcon size={12} />
+        Apply to all sets
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <SetUnitTypeSelect
+          selected={pendingUnitTypes}
+          onChange={(unitTypes) => {
+            setPendingUnitTypes(unitTypes);
+            onApplyUnitTypes(unitTypes);
+          }}
+        />
+        {variantOptions.length > 1 && (
+          <SetInlineSelect
             options={variantOptions}
-            value={variantId}
-            onChange={onVariantChange}
+            value=""
+            onChange={onApplyVariant}
+            noneLabel="Variant"
+            allowNone={false}
           />
         )}
-      <div
-        className="grid flex-1 gap-2"
-        style={{
-          gridTemplateColumns: `repeat(${measurements.length}, minmax(0, 1fr))`,
-        }}>
-        {measurements.map((m, mi) => {
-          const cell = m.sets[setIndex];
-          const athleteEntered = cell.value_entered_by === "athlete";
-          return (
-            <div
-              key={m.unit_type}
-              className="border-portal-border bg-portal-card relative flex min-h-9 items-center justify-center rounded-lg border py-1.5">
-              {athleteEntered ? (
-                <span className="text-portal-text3 text-[11px] italic">
-                  Athlete enters
-                </span>
-              ) : (
-                <StepperInput
-                  value={cell.value}
-                  min={0}
-                  onChange={(v) => onChangeValue(mi, v)}
-                  dataSetIndex={setIndex}
-                  dataMeasurementIndex={mi}
-                  className="font-title text-portal-orange w-full text-center text-base font-black"
-                />
-              )}
-              <AthleteEnteredBadge
-                checked={athleteEntered}
-                onChange={(v) => onToggleAthlete(mi, v)}
-              />
-            </div>
-          );
-        })}
+        <SetInlineSelect
+          options={styles}
+          value=""
+          onChange={onApplyStyle}
+          noneLabel="Style"
+        />
       </div>
+    </div>
+  );
+}
+
+function SetCard({
+  setIndex,
+  config,
+  variantOptions,
+  styles,
+  onChangeUnitTypes,
+  onChangeVariant,
+  onChangeStyle,
+  onChangeValue,
+  onToggleAthlete,
+}: {
+  setIndex: number;
+  config: SetConfigState;
+  variantOptions: ExerciseRow[];
+  styles: ExerciseStyleRow[];
+  onChangeUnitTypes: (unitTypes: string[]) => void;
+  onChangeVariant: (id: string) => void;
+  onChangeStyle: (id: string) => void;
+  onChangeValue: (slotIndex: number, value: number) => void;
+  onToggleAthlete: (slotIndex: number, athleteEntered: boolean) => void;
+}) {
+  return (
+    <div className="border-portal-border bg-portal-card flex flex-col gap-3 rounded-xl border p-3">
+      <div className="flex items-center gap-2">
+        <div className="bg-portal-orange/10 text-portal-orange flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg text-xs font-black">
+          {setIndex + 1}
+        </div>
+        <span className="text-portal-text1 flex-shrink-0 text-sm font-bold">
+          Set {setIndex + 1}
+        </span>
+        <div className="flex flex-1 items-center justify-end gap-1.5">
+          <SetUnitTypeSelect
+            selected={config.slots.map((s) => s.unit_type)}
+            onChange={onChangeUnitTypes}
+            className="w-44"
+          />
+          {variantOptions.length > 1 && (
+            <SetInlineSelect
+              options={variantOptions}
+              value={config.variantId}
+              onChange={onChangeVariant}
+              noneLabel="No variant"
+              allowNone={false}
+              mutedValue={variantOptions[0]?.id}
+              className="w-40"
+            />
+          )}
+          <SetInlineSelect
+            options={styles}
+            value={config.styleId}
+            onChange={onChangeStyle}
+            noneLabel="No style"
+            className="w-36"
+          />
+        </div>
+      </div>
+      {config.slots.length > 0 && (
+        <div
+          className="grid gap-2"
+          style={{
+            gridTemplateColumns: `repeat(${config.slots.length}, minmax(0, 1fr))`,
+          }}>
+          {config.slots.map((slot, slotIndex) => (
+            <SetValueCell
+              key={`${slot.unit_type}-${slotIndex}`}
+              label={slot.unit_type}
+              value={slot.value}
+              athleteEntered={slot.value_entered_by === "athlete"}
+              onChangeValue={(v) => onChangeValue(slotIndex, v)}
+              onToggleAthlete={(v) => onToggleAthlete(slotIndex, v)}
+              dataSetIndex={setIndex}
+              dataSlotIndex={slotIndex}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -445,113 +278,70 @@ export function SetRow({
 interface ModalBodyProps {
   sets: number;
   onSets: (v: number) => void;
-  measurements: MeasurementState[];
-  onChangeValue: (
-    measurementIndex: number,
-    setIndex: number,
-    value: number,
-  ) => void;
+  configs: SetConfigState[];
+  onChangeUnitTypes: (setIndex: number, unitTypes: string[]) => void;
+  onChangeVariant: (setIndex: number, id: string) => void;
+  onChangeStyle: (setIndex: number, id: string) => void;
+  onChangeValue: (setIndex: number, slotIndex: number, value: number) => void;
   onToggleAthlete: (
-    measurementIndex: number,
     setIndex: number,
+    slotIndex: number,
     athleteEntered: boolean,
   ) => void;
-  onUnitChange: (measurementIndex: number, unit: string) => void;
-  onCopyFirstToAll: (measurementIndex: number) => void;
-  notes: string;
-  onNotes: (v: string) => void;
+  onApplyUnitTypesToAll: (unitTypes: string[]) => void;
+  onApplyVariantToAll: (id: string) => void;
+  onApplyStyleToAll: (id: string) => void;
   variantOptions: ExerciseRow[];
-  exerciseId: string;
-  onExerciseIdChange: (id: string) => void;
-  setVariants: Record<number, string>;
-  onSetVariantChange: (setIndex: number, id: string) => void;
-  onApplyVariantToAll: () => void;
   styles: ExerciseStyleRow[];
-  styleId: string;
-  onStyleIdChange: (id: string) => void;
 }
 
 function ModalBody({
   sets,
   onSets,
-  measurements,
+  configs,
+  onChangeUnitTypes,
+  onChangeVariant,
+  onChangeStyle,
   onChangeValue,
   onToggleAthlete,
-  onUnitChange,
-  onCopyFirstToAll,
-  notes,
-  onNotes,
-  variantOptions,
-  exerciseId,
-  onExerciseIdChange,
-  setVariants,
-  onSetVariantChange,
+  onApplyUnitTypesToAll,
   onApplyVariantToAll,
+  onApplyStyleToAll,
+  variantOptions,
   styles,
-  styleId,
-  onStyleIdChange,
 }: ModalBodyProps) {
-  const hasSetOverrides = Object.keys(setVariants).length > 0;
   return (
     <div className="flex flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-4">
       <SetsField value={sets} onChange={onSets} />
-      <VariantField
-        options={variantOptions}
-        value={exerciseId}
-        onChange={onExerciseIdChange}
-        onApplyToAll={onApplyVariantToAll}
-        showApplyToAll={hasSetOverrides}
-      />
-      <div className="bg-portal-border h-px" />
-      {measurements.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <span className="w-14 flex-shrink-0" />
-            <div
-              className="grid flex-1 gap-2"
-              style={{
-                gridTemplateColumns: `repeat(${measurements.length}, minmax(0, 1fr))`,
-              }}>
-              {measurements.map((m, mi) => (
-                <MeasurementColumnHeader
-                  key={m.unit_type}
-                  measurement={m}
-                  onUnitChange={(unit) => onUnitChange(mi, unit)}
-                  onCopyFirstToAll={() => onCopyFirstToAll(mi)}
-                />
-              ))}
-            </div>
-          </div>
-          {Array.from({ length: sets }, (_, setIndex) => (
-            <SetRow
-              key={setIndex}
-              setIndex={setIndex}
-              measurements={measurements}
-              onChangeValue={(mi, value) => onChangeValue(mi, setIndex, value)}
-              onToggleAthlete={(mi, athleteEntered) =>
-                onToggleAthlete(mi, setIndex, athleteEntered)
-              }
-              variantOptions={variantOptions}
-              variantId={setVariants[setIndex] ?? exerciseId}
-              onVariantChange={(id) => onSetVariantChange(setIndex, id)}
-            />
-          ))}
-        </div>
-      )}
-      <div className="bg-portal-border h-px" />
-      <StyleSelect
+      <ApplyToAllSetsPanel
+        variantOptions={variantOptions}
         styles={styles}
-        value={styleId}
-        onChange={onStyleIdChange}
-        label="Style"
+        onApplyUnitTypes={onApplyUnitTypesToAll}
+        onApplyVariant={onApplyVariantToAll}
+        onApplyStyle={onApplyStyleToAll}
       />
-      <PortalTextarea
-        label="Note"
-        value={notes}
-        onChange={(e) => onNotes(e.target.value)}
-        rows={3}
-        placeholder="e.g. Keep back flat, focus on range of motion…"
-      />
+      <div className="flex flex-col gap-2">
+        {configs.map((config, setIndex) => (
+          <SetCard
+            key={setIndex}
+            setIndex={setIndex}
+            config={config}
+            variantOptions={variantOptions}
+            styles={styles}
+            onChangeUnitTypes={(unitTypes) =>
+              onChangeUnitTypes(setIndex, unitTypes)
+            }
+            onChangeVariant={(id) => onChangeVariant(setIndex, id)}
+            onChangeStyle={(id) => onChangeStyle(setIndex, id)}
+            onChangeValue={(slotIndex, value) =>
+              onChangeValue(setIndex, slotIndex, value)
+            }
+            onToggleAthlete={(slotIndex, athleteEntered) =>
+              onToggleAthlete(setIndex, slotIndex, athleteEntered)
+            }
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -647,257 +437,6 @@ function ScopeChoiceFooter({
   );
 }
 
-// Always show every unit type the exercise is currently configured with;
-// fall back to whatever this placement already had if the exercise has
-// since been reconfigured down to zero configured types.
-export function resolveUnitTypes(
-  blockExercise: BlockExerciseWithDetails,
-): string[] {
-  if (blockExercise.exercise.unitTypes.length > 0)
-    return sortUnitTypes(blockExercise.exercise.unitTypes);
-  const seen = new Set(blockExercise.measurements.map((m) => m.unit_type));
-  if (seen.size > 0) return sortUnitTypes([...seen]);
-  return ["Reps"];
-}
-
-/** Builds `sets` per-set values for one unit type from whatever this
- * placement already had — padding by repeating the last known set's value
- * (rather than resetting to a default) when the placement's own row count
- * doesn't match `sets` yet (e.g. this modal just grew the stepper). */
-function resolveSetValues(
-  blockExercise: BlockExerciseWithDetails,
-  unitType: string,
-  setsCount: number,
-): SetValueState[] {
-  const rows = blockExercise.measurements
-    .filter((m) => m.unit_type === unitType)
-    .sort((a, b) => a.set_index - b.set_index);
-  const last = rows[rows.length - 1];
-  return Array.from({ length: setsCount }, (_, i) => {
-    const row = rows[i] ?? last;
-    return {
-      value: row?.value ?? defaultValueFor(unitType),
-      value_entered_by: row?.value_entered_by ?? "coach",
-    };
-  });
-}
-
-/** Mirrors block.service.ts's defaultValueFor: Reps-like unit types default
- * to a nonzero starting count; everything else (including RPE/RIR) starts
- * at zero. */
-function defaultValueFor(unitType: string): number {
-  return unitType === "Reps" || unitType === "Reps Each Side" ? 8 : 0;
-}
-
-export function initMeasurements(
-  unitTypes: string[],
-  blockExercise: BlockExerciseWithDetails,
-  setsCount: number,
-): MeasurementState[] {
-  return unitTypes.map((unitType) => {
-    const existing = blockExercise.measurements.find(
-      (m) => m.unit_type === unitType,
-    );
-    return {
-      unit_type: unitType,
-      value_unit: existing?.value_unit ?? defaultUnitFor(unitType),
-      sets: resolveSetValues(blockExercise, unitType, setsCount),
-    };
-  });
-}
-
-/** Pads (repeating the last set's value) or truncates every measurement's
- * per-set values to a new sets count — the modal-local sibling of
- * block.service.ts's resizeMeasurements, kept in sync with the Sets
- * stepper as the coach adjusts it before saving. */
-export function resizeMeasurementSets(
-  measurements: MeasurementState[],
-  setsCount: number,
-): MeasurementState[] {
-  return measurements.map((m) => {
-    const last = m.sets[m.sets.length - 1];
-    return {
-      ...m,
-      sets: Array.from({ length: setsCount }, (_, i) => m.sets[i] ?? last),
-    };
-  });
-}
-
-/** Pure per-set-array edits, factored out so both the single-exercise editor
- * (useMeasurementSetEditor) and the superset editor's per-exercise map
- * (SupersetRoundsModal) can share the same update logic. */
-export function withCellPatch(
-  measurements: MeasurementState[],
-  measurementIndex: number,
-  setIndex: number,
-  patch: Partial<SetValueState>,
-): MeasurementState[] {
-  return measurements.map((m, mi) =>
-    mi === measurementIndex
-      ? {
-          ...m,
-          sets: m.sets.map((s, si) =>
-            si === setIndex ? { ...s, ...patch } : s,
-          ),
-        }
-      : m,
-  );
-}
-
-export function withUnitChange(
-  measurements: MeasurementState[],
-  measurementIndex: number,
-  newUnit: string,
-): MeasurementState[] {
-  return measurements.map((m, mi) => {
-    if (mi !== measurementIndex) return m;
-    const fromUnit = m.value_unit ?? newUnit;
-    return {
-      ...m,
-      value_unit: newUnit,
-      sets: m.sets.map((s) => ({
-        ...s,
-        value: convertUnit(s.value, fromUnit, newUnit, m.unit_type),
-      })),
-    };
-  });
-}
-
-/** Copies one set's value down into every set below it in the same column,
- * leaving sets above untouched — the Shift+Enter keyboard shortcut, and
- * (called with setIndex 0) the "copy set 1 to every set" header button. */
-export function withCellCopiedToAllBelow(
-  measurements: MeasurementState[],
-  measurementIndex: number,
-  setIndex: number,
-): MeasurementState[] {
-  return measurements.map((m, mi) =>
-    mi === measurementIndex
-      ? {
-          ...m,
-          sets: m.sets.map((s, si) =>
-            si > setIndex ? { ...m.sets[setIndex] } : s,
-          ),
-        }
-      : m,
-  );
-}
-
-/** Owns one placement's editable measurement state — extracted out of
- * BlockExerciseMeasurementModal so the component itself stays under the
- * lint's max-lines-per-function limit. */
-export function useMeasurementSetEditor(initializer: () => MeasurementState[]) {
-  const [measurements, setMeasurements] =
-    useState<MeasurementState[]>(initializer);
-
-  return {
-    measurements,
-    setMeasurements,
-    updateCell: (
-      measurementIndex: number,
-      setIndex: number,
-      patch: Partial<SetValueState>,
-    ) =>
-      setMeasurements((prev) =>
-        withCellPatch(prev, measurementIndex, setIndex, patch),
-      ),
-    updateUnit: (measurementIndex: number, newUnit: string) =>
-      setMeasurements((prev) =>
-        withUnitChange(prev, measurementIndex, newUnit),
-      ),
-    copyToAllBelow: (measurementIndex: number, setIndex: number) =>
-      setMeasurements((prev) =>
-        withCellCopiedToAllBelow(prev, measurementIndex, setIndex),
-      ),
-    resize: (setsCount: number) =>
-      setMeasurements((prev) => resizeMeasurementSets(prev, setsCount)),
-  };
-}
-
-/** Blanks out fields the athlete hasn't entered yet, for display purposes. */
-function toSummaryMeasurements(measurements: MeasurementState[]) {
-  return measurements.flatMap((m) =>
-    m.sets.map((s, set_index) => ({
-      unit_type: m.unit_type,
-      set_index,
-      value: s.value_entered_by === "athlete" ? null : s.value,
-      value_entered_by: s.value_entered_by,
-      value_unit: m.value_unit,
-    })),
-  );
-}
-
-/** Coerces athlete-entered fields to null so a stale in-memory number never
- * gets persisted for them. */
-function toSavePayload(
-  sets: number,
-  notes: string,
-  measurements: MeasurementState[],
-  exerciseId: string,
-  styleId: string,
-  setVariants: Record<number, string>,
-): BlockExerciseUpdateData {
-  return {
-    sets: Math.max(1, sets),
-    notes: notes.trim() || undefined,
-    measurements: measurements.map((m) => ({
-      unit_type: m.unit_type,
-      value_unit: m.value_unit,
-      sets: m.sets.map((s) => ({
-        value: s.value_entered_by === "athlete" ? null : Math.max(0, s.value),
-        value_entered_by: s.value_entered_by,
-      })),
-    })),
-    exercise_id: exerciseId,
-    style_id: styleId || null,
-    set_variants: setVariants,
-  };
-}
-
-function focusCell(
-  root: HTMLElement,
-  setIndex: number,
-  measurementIndex: number,
-) {
-  root
-    .querySelector<HTMLElement>(
-      `[data-role="set-value"][data-set-index="${setIndex}"][data-measurement-index="${measurementIndex}"]`,
-    )
-    ?.focus();
-}
-
-/** Excel-style set-grid navigation: Tab already moves horizontally across a
- * row (DOM order, with the "A" badge excluded via tabIndex=-1); Enter here
- * moves vertically to the same column's next set, or focuses Save on the
- * last set. Shift+Enter copies the focused cell down to every set below it,
- * then moves the cursor to that last (now-filled) set, mirroring where plain
- * Enter would have ended up. */
-function handleGridKeyDown(
-  e: ReactKeyboardEvent<HTMLDivElement>,
-  sets: number,
-  copyToAllBelow: (measurementIndex: number, setIndex: number) => void,
-) {
-  const target = e.target as HTMLElement;
-  if (target.dataset.role !== "set-value") return;
-  const setIndex = Number(target.dataset.setIndex);
-  const measurementIndex = Number(target.dataset.measurementIndex);
-  if (Number.isNaN(setIndex) || Number.isNaN(measurementIndex)) return;
-  if (e.key !== "Enter") return;
-  e.preventDefault();
-
-  const root = e.currentTarget;
-  if (e.shiftKey) {
-    copyToAllBelow(measurementIndex, setIndex);
-    focusCell(root, sets - 1, measurementIndex);
-    return;
-  }
-  if (setIndex < sets - 1) {
-    focusCell(root, setIndex + 1, measurementIndex);
-  } else {
-    root.querySelector<HTMLElement>('[data-role="save-button"]')?.focus();
-  }
-}
-
 /** Footer or scope-choice footer, whichever the save flow currently needs —
  * extracted out of BlockExerciseMeasurementModal so the component itself
  * stays under the lint's max-lines-per-function limit. */
@@ -940,30 +479,199 @@ function ModalFooterArea({
   );
 }
 
-/** Owns the placement's variant/style editable state — extracted out of
- * BlockExerciseMeasurementModal so the component itself stays under the
- * lint's max-lines-per-function limit. */
-function useVariantAndStyleState(blockExercise: BlockExerciseWithDetails) {
-  const [exerciseId, setExerciseId] = useState(blockExercise.exercise_id);
-  const [styleId, setStyleId] = useState(blockExercise.style_id ?? "");
-  const [setVariants, setSetVariants] = useState<Record<number, string>>(() =>
-    Object.fromEntries(
-      Object.entries(blockExercise.setVariants).map(([setIndex, variant]) => [
-        setIndex,
-        variant.id,
+// Always show every unit type the exercise is currently configured with;
+// fall back to whatever this placement already had if the exercise has
+// since been reconfigured down to zero configured types.
+export function resolveDefaultUnitTypes(
+  blockExercise: BlockExerciseWithDetails,
+): string[] {
+  if (blockExercise.exercise.unitTypes.length > 0)
+    return sortUnitTypes(blockExercise.exercise.unitTypes);
+  const seen = new Set(blockExercise.measurements.map((m) => m.unit_type));
+  if (seen.size > 0) return sortUnitTypes([...seen]);
+  return ["Reps"];
+}
+
+function focusCell(root: HTMLElement, setIndex: number, slotIndex: number) {
+  root
+    .querySelector<HTMLElement>(
+      `[data-role="set-value"][data-set-index="${setIndex}"][data-slot-index="${slotIndex}"]`,
+    )
+    ?.focus();
+}
+
+/** Keeps whichever set's row just received focus centered in the scrolling
+ * body — covers both Enter (handleGridKeyDown's own focusCell calls) and
+ * native Tab, since focus (unlike click) bubbles as a plain DOM event
+ * React can listen for on the container, regardless of what moved it. */
+function handleGridFocus(e: ReactFocusEvent<HTMLDivElement>) {
+  const target = e.target as HTMLElement;
+  if (target.dataset.role !== "set-value") return;
+  target.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+/** Excel-style set-grid navigation, position-based: Tab already moves
+ * horizontally across a set's own slots (DOM order, with the "A" badge
+ * excluded via tabIndex=-1); Enter here moves vertically to the next set's
+ * slot at the same index (mechanically, regardless of whether that slot
+ * happens to be the same unit type), or focuses Save on the last set.
+ * Shift+Enter copies the focused cell's value down to every set below it
+ * (see copySlotValueToAllBelow), then moves the cursor to the last set. */
+function handleGridKeyDown(
+  e: ReactKeyboardEvent<HTMLDivElement>,
+  sets: number,
+  copyToAllBelow: (setIndex: number, slotIndex: number) => void,
+) {
+  const target = e.target as HTMLElement;
+  if (target.dataset.role !== "set-value") return;
+  const setIndex = Number(target.dataset.setIndex);
+  const slotIndex = Number(target.dataset.slotIndex);
+  if (Number.isNaN(setIndex) || Number.isNaN(slotIndex)) return;
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+
+  const root = e.currentTarget;
+  if (e.shiftKey) {
+    copyToAllBelow(setIndex, slotIndex);
+    focusCell(root, sets - 1, slotIndex);
+    return;
+  }
+  if (setIndex < sets - 1) {
+    focusCell(root, setIndex + 1, slotIndex);
+  } else {
+    root.querySelector<HTMLElement>('[data-role="save-button"]')?.focus();
+  }
+}
+
+/** Resolves the live header name from in-progress edit state, mirroring
+ * blockExerciseDisplay.ts's resolveDisplayName but against the modal's own
+ * unsaved `configs` instead of a saved BlockExerciseWithDetails — same
+ * "most common, tie → first, no suffix when the placement's own base
+ * exercise wins" rule. */
+function resolveLiveHeaderName(
+  configs: SetConfigState[],
+  baseExerciseId: string,
+  baseExerciseName: string,
+  variantOptions: ExerciseRow[],
+): string {
+  const overrides = Object.fromEntries(configs.map((c, i) => [i, c.variantId]));
+  const { winnerId, nonMatchingCount } = resolveMostCommonId(
+    baseExerciseId,
+    overrides,
+    configs.length,
+  );
+  if (winnerId === baseExerciseId) return baseExerciseName;
+  const winnerName =
+    variantOptions.find((v) => v.id === winnerId)?.name ?? baseExerciseName;
+  return nonMatchingCount > 0
+    ? `${winnerName} +${nonMatchingCount}`
+    : winnerName;
+}
+
+/** Builds the server save payload plus its optimistic-patch counterparts —
+ * the placement's own new `exercise_id`/`style_id` are recomputed as
+ * whichever variant/style is now most common across the sets (same rule as
+ * the header name and the style pill), so the fewest possible per-set
+ * override rows are needed and reopening the modal later reproduces the
+ * exact same resolved name/pill. */
+function toSavePayload(
+  blockExercise: BlockExerciseWithDetails,
+  sets: number,
+  configs: SetConfigState[],
+  variantOptions: ExerciseRow[],
+  styles: ExerciseStyleRow[],
+): BlockExerciseUpdateData {
+  const variantOverrides = toSetVariantsPayload(configs);
+  const { winnerId: exerciseId } = resolveMostCommonId(
+    blockExercise.exercise_id,
+    variantOverrides,
+    sets,
+  );
+
+  const styleOverridesForResolve = Object.fromEntries(
+    configs.map((c, i) => [i, c.styleId]),
+  );
+  const { winnerId: styleWinner } = resolveMostCommonId(
+    blockExercise.style_id ?? "",
+    styleOverridesForResolve,
+    sets,
+  );
+  const styleId = styleWinner || null;
+
+  return {
+    sets: Math.max(1, sets),
+    measurements: toMeasurementInput(configs),
+    exercise_id: exerciseId,
+    style_id: styleId,
+    set_variants: variantOverrides,
+    set_styles: toSetStylesPayload(configs),
+    resolvedSetVariants: Object.fromEntries(
+      configs
+        .map(
+          (c, i) =>
+            [i, variantOptions.find((v) => v.id === c.variantId)] as const,
+        )
+        .filter(
+          (entry): entry is [number, ExerciseRow] => entry[1] !== undefined,
+        ),
+    ),
+    resolvedSetStyles: Object.fromEntries(
+      configs.map((c, i) => [
+        i,
+        styles.find((s) => s.id === c.styleId) ?? null,
       ]),
     ),
+  };
+}
+
+/** Owns the placement's editable per-set state — extracted out of
+ * BlockExerciseMeasurementModal so the component itself stays under the
+ * lint's max-lines-per-function limit. Method names match the ModalBody
+ * props they feed directly. */
+function useSetConfigEditor(
+  blockExercise: BlockExerciseWithDetails,
+  defaultUnitTypes: string[],
+) {
+  const [sets, setSets] = useState(blockExercise.sets);
+  const [configs, setConfigs] = useState<SetConfigState[]>(() =>
+    initSetConfigs(blockExercise, defaultUnitTypes),
   );
 
   return {
-    exerciseId,
-    setExerciseId,
-    styleId,
-    setStyleId,
-    setVariants,
-    updateSetVariant: (setIndex: number, id: string) =>
-      setSetVariants((prev) => ({ ...prev, [setIndex]: id })),
-    clearSetVariants: () => setSetVariants({}),
+    sets,
+    configs,
+    onSets: (next: number) => {
+      setSets(next);
+      setConfigs((prev) => resizeSetConfigs(prev, next));
+    },
+    onChangeUnitTypes: (setIndex: number, unitTypes: string[]) =>
+      setConfigs((prev) => updateSetUnitTypes(prev, setIndex, unitTypes)),
+    onChangeVariant: (setIndex: number, id: string) =>
+      setConfigs((prev) => updateSetVariant(prev, setIndex, id)),
+    onChangeStyle: (setIndex: number, id: string) =>
+      setConfigs((prev) => updateSetStyle(prev, setIndex, id)),
+    onChangeValue: (setIndex: number, slotIndex: number, value: number) =>
+      setConfigs((prev) =>
+        updateSlotValue(prev, setIndex, slotIndex, { value }),
+      ),
+    onToggleAthlete: (
+      setIndex: number,
+      slotIndex: number,
+      athleteEntered: boolean,
+    ) =>
+      setConfigs((prev) =>
+        updateSlotValue(prev, setIndex, slotIndex, {
+          value_entered_by: athleteEntered ? "athlete" : "coach",
+        }),
+      ),
+    onApplyUnitTypesToAll: (unitTypes: string[]) =>
+      setConfigs((prev) => applyUnitTypesToAll(prev, unitTypes)),
+    onApplyVariantToAll: (id: string) =>
+      setConfigs((prev) => applyVariantToAll(prev, id)),
+    onApplyStyleToAll: (id: string) =>
+      setConfigs((prev) => applyStyleToAll(prev, id)),
+    copyToAllBelow: (setIndex: number, slotIndex: number) =>
+      setConfigs((prev) => copySlotValueToAllBelow(prev, setIndex, slotIndex)),
   };
 }
 
@@ -976,38 +684,34 @@ export function BlockExerciseMeasurementModal({
   styles,
 }: BlockExerciseMeasurementModalProps) {
   const { exercise } = blockExercise;
-  const unitTypes = resolveUnitTypes(blockExercise);
+  const defaultUnitTypes = resolveDefaultUnitTypes(blockExercise);
 
-  const [sets, setSets] = useState(blockExercise.sets);
-  const editor = useMeasurementSetEditor(() =>
-    initMeasurements(unitTypes, blockExercise, blockExercise.sets),
-  );
-  const [notes, setNotes] = useState(blockExercise.notes ?? "");
-  const variant = useVariantAndStyleState(blockExercise);
+  const editor = useSetConfigEditor(blockExercise, defaultUnitTypes);
   const [saving, setSaving] = useState(false);
   const [choosingScope, setChoosingScope] = useState(false);
   const onBackdropClick = useModalDismiss(onClose);
 
-  function updateSets(next: number) {
-    setSets(next);
-    editor.resize(next);
-  }
-
   const summary = formatMeasurementSummary({
-    sets,
-    measurements: toSummaryMeasurements(editor.measurements),
+    sets: editor.sets,
+    measurements: toFlatMeasurements(editor.configs),
   });
+
+  const headerName = resolveLiveHeaderName(
+    editor.configs,
+    blockExercise.exercise_id,
+    exercise.name,
+    variantOptions,
+  );
 
   async function commit(scope?: LinkScope) {
     setSaving(true);
     await onSave(
       toSavePayload(
-        sets,
-        notes,
-        editor.measurements,
-        variant.exerciseId,
-        variant.styleId,
-        variant.setVariants,
+        blockExercise,
+        editor.sets,
+        editor.configs,
+        variantOptions,
+        styles,
       ),
       scope,
     );
@@ -1022,43 +726,33 @@ export function BlockExerciseMeasurementModal({
     void commit();
   }
 
-  const headerName =
-    variantOptions.find((v) => v.id === variant.exerciseId)?.name ??
-    exercise.name;
-
   return (
     <div
       onClick={onBackdropClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4",
+      )}>
       <div
-        onKeyDown={(e) => handleGridKeyDown(e, sets, editor.copyToAllBelow)}
-        className="bg-portal-card flex h-[560px] max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl shadow-2xl">
+        onKeyDown={(e) =>
+          handleGridKeyDown(e, editor.sets, editor.copyToAllBelow)
+        }
+        onFocus={handleGridFocus}
+        className="bg-portal-card flex h-[640px] max-h-[90vh] w-full max-w-[650px] flex-col overflow-hidden rounded-2xl shadow-2xl">
         <ModalHeader name={headerName} onClose={onClose} />
         <ModalBody
-          sets={sets}
-          onSets={updateSets}
-          measurements={editor.measurements}
-          onChangeValue={(mi, si, value) =>
-            editor.updateCell(mi, si, { value })
-          }
-          onToggleAthlete={(mi, si, athleteEntered) =>
-            editor.updateCell(mi, si, {
-              value_entered_by: athleteEntered ? "athlete" : "coach",
-            })
-          }
-          onUnitChange={editor.updateUnit}
-          onCopyFirstToAll={(mi) => editor.copyToAllBelow(mi, 0)}
-          notes={notes}
-          onNotes={setNotes}
+          sets={editor.sets}
+          onSets={editor.onSets}
+          configs={editor.configs}
+          onChangeUnitTypes={editor.onChangeUnitTypes}
+          onChangeVariant={editor.onChangeVariant}
+          onChangeStyle={editor.onChangeStyle}
+          onChangeValue={editor.onChangeValue}
+          onToggleAthlete={editor.onToggleAthlete}
+          onApplyUnitTypesToAll={editor.onApplyUnitTypesToAll}
+          onApplyVariantToAll={editor.onApplyVariantToAll}
+          onApplyStyleToAll={editor.onApplyStyleToAll}
           variantOptions={variantOptions}
-          exerciseId={variant.exerciseId}
-          onExerciseIdChange={variant.setExerciseId}
-          setVariants={variant.setVariants}
-          onSetVariantChange={variant.updateSetVariant}
-          onApplyVariantToAll={variant.clearSetVariants}
           styles={styles}
-          styleId={variant.styleId}
-          onStyleIdChange={variant.setStyleId}
         />
         <ModalFooterArea
           choosingScope={choosingScope}

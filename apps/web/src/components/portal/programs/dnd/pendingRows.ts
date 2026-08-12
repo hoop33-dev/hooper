@@ -50,6 +50,7 @@ export function createPendingExercise(
     exercise,
     measurements: [],
     setVariants: {},
+    setStyles: {},
     pending: true,
   };
 }

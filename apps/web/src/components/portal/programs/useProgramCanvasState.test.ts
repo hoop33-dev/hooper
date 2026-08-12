@@ -43,6 +43,7 @@ function exercise(
     },
     measurements: [],
     setVariants: {},
+    setStyles: {},
   };
 }
 

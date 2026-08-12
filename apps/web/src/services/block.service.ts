@@ -5,6 +5,8 @@ import { createClient } from "@/src/lib/supabase/server";
 import type {
   BlockExerciseMeasurementRow,
   BlockExerciseRow,
+  BlockExerciseSetStyleRow,
+  BlockExerciseSetVariantRow,
   BlockRow,
   EnteredBy,
 } from "@hooper/db";
@@ -24,21 +26,25 @@ export type UpdateBlockInput = {
   sets?: number;
 };
 
-/** One set's value within a unit-type slot (Reps, Weight, ...) — a
- * placement's `sets` count determines how many of these each slot holds,
- * so a pyramid/wave set can carry a distinct value per set. */
-export type MeasurementSetInput = {
+/** One unit-type slot's value within a single set — up to 3 per set (Reps,
+ * Weight, Time, ...), independently chosen per set so one set can be
+ * Shots+Makes while another is Time. */
+export type MeasurementSlotInput = {
+  unit_type: string;
+  value_unit?: string | null;
   value?: number | null;
   value_entered_by?: EnteredBy;
 };
 
-export type MeasurementInput = {
-  unit_type: string;
-  value_unit?: string | null;
-  /** One entry per set, in set order — length should match the
-   * placement's `sets`. */
-  sets: MeasurementSetInput[];
+/** One set's full config: its chosen unit-type slots, in display order. */
+export type MeasurementSetInput = {
+  slots: MeasurementSlotInput[];
 };
+
+/** A placement's full measurement payload — one entry per set, in set
+ * order (index = set_index), set-major rather than unit-type-major so each
+ * set can independently choose its own unit-type combo. */
+export type MeasurementInput = MeasurementSetInput[];
 
 export type BlockExerciseWithMeasurements = BlockExerciseRow & {
   measurements: BlockExerciseMeasurementRow[];
@@ -49,9 +55,9 @@ export type AddExerciseToBlockInput = {
   exercise_id: string;
   sets?: number;
   notes?: string;
-  /** Omitted → auto-derive one measurement per the exercise's configured
+  /** Omitted → auto-derive every set's slots from the exercise's configured
    * exercise_unit_types (see resolveConfiguredUnitTypes). */
-  measurements?: MeasurementInput[];
+  measurements?: MeasurementInput;
 };
 
 /** How a save to a linked placement's numbers should propagate — mirrors a
@@ -64,10 +70,9 @@ export type UpdateBlockExerciseInput = {
   sets?: number;
   notes?: string;
   /** When provided, fully replaces this placement's measurement rows. */
-  measurements?: MeasurementInput[];
-  /** Swaps which variant the whole placement points at — the exercise's own
-   * unit-type columns in the measurement grid stay put; only which drill
-   * they refer to changes. */
+  measurements?: MeasurementInput;
+  /** Swaps which variant the whole placement points at — a set with no
+   * per-set override uses this as its own default. */
   exercise_id?: string;
   /** Null clears the placement's style back to "none" — distinct from
    * omitting the field, which leaves it untouched. */
@@ -77,6 +82,12 @@ export type UpdateBlockExerciseInput = {
    * none already differing from `exercise_id`) uses the placement's own
    * variant. Passing `{}` clears every override ("apply to all sets"). */
   set_variants?: Record<number, string>;
+  /** Sparse, keyed by set_index — when provided, fully replaces this
+   * placement's per-set style overrides. A `null` value means that set
+   * explicitly has no style; a missing key means it uses the placement's
+   * own `style_id`. Passing `{}` clears every override ("apply to all
+   * sets"). */
+  set_styles?: Record<number, string | null>;
 };
 
 export type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -129,36 +140,37 @@ function defaultValueFor(unitType: string): number {
   return unitType === "Reps" || unitType === "Reps Each Side" ? 8 : 0;
 }
 
-/** Sensible starting values for a freshly-placed measurement: coach-entered,
- * with a default value and default display unit for this unit type,
- * repeated across every set (uniform until the coach pyramids it). */
-export function defaultMeasurementInput(
-  unitType: string,
+/** Sensible starting values for a freshly-placed exercise: coach-entered,
+ * with a default value and default display unit for each configured unit
+ * type, repeated identically across every set (uniform until the coach
+ * customizes individual sets). */
+export function defaultMeasurementSets(
+  unitTypes: string[],
   setsCount: number,
 ): MeasurementInput {
-  return {
-    unit_type: unitType,
-    value_unit: defaultUnitFor(unitType),
-    sets: Array.from({ length: setsCount }, () => ({
+  return Array.from({ length: setsCount }, () => ({
+    slots: unitTypes.map((unitType) => ({
+      unit_type: unitType,
+      value_unit: defaultUnitFor(unitType),
       value: defaultValueFor(unitType),
       value_entered_by: "coach" as const,
     })),
-  };
+  }));
 }
 
 function toMeasurementRows(
   blockExerciseId: string,
-  measurements: MeasurementInput[],
+  measurements: MeasurementInput,
 ) {
-  return measurements.flatMap((m, position) =>
-    m.sets.map((s, set_index) => ({
+  return measurements.flatMap((set, set_index) =>
+    set.slots.map((slot, position) => ({
       block_exercise_id: blockExerciseId,
       position,
       set_index,
-      unit_type: m.unit_type,
-      value: s.value ?? null,
-      value_entered_by: s.value_entered_by ?? "coach",
-      value_unit: m.value_unit ?? defaultUnitFor(m.unit_type),
+      unit_type: slot.unit_type,
+      value: slot.value ?? null,
+      value_entered_by: slot.value_entered_by ?? "coach",
+      value_unit: slot.value_unit ?? defaultUnitFor(slot.unit_type),
     })),
   );
 }
@@ -222,53 +234,81 @@ export async function createBlock(
   }
 }
 
-/** Groups a placement's raw measurement rows by unit-type slot (`position`),
- * each sorted by `set_index` — the shape `resizeMeasurements` needs to pad
- * or truncate per slot. */
-function groupMeasurementsByPosition(
+/** Groups a placement's raw measurement rows by `set_index`, each sorted by
+ * `position` — the shape `resizeMeasurements` needs to pad or truncate the
+ * placement's list of sets. */
+function groupMeasurementsBySet(
   measurements: BlockExerciseMeasurementRow[],
 ): BlockExerciseMeasurementRow[][] {
-  const byPosition = new Map<number, BlockExerciseMeasurementRow[]>();
+  const bySet = new Map<number, BlockExerciseMeasurementRow[]>();
   for (const m of measurements) {
-    const list = byPosition.get(m.position) ?? [];
+    const list = bySet.get(m.set_index) ?? [];
     list.push(m);
-    byPosition.set(m.position, list);
+    bySet.set(m.set_index, list);
   }
-  return [...byPosition.entries()]
+  return [...bySet.entries()]
     .sort(([a], [b]) => a - b)
-    .map(([, rows]) => [...rows].sort((a, b) => a.set_index - b.set_index));
+    .map(([, rows]) => [...rows].sort((a, b) => a.position - b.position));
 }
 
-/** Pads or truncates each unit-type slot's per-set values to exactly
- * `setsCount` — used whenever a placement's `sets` changes without the
- * caller supplying a full new set of measurements (e.g. a superset's round
- * count changing at the block level). Padding repeats the last known set's
- * value rather than resetting to a default, since a coach growing 3 sets to
- * 4 almost always wants the new set to start out matching the last one. */
+/** Pads or truncates a placement's list of sets to exactly `setsCount` —
+ * used whenever a placement's `sets` changes without the caller supplying
+ * full new measurements (e.g. a superset's round count changing at the
+ * block level). Padding deep-copies the last known set's *entire* slot list
+ * (unit types, values, and units together) rather than resetting to a
+ * default, since a coach growing 3 sets to 4 almost always wants the new
+ * set to start out matching the last one exactly. */
 function resizeMeasurements(
   measurements: BlockExerciseMeasurementRow[],
   setsCount: number,
-): MeasurementInput[] {
-  return groupMeasurementsByPosition(measurements).map((rows) => {
-    const last = rows[rows.length - 1];
-    return {
-      unit_type: rows[0].unit_type,
-      value_unit: rows[0].value_unit,
-      sets: Array.from({ length: setsCount }, (_, i) => {
-        const row = rows[i] ?? last;
-        return {
-          value: row?.value ?? null,
-          value_entered_by: row?.value_entered_by ?? "coach",
-        };
-      }),
-    };
+): MeasurementInput {
+  const sets = groupMeasurementsBySet(measurements).map((rows) => ({
+    slots: rows.map((row) => ({
+      unit_type: row.unit_type,
+      value_unit: row.value_unit,
+      value: row.value,
+      value_entered_by: row.value_entered_by,
+    })),
+  }));
+  const last = sets[sets.length - 1];
+  return Array.from({ length: setsCount }, (_, i) => {
+    const set = sets[i] ?? last;
+    return { slots: set ? set.slots.map((slot) => ({ ...slot })) : [] };
   });
 }
 
+/** Pads/truncates a sparse per-set override map (set_index -> value) to a
+ * new sets count. Shrinking drops indices that no longer exist. Growing
+ * copies the last existing set's override (if it had one) onto every new
+ * index, matching the "new set copies the last set's full config" rule —
+ * a new index that ends up with no entry simply inherits the placement
+ * default, which is correct since the set it was copied from also had no
+ * override in that case. */
+function resizeSparseOverrideMap<T>(
+  overrides: Record<number, T>,
+  oldSetsCount: number,
+  newSetsCount: number,
+): Record<number, T> {
+  const result: Record<number, T> = {};
+  for (const [key, value] of Object.entries(overrides)) {
+    const index = Number(key);
+    if (index < newSetsCount) result[index] = value;
+  }
+  const lastIndex = oldSetsCount - 1;
+  if (newSetsCount > oldSetsCount && lastIndex in overrides) {
+    const lastOverride = overrides[lastIndex];
+    for (let i = oldSetsCount; i < newSetsCount; i++) {
+      result[i] = lastOverride;
+    }
+  }
+  return result;
+}
+
 /** Forces every exercise currently placed in a superset block onto the same
- * round count, resizing each placement's per-set measurement rows to match
- * (padding/truncating, see resizeMeasurements) — the fan-out a block's
- * `sets` stepper triggers. */
+ * round count, resizing each placement's per-set measurement rows (padding/
+ * truncating, see resizeMeasurements) and per-set variant/style overrides
+ * (see resizeSparseOverrideMap) to match — the fan-out a block's `sets`
+ * stepper triggers. */
 async function cascadeSupersetSets(
   supabase: SupabaseClient,
   blockId: string,
@@ -276,14 +316,17 @@ async function cascadeSupersetSets(
 ): Promise<Result<void>> {
   const { data: rawExercises, error } = await supabase
     .from("block_exercises")
-    .select("*, block_exercise_measurements(*)")
+    .select(
+      "*, block_exercise_measurements(*), block_exercise_set_variants(*), block_exercise_set_styles(*)",
+    )
     .eq("block_id", blockId);
   if (error) return err(error.message);
 
-  const exercises = (rawExercises ?? []) as unknown as {
-    id: string;
+  const exercises = (rawExercises ?? []) as unknown as (BlockExerciseRow & {
     block_exercise_measurements: BlockExerciseMeasurementRow[];
-  }[];
+    block_exercise_set_variants: BlockExerciseSetVariantRow[];
+    block_exercise_set_styles: BlockExerciseSetStyleRow[];
+  })[];
 
   for (const be of exercises) {
     const { error: setsError } = await supabase
@@ -298,6 +341,34 @@ async function cascadeSupersetSets(
     );
     const result = await replaceMeasurements(supabase, be.id, resized);
     if (!result.ok) return err(result.error);
+
+    const currentVariants = Object.fromEntries(
+      (be.block_exercise_set_variants ?? []).map((v) => [
+        v.set_index,
+        v.exercise_id,
+      ]),
+    );
+    const variantsResult = await replaceSetVariants(
+      supabase,
+      be.id,
+      be.exercise_id,
+      resizeSparseOverrideMap(currentVariants, be.sets, newSets),
+    );
+    if (!variantsResult.ok) return err(variantsResult.error);
+
+    const currentStyles = Object.fromEntries(
+      (be.block_exercise_set_styles ?? []).map((s) => [
+        s.set_index,
+        s.style_id,
+      ]),
+    );
+    const stylesResult = await replaceSetStyles(
+      supabase,
+      be.id,
+      be.style_id,
+      resizeSparseOverrideMap(currentStyles, be.sets, newSets),
+    );
+    if (!stylesResult.ok) return err(stylesResult.error);
   }
   return ok(undefined);
 }
@@ -513,10 +584,7 @@ export async function addExerciseToBlock(
     const measurementRows = insertedBlockExercises.flatMap((be) =>
       toMeasurementRows(
         be.id,
-        input.measurements ??
-          unitTypes!.map((unitType) =>
-            defaultMeasurementInput(unitType, setsCount),
-          ),
+        input.measurements ?? defaultMeasurementSets(unitTypes!, setsCount),
       ),
     );
 
@@ -653,7 +721,7 @@ async function resolveScopedSiblings(
 async function replaceMeasurements(
   supabase: SupabaseClient,
   blockExerciseId: string,
-  measurements: MeasurementInput[],
+  measurements: MeasurementInput,
 ): Promise<Result<BlockExerciseMeasurementRow[]>> {
   const { error: deleteError } = await supabase
     .from("block_exercise_measurements")
@@ -714,6 +782,41 @@ async function replaceSetVariants(
   return ok(undefined);
 }
 
+/** Full replace, sparse: only inserts rows for sets whose style differs
+ * from the placement's own `style_id` — a set matching the placement
+ * default simply has no row, so "apply to all sets" is just deleting
+ * everything for this placement. Mirrors replaceSetVariants, except style
+ * (unlike exercise_id) can legitimately be null, so a set's row may itself
+ * store a null style_id to represent "this set explicitly has no style"
+ * even when the placement default does have one. */
+async function replaceSetStyles(
+  supabase: SupabaseClient,
+  blockExerciseId: string,
+  styleId: string | null,
+  setStyles: Record<number, string | null>,
+): Promise<Result<void>> {
+  const { error: deleteError } = await supabase
+    .from("block_exercise_set_styles")
+    .delete()
+    .eq("block_exercise_id", blockExerciseId);
+  if (deleteError) return err(deleteError.message);
+
+  const rows = Object.entries(setStyles)
+    .filter(([, setStyleId]) => setStyleId !== styleId)
+    .map(([setIndex, setStyleId]) => ({
+      block_exercise_id: blockExerciseId,
+      set_index: Number(setIndex),
+      style_id: setStyleId,
+    }));
+  if (rows.length === 0) return ok(undefined);
+
+  const { error } = await supabase
+    .from("block_exercise_set_styles")
+    .insert(rows);
+  if (error) return err(error.message);
+  return ok(undefined);
+}
+
 /** Applies the same sets/notes patch (and, for a full value sync, the same
  * measurement replace) that was just made to the primary row onto one
  * scoped-in sibling placement. */
@@ -721,7 +824,7 @@ async function applyToSibling(
   supabase: SupabaseClient,
   siblingId: string,
   patch: Record<string, unknown>,
-  measurements: MeasurementInput[] | undefined,
+  measurements: MeasurementInput | undefined,
 ): Promise<Result<void>> {
   if (Object.keys(patch).length > 0) {
     const { error } = await supabase
@@ -812,6 +915,16 @@ export async function updateBlockExercise(
         input.set_variants,
       );
       if (!setVariantsResult.ok) return err(setVariantsResult.error);
+    }
+
+    if (input.set_styles) {
+      const setStylesResult = await replaceSetStyles(
+        supabase,
+        id,
+        blockExercise.style_id,
+        input.set_styles,
+      );
+      if (!setStylesResult.ok) return err(setStylesResult.error);
     }
 
     const siblingsResult = await resolveScopedSiblings(

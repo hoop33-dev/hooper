@@ -63,6 +63,7 @@ function makeExerciseRow(
     exercise,
     measurements: [makeMeasurement(id, value)],
     setVariants: {},
+    setStyles: {},
   };
 }
 
@@ -91,9 +92,14 @@ function makeSaveData(sets: number) {
     sets,
     measurements: [
       {
-        unit_type: "Reps",
-        value_unit: null,
-        sets: [{ value: sets, value_entered_by: "coach" as EnteredBy }],
+        slots: [
+          {
+            unit_type: "Reps",
+            value_unit: null,
+            value: sets,
+            value_entered_by: "coach" as EnteredBy,
+          },
+        ],
       },
     ],
   };

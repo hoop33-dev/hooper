@@ -1,6 +1,7 @@
 export * from "./schema";
 export type {
   BlockExerciseRow,
+  BlockExerciseSetStyleRow,
   BlockExerciseSetVariantRow,
   BlockRow,
   ExerciseCategoryLinkRow,
@@ -112,10 +113,15 @@ export type { BlockExerciseMeasurementRow, EnteredBy } from "./schema";
 // `setVariants` is sparse, keyed by set_index — only sets whose variant
 // differs from `exercise_id` have an entry (a resolved ExerciseRow, not
 // just an id, since the modal needs the variant's name to display it).
+// `setStyles` is the same sparse convention for style_id — only sets whose
+// style differs from the placement's own style_id have an entry. A `null`
+// entry means that set explicitly has no style (distinct from no entry at
+// all, which means "inherits the placement default").
 export type BlockExerciseWithDetails = BlockExerciseRow & {
   exercise: ExerciseWithDetails;
   measurements: BlockExerciseMeasurementRow[];
   setVariants: Record<number, ExerciseRow>;
+  setStyles: Record<number, ExerciseStyleRow | null>;
 };
 
 export type BlockWithExercises = BlockRow & {

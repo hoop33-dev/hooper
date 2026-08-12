@@ -10,7 +10,7 @@ import type {
 import { toExerciseWithDetails, type RawExercise } from "./exercise.service";
 
 export const BLOCK_EXERCISE_SELECT =
-  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type, position)), block_exercise_measurements(*), block_exercise_set_variants(set_index, exercise:exercises(*))";
+  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type, position)), block_exercise_measurements(*), block_exercise_set_variants(set_index, exercise:exercises(*)), block_exercise_set_styles(set_index, style:exercise_styles(*))";
 
 // Select content for a single `blocks` row, embedding its placed exercises.
 const BLOCK_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
@@ -25,6 +25,10 @@ export type RawBlockExercise = BlockExerciseRow & {
   exercise: RawExercise;
   block_exercise_measurements: BlockExerciseMeasurementRow[];
   block_exercise_set_variants: { set_index: number; exercise: ExerciseRow }[];
+  block_exercise_set_styles: {
+    set_index: number;
+    style: ExerciseStyleRow | null;
+  }[];
 };
 export type RawBlock = BlockRow & { block_exercises: RawBlockExercise[] };
 
@@ -51,6 +55,7 @@ export function shapeBlocksWithExercises(
             exercise,
             block_exercise_measurements,
             block_exercise_set_variants,
+            block_exercise_set_styles,
             ...blockExercise
           }) => ({
             ...blockExercise,
@@ -60,6 +65,9 @@ export function shapeBlocksWithExercises(
             ),
             setVariants: Object.fromEntries(
               block_exercise_set_variants.map((v) => [v.set_index, v.exercise]),
+            ),
+            setStyles: Object.fromEntries(
+              block_exercise_set_styles.map((s) => [s.set_index, s.style]),
             ),
           }),
         ),

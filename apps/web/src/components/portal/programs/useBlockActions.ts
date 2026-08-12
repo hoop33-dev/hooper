@@ -53,7 +53,7 @@ async function runAddExerciseToBlock(
     reportError(ctx.showError, result);
     return;
   }
-  const newRow = { ...result.data, exercise, setVariants: {} };
+  const newRow = { ...result.data, exercise, setVariants: {}, setStyles: {} };
   ctx.setBlocks(
     ctx.blocks.map((b) =>
       b.id === blockId ? { ...b, exercises: [...b.exercises, newRow] } : b,
@@ -148,29 +148,25 @@ export function findExerciseMeasurements(
   return undefined;
 }
 
-/** Flattens the modal's per-column, per-set edit payload back into the flat
- * per-set measurement rows a placement carries — the shape needed to patch
- * local state optimistically, ahead of the server's own flattened response.
+/** Flattens the modal's per-set edit payload back into the flat per-set
+ * measurement rows a placement carries — the shape needed to patch local
+ * state optimistically, ahead of the server's own flattened response.
  * `created_at`/`updated_at` are placeholders; they're overwritten the moment
  * the real (server-confirmed) row swaps in. */
 function toOptimisticMeasurements(
   blockExerciseId: string,
-  measurements: {
-    unit_type: string;
-    value_unit?: string | null;
-    sets: { value?: number | null; value_entered_by?: EnteredBy }[];
-  }[],
+  measurements: MeasurementInput,
 ): BlockExerciseWithDetails["measurements"] {
   const now = new Date().toISOString();
-  return measurements.flatMap((m, position) =>
-    m.sets.map((s, set_index) => ({
+  return measurements.flatMap((set, set_index) =>
+    set.slots.map((slot, position) => ({
       block_exercise_id: blockExerciseId,
       position,
       set_index,
-      unit_type: m.unit_type,
-      value: s.value ?? null,
-      value_entered_by: s.value_entered_by ?? ("coach" as EnteredBy),
-      value_unit: m.value_unit ?? null,
+      unit_type: slot.unit_type,
+      value: slot.value ?? null,
+      value_entered_by: slot.value_entered_by ?? ("coach" as EnteredBy),
+      value_unit: slot.value_unit ?? null,
       created_at: now,
       updated_at: now,
     })),
@@ -198,11 +194,15 @@ export async function runSaveExerciseMeasurement(
   ctx.setBlocks(
     patchExercise(ctx.blocks, editingExercise.id, {
       sets: data.sets,
-      notes: data.notes ?? null,
       measurements: toOptimisticMeasurements(
         editingExercise.id,
         data.measurements,
       ),
+      ...(data.notes !== undefined && { notes: data.notes }),
+      ...(data.resolvedSetVariants && {
+        setVariants: data.resolvedSetVariants,
+      }),
+      ...(data.resolvedSetStyles && { setStyles: data.resolvedSetStyles }),
     }),
   );
   ctx.onSaved();
@@ -236,7 +236,7 @@ export async function runSaveExerciseMeasurement(
  * modal, then reconciles (or rolls every exercise back) as the sequential
  * saves land. */
 export async function runSaveSupersetMeasurements(
-  perExercise: { id: string; measurements: MeasurementInput[] }[],
+  perExercise: { id: string; measurements: MeasurementInput }[],
   ctx: Pick<
     UseBlockActionsOptions,
     "blocks" | "setBlocks" | "updateBlockExerciseAction"
@@ -448,7 +448,7 @@ export function useBlockActions(options: UseBlockActionsOptions) {
         onSaved: () => setEditingExercise(null),
       }),
     saveSupersetMeasurements: (
-      perExercise: { id: string; measurements: MeasurementInput[] }[],
+      perExercise: { id: string; measurements: MeasurementInput }[],
     ) =>
       runSaveSupersetMeasurements(perExercise, {
         ...ctx,

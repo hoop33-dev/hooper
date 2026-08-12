@@ -53,7 +53,7 @@ interface SessionModalsProps {
   editingSupersetBlock: BlockWithExercises | null;
   onCloseSupersetEditor: () => void;
   onSaveSupersetMeasurements: (
-    perExercise: { id: string; measurements: MeasurementInput[] }[],
+    perExercise: { id: string; measurements: MeasurementInput }[],
   ) => Promise<void>;
 }
 
@@ -132,6 +132,8 @@ export function SessionModals({
       {editingSupersetBlock && (
         <SupersetRoundsModal
           block={editingSupersetBlock}
+          exercises={exercises}
+          styles={styles}
           onClose={onCloseSupersetEditor}
           onSave={onSaveSupersetMeasurements}
         />

@@ -66,10 +66,12 @@ export function shapeBlockTemplatesWithExercises(
             ...blockExercise,
             block_id: block_template_id,
             link_group_id: null,
-            // Templates have no style_id/set-variant columns of their own —
-            // a template exercise always shows its plain unit types.
+            // Templates have no style_id/set-variant/set-style columns of
+            // their own — a template exercise always shows its plain unit
+            // types.
             style_id: null,
             setVariants: {},
+            setStyles: {},
             exercise: toExerciseWithDetails(exercise, allCategories, allStyles),
             measurements: [...block_template_exercise_measurements]
               .sort(

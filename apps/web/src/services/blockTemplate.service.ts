@@ -15,7 +15,7 @@ import type {
 } from "@hooper/db";
 import { defaultBlockColor } from "@hooper/shared";
 import {
-  defaultMeasurementInput,
+  defaultMeasurementSets,
   resolveConfiguredUnitTypes,
   type MeasurementInput,
   type SupabaseClient,
@@ -47,13 +47,13 @@ export type AddExerciseToBlockTemplateInput = {
   exercise_id: string;
   sets?: number;
   notes?: string;
-  measurements?: MeasurementInput[];
+  measurements?: MeasurementInput;
 };
 
 export type UpdateBlockTemplateExerciseInput = {
   sets?: number;
   notes?: string;
-  measurements?: MeasurementInput[];
+  measurements?: MeasurementInput;
 };
 
 async function nextBlockTemplatePosition(
@@ -84,17 +84,17 @@ async function nextBlockTemplateExercisePosition(
 
 function toTemplateMeasurementRows(
   blockTemplateExerciseId: string,
-  measurements: MeasurementInput[],
+  measurements: MeasurementInput,
 ) {
-  return measurements.flatMap((m, position) =>
-    m.sets.map((s, set_index) => ({
+  return measurements.flatMap((set, set_index) =>
+    set.slots.map((slot, position) => ({
       block_template_exercise_id: blockTemplateExerciseId,
       position,
       set_index,
-      unit_type: m.unit_type,
-      value: s.value ?? null,
-      value_entered_by: s.value_entered_by ?? "coach",
-      value_unit: m.value_unit ?? null,
+      unit_type: slot.unit_type,
+      value: slot.value ?? null,
+      value_entered_by: slot.value_entered_by ?? "coach",
+      value_unit: slot.value_unit ?? null,
     })),
   );
 }
@@ -169,41 +169,39 @@ export async function createBlockTemplate(
   }
 }
 
-/** Template-editor sibling of block.service.ts's resizeMeasurements —
- * groups a placement's raw measurement rows by unit-type slot, sorted by
- * set_index, so a slot's values can be padded/truncated to a new sets
- * count. */
-function groupTemplateMeasurementsByPosition(
+/** Template-editor sibling of block.service.ts's resizeMeasurements — groups
+ * a placement's raw measurement rows by set_index, sorted by position, so a
+ * set's whole slot list can be padded/truncated to a new sets count. */
+function groupTemplateMeasurementsBySet(
   measurements: BlockTemplateExerciseMeasurementRow[],
 ): BlockTemplateExerciseMeasurementRow[][] {
-  const byPosition = new Map<number, BlockTemplateExerciseMeasurementRow[]>();
+  const bySet = new Map<number, BlockTemplateExerciseMeasurementRow[]>();
   for (const m of measurements) {
-    const list = byPosition.get(m.position) ?? [];
+    const list = bySet.get(m.set_index) ?? [];
     list.push(m);
-    byPosition.set(m.position, list);
+    bySet.set(m.set_index, list);
   }
-  return [...byPosition.entries()]
+  return [...bySet.entries()]
     .sort(([a], [b]) => a - b)
-    .map(([, rows]) => [...rows].sort((a, b) => a.set_index - b.set_index));
+    .map(([, rows]) => [...rows].sort((a, b) => a.position - b.position));
 }
 
 function resizeTemplateMeasurements(
   measurements: BlockTemplateExerciseMeasurementRow[],
   setsCount: number,
-): MeasurementInput[] {
-  return groupTemplateMeasurementsByPosition(measurements).map((rows) => {
-    const last = rows[rows.length - 1];
-    return {
-      unit_type: rows[0].unit_type,
-      value_unit: rows[0].value_unit,
-      sets: Array.from({ length: setsCount }, (_, i) => {
-        const row = rows[i] ?? last;
-        return {
-          value: row?.value ?? null,
-          value_entered_by: row?.value_entered_by ?? "coach",
-        };
-      }),
-    };
+): MeasurementInput {
+  const sets = groupTemplateMeasurementsBySet(measurements).map((rows) => ({
+    slots: rows.map((row) => ({
+      unit_type: row.unit_type,
+      value_unit: row.value_unit,
+      value: row.value,
+      value_entered_by: row.value_entered_by,
+    })),
+  }));
+  const last = sets[sets.length - 1];
+  return Array.from({ length: setsCount }, (_, i) => {
+    const set = sets[i] ?? last;
+    return { slots: set ? set.slots.map((slot) => ({ ...slot })) : [] };
   });
 }
 
@@ -355,11 +353,12 @@ export async function addExerciseToBlockTemplate(
       .single();
     if (error) return err(error.message);
 
-    const measurements = input.measurements
-      ? input.measurements
-      : (await resolveConfiguredUnitTypes(supabase, input.exercise_id)).map(
-          (unitType) => defaultMeasurementInput(unitType, setsCount),
-        );
+    const measurements =
+      input.measurements ??
+      defaultMeasurementSets(
+        await resolveConfiguredUnitTypes(supabase, input.exercise_id),
+        setsCount,
+      );
 
     const { data: insertedMeasurements, error: measurementsError } =
       await supabase
@@ -414,7 +413,7 @@ export async function updateBlockTemplateExercise(
     if (error) return err(error.message);
 
     async function replaceTemplateMeasurements(
-      newMeasurements: MeasurementInput[],
+      newMeasurements: MeasurementInput,
     ): Promise<BlockExerciseMeasurementRow[]> {
       const { error: deleteError } = await supabase
         .from("block_template_exercise_measurements")
@@ -687,9 +686,10 @@ async function copyTemplateExercisesIntoBlock(
       measurements: (insertedMeasurements ?? []).filter(
         (m) => m.block_exercise_id === newExercises[i].id,
       ),
-      // Per-set variant overrides aren't copied when a block template is
-      // instantiated — a coach can add them fresh in the new placement.
+      // Per-set variant/style overrides aren't copied when a block template
+      // is instantiated — a coach can add them fresh in the new placement.
       setVariants: {},
+      setStyles: {},
     })),
   );
 }
@@ -824,6 +824,7 @@ async function copyTemplateExercisesIntoBlockTemplate(
       ),
       exercise: toExerciseWithDetails(be.exercise, allCategories, allStyles),
       setVariants: {},
+      setStyles: {},
     })),
   );
 }

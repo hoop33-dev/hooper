@@ -24,10 +24,8 @@ export function DraggableBlockTemplateRow({
   });
 
   const exerciseLabel = `${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`;
-  const countLabel =
-    blockCount === 1
-      ? exerciseLabel
-      : `${blockCount} blocks · ${exerciseLabel}`;
+  const blockLabel = `${blockCount} block${blockCount === 1 ? "" : "s"}`;
+  const countLabel = `${blockLabel} · ${exerciseLabel}`;
 
   if (variant === "card") {
     return (

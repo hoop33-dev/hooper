@@ -4,6 +4,8 @@ import { createClient } from "@/src/lib/supabase/server";
 import type {
   BlockExerciseMeasurementRow,
   BlockExerciseRow,
+  BlockExerciseSetStyleRow,
+  BlockExerciseSetVariantRow,
   BlockRow,
   SessionRow,
   SessionWithBlocks,
@@ -197,11 +199,16 @@ export async function deleteSession(id: string): Promise<Result<void>> {
 
 type SourceBlockExercise = BlockExerciseRow & {
   block_exercise_measurements: BlockExerciseMeasurementRow[];
+  block_exercise_set_variants: BlockExerciseSetVariantRow[];
+  block_exercise_set_styles: BlockExerciseSetStyleRow[];
 };
 
 export type SourceSession = SessionRow & {
   blocks: (BlockRow & { block_exercises: SourceBlockExercise[] })[];
 };
+
+const SOURCE_BLOCK_EXERCISE_SELECT =
+  "*, block_exercise_measurements(*), block_exercise_set_variants(*), block_exercise_set_styles(*)";
 
 async function fetchSourceSession(
   supabase: SupabaseClient,
@@ -209,7 +216,7 @@ async function fetchSourceSession(
 ): Promise<SourceSession | null> {
   const { data } = await supabase
     .from("sessions")
-    .select("*, blocks(*, block_exercises(*, block_exercise_measurements(*)))")
+    .select(`*, blocks(*, block_exercises(${SOURCE_BLOCK_EXERCISE_SELECT}))`)
     .eq("id", id)
     .single();
   return (data as unknown as SourceSession) ?? null;
@@ -225,7 +232,7 @@ export async function fetchSourceSessionsForWeeks(
 ): Promise<SourceSession[]> {
   const { data } = await supabase
     .from("sessions")
-    .select("*, blocks(*, block_exercises(*, block_exercise_measurements(*)))")
+    .select(`*, blocks(*, block_exercises(${SOURCE_BLOCK_EXERCISE_SELECT}))`)
     .eq("program_id", programId)
     .in("week_number", weekNumbers)
     .order("week_number", { ascending: true })
@@ -240,6 +247,88 @@ type LinkedGroupIds = {
   blockGroupIds: Map<string, string>;
   exerciseGroupIds: Map<string, string>;
 };
+
+/** Copies every source block's placements (with their measurements, per-set
+ * variant overrides, and per-set style overrides) into the corresponding
+ * freshly-inserted `newBlocks` — split out of copySessionIntoWeek so that
+ * function stays under the lint's max-lines/cognitive-complexity limits. */
+async function insertCopiedBlockExercises(
+  supabase: SupabaseClient,
+  sourceBlocks: SourceSession["blocks"],
+  newBlocks: BlockRow[],
+  groupIds?: LinkedGroupIds,
+): Promise<Result<void>> {
+  const blockExerciseRows = sourceBlocks.flatMap((block, i) =>
+    block.block_exercises.map((be) => ({
+      block_id: newBlocks[i].id,
+      exercise_id: be.exercise_id,
+      position: be.position,
+      sets: be.sets,
+      notes: be.notes,
+      style_id: be.style_id,
+      link_group_id: groupIds?.exerciseGroupIds.get(be.id) ?? null,
+    })),
+  );
+  if (blockExerciseRows.length === 0) return ok(undefined);
+
+  const { data: newBlockExercises, error: exercisesError } = await supabase
+    .from("block_exercises")
+    .insert(blockExerciseRows)
+    .select();
+  if (exercisesError) return err(exercisesError.message);
+
+  const sourceBlockExercises = sourceBlocks.flatMap(
+    (block) => block.block_exercises,
+  );
+
+  const measurementRows = sourceBlockExercises.flatMap((be, i) =>
+    be.block_exercise_measurements.map((m) => ({
+      block_exercise_id: newBlockExercises[i].id,
+      position: m.position,
+      set_index: m.set_index,
+      unit_type: m.unit_type,
+      value: m.value,
+      value_entered_by: m.value_entered_by,
+      value_unit: m.value_unit,
+    })),
+  );
+  if (measurementRows.length > 0) {
+    const { error } = await supabase
+      .from("block_exercise_measurements")
+      .insert(measurementRows);
+    if (error) return err(error.message);
+  }
+
+  const setVariantRows = sourceBlockExercises.flatMap((be, i) =>
+    be.block_exercise_set_variants.map((v) => ({
+      block_exercise_id: newBlockExercises[i].id,
+      set_index: v.set_index,
+      exercise_id: v.exercise_id,
+    })),
+  );
+  if (setVariantRows.length > 0) {
+    const { error } = await supabase
+      .from("block_exercise_set_variants")
+      .insert(setVariantRows);
+    if (error) return err(error.message);
+  }
+
+  const setStyleRows = sourceBlockExercises.flatMap((be, i) =>
+    be.block_exercise_set_styles.map((s) => ({
+      block_exercise_id: newBlockExercises[i].id,
+      set_index: s.set_index,
+      style_id: s.style_id,
+    })),
+  );
+  if (setStyleRows.length > 0) {
+    const { error } = await supabase
+      .from("block_exercise_set_styles")
+      .insert(setStyleRows);
+    if (error) return err(error.message);
+  }
+
+  return ok(undefined);
+}
 
 export async function copySessionIntoWeek(
   supabase: SupabaseClient,
@@ -285,46 +374,13 @@ export async function copySessionIntoWeek(
     .select();
   if (blocksError) return err(blocksError.message);
 
-  const blockExerciseRows = source.blocks.flatMap((block, i) =>
-    block.block_exercises.map((be) => ({
-      block_id: newBlocks[i].id,
-      exercise_id: be.exercise_id,
-      position: be.position,
-      sets: be.sets,
-      notes: be.notes,
-      link_group_id: groupIds?.exerciseGroupIds.get(be.id) ?? null,
-    })),
+  const exercisesResult = await insertCopiedBlockExercises(
+    supabase,
+    source.blocks,
+    newBlocks,
+    groupIds,
   );
-
-  if (blockExerciseRows.length > 0) {
-    const { data: newBlockExercises, error: exercisesError } = await supabase
-      .from("block_exercises")
-      .insert(blockExerciseRows)
-      .select();
-    if (exercisesError) return err(exercisesError.message);
-
-    const sourceBlockExercises = source.blocks.flatMap(
-      (block) => block.block_exercises,
-    );
-    const measurementRows = sourceBlockExercises.flatMap((be, i) =>
-      be.block_exercise_measurements.map((m) => ({
-        block_exercise_id: newBlockExercises[i].id,
-        position: m.position,
-        set_index: m.set_index,
-        unit_type: m.unit_type,
-        value: m.value,
-        value_entered_by: m.value_entered_by,
-        value_unit: m.value_unit,
-      })),
-    );
-
-    if (measurementRows.length > 0) {
-      const { error: measurementsError } = await supabase
-        .from("block_exercise_measurements")
-        .insert(measurementRows);
-      if (measurementsError) return err(measurementsError.message);
-    }
-  }
+  if (!exercisesResult.ok) return err(exercisesResult.error);
 
   return ok(newSession);
 }

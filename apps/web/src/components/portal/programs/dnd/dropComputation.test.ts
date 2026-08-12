@@ -42,6 +42,7 @@ function makeBlockExercise(
     updated_at: "",
     exercise: makeExercise(id),
     setVariants: {},
+    setStyles: {},
     measurements: [
       {
         block_exercise_id: id,

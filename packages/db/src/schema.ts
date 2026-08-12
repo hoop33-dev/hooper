@@ -221,6 +221,18 @@ export type BlockExerciseSetVariantRow = {
   exercise_id: string;
 };
 
+export type BlockExerciseSetStyleRow = {
+  block_exercise_id: string;
+  /** Which set (0-indexed) this override applies to. */
+  set_index: number;
+  /** The style to use for this set instead of the placement's own style_id
+   * — null means this set explicitly has no style, distinct from the row
+   * not existing at all (which means "inherits the placement default"). A
+   * row only exists when the set's style differs from the placement
+   * default — sparse, not one row per set. */
+  style_id: string | null;
+};
+
 export type BlockExerciseMeasurementRow = {
   block_exercise_id: string;
   /** Which unit-type slot this is (Reps, Weight, ... — up to 3 per
@@ -464,6 +476,12 @@ export type Database = {
         Row: BlockExerciseSetVariantRow;
         Insert: BlockExerciseSetVariantRow;
         Update: Partial<BlockExerciseSetVariantRow>;
+        Relationships: [];
+      };
+      block_exercise_set_styles: {
+        Row: BlockExerciseSetStyleRow;
+        Insert: BlockExerciseSetStyleRow;
+        Update: Partial<BlockExerciseSetStyleRow>;
         Relationships: [];
       };
       program_sources: {

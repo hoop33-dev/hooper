@@ -60,6 +60,8 @@ function SessionViewModals({
       {state.blockActions.editingSupersetBlock && (
         <SupersetRoundsModal
           block={state.blockActions.editingSupersetBlock}
+          exercises={exercises}
+          styles={styles}
           onClose={state.blockActions.closeSupersetEditor}
           onSave={state.blockActions.saveSupersetMeasurements}
         />
@@ -125,6 +127,7 @@ export function SessionViewShell({
               sessionId={session.id}
               blocks={state.blocks}
               exercises={exercises}
+              styles={styles}
               onOpenExercise={state.blockActions.openExerciseEditor}
               onRemoveExercise={state.blockActions.removeExerciseById}
               onRenameBlock={state.blockActions.renameBlock}

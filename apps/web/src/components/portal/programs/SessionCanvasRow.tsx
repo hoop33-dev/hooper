@@ -1,6 +1,10 @@
 "use client";
 
-import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
+import type {
+  BlockExerciseWithDetails,
+  ExerciseStyleRow,
+  SessionWithBlocks,
+} from "@hooper/db";
 import type { BlockSettingsPatch } from "./BlockCard";
 import { NewSessionDropZone } from "./dnd/NewSessionDropZone";
 import { SessionGapDropZone } from "./dnd/SessionGapDropZone";
@@ -11,6 +15,7 @@ interface SessionCanvasRowProps {
   programId: string;
   weekNumber: number;
   sessions: SessionWithBlocks[];
+  styles: ExerciseStyleRow[];
   onRenameSession: (session: SessionWithBlocks) => void;
   onDuplicateSession: (session: SessionWithBlocks) => void;
   onDeleteSession: (id: string) => void;
@@ -29,6 +34,7 @@ export function SessionCanvasRow({
   programId,
   weekNumber,
   sessions,
+  styles,
   onRenameSession,
   onDuplicateSession,
   onDeleteSession,
@@ -53,6 +59,7 @@ export function SessionCanvasRow({
           <SessionCanvasColumn
             programId={programId}
             session={session}
+            styles={styles}
             onRename={() => onRenameSession(session)}
             onDuplicate={() => onDuplicateSession(session)}
             onDelete={() => onDeleteSession(session.id)}

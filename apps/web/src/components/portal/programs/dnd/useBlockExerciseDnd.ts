@@ -574,7 +574,7 @@ async function createBlockForExercise(
   reportIfFailed(onError, exerciseResult);
   const exercises =
     exerciseResult.ok && exerciseResult.data
-      ? [{ ...exerciseResult.data, exercise, setVariants: {} }]
+      ? [{ ...exerciseResult.data, exercise, setVariants: {}, setStyles: {} }]
       : [];
   const realBlock = { ...blockResult.data, exercises };
   const placed = placeBlock(
@@ -631,7 +631,7 @@ async function placeLibraryExerciseInBlock(
     return;
   }
 
-  const newRow = { ...result.data, exercise, setVariants: {} };
+  const newRow = { ...result.data, exercise, setVariants: {}, setStyles: {} };
   options.onExercisePlaced?.(newRow);
   const appended = appendExerciseToBlock(
     originalBlocks,

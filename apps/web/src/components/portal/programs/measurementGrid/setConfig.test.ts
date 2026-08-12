@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyFirstRoundToAll,
   applyStyleToAll,
   applyUnitTypesToAll,
   applyVariantToAll,
   buildDefaultSlots,
   copySlotValueToAllBelow,
+  mostCommon,
   resizeSetConfigs,
   updateSetUnitTypes,
   type SetConfigState,
@@ -227,5 +229,72 @@ describe("apply-to-all helpers", () => {
     const configs = [makeConfig({ styleId: "a" }), makeConfig({ styleId: "" })];
     const updated = applyStyleToAll(configs, "style-warmup");
     expect(updated.every((c) => c.styleId === "style-warmup")).toBe(true);
+  });
+});
+
+describe("applyFirstRoundToAll", () => {
+  it("copies round 1's units, variant, and style onto every other round", () => {
+    const round1 = makeConfig({
+      slots: [
+        { unit_type: "Shots", value_unit: null, value: 10, value_entered_by: "coach" },
+      ],
+      variantId: "ex-5spot",
+      styleId: "style-warmup",
+    });
+    const round2 = makeConfig({ variantId: "ex-base", styleId: "" });
+    const updated = applyFirstRoundToAll([round1, round2]);
+    expect(updated[1]).toEqual({
+      slots: [
+        { unit_type: "Shots", value_unit: null, value: 0, value_entered_by: "coach" },
+      ],
+      variantId: "ex-5spot",
+      styleId: "style-warmup",
+    });
+  });
+
+  it("leaves round 1 itself untouched", () => {
+    const round1 = makeConfig({ variantId: "ex-5spot" });
+    const round2 = makeConfig();
+    const updated = applyFirstRoundToAll([round1, round2]);
+    expect(updated[0]).toBe(round1);
+  });
+
+  it("preserves a later round's own value for a unit type it shares with round 1", () => {
+    const round1 = makeConfig({
+      slots: [
+        { unit_type: "Reps", value_unit: null, value: 12, value_entered_by: "coach" },
+      ],
+    });
+    const round2 = makeConfig({
+      slots: [
+        { unit_type: "Reps", value_unit: null, value: 8, value_entered_by: "coach" },
+      ],
+    });
+    const updated = applyFirstRoundToAll([round1, round2]);
+    // Same unit type as round 1, but round 2 keeps its own value (8, not 12)
+    // — only the setup (units/variant/style) syncs, not the numbers.
+    expect(updated[1]!.slots[0]!.value).toBe(8);
+  });
+
+  it("is a no-op on an empty list", () => {
+    expect(applyFirstRoundToAll([])).toEqual([]);
+  });
+});
+
+describe("mostCommon", () => {
+  it("returns the value used by the most entries", () => {
+    expect(mostCommon(["a", "a", "b"])).toBe("a");
+  });
+
+  it("breaks ties by whichever appears first", () => {
+    expect(mostCommon(["b", "a", "a", "b"])).toBe("b");
+  });
+
+  it("returns the single value for a uniform list", () => {
+    expect(mostCommon(["a", "a", "a"])).toBe("a");
+  });
+
+  it("returns an empty string for an empty list", () => {
+    expect(mostCommon([])).toBe("");
   });
 });

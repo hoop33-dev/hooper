@@ -234,12 +234,18 @@ export async function runSaveExerciseMeasurement(
  * exercises at most, so N sequential saves is simple and fast enough.
  * Patches every exercise's predicted values in immediately and closes the
  * modal, then reconciles (or rolls every exercise back) as the sequential
- * saves land. */
+ * saves land. When `rounds` differs from the block's current round count
+ * (the Rounds stepper was used), persists that first — block.service.ts's
+ * updateBlock already cascades the resize to every exercise in the block,
+ * though the per-exercise saves below immediately supersede that resize
+ * with the coach's own fully-edited configs anyway. */
 export async function runSaveSupersetMeasurements(
+  block: BlockWithExercises,
+  rounds: number,
   perExercise: { id: string; measurements: MeasurementInput }[],
   ctx: Pick<
     UseBlockActionsOptions,
-    "blocks" | "setBlocks" | "updateBlockExerciseAction"
+    "blocks" | "setBlocks" | "updateBlockExerciseAction" | "updateBlockAction"
   > & {
     getBlocks: () => BlockWithExercises[];
     showError: (message: string) => void;
@@ -256,12 +262,22 @@ export async function runSaveSupersetMeasurements(
   const optimistic = perExercise.reduce(
     (blocks, { id, measurements }) =>
       patchExercise(blocks, id, {
+        sets: rounds,
         measurements: toOptimisticMeasurements(id, measurements),
       }),
     ctx.blocks,
   );
   ctx.setBlocks(optimistic);
   ctx.onSaved();
+
+  if (rounds !== (block.sets ?? 1)) {
+    const blockResult = await ctx.updateBlockAction(block.id, { sets: rounds });
+    if (blockResult.ok && blockResult.data) {
+      ctx.setBlocks(patchBlock(ctx.getBlocks(), block.id, blockResult.data));
+    } else {
+      reportError(ctx.showError, blockResult);
+    }
+  }
 
   for (let i = 0; i < perExercise.length; i++) {
     const { id, measurements } = perExercise[i];
@@ -448,12 +464,17 @@ export function useBlockActions(options: UseBlockActionsOptions) {
         onSaved: () => setEditingExercise(null),
       }),
     saveSupersetMeasurements: (
+      rounds: number,
       perExercise: { id: string; measurements: MeasurementInput }[],
     ) =>
-      runSaveSupersetMeasurements(perExercise, {
-        ...ctx,
-        onSaved: () => setEditingSupersetBlock(null),
-      }),
+      editingSupersetBlock
+        ? runSaveSupersetMeasurements(
+            editingSupersetBlock,
+            rounds,
+            perExercise,
+            { ...ctx, onSaved: () => setEditingSupersetBlock(null) },
+          )
+        : Promise.resolve(),
     removeExerciseById: (exerciseRowId: string) =>
       runRemoveExerciseFromBlock(exerciseRowId, ctx),
     addExerciseToBlock: (blockId: string, exerciseId: string) =>

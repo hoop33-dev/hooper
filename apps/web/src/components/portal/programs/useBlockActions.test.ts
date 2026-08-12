@@ -1,5 +1,6 @@
 import type {
   BlockExerciseWithDetails,
+  BlockRow,
   BlockWithExercises,
   EnteredBy,
 } from "@hooper/db";
@@ -119,6 +120,13 @@ function makeFakeCtx(initialBlocks: BlockWithExercises[]) {
     getBlocks: () => current,
     showError: vi.fn(),
     onSaved: vi.fn(),
+    updateBlockAction: vi.fn(async (id: string, data: Partial<BlockRow>) => ({
+      ok: true,
+      data: {
+        ...(current.find((b) => b.id === id) as BlockWithExercises),
+        ...data,
+      },
+    })),
   };
 }
 
@@ -199,7 +207,8 @@ describe("runSaveSupersetMeasurements", () => {
     const e1 = makeExerciseRow("be-1", "block-1", 1);
     const e2 = makeExerciseRow("be-2", "block-1", 2);
     const e3 = makeExerciseRow("be-3", "block-1", 3);
-    const initialBlocks = [makeBlock("block-1", [e1, e2, e3], true)];
+    const block = makeBlock("block-1", [e1, e2, e3], true);
+    const initialBlocks = [block];
     const ctx = makeFakeCtx(initialBlocks);
 
     const confirmedE1 = { ...e1, measurements: [makeMeasurement("be-1", 100)] };
@@ -215,6 +224,8 @@ describe("runSaveSupersetMeasurements", () => {
     });
 
     await runSaveSupersetMeasurements(
+      block,
+      block.sets ?? 1,
       [
         { id: "be-1", measurements: [] },
         { id: "be-2", measurements: [] },

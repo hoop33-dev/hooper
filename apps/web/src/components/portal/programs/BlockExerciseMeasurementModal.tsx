@@ -17,7 +17,14 @@ import {
 } from "react";
 import { DuplicateIcon, XIcon } from "../ui/icons";
 import { PortalButton } from "../ui/PortalButton";
+import { ToggleSwitch } from "../ui/ToggleSwitch";
 import { useModalDismiss } from "../ui/useModalDismiss";
+import { CountStepper } from "./measurementGrid/CountStepper";
+import { SetConfigCard } from "./measurementGrid/SetConfigCard";
+import { SetInlineSelect } from "./measurementGrid/SetInlineSelect";
+import { SetUnitTypeSelect } from "./measurementGrid/SetUnitTypeSelect";
+import { SimpleSetTable } from "./measurementGrid/SimpleSetTable";
+import { useHideAdditionalInfo } from "./measurementGrid/useHideAdditionalInfo";
 import {
   applyStyleToAll,
   applyUnitTypesToAll,
@@ -35,9 +42,6 @@ import {
   updateSlotValue,
   type SetConfigState,
 } from "./measurementGrid/setConfig";
-import { SetInlineSelect } from "./measurementGrid/SetInlineSelect";
-import { SetUnitTypeSelect } from "./measurementGrid/SetUnitTypeSelect";
-import { SetValueCell } from "./measurementGrid/SetValueCell";
 
 export type BlockExerciseUpdateData = {
   sets: number;
@@ -74,66 +78,34 @@ interface BlockExerciseMeasurementModalProps {
   styles: ExerciseStyleRow[];
 }
 
-function ModalHeader({ name, onClose }: { name: string; onClose: () => void }) {
+function ModalHeader({
+  name,
+  hideAdditionalInfo,
+  onToggleHideAdditionalInfo,
+  onClose,
+}: {
+  name: string;
+  hideAdditionalInfo: boolean;
+  onToggleHideAdditionalInfo: (v: boolean) => void;
+  onClose: () => void;
+}) {
   return (
-    <div className="border-portal-border flex flex-shrink-0 items-center justify-between border-b px-4 py-3">
-      <h2 className="font-title text-portal-text1 text-[15px] font-extrabold tracking-wide">
+    <div className="border-portal-border flex flex-shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
+      <h2 className="font-title text-portal-text1 min-w-0 truncate text-[15px] font-extrabold tracking-wide">
         {name}
       </h2>
-      <button
-        type="button"
-        onClick={onClose}
-        className="border-portal-border text-portal-text2 flex h-7 w-7 items-center justify-center rounded-full border">
-        <XIcon />
-      </button>
-    </div>
-  );
-}
-
-function StepButton({
-  disabled,
-  onClick,
-  children,
-}: {
-  disabled: boolean;
-  onClick: () => void;
-  children: string;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className="border-portal-border bg-portal-bg text-portal-text2 h-7 w-7 flex-shrink-0 rounded-lg border disabled:opacity-30">
-      {children}
-    </button>
-  );
-}
-
-function SetsField({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-portal-text2 w-14 flex-shrink-0 text-xs font-bold">
-        Sets
-      </span>
-      <div className="flex flex-1 items-center gap-2">
-        <StepButton
-          disabled={false}
-          onClick={() => onChange(Math.max(1, value - 1))}>
-          −
-        </StepButton>
-        <span className="font-title text-portal-text1 w-full flex-1 text-center text-lg font-black">
-          {value}
-        </span>
-        <StepButton disabled={false} onClick={() => onChange(value + 1)}>
-          +
-        </StepButton>
+      <div className="flex flex-shrink-0 items-center gap-3">
+        <ToggleSwitch
+          label="Hide additional info"
+          checked={hideAdditionalInfo}
+          onChange={onToggleHideAdditionalInfo}
+        />
+        <button
+          type="button"
+          onClick={onClose}
+          className="border-portal-border text-portal-text2 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border">
+          <XIcon />
+        </button>
       </div>
     </div>
   );
@@ -195,90 +167,11 @@ function ApplyToAllSetsPanel({
   );
 }
 
-function SetCard({
-  setIndex,
-  config,
-  variantOptions,
-  styles,
-  onChangeUnitTypes,
-  onChangeVariant,
-  onChangeStyle,
-  onChangeValue,
-  onToggleAthlete,
-}: {
-  setIndex: number;
-  config: SetConfigState;
-  variantOptions: ExerciseRow[];
-  styles: ExerciseStyleRow[];
-  onChangeUnitTypes: (unitTypes: string[]) => void;
-  onChangeVariant: (id: string) => void;
-  onChangeStyle: (id: string) => void;
-  onChangeValue: (slotIndex: number, value: number) => void;
-  onToggleAthlete: (slotIndex: number, athleteEntered: boolean) => void;
-}) {
-  return (
-    <div className="border-portal-border bg-portal-card flex flex-col gap-3 rounded-xl border p-3">
-      <div className="flex items-center gap-2">
-        <div className="bg-portal-orange/10 text-portal-orange flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg text-xs font-black">
-          {setIndex + 1}
-        </div>
-        <span className="text-portal-text1 flex-shrink-0 text-sm font-bold">
-          Set {setIndex + 1}
-        </span>
-        <div className="flex flex-1 items-center justify-end gap-1.5">
-          <SetUnitTypeSelect
-            selected={config.slots.map((s) => s.unit_type)}
-            onChange={onChangeUnitTypes}
-            className="w-44"
-          />
-          {variantOptions.length > 1 && (
-            <SetInlineSelect
-              options={variantOptions}
-              value={config.variantId}
-              onChange={onChangeVariant}
-              noneLabel="No variant"
-              allowNone={false}
-              mutedValue={variantOptions[0]?.id}
-              className="w-40"
-            />
-          )}
-          <SetInlineSelect
-            options={styles}
-            value={config.styleId}
-            onChange={onChangeStyle}
-            noneLabel="No style"
-            className="w-36"
-          />
-        </div>
-      </div>
-      {config.slots.length > 0 && (
-        <div
-          className="grid gap-2"
-          style={{
-            gridTemplateColumns: `repeat(${config.slots.length}, minmax(0, 1fr))`,
-          }}>
-          {config.slots.map((slot, slotIndex) => (
-            <SetValueCell
-              key={`${slot.unit_type}-${slotIndex}`}
-              label={slot.unit_type}
-              value={slot.value}
-              athleteEntered={slot.value_entered_by === "athlete"}
-              onChangeValue={(v) => onChangeValue(slotIndex, v)}
-              onToggleAthlete={(v) => onToggleAthlete(slotIndex, v)}
-              dataSetIndex={setIndex}
-              dataSlotIndex={slotIndex}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 interface ModalBodyProps {
   sets: number;
   onSets: (v: number) => void;
   configs: SetConfigState[];
+  hideAdditionalInfo: boolean;
   onChangeUnitTypes: (setIndex: number, unitTypes: string[]) => void;
   onChangeVariant: (setIndex: number, id: string) => void;
   onChangeStyle: (setIndex: number, id: string) => void;
@@ -299,6 +192,7 @@ function ModalBody({
   sets,
   onSets,
   configs,
+  hideAdditionalInfo,
   onChangeUnitTypes,
   onChangeVariant,
   onChangeStyle,
@@ -312,36 +206,52 @@ function ModalBody({
 }: ModalBodyProps) {
   return (
     <div className="flex flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-4">
-      <SetsField value={sets} onChange={onSets} />
-      <ApplyToAllSetsPanel
-        variantOptions={variantOptions}
-        styles={styles}
-        onApplyUnitTypes={onApplyUnitTypesToAll}
-        onApplyVariant={onApplyVariantToAll}
-        onApplyStyle={onApplyStyleToAll}
-      />
-      <div className="flex flex-col gap-2">
-        {configs.map((config, setIndex) => (
-          <SetCard
-            key={setIndex}
-            setIndex={setIndex}
-            config={config}
+      <CountStepper label="Sets" value={sets} onChange={onSets} />
+      {hideAdditionalInfo ? (
+        <SimpleSetTable
+          rowLabel={(setIndex) => `Set ${setIndex + 1}`}
+          configs={configs}
+          variantOptions={variantOptions}
+          styles={styles}
+          onChangeVariantAll={onApplyVariantToAll}
+          onChangeStyleAll={onApplyStyleToAll}
+          onChangeValue={onChangeValue}
+          onToggleAthlete={onToggleAthlete}
+        />
+      ) : (
+        <>
+          <ApplyToAllSetsPanel
             variantOptions={variantOptions}
             styles={styles}
-            onChangeUnitTypes={(unitTypes) =>
-              onChangeUnitTypes(setIndex, unitTypes)
-            }
-            onChangeVariant={(id) => onChangeVariant(setIndex, id)}
-            onChangeStyle={(id) => onChangeStyle(setIndex, id)}
-            onChangeValue={(slotIndex, value) =>
-              onChangeValue(setIndex, slotIndex, value)
-            }
-            onToggleAthlete={(slotIndex, athleteEntered) =>
-              onToggleAthlete(setIndex, slotIndex, athleteEntered)
-            }
+            onApplyUnitTypes={onApplyUnitTypesToAll}
+            onApplyVariant={onApplyVariantToAll}
+            onApplyStyle={onApplyStyleToAll}
           />
-        ))}
-      </div>
+          <div className="flex flex-col gap-2">
+            {configs.map((config, setIndex) => (
+              <SetConfigCard
+                key={setIndex}
+                index={setIndex}
+                label={`Set ${setIndex + 1}`}
+                config={config}
+                variantOptions={variantOptions}
+                styles={styles}
+                onChangeUnitTypes={(unitTypes) =>
+                  onChangeUnitTypes(setIndex, unitTypes)
+                }
+                onChangeVariant={(id) => onChangeVariant(setIndex, id)}
+                onChangeStyle={(id) => onChangeStyle(setIndex, id)}
+                onChangeValue={(slotIndex, value) =>
+                  onChangeValue(setIndex, slotIndex, value)
+                }
+                onToggleAthlete={(slotIndex, athleteEntered) =>
+                  onToggleAthlete(setIndex, slotIndex, athleteEntered)
+                }
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -687,6 +597,7 @@ export function BlockExerciseMeasurementModal({
   const defaultUnitTypes = resolveDefaultUnitTypes(blockExercise);
 
   const editor = useSetConfigEditor(blockExercise, defaultUnitTypes);
+  const [hideAdditionalInfo, setHideAdditionalInfo] = useHideAdditionalInfo();
   const [saving, setSaving] = useState(false);
   const [choosingScope, setChoosingScope] = useState(false);
   const onBackdropClick = useModalDismiss(onClose);
@@ -738,11 +649,17 @@ export function BlockExerciseMeasurementModal({
         }
         onFocus={handleGridFocus}
         className="bg-portal-card flex h-[640px] max-h-[90vh] w-full max-w-[650px] flex-col overflow-hidden rounded-2xl shadow-2xl">
-        <ModalHeader name={headerName} onClose={onClose} />
+        <ModalHeader
+          name={headerName}
+          hideAdditionalInfo={hideAdditionalInfo}
+          onToggleHideAdditionalInfo={setHideAdditionalInfo}
+          onClose={onClose}
+        />
         <ModalBody
           sets={editor.sets}
           onSets={editor.onSets}
           configs={editor.configs}
+          hideAdditionalInfo={hideAdditionalInfo}
           onChangeUnitTypes={editor.onChangeUnitTypes}
           onChangeVariant={editor.onChangeVariant}
           onChangeStyle={editor.onChangeStyle}

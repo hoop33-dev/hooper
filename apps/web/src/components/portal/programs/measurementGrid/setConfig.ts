@@ -228,6 +228,26 @@ export function applyStyleToAll(
   return configs.map((c) => ({ ...c, styleId }));
 }
 
+/** Copies round/set 1's setup (its unit types, variant, and style) onto
+ * every other round — the superset editor's single "Apply to all rounds"
+ * button. Unlike applyUnitTypesToAll, each other round keeps its own
+ * numeric values for whichever unit types it already shared with round 1
+ * (via updateSetUnitTypes's value-preserving merge) rather than having
+ * every value overwritten too — a pyramid/wave superset's per-round numbers
+ * are usually intentionally different, only the setup should sync. */
+export function applyFirstRoundToAll(
+  configs: SetConfigState[],
+): SetConfigState[] {
+  const first = configs[0];
+  if (!first) return configs;
+  const firstUnitTypes = first.slots.map((s) => s.unit_type);
+  return configs.map((c, i) => {
+    if (i === 0) return c;
+    const { slots } = updateSetUnitTypes(configs, i, firstUnitTypes)[i]!;
+    return { slots, variantId: first.variantId, styleId: first.styleId };
+  });
+}
+
 /** Flattens editable set configs into the flat per-row shape the format
  * helpers (formatMeasurementSummary/formatMeasurementCompact) consume —
  * blanking out fields the athlete hasn't entered yet, for display purposes
@@ -268,4 +288,33 @@ export function toSetStylesPayload(
   configs: SetConfigState[],
 ): Record<number, string | null> {
   return Object.fromEntries(configs.map((c, i) => [i, c.styleId || null]));
+}
+
+/** The most frequent value in a list, ties broken by whichever occurs
+ * first — the simplified ("hide additional info") view's single Variant/
+ * Style picker shows this across all of a placement's sets, since every
+ * config here always carries a concrete value already (unlike the sparse
+ * saved-row overrides resolveMostCommonId in blockExerciseDisplay.ts
+ * resolves against a base id). */
+export function mostCommon(values: string[]): string {
+  const counts = new Map<string, number>();
+  const firstSeenAt = new Map<string, number>();
+  values.forEach((value, i) => {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+    if (!firstSeenAt.has(value)) firstSeenAt.set(value, i);
+  });
+
+  let winner = values[0] ?? "";
+  let winnerCount = 0;
+  for (const [value, count] of counts) {
+    const isBetter =
+      count > winnerCount ||
+      (count === winnerCount &&
+        firstSeenAt.get(value)! < (firstSeenAt.get(winner) ?? Infinity));
+    if (isBetter) {
+      winner = value;
+      winnerCount = count;
+    }
+  }
+  return winner;
 }

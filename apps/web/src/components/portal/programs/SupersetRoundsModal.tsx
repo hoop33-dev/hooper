@@ -14,14 +14,18 @@ import {
 } from "react";
 import { DuplicateIcon, XIcon } from "../ui/icons";
 import { PortalButton } from "../ui/PortalButton";
+import { ToggleSwitch } from "../ui/ToggleSwitch";
 import { useModalDismiss } from "../ui/useModalDismiss";
 import { resolveDefaultUnitTypes } from "./BlockExerciseMeasurementModal";
+import { CountStepper } from "./measurementGrid/CountStepper";
+import { SetConfigCard } from "./measurementGrid/SetConfigCard";
 import {
+  applyFirstRoundToAll,
   applyStyleToAll,
-  applyUnitTypesToAll,
   applyVariantToAll,
   copySlotValueToAllBelow,
   initSetConfigs,
+  resizeSetConfigs,
   toMeasurementInput,
   updateSetStyle,
   updateSetUnitTypes,
@@ -29,112 +33,40 @@ import {
   updateSlotValue,
   type SetConfigState,
 } from "./measurementGrid/setConfig";
-import { SetInlineSelect } from "./measurementGrid/SetInlineSelect";
-import { SetUnitTypeSelect } from "./measurementGrid/SetUnitTypeSelect";
-import { SetValueCell } from "./measurementGrid/SetValueCell";
+import { SimpleSetTable } from "./measurementGrid/SimpleSetTable";
+import { useHideAdditionalInfo } from "./measurementGrid/useHideAdditionalInfo";
 import { variantOptionsFor } from "./variantOptions";
 
 /** Editing a superset's shared rounds: every exercise in the block shares
- * the same round count (set on the block itself, see BlockCard's Superset
- * control), so this edits every exercise's per-round unit types/variant/
+ * the same round count (also editable here, via the Rounds stepper — it
+ * cascades to every exercise's own round count and per-round measurements
+ * on save), so this edits every exercise's per-round unit types/variant/
  * style/values together in one modal instead of bouncing between one
  * BlockExerciseMeasurementModal per exercise to keep rounds in sync. Each
- * exercise gets its own ROUND/UNITS/VARIANT/STYLE/VALUES table section,
- * with its own "Apply to all rounds" action — the same per-set editing
- * model as the single-exercise modal, just laid out per exercise instead
- * of as one placement's full-height cards. */
+ * exercise gets its own section (round cards, same layout as the
+ * single-exercise modal's set cards) with its own "Apply to all rounds"
+ * button, which copies round 1's setup onto every other round. */
 interface SupersetRoundsModalProps {
   block: BlockWithExercises;
   exercises: ExerciseWithDetails[];
   styles: ExerciseStyleRow[];
   onClose: () => void;
   onSave: (
+    rounds: number,
     perExercise: { id: string; measurements: MeasurementInput }[],
   ) => Promise<void>;
 }
 
-function TableHeader() {
-  return (
-    <div className="text-portal-text3 grid grid-cols-[28px_1fr_1fr_1fr_1fr] gap-2 px-1 text-[9px] font-semibold tracking-wide uppercase">
-      <span>Round</span>
-      <span>Units</span>
-      <span>Variant</span>
-      <span>Style</span>
-      <span>Values</span>
-    </div>
-  );
-}
-
-function RoundRow({
-  roundIndex,
-  config,
-  variantOptions,
-  styles,
-  onChangeUnitTypes,
-  onChangeVariant,
-  onChangeStyle,
-  onChangeValue,
-  onToggleAthlete,
-}: {
-  roundIndex: number;
-  config: SetConfigState;
-  variantOptions: ReturnType<typeof variantOptionsFor>;
-  styles: ExerciseStyleRow[];
-  onChangeUnitTypes: (unitTypes: string[]) => void;
-  onChangeVariant: (id: string) => void;
-  onChangeStyle: (id: string) => void;
-  onChangeValue: (slotIndex: number, value: number) => void;
-  onToggleAthlete: (slotIndex: number, athleteEntered: boolean) => void;
-}) {
-  return (
-    <div className="border-portal-border grid grid-cols-[28px_1fr_1fr_1fr_1fr] items-center gap-2 border-t px-1 py-2">
-      <span className="text-portal-text1 text-sm font-bold">
-        {roundIndex + 1}
-      </span>
-      <SetUnitTypeSelect
-        selected={config.slots.map((s) => s.unit_type)}
-        onChange={onChangeUnitTypes}
-      />
-      {variantOptions.length > 1 ? (
-        <SetInlineSelect
-          options={variantOptions}
-          value={config.variantId}
-          onChange={onChangeVariant}
-          noneLabel="No variant"
-          allowNone={false}
-          mutedValue={variantOptions[0]?.id}
-        />
-      ) : (
-        <span />
-      )}
-      <SetInlineSelect
-        options={styles}
-        value={config.styleId}
-        onChange={onChangeStyle}
-        noneLabel="No style"
-      />
-      <div className="flex flex-wrap gap-1.5">
-        {config.slots.map((slot, slotIndex) => (
-          <SetValueCell
-            key={`${slot.unit_type}-${slotIndex}`}
-            label={slot.unit_type}
-            value={slot.value}
-            athleteEntered={slot.value_entered_by === "athlete"}
-            onChangeValue={(v) => onChangeValue(slotIndex, v)}
-            onToggleAthlete={(v) => onToggleAthlete(slotIndex, v)}
-            dataSetIndex={roundIndex}
-            dataSlotIndex={slotIndex}
-          />
-        ))}
-      </div>
-    </div>
-  );
+function focusRound(root: HTMLElement, roundIndex: number, slotIndex: number) {
+  root
+    .querySelector<HTMLElement>(
+      `[data-role="set-value"][data-set-index="${roundIndex}"][data-slot-index="${slotIndex}"]`,
+    )
+    ?.focus();
 }
 
 /** Excel-style round-grid navigation for one exercise section, mirroring
- * BlockExerciseMeasurementModal's handleGridKeyDown — extracted to a plain
- * function (not a closure inside ExerciseSection) to keep that component
- * under the lint's max-lines-per-function limit. */
+ * BlockExerciseMeasurementModal's handleGridKeyDown. */
 function handleRoundKeyDown(
   e: ReactKeyboardEvent<HTMLDivElement>,
   rounds: number,
@@ -150,90 +82,25 @@ function handleRoundKeyDown(
   e.preventDefault();
 
   const root = e.currentTarget;
-  function focus(round: number) {
-    root
-      .querySelector<HTMLElement>(
-        `[data-role="set-value"][data-set-index="${round}"][data-slot-index="${slotIndex}"]`,
-      )
-      ?.focus();
-  }
   if (e.shiftKey) {
     onCopyToAllBelow(roundIndex, slotIndex);
-    focus(rounds - 1);
+    focusRound(root, rounds - 1, slotIndex);
     return;
   }
   if (roundIndex < rounds - 1) {
-    focus(roundIndex + 1);
+    focusRound(root, roundIndex + 1, slotIndex);
   } else if (isLast) {
     document.querySelector<HTMLElement>('[data-role="save-button"]')?.focus();
   }
 }
 
 /** Keeps whichever round's row just received focus centered in the
- * modal's scrolling body — covers both Enter (handleRoundKeyDown's own
- * focus calls) and native Tab, since focus bubbles as a plain DOM event
- * React can listen for on an ancestor, regardless of what moved it. */
+ * modal's scrolling body — covers both Enter and native Tab, since focus
+ * bubbles as a plain DOM event regardless of what moved it. */
 function handleRoundFocus(e: ReactFocusEvent<HTMLDivElement>) {
   const target = e.target as HTMLElement;
   if (target.dataset.role !== "set-value") return;
   target.scrollIntoView({ block: "center", behavior: "smooth" });
-}
-
-/** The section header's right-hand "Apply to all rounds" controls —
- * extracted out of ExerciseSection so that component stays under the
- * lint's max-lines-per-function limit. See its own local pending-selection
- * comment for why the units control keeps transient state. */
-function ApplyToAllRoundsControls({
-  variantOptions,
-  styles,
-  onApplyUnitTypesToAll,
-  onApplyVariantToAll,
-  onApplyStyleToAll,
-}: {
-  variantOptions: ReturnType<typeof variantOptionsFor>;
-  styles: ExerciseStyleRow[];
-  onApplyUnitTypesToAll: (unitTypes: string[]) => void;
-  onApplyVariantToAll: (id: string) => void;
-  onApplyStyleToAll: (id: string) => void;
-}) {
-  // Local, incremental pending selection — re-applies the whole combo on
-  // every toggle (see BlockExerciseMeasurementModal's ApplyToAllSetsPanel),
-  // so picking "Shots" then "Makes" converges to Shots+Makes on every round
-  // rather than each click reverting to a single unit type.
-  const [pendingUnitTypes, setPendingUnitTypes] = useState<string[]>([]);
-
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-portal-orange flex flex-shrink-0 items-center gap-1 text-[10px] font-semibold whitespace-nowrap">
-        <DuplicateIcon size={10} />
-        Apply to all rounds
-      </span>
-      <SetUnitTypeSelect
-        selected={pendingUnitTypes}
-        onChange={(unitTypes) => {
-          setPendingUnitTypes(unitTypes);
-          onApplyUnitTypesToAll(unitTypes);
-        }}
-      />
-      {variantOptions.length > 1 && (
-        <SetInlineSelect
-          options={variantOptions}
-          value=""
-          onChange={onApplyVariantToAll}
-          noneLabel="Variant"
-          allowNone={false}
-          className="w-24"
-        />
-      )}
-      <SetInlineSelect
-        options={styles}
-        value=""
-        onChange={onApplyStyleToAll}
-        noneLabel="Style"
-        className="w-24"
-      />
-    </div>
-  );
 }
 
 function ExerciseSection({
@@ -243,12 +110,13 @@ function ExerciseSection({
   variantOptions,
   styles,
   isLast,
+  hideAdditionalInfo,
   onChangeUnitTypes,
   onChangeVariant,
   onChangeStyle,
   onChangeValue,
   onToggleAthlete,
-  onApplyUnitTypesToAll,
+  onApplyToAll,
   onApplyVariantToAll,
   onApplyStyleToAll,
   onCopyToAllBelow,
@@ -263,6 +131,7 @@ function ExerciseSection({
    * modal. Earlier exercises just stop at their own last round rather than
    * jumping into the next exercise's (possibly differently-shaped) rows. */
   isLast: boolean;
+  hideAdditionalInfo: boolean;
   onChangeUnitTypes: (roundIndex: number, unitTypes: string[]) => void;
   onChangeVariant: (roundIndex: number, id: string) => void;
   onChangeStyle: (roundIndex: number, id: string) => void;
@@ -272,47 +141,66 @@ function ExerciseSection({
     slotIndex: number,
     athleteEntered: boolean,
   ) => void;
-  onApplyUnitTypesToAll: (unitTypes: string[]) => void;
+  /** Copies round 1's units/variant/style onto every other round. */
+  onApplyToAll: () => void;
   onApplyVariantToAll: (id: string) => void;
   onApplyStyleToAll: (id: string) => void;
   onCopyToAllBelow: (roundIndex: number, slotIndex: number) => void;
 }) {
   return (
     <div
-      className="flex flex-col gap-2"
+      className="border-portal-border bg-portal-bg flex flex-col gap-3 rounded-xl border p-3"
       onKeyDown={(e) => handleRoundKeyDown(e, rounds, isLast, onCopyToAllBelow)}
       onFocus={handleRoundFocus}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-portal-text1 text-[13px] font-bold">{name}</span>
-        <ApplyToAllRoundsControls
-          variantOptions={variantOptions}
-          styles={styles}
-          onApplyUnitTypesToAll={onApplyUnitTypesToAll}
-          onApplyVariantToAll={onApplyVariantToAll}
-          onApplyStyleToAll={onApplyStyleToAll}
-        />
+        <span className="text-portal-text1 text-sm font-bold">{name}</span>
+        {!hideAdditionalInfo && (
+          <button
+            type="button"
+            onClick={onApplyToAll}
+            title="Copy round 1's units, variant, and style to every round"
+            className="border-portal-border bg-portal-card text-portal-orange flex flex-shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap">
+            <DuplicateIcon size={11} />
+            Apply to all rounds
+          </button>
+        )}
       </div>
-      <TableHeader />
-      {configs.map((config, roundIndex) => (
-        <RoundRow
-          key={roundIndex}
-          roundIndex={roundIndex}
-          config={config}
+      {hideAdditionalInfo ? (
+        <SimpleSetTable
+          rowLabel={(roundIndex) => `Rd ${roundIndex + 1}`}
+          configs={configs}
           variantOptions={variantOptions}
           styles={styles}
-          onChangeUnitTypes={(unitTypes) =>
-            onChangeUnitTypes(roundIndex, unitTypes)
-          }
-          onChangeVariant={(id) => onChangeVariant(roundIndex, id)}
-          onChangeStyle={(id) => onChangeStyle(roundIndex, id)}
-          onChangeValue={(slotIndex, value) =>
-            onChangeValue(roundIndex, slotIndex, value)
-          }
-          onToggleAthlete={(slotIndex, athleteEntered) =>
-            onToggleAthlete(roundIndex, slotIndex, athleteEntered)
-          }
+          onChangeVariantAll={onApplyVariantToAll}
+          onChangeStyleAll={onApplyStyleToAll}
+          onChangeValue={onChangeValue}
+          onToggleAthlete={onToggleAthlete}
         />
-      ))}
+      ) : (
+        <div className="flex flex-col gap-2">
+          {configs.map((config, roundIndex) => (
+            <SetConfigCard
+              key={roundIndex}
+              index={roundIndex}
+              controlsAlign="start"
+              config={config}
+              variantOptions={variantOptions}
+              styles={styles}
+              onChangeUnitTypes={(unitTypes) =>
+                onChangeUnitTypes(roundIndex, unitTypes)
+              }
+              onChangeVariant={(id) => onChangeVariant(roundIndex, id)}
+              onChangeStyle={(id) => onChangeStyle(roundIndex, id)}
+              onChangeValue={(slotIndex, value) =>
+                onChangeValue(roundIndex, slotIndex, value)
+              }
+              onToggleAthlete={(slotIndex, athleteEntered) =>
+                onToggleAthlete(roundIndex, slotIndex, athleteEntered)
+              }
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -320,28 +208,39 @@ function ExerciseSection({
 function ModalHeader({
   name,
   rounds,
+  hideAdditionalInfo,
+  onToggleHideAdditionalInfo,
   onClose,
 }: {
   name: string;
   rounds: number;
+  hideAdditionalInfo: boolean;
+  onToggleHideAdditionalInfo: (v: boolean) => void;
   onClose: () => void;
 }) {
   return (
-    <div className="border-portal-border flex flex-shrink-0 items-center justify-between border-b px-4 py-3">
-      <div>
-        <h2 className="font-title text-portal-text1 text-[15px] font-extrabold tracking-wide">
+    <div className="border-portal-border flex flex-shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
+      <div className="min-w-0">
+        <h2 className="font-title text-portal-text1 truncate text-[15px] font-extrabold tracking-wide">
           {name}
         </h2>
         <p className="text-portal-text3 text-[11px]">
           Superset — {rounds} shared round{rounds === 1 ? "" : "s"}
         </p>
       </div>
-      <button
-        type="button"
-        onClick={onClose}
-        className="border-portal-border text-portal-text2 flex h-7 w-7 items-center justify-center rounded-full border">
-        <XIcon />
-      </button>
+      <div className="flex flex-shrink-0 items-center gap-3">
+        <ToggleSwitch
+          label="Hide additional info"
+          checked={hideAdditionalInfo}
+          onChange={onToggleHideAdditionalInfo}
+        />
+        <button
+          type="button"
+          onClick={onClose}
+          className="border-portal-border text-portal-text2 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border">
+          <XIcon />
+        </button>
+      </div>
     </div>
   );
 }
@@ -395,6 +294,7 @@ function ExerciseSectionContainer({
   exercises,
   styles,
   isLast,
+  hideAdditionalInfo,
   edit,
 }: {
   blockExercise: BlockExerciseWithDetails;
@@ -403,6 +303,7 @@ function ExerciseSectionContainer({
   exercises: ExerciseWithDetails[];
   styles: ExerciseStyleRow[];
   isLast: boolean;
+  hideAdditionalInfo: boolean;
   edit: (
     exerciseId: string,
     fn: (configs: SetConfigState[]) => SetConfigState[],
@@ -419,6 +320,7 @@ function ExerciseSectionContainer({
       variantOptions={variantOptions}
       styles={styles}
       isLast={isLast}
+      hideAdditionalInfo={hideAdditionalInfo}
       onChangeUnitTypes={(roundIndex, unitTypes) =>
         edit(id, (c) => updateSetUnitTypes(c, roundIndex, unitTypes))
       }
@@ -438,9 +340,7 @@ function ExerciseSectionContainer({
           }),
         )
       }
-      onApplyUnitTypesToAll={(unitTypes) =>
-        edit(id, (c) => applyUnitTypesToAll(c, unitTypes))
-      }
+      onApplyToAll={() => edit(id, applyFirstRoundToAll)}
       onApplyVariantToAll={(variantId) =>
         edit(id, (c) => applyVariantToAll(c, variantId))
       }
@@ -461,17 +361,17 @@ export function SupersetRoundsModal({
   onClose,
   onSave,
 }: SupersetRoundsModalProps) {
-  const rounds = block.sets ?? 1;
-  const [byExercise, setByExercise] = useState<
-    Record<string, SetConfigState[]>
-  >(() =>
-    Object.fromEntries(
-      block.exercises.map((be) => [
-        be.id,
-        initSetConfigs(be, resolveDefaultUnitTypes(be)),
-      ]),
-    ),
+  const [rounds, setRounds] = useState(block.sets ?? 1);
+  const [byExercise, setByExercise] = useState<Record<string, SetConfigState[]>>(
+    () =>
+      Object.fromEntries(
+        block.exercises.map((be) => [
+          be.id,
+          initSetConfigs(be, resolveDefaultUnitTypes(be)),
+        ]),
+      ),
   );
+  const [hideAdditionalInfo, setHideAdditionalInfo] = useHideAdditionalInfo();
   const [saving, setSaving] = useState(false);
   const onBackdropClick = useModalDismiss(onClose);
 
@@ -482,9 +382,22 @@ export function SupersetRoundsModal({
     setByExercise((prev) => ({ ...prev, [exerciseId]: fn(prev[exerciseId]!) }));
   }
 
+  function updateRounds(next: number) {
+    setRounds(next);
+    setByExercise((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([id, configs]) => [
+          id,
+          resizeSetConfigs(configs, next),
+        ]),
+      ),
+    );
+  }
+
   async function handleSave() {
     setSaving(true);
     await onSave(
+      rounds,
       block.exercises.map((be) => ({
         id: be.id,
         measurements: toMeasurementInput(byExercise[be.id]!),
@@ -493,28 +406,47 @@ export function SupersetRoundsModal({
     setSaving(false);
   }
 
+  const exerciseCount = block.exercises.length;
+
   return (
     <div
       onClick={onBackdropClick}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
-      <div className="bg-portal-card flex h-[640px] max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl shadow-2xl">
-        <ModalHeader name={block.name} rounds={rounds} onClose={onClose} />
-        <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 py-4">
-          {block.exercises.map((be, index) => (
-            <ExerciseSectionContainer
-              key={be.id}
-              blockExercise={be}
-              configs={byExercise[be.id]!}
-              rounds={rounds}
-              exercises={exercises}
-              styles={styles}
-              isLast={index === block.exercises.length - 1}
-              edit={edit}
-            />
-          ))}
+      <div className="bg-portal-card flex h-[640px] max-h-[90vh] w-full max-w-[650px] flex-col overflow-hidden rounded-2xl shadow-2xl">
+        <ModalHeader
+          name={block.name}
+          rounds={rounds}
+          hideAdditionalInfo={hideAdditionalInfo}
+          onToggleHideAdditionalInfo={setHideAdditionalInfo}
+          onClose={onClose}
+        />
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+          <div className="flex flex-col gap-1">
+            <CountStepper label="Rounds" value={rounds} onChange={updateRounds} />
+            <p className="text-portal-text3 text-[11px]">
+              One round runs all {exerciseCount} exercise
+              {exerciseCount === 1 ? "" : "s"} back-to-back before resting.
+            </p>
+          </div>
+          <div className="bg-portal-border h-px" />
+          <div className="flex flex-col gap-4">
+            {block.exercises.map((be, index) => (
+              <ExerciseSectionContainer
+                key={be.id}
+                blockExercise={be}
+                configs={byExercise[be.id]!}
+                rounds={rounds}
+                exercises={exercises}
+                styles={styles}
+                isLast={index === exerciseCount - 1}
+                hideAdditionalInfo={hideAdditionalInfo}
+                edit={edit}
+              />
+            ))}
+          </div>
         </div>
         <ModalFooter
-          exerciseCount={block.exercises.length}
+          exerciseCount={exerciseCount}
           rounds={rounds}
           onClose={onClose}
           onSave={handleSave}

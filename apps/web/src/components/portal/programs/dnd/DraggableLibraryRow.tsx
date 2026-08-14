@@ -13,6 +13,17 @@ interface DraggableLibraryRowProps {
   onOpen?: (exercise: ExerciseWithDetails) => void;
 }
 
+/** "Reps", or "1 variant, Reps" / "3 variants, Reps" once the exercise has
+ * variants (e.g. "Ab Roller") — a base exercise's own `variants` is only
+ * ever populated on the base itself (single-level nesting), so a variant's
+ * own card never gets this prefix. */
+function libraryCardSubtitle(exercise: ExerciseWithDetails): string {
+  const unitTypeText = exercise.unitTypes[0] ?? "No unit type";
+  const count = exercise.variants.length;
+  if (count === 0) return unitTypeText;
+  return `${count} variant${count === 1 ? "" : "s"}, ${unitTypeText}`;
+}
+
 export function DraggableLibraryRow({
   exercise,
   variant = "list",
@@ -21,6 +32,7 @@ export function DraggableLibraryRow({
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `library:${exercise.id}`,
   });
+  const subtitle = libraryCardSubtitle(exercise);
 
   if (variant === "card") {
     return (
@@ -37,7 +49,7 @@ export function DraggableLibraryRow({
           {exercise.name}
         </div>
         <div className="text-portal-text3 mt-0.5 truncate text-[9px]">
-          {exercise.unitTypes[0] ?? "No unit type"}
+          {subtitle}
         </div>
       </div>
     );
@@ -58,7 +70,7 @@ export function DraggableLibraryRow({
           {exercise.name}
         </div>
         <div className="text-portal-text3 mt-0.5 truncate text-[10px]">
-          {exercise.unitTypes[0] ?? "No unit type"}
+          {subtitle}
         </div>
       </div>
     </div>

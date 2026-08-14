@@ -3,6 +3,7 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import type {
   ExerciseCategoryRow,
+  ExerciseStyleRow,
   ExerciseWithDetails,
   ProgramWithSessions,
   SessionTemplateSummary,
@@ -48,6 +49,7 @@ function ProgramCanvasBody({
   program,
   exercises,
   categories,
+  styles,
   sessionTemplates,
   state,
   onSaveBlockAsTemplate,
@@ -57,6 +59,7 @@ function ProgramCanvasBody({
   program: ProgramWithSessions;
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
+  styles: ExerciseStyleRow[];
   sessionTemplates: SessionTemplateSummary[];
   state: CanvasState;
   onSaveBlockAsTemplate: ((blockId: string) => void) | undefined;
@@ -78,6 +81,7 @@ function ProgramCanvasBody({
         programId={program.id}
         weekNumber={state.selectedWeek}
         sessions={state.weekSessions}
+        styles={styles}
         onRenameSession={(session) =>
           state.setSessionModal({ type: "rename", session })
         }
@@ -132,9 +136,13 @@ function ProgramCanvasBody({
 function ProgramCanvasModals({
   state,
   totalWeeks,
+  exercises,
+  styles,
 }: {
   state: CanvasState;
   totalWeeks: number;
+  exercises: ExerciseWithDetails[];
+  styles: ExerciseStyleRow[];
 }) {
   const seedExerciseName =
     state.sessionModal?.type === "create" && state.sessionModal.seedExerciseId
@@ -149,6 +157,8 @@ function ProgramCanvasModals({
         existingSessions={state.sessions}
         sessionTemplates={state.sessionTemplates}
         totalWeeks={totalWeeks}
+        exercises={exercises}
+        styles={styles}
         linkedWeeks={state.linkedWeeksForSessionModal}
         seedExerciseName={seedExerciseName}
         onCreateSession={state.handleCreateSession}
@@ -197,6 +207,8 @@ export function ProgramCanvasShell({
   updateExerciseAction,
   updateExerciseVideoUrlAction,
   createCategoryAction,
+  styles,
+  createStyleAction,
   ...actions
 }: ProgramCanvasShellProps) {
   const createExerciseActions: CreateExerciseActions = {
@@ -205,6 +217,8 @@ export function ProgramCanvasShell({
     updateExerciseAction,
     updateExerciseVideoUrlAction,
     createCategoryAction,
+    styles,
+    createStyleAction,
   };
   const state = useProgramCanvasState(
     program,
@@ -231,6 +245,7 @@ export function ProgramCanvasShell({
             program={program}
             exercises={exercises}
             categories={categories}
+            styles={styles}
             sessionTemplates={sessionTemplates}
             state={state}
             onSaveBlockAsTemplate={onSaveBlockAsTemplate}
@@ -240,7 +255,12 @@ export function ProgramCanvasShell({
         </DragIndicatorContext.Provider>
       </DndContext>
 
-      <ProgramCanvasModals state={state} totalWeeks={program.weeks} />
+      <ProgramCanvasModals
+        state={state}
+        totalWeeks={program.weeks}
+        exercises={exercises}
+        styles={styles}
+      />
     </div>
   );
 }

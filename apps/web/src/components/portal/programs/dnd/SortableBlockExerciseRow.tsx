@@ -1,12 +1,16 @@
 "use client";
 
+import {
+  resolveDisplayName,
+  resolveStylePill,
+} from "@/src/lib/blockExerciseDisplay";
 import { cn } from "@/src/lib/cn";
 import {
   formatMeasurementCompact,
   measurementStatColumns,
 } from "@/src/lib/measurementFormat";
 import { useSortable } from "@dnd-kit/sortable";
-import type { BlockExerciseWithDetails } from "@hooper/db";
+import type { BlockExerciseWithDetails, ExerciseStyleRow } from "@hooper/db";
 import { SpinnerIcon } from "../../ui/icons";
 import { InlineConfirmDelete } from "../../ui/InlineConfirmDelete";
 import { useDragIndicator, type DragIndicator } from "./DragIndicatorContext";
@@ -66,19 +70,31 @@ function StatColumn({ label, value }: { label: string; value: string }) {
   );
 }
 
+function StylePill({ label }: { label: string }) {
+  return (
+    <span className="border-portal-border bg-portal-bg text-portal-text2 flex-shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-bold tracking-wide">
+      {label}
+    </span>
+  );
+}
+
 function RowBody({
   blockExercise,
+  styles,
   dense,
 }: {
   blockExercise: BlockExerciseWithDetails;
+  styles: ExerciseStyleRow[];
   dense?: boolean;
 }) {
+  const name = resolveDisplayName(blockExercise);
+
   if (dense) {
     return (
       <>
         <div className="min-w-0 flex-1">
           <div className="text-portal-text1 truncate text-[12px] font-semibold">
-            {blockExercise.exercise.name}
+            {name}
           </div>
         </div>
         <div className="text-portal-text3 flex-shrink-0 text-[11px]">
@@ -88,12 +104,17 @@ function RowBody({
     );
   }
 
+  const stylePill = resolveStylePill(blockExercise, styles);
+
   return (
     <>
       <ExerciseIcon />
       <div className="min-w-0 flex-1">
-        <div className="text-portal-text1 truncate text-[13px] font-bold">
-          {blockExercise.exercise.name}
+        <div className="flex items-center gap-1.5">
+          <div className="text-portal-text1 truncate text-[13px] font-bold">
+            {name}
+          </div>
+          {stylePill && <StylePill label={stylePill} />}
         </div>
         {blockExercise.notes && (
           <div className="text-portal-text3 mt-0.5 truncate text-[11px]">
@@ -112,6 +133,7 @@ function RowBody({
 
 interface SortableBlockExerciseRowProps {
   blockExercise: BlockExerciseWithDetails;
+  styles: ExerciseStyleRow[];
   readOnly?: boolean;
   dense?: boolean;
   onOpen?: () => void;
@@ -120,6 +142,7 @@ interface SortableBlockExerciseRowProps {
 
 export function SortableBlockExerciseRow({
   blockExercise,
+  styles,
   readOnly,
   dense,
   onOpen,
@@ -172,7 +195,7 @@ export function SortableBlockExerciseRow({
       <span className="text-portal-text3 flex-shrink-0">
         {pending ? <SpinnerIcon size={10} /> : <GripIcon />}
       </span>
-      <RowBody blockExercise={blockExercise} dense={dense} />
+      <RowBody blockExercise={blockExercise} styles={styles} dense={dense} />
       {!readOnly && !pending && onRemove && (
         <InlineConfirmDelete
           onDelete={onRemove}

@@ -22,6 +22,8 @@ export async function createExerciseAction(
     videoSource: data.videoSource,
     categoryIds: data.categoryIds,
     unitTypes: data.unitTypes,
+    parentId: data.parentId,
+    defaultStyleId: data.defaultStyleId,
     created_by: data.created_by,
   });
   if (result.ok) revalidatePath("/exercises");
@@ -42,6 +44,8 @@ export async function updateExerciseAction(
       : {}),
     categoryIds: data.categoryIds,
     unitTypes: data.unitTypes,
+    parentId: data.parentId,
+    defaultStyleId: data.defaultStyleId,
   });
   if (result.ok) revalidatePath("/exercises");
   return result.ok ? { ok: true } : { ok: false, error: result.error };

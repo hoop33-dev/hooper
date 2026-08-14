@@ -165,14 +165,54 @@ function measurementPartCompact(m: GroupedMeasurement): string {
   return `${firstText}-${lastText}`;
 }
 
+/** Each set's ordered list of unit types, built from the flat measurement
+ * rows — a set with no rows at all is an empty list. */
+function unitTypeComboPerSet(
+  measurements: Measurement[],
+  setsCount: number,
+): string[][] {
+  const bySet = new Map<number, Measurement[]>();
+  for (const m of measurements) {
+    const list = bySet.get(m.set_index) ?? [];
+    list.push(m);
+    bySet.set(m.set_index, list);
+  }
+  return Array.from({ length: setsCount }, (_, setIndex) =>
+    (bySet.get(setIndex) ?? [])
+      .slice()
+      .sort((a, b) => a.set_index - b.set_index)
+      .map((m) => m.unit_type),
+  );
+}
+
+/**
+ * Whether every set shares the identical ordered combo of unit types — once
+ * a placement's sets can each independently choose their own unit types
+ * (up to 3), a pyramid-style per-slot summary only makes sense while every
+ * set still agrees on which slots exist at all.
+ */
+export function isUnitTypeComboUniform(
+  measurements: Measurement[],
+  setsCount: number,
+): boolean {
+  const combos = unitTypeComboPerSet(measurements, setsCount);
+  const [first, ...rest] = combos;
+  if (!first) return true;
+  const firstKey = first.join("|");
+  return rest.every((combo) => combo.join("|") === firstKey);
+}
+
 /**
  * Human-readable summary of a placed exercise's measurements, e.g.
  * "4 sets × 8 + 60 kg", "3 sets × 20sec", "3 sets × 100m + —" (Sprint with
  * Distance coach-entered and Time left for the athlete to log), or
- * "5 sets × 12→3 + 40 kg→75 kg" for a pyramid set.
+ * "5 sets × 12→3 + 40 kg→75 kg" for a pyramid set — or "4 sets · mixed
+ * units" once the sets no longer share the same unit-type combo at all.
  */
 export function formatMeasurementSummary(m: MeasurementsFields): string {
   const setsLabel = `${m.sets} set${m.sets === 1 ? "" : "s"}`;
+  if (!isUnitTypeComboUniform(m.measurements, m.sets))
+    return `${setsLabel} · mixed units`;
   const grouped = groupByUnitType(m.measurements);
   if (grouped.length === 0) return setsLabel;
   return `${setsLabel} × ${grouped.map(measurementPart).join(" + ")}`;
@@ -181,9 +221,12 @@ export function formatMeasurementSummary(m: MeasurementsFields): string {
 /**
  * Dense one-line summary for the program canvas's compact rows, e.g.
  * "4×8", "2×15", "3×20sec+100m" — sets × each active measurement, or
- * "4×12-5kg" for a pyramid/wave measurement (see measurementPartCompact).
+ * "4×12-5kg" for a pyramid/wave measurement (see measurementPartCompact) —
+ * or "4×Custom" once the sets no longer share the same unit-type combo.
  */
 export function formatMeasurementCompact(m: MeasurementsFields): string {
+  if (!isUnitTypeComboUniform(m.measurements, m.sets))
+    return `${m.sets}×Custom`;
   const grouped = groupByUnitType(m.measurements);
   return `${m.sets}×${grouped.map(measurementPartCompact).join("+")}`;
 }
@@ -196,7 +239,9 @@ export type MeasurementStatColumn = {
 
 /**
  * The session editor's per-row stat columns (SETS plus one column per active
- * measurement, e.g. SETS / REPS / WEIGHT, or SETS / DISTANCE / TIME).
+ * measurement, e.g. SETS / REPS / WEIGHT, or SETS / DISTANCE / TIME) — or
+ * SETS plus a single "Custom" column once the sets no longer share the same
+ * unit-type combo.
  */
 export function measurementStatColumns(
   m: MeasurementsFields,
@@ -206,6 +251,8 @@ export function measurementStatColumns(
     label: "SETS",
     value: `${m.sets}`,
   };
+  if (!isUnitTypeComboUniform(m.measurements, m.sets))
+    return [sets, { key: "custom", label: "", value: "Custom" }];
   const rest = groupByUnitType(m.measurements).map((g) => ({
     key: g.unit_type,
     label: g.unit_type.toUpperCase(),

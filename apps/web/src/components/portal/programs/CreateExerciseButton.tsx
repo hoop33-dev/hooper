@@ -1,6 +1,11 @@
 "use client";
 
-import type { ExerciseCategoryRow, ExerciseVideoSource } from "@hooper/db";
+import type {
+  ExerciseCategoryRow,
+  ExerciseStyleRow,
+  ExerciseVideoSource,
+  ExerciseWithDetails,
+} from "@hooper/db";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
@@ -11,6 +16,8 @@ import {
 
 interface CreateExerciseButtonProps {
   categories: ExerciseCategoryRow[];
+  styles: ExerciseStyleRow[];
+  baseExercises: ExerciseWithDetails[];
   profileId: string;
   createExerciseAction: (data: ExerciseFormData) => Promise<ActionResult>;
   updateExerciseAction: (
@@ -26,6 +33,10 @@ interface CreateExerciseButtonProps {
     name: string;
     created_by: string;
   }) => Promise<{ ok: boolean; data?: ExerciseCategoryRow; error?: string }>;
+  createStyleAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: ExerciseStyleRow; error?: string }>;
   className?: string;
   /** Fires whenever the post-save refresh starts/finishes, so the list this
    * button lives in can show a loading state until the new exercise
@@ -39,11 +50,14 @@ interface CreateExerciseButtonProps {
  * refreshes so the new exercise appears in the picker right away. */
 export function CreateExerciseButton({
   categories,
+  styles,
+  baseExercises,
   profileId,
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
   createCategoryAction,
+  createStyleAction,
   className,
   onPendingChange,
 }: CreateExerciseButtonProps) {
@@ -77,6 +91,8 @@ export function CreateExerciseButton({
         <ExerciseModal
           mode="create"
           categories={categories}
+          styles={styles}
+          baseExercises={baseExercises}
           profileId={profileId}
           onSave={handleSaved}
           onClose={() => setOpen(false)}
@@ -84,6 +100,7 @@ export function CreateExerciseButton({
           updateAction={updateExerciseAction}
           updateVideoUrlAction={updateExerciseVideoUrlAction}
           createCategoryAction={createCategoryAction}
+          createStyleAction={createStyleAction}
         />
       )}
     </>

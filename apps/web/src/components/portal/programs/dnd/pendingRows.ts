@@ -44,10 +44,13 @@ export function createPendingExercise(
     sets: 1,
     notes: null,
     link_group_id: null,
+    style_id: exercise.default_style_id,
     created_at: now,
     updated_at: now,
     exercise,
     measurements: [],
+    setVariants: {},
+    setStyles: {},
     pending: true,
   };
 }

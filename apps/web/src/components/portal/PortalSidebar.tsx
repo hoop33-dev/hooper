@@ -12,7 +12,6 @@ import {
   DumbbellIcon,
   HomeIcon,
   LayersIcon,
-  LibraryIcon,
   LogOutIcon,
   StackIcon,
   UsersIcon,
@@ -59,6 +58,7 @@ interface LeafNavItem {
 interface ParentNavItem {
   id: string;
   label: string;
+  href?: string;
   Icon: IconComponent;
   active: boolean;
   children: LeafNavItem[];
@@ -75,13 +75,6 @@ const NAV_ITEMS: NavItem[] = [
     active: true,
   },
   {
-    id: "programs",
-    label: "Programs",
-    href: "/programs",
-    Icon: LayersIcon,
-    active: true,
-  },
-  {
     id: "athletes",
     label: "Athletes",
     href: "/athletes",
@@ -89,16 +82,10 @@ const NAV_ITEMS: NavItem[] = [
     active: true,
   },
   {
-    id: "forms",
-    label: "Forms",
-    href: "/forms",
-    Icon: ClipboardIcon,
-    active: true,
-  },
-  {
-    id: "library",
-    label: "Library",
-    Icon: LibraryIcon,
+    id: "programs",
+    label: "Programs",
+    href: "/programs",
+    Icon: LayersIcon,
     active: true,
     children: [
       {
@@ -116,6 +103,13 @@ const NAV_ITEMS: NavItem[] = [
         active: true,
       },
     ],
+  },
+  {
+    id: "forms",
+    label: "Forms",
+    href: "/forms",
+    Icon: ClipboardIcon,
+    active: true,
   },
 ];
 
@@ -186,16 +180,16 @@ function SidebarNavItem({
   );
 }
 
-function SidebarLibraryNavItem({
+function SidebarParentNavItem({
   item,
   pathname,
 }: {
   item: ParentNavItem;
   pathname: string;
 }) {
-  const isSectionActive = item.children.some((child) =>
-    pathname.startsWith(child.href),
-  );
+  const isSectionActive =
+    (item.href != null && pathname.startsWith(item.href)) ||
+    item.children.some((child) => pathname.startsWith(child.href));
   const [expanded, setExpanded] = useState(isSectionActive);
 
   useEffect(() => {
@@ -206,27 +200,34 @@ function SidebarLibraryNavItem({
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => setExpanded((prev) => !prev)}
+      <div
         className={cn(
-          "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors",
+          "flex items-center rounded-lg transition-colors",
           isSectionActive
             ? "bg-[rgba(241,88,37,0.13)]"
             : "hover:bg-white/[0.06]",
         )}>
-        <item.Icon size={15} color={color} />
-        <span
-          className={cn(
-            "text-[13px]",
-            isSectionActive
-              ? "font-bold text-white"
-              : "font-medium text-white/55",
-          )}>
-          {item.label}
-        </span>
-        <ChevronIcon expanded={expanded} color={color} />
-      </button>
+        <Link
+          href={item.href ?? "#"}
+          className="flex flex-1 items-center gap-2.5 px-3 py-2.5">
+          <item.Icon size={15} color={color} />
+          <span
+            className={cn(
+              "text-[13px]",
+              isSectionActive
+                ? "font-bold text-white"
+                : "font-medium text-white/55",
+            )}>
+            {item.label}
+          </span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          className="flex flex-shrink-0 items-center py-2.5 pr-3 pl-1.5">
+          <ChevronIcon expanded={expanded} color={color} />
+        </button>
+      </div>
       {expanded && (
         <div className="mt-0.5 flex flex-col gap-0.5 pl-4">
           {item.children.map((child) => (
@@ -279,7 +280,7 @@ export function PortalSidebar({ profile }: { profile: CoachProfile | null }) {
       <nav className="flex flex-1 flex-col gap-0.5 p-2.5">
         {NAV_ITEMS.map((item) =>
           "children" in item ? (
-            <SidebarLibraryNavItem
+            <SidebarParentNavItem
               key={item.id}
               item={item}
               pathname={pathname}

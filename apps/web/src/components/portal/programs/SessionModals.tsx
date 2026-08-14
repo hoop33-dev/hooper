@@ -1,7 +1,9 @@
-import type { LinkScope, MeasurementInput } from "@/src/services/block.service";
+import type { LinkScope } from "@/src/services/block.service";
 import type {
   BlockExerciseWithDetails,
   BlockWithExercises,
+  ExerciseStyleRow,
+  ExerciseWithDetails,
   SessionRow,
   SessionTemplateSummary,
 } from "@hooper/db";
@@ -16,8 +18,12 @@ import {
 } from "./SessionCreateModal";
 import { SessionDuplicateModal } from "./SessionDuplicateModal";
 import { SessionRenamePopover } from "./SessionRenamePopover";
-import { SupersetRoundsModal } from "./SupersetRoundsModal";
+import {
+  SupersetRoundsModal,
+  type SupersetExercisePayload,
+} from "./SupersetRoundsModal";
 import type { SessionModalState } from "./useProgramCanvasState";
+import { variantOptionsFor } from "./variantOptions";
 
 interface SessionModalsProps {
   sessionModal: SessionModalState;
@@ -25,6 +31,8 @@ interface SessionModalsProps {
   existingSessions: SessionRow[];
   sessionTemplates?: SessionTemplateSummary[];
   totalWeeks: number;
+  exercises: ExerciseWithDetails[];
+  styles: ExerciseStyleRow[];
   /** The duplicate modal's session's current linked weeks (its own week
    * only, if it isn't linked to anything). */
   linkedWeeks: number[];
@@ -48,7 +56,8 @@ interface SessionModalsProps {
   editingSupersetBlock: BlockWithExercises | null;
   onCloseSupersetEditor: () => void;
   onSaveSupersetMeasurements: (
-    perExercise: { id: string; measurements: MeasurementInput[] }[],
+    rounds: number,
+    perExercise: SupersetExercisePayload[],
   ) => Promise<void>;
 }
 
@@ -58,6 +67,8 @@ export function SessionModals({
   existingSessions,
   sessionTemplates,
   totalWeeks,
+  exercises,
+  styles,
   linkedWeeks,
   seedExerciseName,
   onCreateSession,
@@ -115,11 +126,18 @@ export function SessionModals({
           linkedWeeks={editingExerciseLinkedWeeks}
           onClose={onCloseExerciseEditor}
           onSave={onSaveExerciseMeasurement}
+          variantOptions={variantOptionsFor(
+            editingExercise.exercise,
+            exercises,
+          )}
+          styles={styles}
         />
       )}
       {editingSupersetBlock && (
         <SupersetRoundsModal
           block={editingSupersetBlock}
+          exercises={exercises}
+          styles={styles}
           onClose={onCloseSupersetEditor}
           onSave={onSaveSupersetMeasurements}
         />

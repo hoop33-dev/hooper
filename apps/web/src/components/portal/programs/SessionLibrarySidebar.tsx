@@ -23,12 +23,14 @@ interface SessionLibrarySidebarProps extends CreateExerciseActions {
 export function SessionLibrarySidebar({
   exercises,
   categories,
+  styles,
   sessionTemplates,
   profileId,
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
   createCategoryAction,
+  createStyleAction,
 }: SessionLibrarySidebarProps) {
   const [tab, setTab] = useState<LibraryTab>("exercises");
   const tabs = (
@@ -39,12 +41,14 @@ export function SessionLibrarySidebar({
     <ExerciseLibraryPanel
       exercises={exercises}
       categories={categories}
+      styles={styles}
       tabs={tabs}
       profileId={profileId}
       createExerciseAction={createExerciseAction}
       updateExerciseAction={updateExerciseAction}
       updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
       createCategoryAction={createCategoryAction}
+      createStyleAction={createStyleAction}
     />
   ) : (
     <BlockLibraryPanel sessionTemplates={sessionTemplates} tabs={tabs} />

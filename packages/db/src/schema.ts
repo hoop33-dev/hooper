@@ -111,6 +111,24 @@ export type ExerciseRow = {
   video_url: string | null;
   /** Whether video_url points at an uploaded file or an external link. Null iff video_url is null. */
   video_source: ExerciseVideoSource | null;
+  /** The base exercise this is a variant of — null for a base exercise.
+   * Single-level only (a variant's own parent_id is never itself set),
+   * enforced at the app layer, not the DB. */
+  parent_id: string | null;
+  /** Default style/descriptor for this exercise (e.g. "should be dying") —
+   * copied onto block_exercises.style_id when placed into a program, then
+   * freely editable per placement. */
+  default_style_id: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ExerciseStyleRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  position: number;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -184,11 +202,36 @@ export type BlockExerciseRow = {
   notes: string | null;
   /** Shared across the corresponding placement in each linked sibling block. */
   link_group_id: string | null;
+  /** Copied from exercise.default_style_id when placed, then editable per
+   * placement — null if the exercise has no default and none was chosen. */
+  style_id: string | null;
   created_at: string;
   updated_at: string;
 };
 
 export type EnteredBy = "coach" | "athlete";
+
+export type BlockExerciseSetVariantRow = {
+  block_exercise_id: string;
+  /** Which set (0-indexed) this override applies to. */
+  set_index: number;
+  /** The variant exercise to use for this set instead of the placement's
+   * own exercise_id. A row only exists when the set's variant differs from
+   * the placement default — sparse, not one row per set. */
+  exercise_id: string;
+};
+
+export type BlockExerciseSetStyleRow = {
+  block_exercise_id: string;
+  /** Which set (0-indexed) this override applies to. */
+  set_index: number;
+  /** The style to use for this set instead of the placement's own style_id
+   * — null means this set explicitly has no style, distinct from the row
+   * not existing at all (which means "inherits the placement default"). A
+   * row only exists when the set's style differs from the placement
+   * default — sparse, not one row per set. */
+  style_id: string | null;
+};
 
 export type BlockExerciseMeasurementRow = {
   block_exercise_id: string;
@@ -384,6 +427,13 @@ export type Database = {
         Update: Partial<ExerciseUnitTypeRow>;
         Relationships: [];
       };
+      exercise_styles: {
+        Row: ExerciseStyleRow;
+        Insert: Partial<ExerciseStyleRow> &
+          Pick<ExerciseStyleRow, "name" | "created_by">;
+        Update: Partial<ExerciseStyleRow>;
+        Relationships: [];
+      };
       programs: {
         Row: ProgramRow;
         Insert: Partial<ProgramRow> &
@@ -420,6 +470,18 @@ export type Database = {
             "block_exercise_id" | "position" | "unit_type"
           >;
         Update: Partial<BlockExerciseMeasurementRow>;
+        Relationships: [];
+      };
+      block_exercise_set_variants: {
+        Row: BlockExerciseSetVariantRow;
+        Insert: BlockExerciseSetVariantRow;
+        Update: Partial<BlockExerciseSetVariantRow>;
+        Relationships: [];
+      };
+      block_exercise_set_styles: {
+        Row: BlockExerciseSetStyleRow;
+        Insert: BlockExerciseSetStyleRow;
+        Update: Partial<BlockExerciseSetStyleRow>;
         Relationships: [];
       };
       program_sources: {

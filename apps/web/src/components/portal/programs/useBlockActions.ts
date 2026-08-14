@@ -25,6 +25,7 @@ import {
   removeExercise,
 } from "./blocksState";
 import { isPending } from "./dnd/pendingRows";
+import type { SupersetExercisePayload } from "./SupersetRoundsModal";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
@@ -53,7 +54,7 @@ async function runAddExerciseToBlock(
     reportError(ctx.showError, result);
     return;
   }
-  const newRow = { ...result.data, exercise };
+  const newRow = { ...result.data, exercise, setVariants: {}, setStyles: {} };
   ctx.setBlocks(
     ctx.blocks.map((b) =>
       b.id === blockId ? { ...b, exercises: [...b.exercises, newRow] } : b,
@@ -148,29 +149,25 @@ export function findExerciseMeasurements(
   return undefined;
 }
 
-/** Flattens the modal's per-column, per-set edit payload back into the flat
- * per-set measurement rows a placement carries — the shape needed to patch
- * local state optimistically, ahead of the server's own flattened response.
+/** Flattens the modal's per-set edit payload back into the flat per-set
+ * measurement rows a placement carries — the shape needed to patch local
+ * state optimistically, ahead of the server's own flattened response.
  * `created_at`/`updated_at` are placeholders; they're overwritten the moment
  * the real (server-confirmed) row swaps in. */
 function toOptimisticMeasurements(
   blockExerciseId: string,
-  measurements: {
-    unit_type: string;
-    value_unit?: string | null;
-    sets: { value?: number | null; value_entered_by?: EnteredBy }[];
-  }[],
+  measurements: MeasurementInput,
 ): BlockExerciseWithDetails["measurements"] {
   const now = new Date().toISOString();
-  return measurements.flatMap((m, position) =>
-    m.sets.map((s, set_index) => ({
+  return measurements.flatMap((set, set_index) =>
+    set.slots.map((slot, position) => ({
       block_exercise_id: blockExerciseId,
       position,
       set_index,
-      unit_type: m.unit_type,
-      value: s.value ?? null,
-      value_entered_by: s.value_entered_by ?? ("coach" as EnteredBy),
-      value_unit: m.value_unit ?? null,
+      unit_type: slot.unit_type,
+      value: slot.value ?? null,
+      value_entered_by: slot.value_entered_by ?? ("coach" as EnteredBy),
+      value_unit: slot.value_unit ?? null,
       created_at: now,
       updated_at: now,
     })),
@@ -198,11 +195,15 @@ export async function runSaveExerciseMeasurement(
   ctx.setBlocks(
     patchExercise(ctx.blocks, editingExercise.id, {
       sets: data.sets,
-      notes: data.notes ?? null,
       measurements: toOptimisticMeasurements(
         editingExercise.id,
         data.measurements,
       ),
+      ...(data.notes !== undefined && { notes: data.notes }),
+      ...(data.resolvedSetVariants && {
+        setVariants: data.resolvedSetVariants,
+      }),
+      ...(data.resolvedSetStyles && { setStyles: data.resolvedSetStyles }),
     }),
   );
   ctx.onSaved();
@@ -234,12 +235,18 @@ export async function runSaveExerciseMeasurement(
  * exercises at most, so N sequential saves is simple and fast enough.
  * Patches every exercise's predicted values in immediately and closes the
  * modal, then reconciles (or rolls every exercise back) as the sequential
- * saves land. */
+ * saves land. When `rounds` differs from the block's current round count
+ * (the Rounds stepper was used), persists that first — block.service.ts's
+ * updateBlock already cascades the resize to every exercise in the block,
+ * though the per-exercise saves below immediately supersede that resize
+ * with the coach's own fully-edited configs anyway. */
 export async function runSaveSupersetMeasurements(
-  perExercise: { id: string; measurements: MeasurementInput[] }[],
+  block: BlockWithExercises,
+  rounds: number,
+  perExercise: SupersetExercisePayload[],
   ctx: Pick<
     UseBlockActionsOptions,
-    "blocks" | "setBlocks" | "updateBlockExerciseAction"
+    "blocks" | "setBlocks" | "updateBlockExerciseAction" | "updateBlockAction"
   > & {
     getBlocks: () => BlockWithExercises[];
     showError: (message: string) => void;
@@ -254,18 +261,41 @@ export async function runSaveSupersetMeasurements(
     perExercise.map(({ id }) => [id, findExerciseMeasurements(ctx.blocks, id)]),
   );
   const optimistic = perExercise.reduce(
-    (blocks, { id, measurements }) =>
+    (blocks, { id, measurements, resolvedSetVariants, resolvedSetStyles }) =>
       patchExercise(blocks, id, {
+        sets: rounds,
         measurements: toOptimisticMeasurements(id, measurements),
+        ...(resolvedSetVariants && { setVariants: resolvedSetVariants }),
+        ...(resolvedSetStyles && { setStyles: resolvedSetStyles }),
       }),
     ctx.blocks,
   );
   ctx.setBlocks(optimistic);
   ctx.onSaved();
 
+  if (rounds !== (block.sets ?? 1)) {
+    const blockResult = await ctx.updateBlockAction(block.id, { sets: rounds });
+    if (blockResult.ok && blockResult.data) {
+      ctx.setBlocks(patchBlock(ctx.getBlocks(), block.id, blockResult.data));
+    } else {
+      reportError(ctx.showError, blockResult);
+    }
+  }
+
   for (let i = 0; i < perExercise.length; i++) {
-    const { id, measurements } = perExercise[i];
-    const result = await ctx.updateBlockExerciseAction(id, { measurements });
+    const p = perExercise[i]!;
+    // Only forward keys the payload actually set — block.service.ts's
+    // buildBlockExercisePatch distinguishes an explicit `style_id: null`
+    // from an omitted field via `"style_id" in input`, so spreading in an
+    // `undefined` value here (instead of omitting the key) would wrongly
+    // clear a sibling exercise's style it was never meant to touch.
+    const result = await ctx.updateBlockExerciseAction(p.id, {
+      measurements: p.measurements,
+      ...(p.exercise_id !== undefined && { exercise_id: p.exercise_id }),
+      ...("style_id" in p && { style_id: p.style_id }),
+      ...(p.set_variants !== undefined && { set_variants: p.set_variants }),
+      ...(p.set_styles !== undefined && { set_styles: p.set_styles }),
+    });
     if (!result.ok || !result.data) {
       // Roll back only the exercises that never got a server-confirmed
       // result — this one, and any later in the loop that were never even
@@ -274,17 +304,17 @@ export async function runSaveSupersetMeasurements(
       // during the in-flight window are untouched.
       const unconfirmed = perExercise.slice(i);
       ctx.setBlocks(
-        unconfirmed.reduce((blocks, p) => {
-          const original = originalMeasurementsById.get(p.id);
+        unconfirmed.reduce((blocks, up) => {
+          const original = originalMeasurementsById.get(up.id);
           return original === undefined
             ? blocks
-            : patchExercise(blocks, p.id, { measurements: original });
+            : patchExercise(blocks, up.id, { measurements: original });
         }, ctx.getBlocks()),
       );
       reportError(ctx.showError, result);
       return;
     }
-    ctx.setBlocks(patchExercise(ctx.getBlocks(), id, result.data));
+    ctx.setBlocks(patchExercise(ctx.getBlocks(), p.id, result.data));
   }
 }
 
@@ -448,12 +478,17 @@ export function useBlockActions(options: UseBlockActionsOptions) {
         onSaved: () => setEditingExercise(null),
       }),
     saveSupersetMeasurements: (
-      perExercise: { id: string; measurements: MeasurementInput[] }[],
+      rounds: number,
+      perExercise: SupersetExercisePayload[],
     ) =>
-      runSaveSupersetMeasurements(perExercise, {
-        ...ctx,
-        onSaved: () => setEditingSupersetBlock(null),
-      }),
+      editingSupersetBlock
+        ? runSaveSupersetMeasurements(
+            editingSupersetBlock,
+            rounds,
+            perExercise,
+            { ...ctx, onSaved: () => setEditingSupersetBlock(null) },
+          )
+        : Promise.resolve(),
     removeExerciseById: (exerciseRowId: string) =>
       runRemoveExerciseFromBlock(exerciseRowId, ctx),
     addExerciseToBlock: (blockId: string, exerciseId: string) =>

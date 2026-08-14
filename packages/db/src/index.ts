@@ -1,10 +1,13 @@
 export * from "./schema";
 export type {
   BlockExerciseRow,
+  BlockExerciseSetStyleRow,
+  BlockExerciseSetVariantRow,
   BlockRow,
   ExerciseCategoryLinkRow,
   ExerciseCategoryRow,
   ExerciseRow,
+  ExerciseStyleRow,
   ExerciseUnitTypeRow,
   FormQuestionOptionRow,
   FormQuestionRow,
@@ -67,7 +70,11 @@ export type ParentPlayerLink = {
   updated_at: string;
 };
 
-import type { ExerciseCategoryRow, ExerciseRow } from "./schema";
+import type {
+  ExerciseCategoryRow,
+  ExerciseRow,
+  ExerciseStyleRow,
+} from "./schema";
 
 export type ExerciseCategoryWithCount = ExerciseCategoryRow & {
   exercise_count: number;
@@ -77,9 +84,14 @@ export type ExerciseCategoryTreeNode = ExerciseCategoryWithCount & {
   children: ExerciseCategoryTreeNode[];
 };
 
+// `variants` is populated only on a base exercise (parent_id null) — the
+// other exercises whose parent_id points back at this one. A variant's own
+// `variants` array is always empty (single-level nesting).
 export type ExerciseWithDetails = ExerciseRow & {
   categories: ExerciseCategoryRow[];
   unitTypes: string[];
+  defaultStyle: ExerciseStyleRow | null;
+  variants: ExerciseWithDetails[];
 };
 
 import type {
@@ -96,9 +108,20 @@ export type { BlockExerciseMeasurementRow, EnteredBy } from "./schema";
 // measurement modal can offer only that exercise's configured unit types.
 // `measurements` (sorted by position) is the placement's own active
 // measurements — one per unit type the coach has enabled for this exercise.
+// `style_id` (inherited from BlockExerciseRow) is resolved against the
+// styles list already loaded alongside the program, not embedded here.
+// `setVariants` is sparse, keyed by set_index — only sets whose variant
+// differs from `exercise_id` have an entry (a resolved ExerciseRow, not
+// just an id, since the modal needs the variant's name to display it).
+// `setStyles` is the same sparse convention for style_id — only sets whose
+// style differs from the placement's own style_id have an entry. A `null`
+// entry means that set explicitly has no style (distinct from no entry at
+// all, which means "inherits the placement default").
 export type BlockExerciseWithDetails = BlockExerciseRow & {
   exercise: ExerciseWithDetails;
   measurements: BlockExerciseMeasurementRow[];
+  setVariants: Record<number, ExerciseRow>;
+  setStyles: Record<number, ExerciseStyleRow | null>;
 };
 
 export type BlockWithExercises = BlockRow & {

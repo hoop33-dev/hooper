@@ -2,6 +2,7 @@
 
 import type {
   ExerciseCategoryRow,
+  ExerciseStyleRow,
   ExerciseVideoSource,
   ExerciseWithDetails,
 } from "@hooper/db";
@@ -19,6 +20,7 @@ type ActionResult = { ok: boolean; error?: string; id?: string };
 interface ExerciseLibraryShellProps {
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
+  styles: ExerciseStyleRow[];
   profileId: string;
   searchQuery: string;
   selectedCategoryId: string;
@@ -37,6 +39,10 @@ interface ExerciseLibraryShellProps {
     name: string;
     created_by: string;
   }) => Promise<{ ok: boolean; data?: ExerciseCategoryRow; error?: string }>;
+  createStyleAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: ExerciseStyleRow; error?: string }>;
 }
 
 function SearchBar({
@@ -226,6 +232,23 @@ function LibraryToolbar({
         </svg>
         Manage categories
       </Link>
+      <Link
+        href="/exercises/styles"
+        className="border-portal-border bg-portal-card text-portal-text1 hover:bg-portal-border/50 inline-flex h-9 flex-shrink-0 items-center gap-1.5 rounded-lg border px-4 text-sm font-semibold whitespace-nowrap transition">
+        <svg
+          className="text-portal-text2 h-3.5 w-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+          />
+        </svg>
+        Manage styles
+      </Link>
       <div className="ml-auto flex flex-shrink-0 items-center gap-3">
         <SearchBar value={search} onChange={onSearchChange} />
         <PortalButton variant="primary" onClick={onCreateClick}>
@@ -239,20 +262,14 @@ function LibraryToolbar({
   );
 }
 
-export function ExerciseLibraryShell({
-  exercises,
-  categories,
-  profileId,
-  initialEditExerciseId,
-  createAction,
-  updateAction,
-  deleteAction,
-  updateVideoUrlAction,
-  createCategoryAction,
-}: ExerciseLibraryShellProps) {
+/** Owns the create/edit modal's open state, extracted out of
+ * ExerciseLibraryShell so the component itself stays under the lint's
+ * max-lines-per-function limit. */
+function useExerciseLibraryModal(
+  exercises: ExerciseWithDetails[],
+  initialEditExerciseId: string | undefined,
+) {
   const router = useRouter();
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExercise, setEditingExercise] =
     useState<ExerciseWithDetails | null>(null);
@@ -266,13 +283,6 @@ export function ExerciseLibraryShell({
       setModalOpen(true);
     }
   }, [initialEditExerciseId, exercises]);
-
-  const filtered = filterExercises(
-    exercises,
-    search,
-    categoryFilter,
-    categories,
-  );
 
   function openCreate() {
     setEditingExercise(null);
@@ -296,6 +306,45 @@ export function ExerciseLibraryShell({
     });
   }
 
+  return {
+    modalOpen,
+    editingExercise,
+    isPending,
+    openCreate,
+    openEdit,
+    closeModal,
+    handleSaved,
+  };
+}
+
+export function ExerciseLibraryShell({
+  exercises,
+  categories,
+  styles,
+  profileId,
+  initialEditExerciseId,
+  createAction,
+  updateAction,
+  deleteAction,
+  updateVideoUrlAction,
+  createCategoryAction,
+  createStyleAction,
+}: ExerciseLibraryShellProps) {
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const modal = useExerciseLibraryModal(exercises, initialEditExerciseId);
+
+  const filtered = filterExercises(
+    exercises,
+    search,
+    categoryFilter,
+    categories,
+  );
+
+  const baseExercises = exercises
+    .filter((ex) => !ex.parent_id)
+    .filter((ex) => ex.id !== modal.editingExercise?.id);
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <LibraryToolbar
@@ -304,10 +353,10 @@ export function ExerciseLibraryShell({
         onCategoryChange={setCategoryFilter}
         search={search}
         onSearchChange={setSearch}
-        onCreateClick={openCreate}
+        onCreateClick={modal.openCreate}
       />
 
-      {isPending && (
+      {modal.isPending && (
         <div className="text-portal-text3 border-portal-border border-b px-4 py-1.5 text-xs">
           Refreshing…
         </div>
@@ -317,27 +366,30 @@ export function ExerciseLibraryShell({
         {filtered.length === 0 ? (
           <EmptyState
             hasFilters={!!(search || categoryFilter)}
-            onCreateClick={openCreate}
+            onCreateClick={modal.openCreate}
           />
         ) : (
-          <ExerciseTable exercises={filtered} onEdit={openEdit} />
+          <ExerciseTable exercises={filtered} onEdit={modal.openEdit} />
         )}
       </div>
 
-      {modalOpen && (
+      {modal.modalOpen && (
         <ExerciseModal
-          mode={editingExercise ? "edit" : "create"}
-          exercise={editingExercise ?? undefined}
+          mode={modal.editingExercise ? "edit" : "create"}
+          exercise={modal.editingExercise ?? undefined}
           categories={categories}
+          styles={styles}
+          baseExercises={baseExercises}
           profileId={profileId}
-          onSave={handleSaved}
-          onClose={closeModal}
-          onDelete={handleSaved}
+          onSave={modal.handleSaved}
+          onClose={modal.closeModal}
+          onDelete={modal.handleSaved}
           createAction={createAction}
           updateAction={updateAction}
           deleteAction={deleteAction}
           updateVideoUrlAction={updateVideoUrlAction}
           createCategoryAction={createCategoryAction}
+          createStyleAction={createStyleAction}
         />
       )}
     </div>
@@ -351,6 +403,26 @@ function ExerciseTable({
   exercises: ExerciseWithDetails[];
   onEdit: (exercise: ExerciseWithDetails) => void;
 }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  function toggleExpand(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const baseRows = exercises.filter((ex) => !ex.parent_id);
+  const baseIds = new Set(baseRows.map((ex) => ex.id));
+  // Variants whose base didn't itself match the current search/filter — kept
+  // visible as standalone rows so a search for a variant's own name still
+  // surfaces it, even when its base doesn't match.
+  const orphanVariants = exercises.filter(
+    (ex) => ex.parent_id && !baseIds.has(ex.parent_id),
+  );
+
   return (
     <div className="px-7 py-2">
       <table className="w-full border-collapse">
@@ -366,7 +438,16 @@ function ExerciseTable({
           </tr>
         </thead>
         <tbody>
-          {exercises.map((exercise) => (
+          {baseRows.map((exercise) => (
+            <ExerciseGroupRows
+              key={exercise.id}
+              exercise={exercise}
+              expanded={expanded.has(exercise.id)}
+              onToggleExpand={() => toggleExpand(exercise.id)}
+              onEdit={onEdit}
+            />
+          ))}
+          {orphanVariants.map((exercise) => (
             <ExerciseCard
               key={exercise.id}
               exercise={exercise}
@@ -376,6 +457,39 @@ function ExerciseTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+function ExerciseGroupRows({
+  exercise,
+  expanded,
+  onToggleExpand,
+  onEdit,
+}: {
+  exercise: ExerciseWithDetails;
+  expanded: boolean;
+  onToggleExpand: () => void;
+  onEdit: (exercise: ExerciseWithDetails) => void;
+}) {
+  const hasVariants = exercise.variants.length > 0;
+  return (
+    <>
+      <ExerciseCard
+        exercise={exercise}
+        onEdit={onEdit}
+        expanded={expanded}
+        onToggleExpand={hasVariants ? onToggleExpand : undefined}
+      />
+      {expanded &&
+        exercise.variants.map((variant) => (
+          <ExerciseCard
+            key={variant.id}
+            exercise={variant}
+            onEdit={onEdit}
+            indent
+          />
+        ))}
+    </>
   );
 }
 

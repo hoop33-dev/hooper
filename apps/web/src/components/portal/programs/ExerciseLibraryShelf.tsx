@@ -64,18 +64,28 @@ function ShelfSidebar({
 export function ExerciseLibraryShelfBody({
   exercises,
   categories,
+  styles,
   profileId,
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
   createCategoryAction,
+  createStyleAction,
 }: ExerciseLibraryShelfProps) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [previewExercise, setPreviewExercise] =
     useState<ExerciseWithDetails | null>(null);
   const [creating, setCreating] = useState(false);
-  const filtered = filterExercises(exercises, search, categoryId, categories);
+  // Variants are chosen inside the measurement modal, not dragged/added as
+  // their own picker rows — only base exercises show up here.
+  const baseExercises = exercises.filter((ex) => !ex.parent_id);
+  const filtered = filterExercises(
+    baseExercises,
+    search,
+    categoryId,
+    categories,
+  );
 
   return (
     <div className="flex h-[190px]">
@@ -97,11 +107,14 @@ export function ExerciseLibraryShelfBody({
         ))}
         <CreateExerciseButton
           categories={categories}
+          styles={styles}
+          baseExercises={baseExercises}
           profileId={profileId}
           createExerciseAction={createExerciseAction}
           updateExerciseAction={updateExerciseAction}
           updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
           createCategoryAction={createCategoryAction}
+          createStyleAction={createStyleAction}
           onPendingChange={setCreating}
           className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex h-[52px] w-[136px] flex-shrink-0 items-center justify-center rounded-lg border border-dashed px-2.5 text-center text-[11px] font-bold"
         />

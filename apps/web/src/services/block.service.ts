@@ -818,23 +818,102 @@ async function replaceSetStyles(
 }
 
 /** Applies the same sets/notes patch (and, for a full value sync, the same
- * measurement replace) that was just made to the primary row onto one
- * scoped-in sibling placement. */
+ * measurement replace and per-set variant/style override replace) that was
+ * just made to the primary row onto one scoped-in sibling placement. The
+ * variant/style overrides are re-resolved against the *sibling's own*
+ * exercise_id/style_id (post-patch, so a scoped exercise_id/style_id swap is
+ * already reflected) rather than reusing the primary row's values as-is —
+ * mirrors how the primary row itself resolves "matches the default, so no
+ * override row needed" in replaceSetVariants/replaceSetStyles, and a sibling
+ * can carry a different default than the primary when scope is "future". */
+/** Applies `patch` to a sibling row (a plain unselected update when nothing
+ * downstream needs its resulting columns, to avoid an unneeded round trip),
+ * optionally returning its post-patch exercise_id/style_id when a variant/
+ * style sync needs them to resolve against. `undefined` defaults (rather
+ * than an error) when the sibling was concurrently deleted out from under
+ * this scoped save — maybeSingle tolerates that the same way a plain
+ * .update() against a missing row already silently no-ops, instead of
+ * failing the whole scoped save over one sibling's race. */
+async function patchSiblingRow(
+  supabase: SupabaseClient,
+  siblingId: string,
+  patch: Record<string, unknown>,
+  needsDefaults: boolean,
+): Promise<
+  Result<{ exercise_id: string; style_id: string | null } | undefined>
+> {
+  const hasPatch = Object.keys(patch).length > 0;
+  if (!hasPatch && !needsDefaults) return ok(undefined);
+  if (hasPatch && !needsDefaults) {
+    const { error } = await supabase
+      .from("block_exercises")
+      .update(patch)
+      .eq("id", siblingId);
+    return error ? err(error.message) : ok(undefined);
+  }
+
+  const { data, error } = hasPatch
+    ? await supabase
+        .from("block_exercises")
+        .update(patch)
+        .eq("id", siblingId)
+        .select("exercise_id, style_id")
+        .maybeSingle()
+    : await supabase
+        .from("block_exercises")
+        .select("exercise_id, style_id")
+        .eq("id", siblingId)
+        .maybeSingle();
+  return error ? err(error.message) : ok(data ?? undefined);
+}
+
+/** Applies the same sets/notes patch (and, for a full value sync, the same
+ * measurement replace and per-set variant/style override replace) that was
+ * just made to the primary row onto one scoped-in sibling placement. The
+ * variant/style overrides are re-resolved against the *sibling's own*
+ * exercise_id/style_id (post-patch, so a scoped exercise_id/style_id swap is
+ * already reflected) rather than reusing the primary row's values as-is —
+ * mirrors how the primary row itself resolves "matches the default, so no
+ * override row needed" in replaceSetVariants/replaceSetStyles, and a sibling
+ * can carry a different default than the primary when scope is "future". */
 async function applyToSibling(
   supabase: SupabaseClient,
   siblingId: string,
   patch: Record<string, unknown>,
   measurements: MeasurementInput | undefined,
+  setVariants: Record<number, string> | undefined,
+  setStyles: Record<number, string | null> | undefined,
 ): Promise<Result<void>> {
-  if (Object.keys(patch).length > 0) {
-    const { error } = await supabase
-      .from("block_exercises")
-      .update(patch)
-      .eq("id", siblingId);
-    if (error) return err(error.message);
-  }
+  const needsDefaults = setVariants !== undefined || setStyles !== undefined;
+  const patchResult = await patchSiblingRow(
+    supabase,
+    siblingId,
+    patch,
+    needsDefaults,
+  );
+  if (!patchResult.ok) return err(patchResult.error);
+  const defaults = patchResult.data;
+
   if (measurements) {
     const result = await replaceMeasurements(supabase, siblingId, measurements);
+    if (!result.ok) return err(result.error);
+  }
+  if (setVariants && defaults) {
+    const result = await replaceSetVariants(
+      supabase,
+      siblingId,
+      defaults.exercise_id,
+      setVariants,
+    );
+    if (!result.ok) return err(result.error);
+  }
+  if (setStyles && defaults) {
+    const result = await replaceSetStyles(
+      supabase,
+      siblingId,
+      defaults.style_id,
+      setStyles,
+    );
     if (!result.ok) return err(result.error);
   }
   return ok(undefined);
@@ -940,6 +1019,8 @@ export async function updateBlockExercise(
         siblingId,
         patch,
         input.measurements,
+        input.set_variants,
+        input.set_styles,
       );
       if (!result.ok) return err(result.error);
     }

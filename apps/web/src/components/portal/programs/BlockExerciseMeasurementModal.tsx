@@ -34,8 +34,7 @@ import {
   resizeSetConfigs,
   toFlatMeasurements,
   toMeasurementInput,
-  toSetStylesPayload,
-  toSetVariantsPayload,
+  toVariantStylePayload,
   updateSetStyle,
   updateSetUnitTypes,
   updateSetVariant,
@@ -491,45 +490,16 @@ function toSavePayload(
   variantOptions: ExerciseRow[],
   styles: ExerciseStyleRow[],
 ): BlockExerciseUpdateData {
-  const variantOverrides = toSetVariantsPayload(configs);
-  const { winnerId: exerciseId } = resolveMostCommonId(
-    blockExercise.exercise_id,
-    variantOverrides,
-    sets,
-  );
-
-  const styleOverridesForResolve = Object.fromEntries(
-    configs.map((c, i) => [i, c.styleId]),
-  );
-  const { winnerId: styleWinner } = resolveMostCommonId(
-    blockExercise.style_id ?? "",
-    styleOverridesForResolve,
-    sets,
-  );
-  const styleId = styleWinner || null;
-
   return {
     sets: Math.max(1, sets),
     measurements: toMeasurementInput(configs),
-    exercise_id: exerciseId,
-    style_id: styleId,
-    set_variants: variantOverrides,
-    set_styles: toSetStylesPayload(configs),
-    resolvedSetVariants: Object.fromEntries(
-      configs
-        .map(
-          (c, i) =>
-            [i, variantOptions.find((v) => v.id === c.variantId)] as const,
-        )
-        .filter(
-          (entry): entry is [number, ExerciseRow] => entry[1] !== undefined,
-        ),
-    ),
-    resolvedSetStyles: Object.fromEntries(
-      configs.map((c, i) => [
-        i,
-        styles.find((s) => s.id === c.styleId) ?? null,
-      ]),
+    ...toVariantStylePayload(
+      blockExercise.exercise_id,
+      blockExercise.style_id,
+      sets,
+      configs,
+      variantOptions,
+      styles,
     ),
   };
 }

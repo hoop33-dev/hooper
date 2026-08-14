@@ -1,10 +1,16 @@
 import { sortUnitTypes } from "@/src/constants/unitTypes";
+import { resolveMostCommonId } from "@/src/lib/blockExerciseDisplay";
 import {
   convertUnit,
   defaultUnitFor,
   type Measurement,
 } from "@/src/lib/measurementFormat";
-import type { BlockExerciseWithDetails, EnteredBy } from "@hooper/db";
+import type {
+  BlockExerciseWithDetails,
+  EnteredBy,
+  ExerciseRow,
+  ExerciseStyleRow,
+} from "@hooper/db";
 
 /** Mirrors block.service.ts's defaultValueFor: Reps-like unit types default
  * to a nonzero starting count; everything else starts at zero. */
@@ -289,6 +295,65 @@ export function toSetStylesPayload(
 ): Record<number, string | null> {
   return Object.fromEntries(configs.map((c, i) => [i, c.styleId || null]));
 }
+
+/** A placement's new variant/style save payload, resolved from its editable
+ * set configs: the winning variant/style (most common across `sets`, see
+ * resolveMostCommonId) becomes the placement's own new `exercise_id`/
+ * `style_id` default, alongside the sparse per-set override maps needed to
+ * reach that state — plus resolved (id -> row) copies of both maps for
+ * optimistic local-state patching. Shared by the single-exercise and
+ * superset save flows so a per-set variant/style edit is persisted the same
+ * way from either modal. */
+export function toVariantStylePayload(
+  baseExerciseId: string,
+  baseStyleId: string | null,
+  sets: number,
+  configs: SetConfigState[],
+  variantOptions: ExerciseRow[],
+  styles: ExerciseStyleRow[],
+) {
+  const set_variants = toSetVariantsPayload(configs);
+  const { winnerId: exercise_id } = resolveMostCommonId(
+    baseExerciseId,
+    set_variants,
+    sets,
+  );
+
+  const styleOverridesForResolve = Object.fromEntries(
+    configs.map((c, i) => [i, c.styleId]),
+  );
+  const { winnerId: styleWinner } = resolveMostCommonId(
+    baseStyleId ?? "",
+    styleOverridesForResolve,
+    sets,
+  );
+  const style_id = styleWinner || null;
+
+  return {
+    exercise_id,
+    style_id,
+    set_variants,
+    set_styles: toSetStylesPayload(configs),
+    resolvedSetVariants: Object.fromEntries(
+      configs
+        .map(
+          (c, i) =>
+            [i, variantOptions.find((v) => v.id === c.variantId)] as const,
+        )
+        .filter(
+          (entry): entry is [number, ExerciseRow] => entry[1] !== undefined,
+        ),
+    ),
+    resolvedSetStyles: Object.fromEntries(
+      configs.map((c, i) => [
+        i,
+        styles.find((s) => s.id === c.styleId) ?? null,
+      ]),
+    ),
+  };
+}
+
+export type VariantStylePayload = ReturnType<typeof toVariantStylePayload>;
 
 /** The most frequent value in a list, ties broken by whichever occurs
  * first — the simplified ("hide additional info") view's single Variant/

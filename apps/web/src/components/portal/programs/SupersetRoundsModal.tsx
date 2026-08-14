@@ -1,6 +1,5 @@
 "use client";
 
-import type { MeasurementInput } from "@/src/services/block.service";
 import type {
   BlockExerciseWithDetails,
   BlockWithExercises,
@@ -16,7 +15,10 @@ import { DuplicateIcon, XIcon } from "../ui/icons";
 import { PortalButton } from "../ui/PortalButton";
 import { ToggleSwitch } from "../ui/ToggleSwitch";
 import { useModalDismiss } from "../ui/useModalDismiss";
-import { resolveDefaultUnitTypes } from "./BlockExerciseMeasurementModal";
+import {
+  resolveDefaultUnitTypes,
+  type BlockExerciseUpdateData,
+} from "./BlockExerciseMeasurementModal";
 import { CountStepper } from "./measurementGrid/CountStepper";
 import { SetConfigCard } from "./measurementGrid/SetConfigCard";
 import {
@@ -27,6 +29,7 @@ import {
   initSetConfigs,
   resizeSetConfigs,
   toMeasurementInput,
+  toVariantStylePayload,
   updateSetStyle,
   updateSetUnitTypes,
   updateSetVariant,
@@ -46,6 +49,14 @@ import { variantOptionsFor } from "./variantOptions";
  * exercise gets its own section (round cards, same layout as the
  * single-exercise modal's set cards) with its own "Apply to all rounds"
  * button, which copies round 1's setup onto every other round. */
+/** One superset exercise's save payload — measurements plus the same
+ * variant/style resolution (`toVariantStylePayload`) the single-exercise
+ * modal sends, so per-round variant/style edits made here persist too. */
+export type SupersetExercisePayload = { id: string } & Omit<
+  BlockExerciseUpdateData,
+  "sets" | "notes"
+>;
+
 interface SupersetRoundsModalProps {
   block: BlockWithExercises;
   exercises: ExerciseWithDetails[];
@@ -53,7 +64,7 @@ interface SupersetRoundsModalProps {
   onClose: () => void;
   onSave: (
     rounds: number,
-    perExercise: { id: string; measurements: MeasurementInput }[],
+    perExercise: SupersetExercisePayload[],
   ) => Promise<void>;
 }
 
@@ -354,6 +365,30 @@ function ExerciseSectionContainer({
   );
 }
 
+/** One exercise's full save payload — measurements plus the variant/style
+ * resolution `toVariantStylePayload` computes, mirroring the single-exercise
+ * modal's own save payload so a per-round variant/style edit persists. */
+function toSupersetExercisePayload(
+  blockExercise: BlockExerciseWithDetails,
+  configs: SetConfigState[],
+  rounds: number,
+  exercises: ExerciseWithDetails[],
+  styles: ExerciseStyleRow[],
+): SupersetExercisePayload {
+  return {
+    id: blockExercise.id,
+    measurements: toMeasurementInput(configs),
+    ...toVariantStylePayload(
+      blockExercise.exercise_id,
+      blockExercise.style_id,
+      rounds,
+      configs,
+      variantOptionsFor(blockExercise.exercise, exercises),
+      styles,
+    ),
+  };
+}
+
 export function SupersetRoundsModal({
   block,
   exercises,
@@ -396,13 +431,10 @@ export function SupersetRoundsModal({
 
   async function handleSave() {
     setSaving(true);
-    await onSave(
-      rounds,
-      block.exercises.map((be) => ({
-        id: be.id,
-        measurements: toMeasurementInput(byExercise[be.id]!),
-      })),
+    const perExercise = block.exercises.map((be) =>
+      toSupersetExercisePayload(be, byExercise[be.id]!, rounds, exercises, styles),
     );
+    await onSave(rounds, perExercise);
     setSaving(false);
   }
 

@@ -1,4 +1,4 @@
-import type { LinkScope, MeasurementInput } from "@/src/services/block.service";
+import type { LinkScope } from "@/src/services/block.service";
 import type {
   BlockExerciseWithDetails,
   BlockWithExercises,
@@ -18,7 +18,10 @@ import {
 } from "./SessionCreateModal";
 import { SessionDuplicateModal } from "./SessionDuplicateModal";
 import { SessionRenamePopover } from "./SessionRenamePopover";
-import { SupersetRoundsModal } from "./SupersetRoundsModal";
+import {
+  SupersetRoundsModal,
+  type SupersetExercisePayload,
+} from "./SupersetRoundsModal";
 import type { SessionModalState } from "./useProgramCanvasState";
 import { variantOptionsFor } from "./variantOptions";
 
@@ -54,7 +57,7 @@ interface SessionModalsProps {
   onCloseSupersetEditor: () => void;
   onSaveSupersetMeasurements: (
     rounds: number,
-    perExercise: { id: string; measurements: MeasurementInput }[],
+    perExercise: SupersetExercisePayload[],
   ) => Promise<void>;
 }
 

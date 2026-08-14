@@ -25,6 +25,7 @@ import {
   removeExercise,
 } from "./blocksState";
 import { isPending } from "./dnd/pendingRows";
+import type { SupersetExercisePayload } from "./SupersetRoundsModal";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
@@ -242,7 +243,7 @@ export async function runSaveExerciseMeasurement(
 export async function runSaveSupersetMeasurements(
   block: BlockWithExercises,
   rounds: number,
-  perExercise: { id: string; measurements: MeasurementInput }[],
+  perExercise: SupersetExercisePayload[],
   ctx: Pick<
     UseBlockActionsOptions,
     "blocks" | "setBlocks" | "updateBlockExerciseAction" | "updateBlockAction"
@@ -260,10 +261,12 @@ export async function runSaveSupersetMeasurements(
     perExercise.map(({ id }) => [id, findExerciseMeasurements(ctx.blocks, id)]),
   );
   const optimistic = perExercise.reduce(
-    (blocks, { id, measurements }) =>
+    (blocks, { id, measurements, resolvedSetVariants, resolvedSetStyles }) =>
       patchExercise(blocks, id, {
         sets: rounds,
         measurements: toOptimisticMeasurements(id, measurements),
+        ...(resolvedSetVariants && { setVariants: resolvedSetVariants }),
+        ...(resolvedSetStyles && { setStyles: resolvedSetStyles }),
       }),
     ctx.blocks,
   );
@@ -280,8 +283,19 @@ export async function runSaveSupersetMeasurements(
   }
 
   for (let i = 0; i < perExercise.length; i++) {
-    const { id, measurements } = perExercise[i];
-    const result = await ctx.updateBlockExerciseAction(id, { measurements });
+    const p = perExercise[i]!;
+    // Only forward keys the payload actually set — block.service.ts's
+    // buildBlockExercisePatch distinguishes an explicit `style_id: null`
+    // from an omitted field via `"style_id" in input`, so spreading in an
+    // `undefined` value here (instead of omitting the key) would wrongly
+    // clear a sibling exercise's style it was never meant to touch.
+    const result = await ctx.updateBlockExerciseAction(p.id, {
+      measurements: p.measurements,
+      ...(p.exercise_id !== undefined && { exercise_id: p.exercise_id }),
+      ...("style_id" in p && { style_id: p.style_id }),
+      ...(p.set_variants !== undefined && { set_variants: p.set_variants }),
+      ...(p.set_styles !== undefined && { set_styles: p.set_styles }),
+    });
     if (!result.ok || !result.data) {
       // Roll back only the exercises that never got a server-confirmed
       // result — this one, and any later in the loop that were never even
@@ -290,17 +304,17 @@ export async function runSaveSupersetMeasurements(
       // during the in-flight window are untouched.
       const unconfirmed = perExercise.slice(i);
       ctx.setBlocks(
-        unconfirmed.reduce((blocks, p) => {
-          const original = originalMeasurementsById.get(p.id);
+        unconfirmed.reduce((blocks, up) => {
+          const original = originalMeasurementsById.get(up.id);
           return original === undefined
             ? blocks
-            : patchExercise(blocks, p.id, { measurements: original });
+            : patchExercise(blocks, up.id, { measurements: original });
         }, ctx.getBlocks()),
       );
       reportError(ctx.showError, result);
       return;
     }
-    ctx.setBlocks(patchExercise(ctx.getBlocks(), id, result.data));
+    ctx.setBlocks(patchExercise(ctx.getBlocks(), p.id, result.data));
   }
 }
 
@@ -465,7 +479,7 @@ export function useBlockActions(options: UseBlockActionsOptions) {
       }),
     saveSupersetMeasurements: (
       rounds: number,
-      perExercise: { id: string; measurements: MeasurementInput }[],
+      perExercise: SupersetExercisePayload[],
     ) =>
       editingSupersetBlock
         ? runSaveSupersetMeasurements(

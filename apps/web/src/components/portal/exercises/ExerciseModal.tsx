@@ -296,36 +296,7 @@ function ExerciseTaxonomyFields({
   );
 }
 
-function ModalColumnBody({
-  name,
-  description,
-  nameError,
-  onNameChange,
-  onDescriptionChange,
-  categories,
-  categoryIds,
-  onCategoryChange,
-  createCategoryAction,
-  profileId,
-  videoUrl,
-  videoSource,
-  onVideoChange,
-  baseExercises,
-  parentId,
-  onParentChange,
-  hasVariants,
-  lockedParentId,
-  styles,
-  defaultStyleId,
-  onDefaultStyleChange,
-  onStyleCreated,
-  createStyleAction,
-  unitTypes,
-  unitTypeIds,
-  onUnitTypeIdsChange,
-  onUnitTypeCreated,
-  createUnitTypeAction,
-}: {
+type ModalMainColumnProps = {
   name: string;
   description: string;
   nameError?: string;
@@ -336,9 +307,6 @@ function ModalColumnBody({
   onCategoryChange: (ids: string[]) => void;
   createCategoryAction?: ExerciseModalProps["createCategoryAction"];
   profileId: string;
-  videoUrl?: string | null;
-  videoSource?: ExerciseVideoSource | null;
-  onVideoChange: (value: VideoFieldState) => void;
   baseExercises: ExerciseWithDetails[];
   parentId: string;
   onParentChange: (id: string) => void;
@@ -354,45 +322,90 @@ function ModalColumnBody({
   onUnitTypeIdsChange: (ids: string[]) => void;
   onUnitTypeCreated: (unitType: UnitTypeRow) => void;
   createUnitTypeAction?: ExerciseModalProps["createUnitTypeAction"];
-}) {
+};
+
+function ModalMainColumn({
+  name,
+  description,
+  nameError,
+  onNameChange,
+  onDescriptionChange,
+  categories,
+  categoryIds,
+  onCategoryChange,
+  createCategoryAction,
+  profileId,
+  baseExercises,
+  parentId,
+  onParentChange,
+  hasVariants,
+  lockedParentId,
+  styles,
+  defaultStyleId,
+  onDefaultStyleChange,
+  onStyleCreated,
+  createStyleAction,
+  unitTypes,
+  unitTypeIds,
+  onUnitTypeIdsChange,
+  onUnitTypeCreated,
+  createUnitTypeAction,
+}: ModalMainColumnProps) {
+  return (
+    <div className="border-portal-border flex flex-1 flex-col gap-5 overflow-y-auto border-r p-6">
+      <ExerciseFormFields
+        name={name}
+        description={description}
+        onNameChange={onNameChange}
+        onDescriptionChange={onDescriptionChange}
+        error={nameError}
+      />
+      <CategoryCombobox
+        categories={categories}
+        selected={categoryIds}
+        onChange={onCategoryChange}
+        createCategoryAction={createCategoryAction}
+        profileId={profileId}
+      />
+      <ParentExerciseSelect
+        baseExercises={baseExercises}
+        value={lockedParentId ?? parentId}
+        onChange={onParentChange}
+        disabled={hasVariants}
+        locked={!!lockedParentId}
+      />
+      <ExerciseTaxonomyFields
+        profileId={profileId}
+        styles={styles}
+        defaultStyleId={defaultStyleId}
+        onDefaultStyleChange={onDefaultStyleChange}
+        onStyleCreated={onStyleCreated}
+        createStyleAction={createStyleAction}
+        unitTypes={unitTypes}
+        unitTypeIds={unitTypeIds}
+        onUnitTypeIdsChange={onUnitTypeIdsChange}
+        onUnitTypeCreated={onUnitTypeCreated}
+        createUnitTypeAction={createUnitTypeAction}
+      />
+    </div>
+  );
+}
+
+type ModalColumnBodyProps = ModalMainColumnProps & {
+  videoUrl?: string | null;
+  videoSource?: ExerciseVideoSource | null;
+  onVideoChange: (value: VideoFieldState) => void;
+};
+
+function ModalColumnBody({
+  videoUrl,
+  videoSource,
+  onVideoChange,
+  ...mainColumnProps
+}: ModalColumnBodyProps) {
   return (
     <div className="flex flex-1 overflow-hidden">
-      <div className="border-portal-border flex flex-1 flex-col gap-5 overflow-y-auto border-r p-6">
-        <ExerciseFormFields
-          name={name}
-          description={description}
-          onNameChange={onNameChange}
-          onDescriptionChange={onDescriptionChange}
-          error={nameError}
-        />
-        <CategoryCombobox
-          categories={categories}
-          selected={categoryIds}
-          onChange={onCategoryChange}
-          createCategoryAction={createCategoryAction}
-          profileId={profileId}
-        />
-        <ParentExerciseSelect
-          baseExercises={baseExercises}
-          value={lockedParentId ?? parentId}
-          onChange={onParentChange}
-          disabled={hasVariants}
-          locked={!!lockedParentId}
-        />
-        <ExerciseTaxonomyFields
-          profileId={profileId}
-          styles={styles}
-          defaultStyleId={defaultStyleId}
-          onDefaultStyleChange={onDefaultStyleChange}
-          onStyleCreated={onStyleCreated}
-          createStyleAction={createStyleAction}
-          unitTypes={unitTypes}
-          unitTypeIds={unitTypeIds}
-          onUnitTypeIdsChange={onUnitTypeIdsChange}
-          onUnitTypeCreated={onUnitTypeCreated}
-          createUnitTypeAction={createUnitTypeAction}
-        />
-      </div>
+      <ModalMainColumn {...mainColumnProps} />
 
       <div className="flex w-72 flex-shrink-0 flex-col gap-5 overflow-y-auto p-6">
         <VideoField

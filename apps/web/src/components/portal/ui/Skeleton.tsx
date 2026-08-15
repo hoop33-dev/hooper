@@ -1,5 +1,4 @@
 import { cn } from "@/src/lib/cn";
-import type { ReactNode } from "react";
 
 /** Base pulsing placeholder block. Compose the primitives below from this. */
 export function SkeletonBlock({ className }: { className?: string }) {
@@ -7,28 +6,6 @@ export function SkeletonBlock({ className }: { className?: string }) {
     <div
       className={cn("bg-portal-border/60 animate-pulse rounded-md", className)}
     />
-  );
-}
-
-/** Mirrors PageHeader's markup (title + subtitle + optional right-aligned action). */
-export function SkeletonPageHeader({ action }: { action?: ReactNode }) {
-  return (
-    <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-start justify-between border-b px-7 py-6">
-      <div>
-        <SkeletonBlock className="h-[22px] w-40" />
-        <SkeletonBlock className="mt-2.5 h-4 w-64" />
-      </div>
-      {action ?? <SkeletonBlock className="h-9 w-32 rounded-lg" />}
-    </div>
-  );
-}
-
-/** Mirrors the create-button toolbar row most list shells render above their table. */
-export function SkeletonToolbar() {
-  return (
-    <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center justify-end gap-3 border-b px-7 py-4">
-      <SkeletonBlock className="h-9 w-28 rounded-lg" />
-    </div>
   );
 }
 

@@ -21,7 +21,7 @@ export async function createExerciseAction(
     videoUrl: data.videoUrl,
     videoSource: data.videoSource,
     categoryIds: data.categoryIds,
-    unitTypes: data.unitTypes,
+    unitTypeIds: data.unitTypeIds,
     parentId: data.parentId,
     defaultStyleId: data.defaultStyleId,
     created_by: data.created_by,
@@ -43,7 +43,7 @@ export async function updateExerciseAction(
       ? { videoUrl: data.videoUrl, videoSource: data.videoSource }
       : {}),
     categoryIds: data.categoryIds,
-    unitTypes: data.unitTypes,
+    unitTypeIds: data.unitTypeIds,
     parentId: data.parentId,
     defaultStyleId: data.defaultStyleId,
   });

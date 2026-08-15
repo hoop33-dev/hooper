@@ -38,6 +38,7 @@ function exercise(
       updated_at: "",
       categories: [],
       unitTypes: ["Reps"],
+      unitTypeIds: [],
       defaultStyle: null,
       variants: [],
     },

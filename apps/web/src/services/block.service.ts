@@ -126,10 +126,16 @@ export async function resolveConfiguredUnitTypes(
 ): Promise<string[]> {
   const { data } = await supabase
     .from("exercise_unit_types")
-    .select("unit_type")
+    .select("position, unit_type:unit_types(name)")
     .eq("exercise_id", exerciseId)
     .order("position");
-  const types = (data ?? []).map((row) => row.unit_type);
+  const rows = (data ?? []) as unknown as {
+    position: number;
+    unit_type: { name: string } | null;
+  }[];
+  const types = rows
+    .map((row) => row.unit_type?.name)
+    .filter(Boolean) as string[];
   return types.length > 0 ? types : ["Reps"];
 }
 

@@ -5,6 +5,7 @@ import type {
   ExerciseStyleRow,
   ExerciseVideoSource,
   ExerciseWithDetails,
+  UnitTypeRow,
 } from "@hooper/db";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -37,6 +38,11 @@ interface CreateExerciseButtonProps {
     name: string;
     created_by: string;
   }) => Promise<{ ok: boolean; data?: ExerciseStyleRow; error?: string }>;
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
   className?: string;
   /** Fires whenever the post-save refresh starts/finishes, so the list this
    * button lives in can show a loading state until the new exercise
@@ -58,6 +64,8 @@ export function CreateExerciseButton({
   updateExerciseVideoUrlAction,
   createCategoryAction,
   createStyleAction,
+  unitTypes,
+  createUnitTypeAction,
   className,
   onPendingChange,
 }: CreateExerciseButtonProps) {
@@ -92,6 +100,7 @@ export function CreateExerciseButton({
           mode="create"
           categories={categories}
           styles={styles}
+          unitTypes={unitTypes}
           baseExercises={baseExercises}
           profileId={profileId}
           onSave={handleSaved}
@@ -101,6 +110,7 @@ export function CreateExerciseButton({
           updateVideoUrlAction={updateExerciseVideoUrlAction}
           createCategoryAction={createCategoryAction}
           createStyleAction={createStyleAction}
+          createUnitTypeAction={createUnitTypeAction}
         />
       )}
     </>

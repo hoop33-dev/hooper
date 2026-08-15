@@ -5,6 +5,7 @@ import type {
   BlockWithExercises,
   ExerciseStyleRow,
   ExerciseWithDetails,
+  UnitTypeRow,
 } from "@hooper/db";
 import {
   useState,
@@ -61,6 +62,12 @@ interface SupersetRoundsModalProps {
   block: BlockWithExercises;
   exercises: ExerciseWithDetails[];
   styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
+  profileId: string;
   onClose: () => void;
   onSave: (
     rounds: number,
@@ -114,12 +121,103 @@ function handleRoundFocus(e: ReactFocusEvent<HTMLDivElement>) {
   target.scrollIntoView({ block: "center", behavior: "smooth" });
 }
 
+function SectionHeader({
+  name,
+  hideAdditionalInfo,
+  onApplyToAll,
+}: {
+  name: string;
+  hideAdditionalInfo: boolean;
+  onApplyToAll: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-portal-text1 text-sm font-bold">{name}</span>
+      {!hideAdditionalInfo && (
+        <button
+          type="button"
+          onClick={onApplyToAll}
+          title="Copy round 1's units, variant, and style to every round"
+          className="border-portal-border bg-portal-card text-portal-orange flex flex-shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap">
+          <DuplicateIcon size={11} />
+          Apply to all rounds
+        </button>
+      )}
+    </div>
+  );
+}
+
+function RoundCardsList({
+  configs,
+  variantOptions,
+  styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
+  onChangeUnitTypes,
+  onChangeVariant,
+  onChangeStyle,
+  onChangeValue,
+  onToggleAthlete,
+}: {
+  configs: SetConfigState[];
+  variantOptions: ReturnType<typeof variantOptionsFor>;
+  styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
+  profileId: string;
+  onChangeUnitTypes: (roundIndex: number, unitTypes: string[]) => void;
+  onChangeVariant: (roundIndex: number, id: string) => void;
+  onChangeStyle: (roundIndex: number, id: string) => void;
+  onChangeValue: (roundIndex: number, slotIndex: number, value: number) => void;
+  onToggleAthlete: (
+    roundIndex: number,
+    slotIndex: number,
+    athleteEntered: boolean,
+  ) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      {configs.map((config, roundIndex) => (
+        <SetConfigCard
+          key={roundIndex}
+          index={roundIndex}
+          controlsAlign="start"
+          config={config}
+          variantOptions={variantOptions}
+          styles={styles}
+          unitTypes={unitTypes}
+          createUnitTypeAction={createUnitTypeAction}
+          profileId={profileId}
+          onChangeUnitTypes={(unitTypes) =>
+            onChangeUnitTypes(roundIndex, unitTypes)
+          }
+          onChangeVariant={(id) => onChangeVariant(roundIndex, id)}
+          onChangeStyle={(id) => onChangeStyle(roundIndex, id)}
+          onChangeValue={(slotIndex, value) =>
+            onChangeValue(roundIndex, slotIndex, value)
+          }
+          onToggleAthlete={(slotIndex, athleteEntered) =>
+            onToggleAthlete(roundIndex, slotIndex, athleteEntered)
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
 function ExerciseSection({
   name,
   configs,
   rounds,
   variantOptions,
   styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
   isLast,
   hideAdditionalInfo,
   onChangeUnitTypes,
@@ -137,6 +235,12 @@ function ExerciseSection({
   rounds: number;
   variantOptions: ReturnType<typeof variantOptionsFor>;
   styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
+  profileId: string;
   /** Whether this is the last exercise in the block — its last round's Enter
    * reaches all the way to the Save button, mirroring the single-exercise
    * modal. Earlier exercises just stop at their own last round rather than
@@ -163,19 +267,11 @@ function ExerciseSection({
       className="border-portal-border bg-portal-bg flex flex-col gap-3 rounded-xl border p-3"
       onKeyDown={(e) => handleRoundKeyDown(e, rounds, isLast, onCopyToAllBelow)}
       onFocus={handleRoundFocus}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-portal-text1 text-sm font-bold">{name}</span>
-        {!hideAdditionalInfo && (
-          <button
-            type="button"
-            onClick={onApplyToAll}
-            title="Copy round 1's units, variant, and style to every round"
-            className="border-portal-border bg-portal-card text-portal-orange flex flex-shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap">
-            <DuplicateIcon size={11} />
-            Apply to all rounds
-          </button>
-        )}
-      </div>
+      <SectionHeader
+        name={name}
+        hideAdditionalInfo={hideAdditionalInfo}
+        onApplyToAll={onApplyToAll}
+      />
       {hideAdditionalInfo ? (
         <SimpleSetTable
           rowLabel={(roundIndex) => `Rd ${roundIndex + 1}`}
@@ -188,29 +284,19 @@ function ExerciseSection({
           onToggleAthlete={onToggleAthlete}
         />
       ) : (
-        <div className="flex flex-col gap-2">
-          {configs.map((config, roundIndex) => (
-            <SetConfigCard
-              key={roundIndex}
-              index={roundIndex}
-              controlsAlign="start"
-              config={config}
-              variantOptions={variantOptions}
-              styles={styles}
-              onChangeUnitTypes={(unitTypes) =>
-                onChangeUnitTypes(roundIndex, unitTypes)
-              }
-              onChangeVariant={(id) => onChangeVariant(roundIndex, id)}
-              onChangeStyle={(id) => onChangeStyle(roundIndex, id)}
-              onChangeValue={(slotIndex, value) =>
-                onChangeValue(roundIndex, slotIndex, value)
-              }
-              onToggleAthlete={(slotIndex, athleteEntered) =>
-                onToggleAthlete(roundIndex, slotIndex, athleteEntered)
-              }
-            />
-          ))}
-        </div>
+        <RoundCardsList
+          configs={configs}
+          variantOptions={variantOptions}
+          styles={styles}
+          unitTypes={unitTypes}
+          createUnitTypeAction={createUnitTypeAction}
+          profileId={profileId}
+          onChangeUnitTypes={onChangeUnitTypes}
+          onChangeVariant={onChangeVariant}
+          onChangeStyle={onChangeStyle}
+          onChangeValue={onChangeValue}
+          onToggleAthlete={onToggleAthlete}
+        />
       )}
     </div>
   );
@@ -304,6 +390,9 @@ function ExerciseSectionContainer({
   rounds,
   exercises,
   styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
   isLast,
   hideAdditionalInfo,
   edit,
@@ -313,6 +402,12 @@ function ExerciseSectionContainer({
   rounds: number;
   exercises: ExerciseWithDetails[];
   styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
+  profileId: string;
   isLast: boolean;
   hideAdditionalInfo: boolean;
   edit: (
@@ -330,6 +425,9 @@ function ExerciseSectionContainer({
       rounds={rounds}
       variantOptions={variantOptions}
       styles={styles}
+      unitTypes={unitTypes}
+      createUnitTypeAction={createUnitTypeAction}
+      profileId={profileId}
       isLast={isLast}
       hideAdditionalInfo={hideAdditionalInfo}
       onChangeUnitTypes={(roundIndex, unitTypes) =>
@@ -393,6 +491,9 @@ export function SupersetRoundsModal({
   block,
   exercises,
   styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
   onClose,
   onSave,
 }: SupersetRoundsModalProps) {
@@ -470,6 +571,9 @@ export function SupersetRoundsModal({
                 rounds={rounds}
                 exercises={exercises}
                 styles={styles}
+                unitTypes={unitTypes}
+                createUnitTypeAction={createUnitTypeAction}
+                profileId={profileId}
                 isLast={index === exerciseCount - 1}
                 hideAdditionalInfo={hideAdditionalInfo}
                 edit={edit}

@@ -7,6 +7,7 @@ import type {
   ExerciseWithDetails,
   SessionTemplateSummary,
   SessionWithBlocks,
+  UnitTypeRow,
 } from "@hooper/db";
 import { BlockExerciseMeasurementModal } from "./BlockExerciseMeasurementModal";
 import { BlockList } from "./BlockList";
@@ -36,10 +37,16 @@ function SessionViewModals({
   state,
   exercises,
   styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
 }: {
   state: SessionViewState;
   exercises: ExerciseWithDetails[];
   styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: CreateExerciseActions["createUnitTypeAction"];
+  profileId: string;
 }) {
   return (
     <>
@@ -54,6 +61,9 @@ function SessionViewModals({
             exercises,
           )}
           styles={styles}
+          unitTypes={unitTypes}
+          createUnitTypeAction={createUnitTypeAction}
+          profileId={profileId}
         />
       )}
 
@@ -62,6 +72,9 @@ function SessionViewModals({
           block={state.blockActions.editingSupersetBlock}
           exercises={exercises}
           styles={styles}
+          unitTypes={unitTypes}
+          createUnitTypeAction={createUnitTypeAction}
+          profileId={profileId}
           onClose={state.blockActions.closeSupersetEditor}
           onSave={state.blockActions.saveSupersetMeasurements}
         />
@@ -84,6 +97,7 @@ export function SessionViewShell({
   exercises,
   categories,
   styles,
+  unitTypes,
   sessionTemplates = [],
   profileId,
   createExerciseAction,
@@ -91,6 +105,7 @@ export function SessionViewShell({
   updateExerciseVideoUrlAction,
   createCategoryAction,
   createStyleAction,
+  createUnitTypeAction,
   ...actions
 }: SessionViewShellProps) {
   const state = useSessionViewState(
@@ -114,6 +129,7 @@ export function SessionViewShell({
             exercises={exercises}
             categories={categories}
             styles={styles}
+            unitTypes={unitTypes}
             sessionTemplates={sessionTemplates}
             profileId={profileId}
             createExerciseAction={createExerciseAction}
@@ -121,6 +137,7 @@ export function SessionViewShell({
             updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
             createCategoryAction={createCategoryAction}
             createStyleAction={createStyleAction}
+            createUnitTypeAction={createUnitTypeAction}
           />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
             <BlockList
@@ -159,7 +176,14 @@ export function SessionViewShell({
         </DragIndicatorContext.Provider>
       </DndContext>
 
-      <SessionViewModals state={state} exercises={exercises} styles={styles} />
+      <SessionViewModals
+        state={state}
+        exercises={exercises}
+        styles={styles}
+        unitTypes={unitTypes}
+        createUnitTypeAction={createUnitTypeAction}
+        profileId={profileId}
+      />
     </div>
   );
 }

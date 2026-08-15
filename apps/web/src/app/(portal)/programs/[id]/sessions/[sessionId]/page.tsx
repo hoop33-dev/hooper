@@ -13,6 +13,7 @@ import {
   listSessionsForProgram,
 } from "@/src/services/session.service";
 import { listSessionTemplates } from "@/src/services/sessionTemplate.service";
+import { listUnitTypes } from "@/src/services/unitType.service";
 import type { SessionRow } from "@hooper/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -29,6 +30,7 @@ import {
 } from "../../../../exercises/actions";
 import { createCategoryAction } from "../../../../exercises/categories/actions";
 import { createStyleAction } from "../../../../exercises/styles/actions";
+import { createUnitTypeAction } from "../../../../exercises/unit-types/actions";
 import {
   addExerciseToBlockAction,
   createBlockAction,
@@ -85,6 +87,7 @@ async function loadSessionPageData(programId: string, sessionId: string) {
     exercisesResult,
     categoriesResult,
     stylesResult,
+    unitTypesResult,
     profileResult,
     sessionTemplatesResult,
     programSessionsResult,
@@ -93,6 +96,7 @@ async function loadSessionPageData(programId: string, sessionId: string) {
     listExercises(),
     listCategories(),
     listStyles(),
+    listUnitTypes(),
     getCoachProfile(),
     listSessionTemplates(),
     listSessionsForProgram(programId),
@@ -103,6 +107,7 @@ async function loadSessionPageData(programId: string, sessionId: string) {
     exercises: exercisesResult.ok ? exercisesResult.data : [],
     categories: categoriesResult.ok ? categoriesResult.data : [],
     styles: stylesResult.ok ? stylesResult.data : [],
+    unitTypes: unitTypesResult.ok ? unitTypesResult.data : [],
     profileId: profileResult.ok ? profileResult.data.id : "",
     sessionTemplates: sessionTemplatesResult.ok
       ? sessionTemplatesResult.data
@@ -122,6 +127,7 @@ export default async function SessionViewPage({
     exercises,
     categories,
     styles,
+    unitTypes,
     profileId,
     sessionTemplates,
     programSessions,
@@ -164,6 +170,7 @@ export default async function SessionViewPage({
         exercises={exercises}
         categories={categories}
         styles={styles}
+        unitTypes={unitTypes}
         sessionTemplates={sessionTemplates}
         createBlockAction={createBlockAction}
         updateBlockAction={updateBlockAction}
@@ -185,6 +192,7 @@ export default async function SessionViewPage({
         updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
         createCategoryAction={createCategoryAction}
         createStyleAction={createStyleAction}
+        createUnitTypeAction={createUnitTypeAction}
       />
     </div>
   );

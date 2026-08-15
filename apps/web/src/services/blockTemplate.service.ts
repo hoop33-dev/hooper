@@ -12,6 +12,7 @@ import type {
   ExerciseCategoryRow,
   ExerciseStyleRow,
   SessionTemplateRow,
+  UnitTypeRow,
 } from "@hooper/db";
 import { defaultBlockColor } from "@hooper/shared";
 import {
@@ -672,17 +673,25 @@ async function copyTemplateExercisesIntoBlock(
       .select();
   if (measurementsError) return err(measurementsError.message);
 
-  const [{ data: cats }, { data: styles }] = await Promise.all([
-    supabase.from("exercise_categories").select("*"),
-    supabase.from("exercise_styles").select("*"),
-  ]);
+  const [{ data: cats }, { data: styles }, { data: unitTypes }] =
+    await Promise.all([
+      supabase.from("exercise_categories").select("*"),
+      supabase.from("exercise_styles").select("*"),
+      supabase.from("unit_types").select("*"),
+    ]);
   const allCategories = (cats ?? []) as ExerciseCategoryRow[];
   const allStyles = (styles ?? []) as ExerciseStyleRow[];
+  const allUnitTypes = (unitTypes ?? []) as UnitTypeRow[];
 
   return ok(
     sourceExercises.map((be, i) => ({
       ...newExercises[i],
-      exercise: toExerciseWithDetails(be.exercise, allCategories, allStyles),
+      exercise: toExerciseWithDetails(
+        be.exercise,
+        allCategories,
+        allStyles,
+        allUnitTypes,
+      ),
       measurements: (insertedMeasurements ?? []).filter(
         (m) => m.block_exercise_id === newExercises[i].id,
       ),
@@ -804,12 +813,15 @@ async function copyTemplateExercisesIntoBlockTemplate(
       .select();
   if (measurementsError) return err(measurementsError.message);
 
-  const [{ data: cats }, { data: styles }] = await Promise.all([
-    supabase.from("exercise_categories").select("*"),
-    supabase.from("exercise_styles").select("*"),
-  ]);
+  const [{ data: cats }, { data: styles }, { data: unitTypes }] =
+    await Promise.all([
+      supabase.from("exercise_categories").select("*"),
+      supabase.from("exercise_styles").select("*"),
+      supabase.from("unit_types").select("*"),
+    ]);
   const allCategories = (cats ?? []) as ExerciseCategoryRow[];
   const allStyles = (styles ?? []) as ExerciseStyleRow[];
+  const allUnitTypes = (unitTypes ?? []) as UnitTypeRow[];
 
   return ok(
     sourceExercises.map((be, i) => ({
@@ -822,7 +834,12 @@ async function copyTemplateExercisesIntoBlockTemplate(
             block_exercise_id: block_template_exercise_id,
           })),
       ),
-      exercise: toExerciseWithDetails(be.exercise, allCategories, allStyles),
+      exercise: toExerciseWithDetails(
+        be.exercise,
+        allCategories,
+        allStyles,
+        allUnitTypes,
+      ),
       setVariants: {},
       setStyles: {},
     })),

@@ -7,6 +7,7 @@ import type {
   ExerciseWithDetails,
   ProgramWithSessions,
   SessionTemplateSummary,
+  UnitTypeRow,
 } from "@hooper/db";
 import { DragIndicatorContext } from "./dnd/DragIndicatorContext";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
@@ -138,11 +139,17 @@ function ProgramCanvasModals({
   totalWeeks,
   exercises,
   styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
 }: {
   state: CanvasState;
   totalWeeks: number;
   exercises: ExerciseWithDetails[];
   styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: CreateExerciseActions["createUnitTypeAction"];
+  profileId: string;
 }) {
   const seedExerciseName =
     state.sessionModal?.type === "create" && state.sessionModal.seedExerciseId
@@ -159,6 +166,9 @@ function ProgramCanvasModals({
         totalWeeks={totalWeeks}
         exercises={exercises}
         styles={styles}
+        unitTypes={unitTypes}
+        createUnitTypeAction={createUnitTypeAction}
+        profileId={profileId}
         linkedWeeks={state.linkedWeeksForSessionModal}
         seedExerciseName={seedExerciseName}
         onCreateSession={state.handleCreateSession}
@@ -209,6 +219,8 @@ export function ProgramCanvasShell({
   createCategoryAction,
   styles,
   createStyleAction,
+  unitTypes,
+  createUnitTypeAction,
   ...actions
 }: ProgramCanvasShellProps) {
   const createExerciseActions: CreateExerciseActions = {
@@ -219,6 +231,8 @@ export function ProgramCanvasShell({
     createCategoryAction,
     styles,
     createStyleAction,
+    unitTypes,
+    createUnitTypeAction,
   };
   const state = useProgramCanvasState(
     program,
@@ -260,6 +274,9 @@ export function ProgramCanvasShell({
         totalWeeks={program.weeks}
         exercises={exercises}
         styles={styles}
+        unitTypes={unitTypes}
+        createUnitTypeAction={createUnitTypeAction}
+        profileId={profileId}
       />
     </div>
   );

@@ -9,11 +9,12 @@ import type {
   ExerciseStyleRow,
   SessionTemplateRow,
   SessionTemplateWithBlocks,
+  UnitTypeRow,
 } from "@hooper/db";
 import { toExerciseWithDetails, type RawExercise } from "./exercise.service";
 
 export const TEMPLATE_BLOCK_EXERCISE_SELECT =
-  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type, position)), block_template_exercise_measurements(*)";
+  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type_id, position)), block_template_exercise_measurements(*)";
 
 const TEMPLATE_BLOCK_SELECT = `*, block_template_exercises(${TEMPLATE_BLOCK_EXERCISE_SELECT})`;
 
@@ -47,6 +48,7 @@ export function shapeBlockTemplatesWithExercises(
   rawBlocks: RawTemplateBlock[],
   allCategories: ExerciseCategoryRow[],
   allStyles: ExerciseStyleRow[],
+  allUnitTypes: UnitTypeRow[],
 ): BlockWithExercises[] {
   return [...rawBlocks]
     .sort((a, b) => a.position - b.position)
@@ -72,7 +74,12 @@ export function shapeBlockTemplatesWithExercises(
             style_id: null,
             setVariants: {},
             setStyles: {},
-            exercise: toExerciseWithDetails(exercise, allCategories, allStyles),
+            exercise: toExerciseWithDetails(
+              exercise,
+              allCategories,
+              allStyles,
+              allUnitTypes,
+            ),
             measurements: [...block_template_exercise_measurements]
               .sort(
                 (a, b) => a.position - b.position || a.set_index - b.set_index,
@@ -95,6 +102,7 @@ export function shapeSessionTemplate(
   raw: RawSessionTemplate,
   allCategories: ExerciseCategoryRow[],
   allStyles: ExerciseStyleRow[],
+  allUnitTypes: UnitTypeRow[],
 ): SessionTemplateWithBlocks {
   const { block_templates, ...sessionTemplate } = raw;
   return {
@@ -103,6 +111,7 @@ export function shapeSessionTemplate(
       block_templates,
       allCategories,
       allStyles,
+      allUnitTypes,
     ),
   };
 }

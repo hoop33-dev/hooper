@@ -6,11 +6,12 @@ import type {
   ExerciseCategoryRow,
   ExerciseRow,
   ExerciseStyleRow,
+  UnitTypeRow,
 } from "@hooper/db";
 import { toExerciseWithDetails, type RawExercise } from "./exercise.service";
 
 export const BLOCK_EXERCISE_SELECT =
-  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type, position)), block_exercise_measurements(*), block_exercise_set_variants(set_index, exercise:exercises(*)), block_exercise_set_styles(set_index, style:exercise_styles(*))";
+  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type_id, position)), block_exercise_measurements(*), block_exercise_set_variants(set_index, exercise:exercises(*)), block_exercise_set_styles(set_index, style:exercise_styles(*))";
 
 // Select content for a single `blocks` row, embedding its placed exercises.
 const BLOCK_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
@@ -43,6 +44,7 @@ export function shapeBlocksWithExercises(
   rawBlocks: RawBlock[],
   allCategories: ExerciseCategoryRow[],
   allStyles: ExerciseStyleRow[],
+  allUnitTypes: UnitTypeRow[],
 ): BlockWithExercises[] {
   return [...rawBlocks]
     .sort((a, b) => a.position - b.position)
@@ -59,7 +61,12 @@ export function shapeBlocksWithExercises(
             ...blockExercise
           }) => ({
             ...blockExercise,
-            exercise: toExerciseWithDetails(exercise, allCategories, allStyles),
+            exercise: toExerciseWithDetails(
+              exercise,
+              allCategories,
+              allStyles,
+              allUnitTypes,
+            ),
             measurements: [...block_exercise_measurements].sort(
               (a, b) => a.position - b.position || a.set_index - b.set_index,
             ),

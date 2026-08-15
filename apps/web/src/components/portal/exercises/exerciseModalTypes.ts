@@ -1,9 +1,9 @@
-import type { UnitType } from "@/src/constants/unitTypes";
 import type {
   ExerciseCategoryRow,
   ExerciseStyleRow,
   ExerciseVideoSource,
   ExerciseWithDetails,
+  UnitTypeRow,
 } from "@hooper/db";
 
 export type ActionResult = { ok: boolean; error?: string; id?: string };
@@ -12,7 +12,7 @@ export type ExerciseFormData = {
   name: string;
   description: string;
   categoryIds: string[];
-  unitTypes: UnitType[];
+  unitTypeIds: string[];
   videoUrl?: string | null;
   videoSource?: ExerciseVideoSource | null;
   /** The base exercise this is a variant of — null/omitted for a base
@@ -26,6 +26,7 @@ export interface ExerciseModalProps {
   exercise?: ExerciseWithDetails;
   categories: ExerciseCategoryRow[];
   styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
   /** Every base exercise (parent_id null), excluding this one in edit mode —
    * the options for the "variant of" selector. */
   baseExercises: ExerciseWithDetails[];
@@ -53,6 +54,11 @@ export interface ExerciseModalProps {
     name: string;
     created_by: string;
   }) => Promise<{ ok: boolean; data?: ExerciseStyleRow; error?: string }>;
+  /** Powers the unit type selector's inline "+ Add unit type" affordance. */
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
   /** When set, the "variant of" selector is pre-filled and locked to this
    * base exercise — used by the "+ Add variant" affordance so the coach
    * can't accidentally change which exercise they're adding a variant to. */

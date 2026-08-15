@@ -65,12 +65,14 @@ export function ExerciseLibraryShelfBody({
   exercises,
   categories,
   styles,
+  unitTypes,
   profileId,
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
   createCategoryAction,
   createStyleAction,
+  createUnitTypeAction,
 }: ExerciseLibraryShelfProps) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -108,6 +110,7 @@ export function ExerciseLibraryShelfBody({
         <CreateExerciseButton
           categories={categories}
           styles={styles}
+          unitTypes={unitTypes}
           baseExercises={baseExercises}
           profileId={profileId}
           createExerciseAction={createExerciseAction}
@@ -115,6 +118,7 @@ export function ExerciseLibraryShelfBody({
           updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
           createCategoryAction={createCategoryAction}
           createStyleAction={createStyleAction}
+          createUnitTypeAction={createUnitTypeAction}
           onPendingChange={setCreating}
           className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex h-[52px] w-[136px] flex-shrink-0 items-center justify-center rounded-lg border border-dashed px-2.5 text-center text-[11px] font-bold"
         />

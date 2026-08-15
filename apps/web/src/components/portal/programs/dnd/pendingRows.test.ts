@@ -18,6 +18,7 @@ const exercise = {
   updated_at: "",
   categories: [],
   unitTypes: [],
+  unitTypeIds: [],
   defaultStyle: null,
   variants: [],
 };

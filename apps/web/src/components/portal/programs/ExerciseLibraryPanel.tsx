@@ -73,6 +73,7 @@ export function ExerciseLibraryPanel({
   exercises,
   categories,
   styles,
+  unitTypes,
   tabs,
   profileId,
   createExerciseAction,
@@ -80,6 +81,7 @@ export function ExerciseLibraryPanel({
   updateExerciseVideoUrlAction,
   createCategoryAction,
   createStyleAction,
+  createUnitTypeAction,
 }: ExerciseLibraryPanelProps) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -118,6 +120,7 @@ export function ExerciseLibraryPanel({
         <CreateExerciseButton
           categories={categories}
           styles={styles}
+          unitTypes={unitTypes}
           baseExercises={baseExercises}
           profileId={profileId}
           createExerciseAction={createExerciseAction}
@@ -125,6 +128,7 @@ export function ExerciseLibraryPanel({
           updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
           createCategoryAction={createCategoryAction}
           createStyleAction={createStyleAction}
+          createUnitTypeAction={createUnitTypeAction}
           onPendingChange={setCreating}
           className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex w-full items-center gap-2 border-b border-dashed px-3.5 py-2.5 text-left text-xs font-semibold"
         />

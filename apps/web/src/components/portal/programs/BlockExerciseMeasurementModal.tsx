@@ -9,6 +9,7 @@ import type {
   BlockExerciseWithDetails,
   ExerciseRow,
   ExerciseStyleRow,
+  UnitTypeRow,
 } from "@hooper/db";
 import {
   useState,
@@ -75,6 +76,12 @@ interface BlockExerciseMeasurementModalProps {
    * variant selectors. */
   variantOptions: ExerciseRow[];
   styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
+  profileId: string;
 }
 
 function ModalHeader({
@@ -120,12 +127,21 @@ function ModalHeader({
 function ApplyToAllSetsPanel({
   variantOptions,
   styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
   onApplyUnitTypes,
   onApplyVariant,
   onApplyStyle,
 }: {
   variantOptions: ExerciseRow[];
   styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
+  profileId: string;
   onApplyUnitTypes: (unitTypes: string[]) => void;
   onApplyVariant: (id: string) => void;
   onApplyStyle: (id: string) => void;
@@ -140,11 +156,14 @@ function ApplyToAllSetsPanel({
       </div>
       <div className="grid grid-cols-3 gap-2">
         <SetUnitTypeSelect
+          unitTypes={unitTypes}
           selected={pendingUnitTypes}
           onChange={(unitTypes) => {
             setPendingUnitTypes(unitTypes);
             onApplyUnitTypes(unitTypes);
           }}
+          createUnitTypeAction={createUnitTypeAction}
+          profileId={profileId}
         />
         {variantOptions.length > 1 && (
           <SetInlineSelect
@@ -185,6 +204,12 @@ interface ModalBodyProps {
   onApplyStyleToAll: (id: string) => void;
   variantOptions: ExerciseRow[];
   styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
+  profileId: string;
 }
 
 function ModalBody({
@@ -202,6 +227,9 @@ function ModalBody({
   onApplyStyleToAll,
   variantOptions,
   styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
 }: ModalBodyProps) {
   return (
     <div className="flex flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-4">
@@ -222,6 +250,9 @@ function ModalBody({
           <ApplyToAllSetsPanel
             variantOptions={variantOptions}
             styles={styles}
+            unitTypes={unitTypes}
+            createUnitTypeAction={createUnitTypeAction}
+            profileId={profileId}
             onApplyUnitTypes={onApplyUnitTypesToAll}
             onApplyVariant={onApplyVariantToAll}
             onApplyStyle={onApplyStyleToAll}
@@ -235,6 +266,9 @@ function ModalBody({
                 config={config}
                 variantOptions={variantOptions}
                 styles={styles}
+                unitTypes={unitTypes}
+                createUnitTypeAction={createUnitTypeAction}
+                profileId={profileId}
                 onChangeUnitTypes={(unitTypes) =>
                   onChangeUnitTypes(setIndex, unitTypes)
                 }
@@ -562,6 +596,9 @@ export function BlockExerciseMeasurementModal({
   linkedWeeks,
   variantOptions,
   styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
 }: BlockExerciseMeasurementModalProps) {
   const { exercise } = blockExercise;
   const defaultUnitTypes = resolveDefaultUnitTypes(blockExercise);
@@ -640,6 +677,9 @@ export function BlockExerciseMeasurementModal({
           onApplyStyleToAll={editor.onApplyStyleToAll}
           variantOptions={variantOptions}
           styles={styles}
+          unitTypes={unitTypes}
+          createUnitTypeAction={createUnitTypeAction}
+          profileId={profileId}
         />
         <ModalFooterArea
           choosingScope={choosingScope}

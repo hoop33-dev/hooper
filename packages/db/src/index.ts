@@ -23,6 +23,7 @@ export type {
   SessionRow,
   TeamMemberRow,
   TeamRow,
+  UnitTypeRow,
 } from "./schema";
 
 export type RoleType = "player" | "coach" | "parent";
@@ -89,7 +90,13 @@ export type ExerciseCategoryTreeNode = ExerciseCategoryWithCount & {
 // `variants` array is always empty (single-level nesting).
 export type ExerciseWithDetails = ExerciseRow & {
   categories: ExerciseCategoryRow[];
+  /** Resolved display names, sorted by position — every existing display
+   * consumer keeps reading plain strings regardless of the underlying
+   * unit_type_id-based storage. */
   unitTypes: string[];
+  /** The same selection as unitTypes, as unit_types catalog ids (sorted by
+   * position) — used to pre-select the edit modal's UnitTypeSelect. */
+  unitTypeIds: string[];
   defaultStyle: ExerciseStyleRow | null;
   variants: ExerciseWithDetails[];
 };

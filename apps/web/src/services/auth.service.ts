@@ -1,6 +1,7 @@
 import type { Result } from "@/src/lib/result";
 import { err, ok } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
+import { cache } from "react";
 
 export type CoachProfile = {
   id: string;
@@ -60,36 +61,46 @@ export async function signOut(): Promise<Result<void>> {
   return ok(undefined);
 }
 
-/** Fetch the current user's profile and confirm they have the coach role. */
-export async function getCoachProfile(): Promise<Result<CoachProfile>> {
-  const supabase = await createClient();
+/**
+ * Fetch the current user's profile and confirm they have the coach role.
+ *
+ * Wrapped in React's `cache()` so the layout's auth guard and a page's own
+ * call within the same request share one result instead of re-running the
+ * auth/profile/role round trips twice per navigation.
+ */
+export const getCoachProfile = cache(
+  async (): Promise<Result<CoachProfile>> => {
+    const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return err("Not authenticated.");
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return err("Not authenticated.");
 
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id, first_name, last_name, username, avatar_url")
-    .eq("auth_user_id", user.id)
-    .single();
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name, username, avatar_url")
+      .eq("auth_user_id", user.id)
+      .single();
 
-  if (profileError || !profile) return err("Profile not found.");
+    if (profileError || !profile) return err("Profile not found.");
 
-  const { data: roles } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("profile_id", profile.id as string);
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("profile_id", profile.id as string);
 
-  const isCoach = (roles ?? []).some((r: { role: string }) => r.role === "coach");
-  if (!isCoach) return err("Not a coach.");
+    const isCoach = (roles ?? []).some(
+      (r: { role: string }) => r.role === "coach",
+    );
+    if (!isCoach) return err("Not a coach.");
 
-  return ok({
-    id: profile.id as string,
-    first_name: (profile.first_name as string | null) ?? null,
-    last_name: (profile.last_name as string | null) ?? null,
-    username: (profile.username as string | null) ?? null,
-    avatar_url: (profile.avatar_url as string | null) ?? null,
-  });
-}
+    return ok({
+      id: profile.id as string,
+      first_name: (profile.first_name as string | null) ?? null,
+      last_name: (profile.last_name as string | null) ?? null,
+      username: (profile.username as string | null) ?? null,
+      avatar_url: (profile.avatar_url as string | null) ?? null,
+    });
+  },
+);

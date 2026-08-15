@@ -8,7 +8,7 @@ import { ExercisePreviewModal } from "../exercises/ExercisePreviewModal";
 import { CreateExerciseButton } from "./CreateExerciseButton";
 import { DraggableLibraryRow } from "./dnd/DraggableLibraryRow";
 import type { CreateExerciseActions } from "./exerciseActionsProps";
-import { filterExercises } from "./exerciseFilter";
+import { handleLibrarySearchKeyDown } from "./librarySearchKeyboardNav";
 
 interface ExerciseLibraryPanelProps extends CreateExerciseActions {
   exercises: ExerciseWithDetails[];
@@ -16,6 +16,17 @@ interface ExerciseLibraryPanelProps extends CreateExerciseActions {
   /** Replaces the plain "Exercise Library" title — used to show the
    * Exercises/Blocks tab switcher when a Block Library exists too. */
   tabs?: ReactNode;
+  /** Pre-filtered by the shell (SessionViewShell) from `search`/
+   * `categoryId`, so what's rendered always matches what Shift+A targets. */
+  items: ExerciseWithDetails[];
+  search: string;
+  onSearchChange: (v: string) => void;
+  categoryId: string;
+  onCategoryChange: (v: string) => void;
+  searchInputId: string;
+  selectedIndex: number | null;
+  onSelectedIndexChange: (index: number) => void;
+  onQuickAdd: () => void;
 }
 
 /** The panel's search + category filter header, extracted out of
@@ -26,6 +37,8 @@ function PanelHeader({
   resultCount,
   search,
   onSearch,
+  onSearchKeyDown,
+  searchInputId,
   categoryId,
   onCategory,
   categories,
@@ -34,6 +47,8 @@ function PanelHeader({
   resultCount: number;
   search: string;
   onSearch: (v: string) => void;
+  onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  searchInputId: string;
   categoryId: string;
   onCategory: (v: string) => void;
   categories: ExerciseCategoryRow[];
@@ -49,8 +64,10 @@ function PanelHeader({
         <span className="text-portal-text3 text-[11px]">{resultCount}</span>
       </div>
       <input
+        id={searchInputId}
         value={search}
         onChange={(e) => onSearch(e.target.value)}
+        onKeyDown={onSearchKeyDown}
         placeholder="Search exercises…"
         className="border-portal-border bg-portal-bg text-portal-text1 focus:border-portal-orange mb-2 h-8 w-full rounded-lg border px-2.5 text-xs outline-none"
       />
@@ -75,6 +92,15 @@ export function ExerciseLibraryPanel({
   styles,
   unitTypes,
   tabs,
+  items,
+  search,
+  onSearchChange,
+  categoryId,
+  onCategoryChange,
+  searchInputId,
+  selectedIndex,
+  onSelectedIndexChange,
+  onQuickAdd,
   profileId,
   createExerciseAction,
   updateExerciseAction,
@@ -83,38 +109,40 @@ export function ExerciseLibraryPanel({
   createStyleAction,
   createUnitTypeAction,
 }: ExerciseLibraryPanelProps) {
-  const [search, setSearch] = useState("");
-  const [categoryId, setCategoryId] = useState("");
   const [previewExercise, setPreviewExercise] =
     useState<ExerciseWithDetails | null>(null);
   const [creating, setCreating] = useState(false);
   // Variants are chosen inside the measurement modal, not dragged/added as
   // their own picker rows — only base exercises show up here.
   const baseExercises = exercises.filter((ex) => !ex.parent_id);
-  const filtered = filterExercises(
-    baseExercises,
-    search,
-    categoryId,
-    categories,
-  );
 
   return (
     <div className="border-portal-border bg-portal-card flex w-[280px] flex-shrink-0 flex-col border-r">
       <PanelHeader
         tabs={tabs}
-        resultCount={filtered.length}
+        resultCount={items.length}
         search={search}
-        onSearch={setSearch}
+        onSearch={onSearchChange}
+        onSearchKeyDown={(e) =>
+          handleLibrarySearchKeyDown(e, {
+            itemCount: items.length,
+            selectedIndex,
+            onSelectedIndexChange,
+            onQuickAdd,
+          })
+        }
+        searchInputId={searchInputId}
         categoryId={categoryId}
-        onCategory={setCategoryId}
+        onCategory={onCategoryChange}
         categories={categories}
       />
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {filtered.map((ex) => (
+        {items.map((ex, index) => (
           <DraggableLibraryRow
             key={ex.id}
             exercise={ex}
             onOpen={setPreviewExercise}
+            isSelected={index === selectedIndex}
           />
         ))}
         <CreateExerciseButton
@@ -138,7 +166,7 @@ export function ExerciseLibraryPanel({
             Adding exercise…
           </div>
         )}
-        {filtered.length === 0 && (
+        {items.length === 0 && (
           <div className="text-portal-text3 px-3.5 py-6 text-center text-xs">
             No results
           </div>

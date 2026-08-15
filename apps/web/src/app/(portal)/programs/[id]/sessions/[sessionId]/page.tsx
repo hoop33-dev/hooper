@@ -2,6 +2,7 @@ import type { ExerciseFormData } from "@/src/components/portal/exercises/Exercis
 import { SaveSessionAsTemplateButton } from "@/src/components/portal/programs/SaveSessionAsTemplateButton";
 import { SessionNavArrows } from "@/src/components/portal/programs/SessionNavArrows";
 import { SessionViewShell } from "@/src/components/portal/programs/SessionViewShell";
+import { ShortcutsButton } from "@/src/components/portal/programs/ShortcutsButton";
 import { ArrowLeftIcon } from "@/src/components/portal/ui/icons";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { getCoachProfile } from "@/src/services/auth.service";
@@ -67,6 +68,7 @@ function SessionPageActions({
         Back to program
       </Link>
       <div className="mt-2 flex items-center gap-2">
+        <ShortcutsButton variant="session" />
         <SessionNavArrows
           programId={programId}
           sessions={programSessions}

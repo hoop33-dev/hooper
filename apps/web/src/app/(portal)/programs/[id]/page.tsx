@@ -1,6 +1,7 @@
 import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
 import { ProgramCanvasShell } from "@/src/components/portal/programs/ProgramCanvasShell";
 import { ProgramDetailActions } from "@/src/components/portal/programs/ProgramDetailActions";
+import { ShortcutsButton } from "@/src/components/portal/programs/ShortcutsButton";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { getCoachProfile } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
@@ -148,6 +149,9 @@ export default async function ProgramCanvasPage({
             deleteAction={deleteProgramAction}
             publishAction={publishProgramAction}
             attachFormAction={attachFormToProgramAction}
+            shortcutsButton={
+              <ShortcutsButton key="shortcuts" variant="program" />
+            }
           />
         }
       />

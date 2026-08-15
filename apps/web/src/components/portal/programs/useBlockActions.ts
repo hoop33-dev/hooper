@@ -24,6 +24,7 @@ import {
   removeBlock,
   removeExercise,
 } from "./blocksState";
+import { parseLibraryTemplateDragId } from "./blockTemplateFilter";
 import { isPending } from "./dnd/pendingRows";
 import type { SupersetExercisePayload } from "./SupersetRoundsModal";
 
@@ -78,6 +79,46 @@ async function runAddBlock(
   } else {
     reportError(ctx.showError, result);
   }
+}
+
+/** Adds a Block Library template as a whole new block (or set of blocks, for
+ * a multi-block template) — backs the Shift+A "quick add" shortcut on the
+ * Blocks tab. Deliberately doesn't reuse the drag-drop handlers in
+ * useBlockExerciseDnd.ts (handleBlockTemplateDrop/handleSessionTemplateDrop),
+ * which are private and entangled with a live dnd-kit `Over` target; this is
+ * a plain call to the same underlying actions, modeled on runAddBlock. */
+async function runAddBlockFromTemplate(
+  sessionId: string,
+  dragId: string,
+  ctx: Pick<
+    UseBlockActionsOptions,
+    | "blocks"
+    | "setBlocks"
+    | "createBlockFromTemplateAction"
+    | "createBlocksFromSessionTemplateAction"
+  > & { showError: (message: string) => void },
+) {
+  const parsed = parseLibraryTemplateDragId(dragId);
+  if (!parsed) return;
+
+  if (parsed.kind === "block-template") {
+    if (!ctx.createBlockFromTemplateAction) return;
+    const result = await ctx.createBlockFromTemplateAction({
+      session_id: sessionId,
+      block_template_id: parsed.id,
+    });
+    if (result.ok && result.data) ctx.setBlocks([...ctx.blocks, result.data]);
+    else reportError(ctx.showError, result);
+    return;
+  }
+
+  if (!ctx.createBlocksFromSessionTemplateAction) return;
+  const result = await ctx.createBlocksFromSessionTemplateAction({
+    session_id: sessionId,
+    session_template_id: parsed.id,
+  });
+  if (result.ok && result.data) ctx.setBlocks([...ctx.blocks, ...result.data]);
+  else reportError(ctx.showError, result);
 }
 
 async function runRenameBlock(
@@ -390,6 +431,18 @@ export interface UseBlockActionsOptions {
     blockId: string,
     name: string,
   ) => Promise<ActionResult>;
+  /** Only needed to power the Shift+A "quick add" shortcut on the Blocks
+   * tab, for a single-block template. */
+  createBlockFromTemplateAction?: (input: {
+    session_id: string;
+    block_template_id: string;
+  }) => Promise<ActionResult<BlockWithExercises>>;
+  /** Only needed to power the Shift+A "quick add" shortcut on the Blocks
+   * tab, for a multi-block template. */
+  createBlocksFromSessionTemplateAction?: (input: {
+    session_id: string;
+    session_template_id: string;
+  }) => Promise<ActionResult<BlockWithExercises[]>>;
   exercisesById?: Map<string, ExerciseWithDetails>;
 }
 
@@ -462,6 +515,8 @@ export function useBlockActions(options: UseBlockActionsOptions) {
     closeSupersetEditor: () => setEditingSupersetBlock(null),
     addBlock: (sessionId: string, name: string) =>
       runAddBlock(sessionId, name, ctx),
+    addBlockFromTemplate: (sessionId: string, dragId: string) =>
+      runAddBlockFromTemplate(sessionId, dragId, ctx),
     renameBlock: (blockId: string, name: string) =>
       runRenameBlock(blockId, name, ctx),
     updateBlockSettings: (

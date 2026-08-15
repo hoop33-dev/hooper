@@ -2,7 +2,7 @@
 
 import { useEffect, type MouseEvent } from "react";
 
-function isTextInput(el: Element | null): boolean {
+export function isTextInput(el: Element | null): boolean {
   if (!el) return false;
   const tag = el.tagName;
   if (tag === "TEXTAREA" || tag === "SELECT") return true;

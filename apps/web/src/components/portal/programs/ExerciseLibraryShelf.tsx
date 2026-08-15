@@ -7,22 +7,37 @@ import { ExercisePreviewModal } from "../exercises/ExercisePreviewModal";
 import { CreateExerciseButton } from "./CreateExerciseButton";
 import { DraggableLibraryRow } from "./dnd/DraggableLibraryRow";
 import type { CreateExerciseActions } from "./exerciseActionsProps";
-import { filterExercises } from "./exerciseFilter";
+import { handleLibrarySearchKeyDown } from "./librarySearchKeyboardNav";
 
 interface ExerciseLibraryShelfProps extends CreateExerciseActions {
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
+  /** Pre-filtered by the shell (ProgramCanvasShell) from `search`/
+   * `categoryId`, so what's rendered always matches what Shift+A targets. */
+  items: ExerciseWithDetails[];
+  search: string;
+  onSearchChange: (v: string) => void;
+  categoryId: string;
+  onCategoryChange: (v: string) => void;
+  searchInputId: string;
+  selectedIndex: number | null;
+  onSelectedIndexChange: (index: number) => void;
+  onQuickAdd: () => void;
 }
 
 function ShelfSidebar({
   search,
   onSearch,
+  onSearchKeyDown,
+  searchInputId,
   categoryId,
   onCategory,
   categories,
 }: {
   search: string;
   onSearch: (v: string) => void;
+  onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  searchInputId: string;
   categoryId: string;
   onCategory: (v: string) => void;
   categories: ExerciseCategoryRow[];
@@ -30,8 +45,10 @@ function ShelfSidebar({
   return (
     <div className="border-portal-border flex w-[180px] flex-shrink-0 flex-col gap-2 border-r p-2.5">
       <input
+        id={searchInputId}
         value={search}
         onChange={(e) => onSearch(e.target.value)}
+        onKeyDown={onSearchKeyDown}
         placeholder="Search…"
         className="border-portal-border bg-portal-bg text-portal-text1 h-7 w-full rounded-md border px-2 text-[11px] outline-none"
       />
@@ -65,49 +82,63 @@ export function ExerciseLibraryShelfBody({
   exercises,
   categories,
   styles,
+  unitTypes,
+  items,
+  search,
+  onSearchChange,
+  categoryId,
+  onCategoryChange,
+  searchInputId,
+  selectedIndex,
+  onSelectedIndexChange,
+  onQuickAdd,
   profileId,
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
   createCategoryAction,
   createStyleAction,
+  createUnitTypeAction,
 }: ExerciseLibraryShelfProps) {
-  const [search, setSearch] = useState("");
-  const [categoryId, setCategoryId] = useState("");
   const [previewExercise, setPreviewExercise] =
     useState<ExerciseWithDetails | null>(null);
   const [creating, setCreating] = useState(false);
   // Variants are chosen inside the measurement modal, not dragged/added as
   // their own picker rows — only base exercises show up here.
   const baseExercises = exercises.filter((ex) => !ex.parent_id);
-  const filtered = filterExercises(
-    baseExercises,
-    search,
-    categoryId,
-    categories,
-  );
 
   return (
     <div className="flex h-[190px]">
       <ShelfSidebar
         search={search}
-        onSearch={setSearch}
+        onSearch={onSearchChange}
+        onSearchKeyDown={(e) =>
+          handleLibrarySearchKeyDown(e, {
+            itemCount: items.length,
+            selectedIndex,
+            onSelectedIndexChange,
+            onQuickAdd,
+          })
+        }
+        searchInputId={searchInputId}
         categoryId={categoryId}
-        onCategory={setCategoryId}
+        onCategory={onCategoryChange}
         categories={categories}
       />
       <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto p-2.5">
-        {filtered.map((ex) => (
+        {items.map((ex, index) => (
           <DraggableLibraryRow
             key={ex.id}
             exercise={ex}
             variant="card"
             onOpen={setPreviewExercise}
+            isSelected={index === selectedIndex}
           />
         ))}
         <CreateExerciseButton
           categories={categories}
           styles={styles}
+          unitTypes={unitTypes}
           baseExercises={baseExercises}
           profileId={profileId}
           createExerciseAction={createExerciseAction}
@@ -115,6 +146,7 @@ export function ExerciseLibraryShelfBody({
           updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
           createCategoryAction={createCategoryAction}
           createStyleAction={createStyleAction}
+          createUnitTypeAction={createUnitTypeAction}
           onPendingChange={setCreating}
           className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex h-[52px] w-[136px] flex-shrink-0 items-center justify-center rounded-lg border border-dashed px-2.5 text-center text-[11px] font-bold"
         />

@@ -5,6 +5,7 @@ import { getCoachProfile } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
 import { listStyles } from "@/src/services/exerciseStyle.service";
+import { listUnitTypes } from "@/src/services/unitType.service";
 import { notFound } from "next/navigation";
 import {
   createExerciseAction,
@@ -14,6 +15,7 @@ import {
 } from "./actions";
 import { createCategoryAction } from "./categories/actions";
 import { createStyleAction } from "./styles/actions";
+import { createUnitTypeAction } from "./unit-types/actions";
 
 /** Shared by /exercises and /exercises/[id] — the latter renders the same
  * library with the edit modal for that exercise pre-opened, so the URL
@@ -23,17 +25,24 @@ export async function ExercisesPageContent({
 }: {
   editExerciseId?: string;
 }) {
-  const [exercisesResult, categoriesResult, stylesResult, profileResult] =
-    await Promise.all([
-      listExercises(),
-      listCategories(),
-      listStyles(),
-      getCoachProfile(),
-    ]);
+  const [
+    exercisesResult,
+    categoriesResult,
+    stylesResult,
+    unitTypesResult,
+    profileResult,
+  ] = await Promise.all([
+    listExercises(),
+    listCategories(),
+    listStyles(),
+    listUnitTypes(),
+    getCoachProfile(),
+  ]);
 
   const exercises = exercisesResult.ok ? exercisesResult.data : [];
   const categories = categoriesResult.ok ? categoriesResult.data : [];
   const styles = stylesResult.ok ? stylesResult.data : [];
+  const unitTypes = unitTypesResult.ok ? unitTypesResult.data : [];
   const profileId = profileResult.ok ? profileResult.data.id : "";
 
   if (editExerciseId && !exercises.some((ex) => ex.id === editExerciseId)) {
@@ -55,6 +64,7 @@ export async function ExercisesPageContent({
         exercises={exercises}
         categories={categories}
         styles={styles}
+        unitTypes={unitTypes}
         profileId={profileId}
         searchQuery=""
         selectedCategoryId=""
@@ -65,6 +75,7 @@ export async function ExercisesPageContent({
         updateVideoUrlAction={updateExerciseVideoUrlAction}
         createCategoryAction={createCategoryAction}
         createStyleAction={createStyleAction}
+        createUnitTypeAction={createUnitTypeAction}
       />
     </div>
   );

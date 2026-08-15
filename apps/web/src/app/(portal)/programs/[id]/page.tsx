@@ -1,6 +1,7 @@
 import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
 import { ProgramCanvasShell } from "@/src/components/portal/programs/ProgramCanvasShell";
 import { ProgramDetailActions } from "@/src/components/portal/programs/ProgramDetailActions";
+import { ShortcutsButton } from "@/src/components/portal/programs/ShortcutsButton";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { getCoachProfile } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
@@ -9,6 +10,7 @@ import { listStyles } from "@/src/services/exerciseStyle.service";
 import { listForms } from "@/src/services/form.service";
 import { getProgramById } from "@/src/services/program.service";
 import { listSessionTemplates } from "@/src/services/sessionTemplate.service";
+import { listUnitTypes } from "@/src/services/unitType.service";
 import { notFound } from "next/navigation";
 import {
   createBlockFromTemplateAction,
@@ -24,6 +26,7 @@ import {
 } from "../../exercises/actions";
 import { createCategoryAction } from "../../exercises/categories/actions";
 import { createStyleAction } from "../../exercises/styles/actions";
+import { createUnitTypeAction } from "../../exercises/unit-types/actions";
 import {
   attachFormToProgramAction,
   deleteProgramAction,
@@ -70,6 +73,7 @@ async function loadProgramCanvasPageData(id: string) {
     exercisesResult,
     categoriesResult,
     stylesResult,
+    unitTypesResult,
     profileResult,
     sessionTemplatesResult,
     formsResult,
@@ -78,6 +82,7 @@ async function loadProgramCanvasPageData(id: string) {
     listExercises(),
     listCategories(),
     listStyles(),
+    listUnitTypes(),
     getCoachProfile(),
     listSessionTemplates(),
     listForms(),
@@ -88,6 +93,7 @@ async function loadProgramCanvasPageData(id: string) {
     exercises: exercisesResult.ok ? exercisesResult.data : [],
     categories: categoriesResult.ok ? categoriesResult.data : [],
     styles: stylesResult.ok ? stylesResult.data : [],
+    unitTypes: unitTypesResult.ok ? unitTypesResult.data : [],
     profileId: profileResult.ok ? profileResult.data.id : "",
     sessionTemplates: sessionTemplatesResult.ok
       ? sessionTemplatesResult.data
@@ -107,6 +113,7 @@ export default async function ProgramCanvasPage({
     exercises,
     categories,
     styles,
+    unitTypes,
     profileId,
     sessionTemplates,
     forms,
@@ -142,6 +149,9 @@ export default async function ProgramCanvasPage({
             deleteAction={deleteProgramAction}
             publishAction={publishProgramAction}
             attachFormAction={attachFormToProgramAction}
+            shortcutsButton={
+              <ShortcutsButton key="shortcuts" variant="program" />
+            }
           />
         }
       />
@@ -150,6 +160,7 @@ export default async function ProgramCanvasPage({
         exercises={exercises}
         categories={categories}
         styles={styles}
+        unitTypes={unitTypes}
         sessionTemplates={sessionTemplates}
         createSessionAction={createSessionAction}
         updateSessionNameAction={updateSessionNameAction}
@@ -184,6 +195,7 @@ export default async function ProgramCanvasPage({
         updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
         createCategoryAction={createCategoryAction}
         createStyleAction={createStyleAction}
+        createUnitTypeAction={createUnitTypeAction}
       />
     </div>
   );

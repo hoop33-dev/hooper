@@ -82,19 +82,45 @@ export function DropdownPanel({
   panelRef: RefObject<HTMLDivElement | null>;
   children: ReactNode;
 }) {
-  const [style, setStyle] = useState<CSSProperties>({ visibility: "hidden" });
+  // opacity (not visibility) while unpositioned — a visibility:hidden
+  // ancestor blocks the search input's autoFocus from taking effect (the
+  // browser won't focus an element that isn't visible), but an
+  // opacity:0 one doesn't, so autoFocus still wins the very first paint.
+  const [style, setStyle] = useState<CSSProperties>({
+    opacity: 0,
+    pointerEvents: "none",
+  });
 
   useLayoutEffect(() => {
     function updatePosition() {
       const anchor = anchorRef.current;
       if (!anchor) return;
       const rect = anchor.getBoundingClientRect();
-      setStyle({
-        position: "fixed",
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      });
+      const margin = 4;
+      const panelHeight = panelRef.current?.getBoundingClientRect().height ?? 0;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      // Flip to open upward only when there's genuinely not enough room
+      // below AND more room above than below — otherwise keep the default
+      // (below) rather than flip into an equally cramped space.
+      const openUpward =
+        spaceBelow < panelHeight + margin && spaceAbove > spaceBelow;
+
+      setStyle(
+        openUpward
+          ? {
+              position: "fixed",
+              bottom: window.innerHeight - rect.top + margin,
+              left: rect.left,
+              width: rect.width,
+            }
+          : {
+              position: "fixed",
+              top: rect.bottom + margin,
+              left: rect.left,
+              width: rect.width,
+            },
+      );
     }
     updatePosition();
     window.addEventListener("scroll", updatePosition, true);
@@ -103,13 +129,13 @@ export function DropdownPanel({
       window.removeEventListener("scroll", updatePosition, true);
       window.removeEventListener("resize", updatePosition);
     };
-  }, [anchorRef]);
+  }, [anchorRef, panelRef]);
 
   return createPortal(
     <div
       ref={panelRef}
       style={style}
-      className="border-portal-border bg-portal-card z-[60] rounded-xl border shadow-lg">
+      className="border-portal-border bg-portal-card z-[60] overflow-hidden rounded-xl border shadow-lg">
       {children}
     </div>,
     document.body,
@@ -277,14 +303,29 @@ export function DropdownAddRow({
             }
           }}
           placeholder={`New ${itemLabel} name…`}
-          className="border-portal-border text-portal-text1 placeholder:text-portal-text3 focus:border-portal-orange h-8 flex-1 rounded-lg border px-2.5 text-sm focus:outline-none"
+          className="border-portal-border text-portal-text1 placeholder:text-portal-text3 focus:border-portal-orange h-8 min-w-0 flex-1 rounded-lg border px-2.5 text-sm focus:outline-none"
         />
         <button
           type="button"
           onClick={() => void submit()}
           disabled={saving || !name.trim()}
-          className="bg-portal-orange h-8 rounded-lg px-2.5 text-xs font-bold text-white disabled:opacity-50">
-          {saving ? "Adding…" : "Add"}
+          title={`Add ${itemLabel}`}
+          className="bg-portal-orange flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white disabled:opacity-50">
+          {saving ? (
+            <span
+              role="status"
+              aria-label="Saving"
+              className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"
+            />
+          ) : (
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M16.704 5.29a1 1 0 010 1.415l-7.5 7.5a1 1 0 01-1.415 0l-3.5-3.5a1 1 0 111.415-1.415L8.5 12.086l6.79-6.796a1 1 0 011.415 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          )}
         </button>
       </div>
       {error && <p className="text-xs text-red-500">{error}</p>}

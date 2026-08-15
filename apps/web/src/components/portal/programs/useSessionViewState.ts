@@ -22,6 +22,7 @@ import type {
 import { isPending } from "./dnd/pendingRows";
 import { useBlockExerciseDnd } from "./dnd/useBlockExerciseDnd";
 import { useBlockActions } from "./useBlockActions";
+import { useLibraryPanelState } from "./useLibraryPanelState";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
@@ -141,6 +142,7 @@ export function useSessionViewState(
   sessionTemplates: SessionTemplateSummary[] = [],
 ) {
   const [blocks, setBlocks] = useState(session.blocks);
+  const libraryPanel = useLibraryPanelState({ idPrefix: "session-view" });
   useSyncBlocksFromSession(session, setBlocks);
   const exercisesById = new Map(exercises.map((e) => [e.id, e]));
   const blockTemplateNamesById = new Map(
@@ -159,6 +161,9 @@ export function useSessionViewState(
     removeExerciseFromBlockAction: actions.removeExerciseFromBlockAction,
     addExerciseToBlockAction: actions.addExerciseToBlockAction,
     saveBlockAsTemplateAction: actions.saveBlockAsTemplateAction,
+    createBlockFromTemplateAction: actions.createBlockFromTemplateAction,
+    createBlocksFromSessionTemplateAction:
+      actions.createBlocksFromSessionTemplateAction,
     exercisesById,
   });
 
@@ -195,5 +200,6 @@ export function useSessionViewState(
     dnd,
     blockActions,
     editingExerciseLinkedWeeks,
+    libraryPanel,
   };
 }

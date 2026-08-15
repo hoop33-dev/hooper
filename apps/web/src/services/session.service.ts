@@ -81,17 +81,24 @@ export async function getSessionById(
 
     if (error) return err(error.message);
 
-    const [{ data: cats }, { data: styles }] = await Promise.all([
-      supabase.from("exercise_categories").select("*"),
-      supabase.from("exercise_styles").select("*"),
-    ]);
+    const [{ data: cats }, { data: styles }, { data: unitTypes }] =
+      await Promise.all([
+        supabase.from("exercise_categories").select("*"),
+        supabase.from("exercise_styles").select("*"),
+        supabase.from("unit_types").select("*"),
+      ]);
 
     const { blocks, ...session } = data as unknown as SessionRow & {
       blocks: RawBlock[];
     };
     return ok({
       ...session,
-      blocks: shapeBlocksWithExercises(blocks, cats ?? [], styles ?? []),
+      blocks: shapeBlocksWithExercises(
+        blocks,
+        cats ?? [],
+        styles ?? [],
+        unitTypes ?? [],
+      ),
     });
   } catch (e) {
     return err(toErrorMessage(e));

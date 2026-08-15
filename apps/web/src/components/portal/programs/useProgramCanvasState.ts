@@ -42,6 +42,7 @@ import {
 } from "./dnd/useBlockExerciseDnd";
 import type { SessionCreateData } from "./SessionCreateModal";
 import { useBlockActions } from "./useBlockActions";
+import { useLibraryPanelState } from "./useLibraryPanelState";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
@@ -476,6 +477,9 @@ function useCanvasBlockState(
     removeExerciseFromBlockAction: linkAware.removeExerciseFromBlockAction,
     addExerciseToBlockAction: linkAware.addExerciseToBlockAction,
     saveBlockAsTemplateAction: actions.saveBlockAsTemplateAction,
+    createBlockFromTemplateAction: actions.createBlockFromTemplateAction,
+    createBlocksFromSessionTemplateAction:
+      actions.createBlocksFromSessionTemplateAction,
     exercisesById,
   });
 
@@ -718,6 +722,7 @@ export function useProgramCanvasState(
     program.sessions[0]?.week_number ?? 1,
   );
   const [sessionModal, setSessionModal] = useState<SessionModalState>(null);
+  const libraryPanel = useLibraryPanelState({ idPrefix: "program-canvas" });
 
   useSyncSessionsFromProgram(program, setSessions);
 
@@ -810,6 +815,7 @@ export function useProgramCanvasState(
     setSessionModal,
     linkedWeeksForSessionModal,
     linkedWeeksForEditingExercise,
+    libraryPanel,
     ...sessionModalHandlers,
     ...weekAddModal,
   };

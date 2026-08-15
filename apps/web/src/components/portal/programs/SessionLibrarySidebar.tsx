@@ -1,20 +1,20 @@
 "use client";
 
-import type {
-  ExerciseCategoryRow,
-  ExerciseWithDetails,
-  SessionTemplateSummary,
-} from "@hooper/db";
-import { useState } from "react";
+import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
 import { BlockLibraryPanel } from "./BlockLibraryPanel";
+import type { LibraryTemplate } from "./blockTemplateFilter";
 import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { ExerciseLibraryPanel } from "./ExerciseLibraryPanel";
-import { LibraryTabs, type LibraryTab } from "./LibraryTabs";
+import { LibraryTabs } from "./LibraryTabs";
+import type { useLibraryPanelState } from "./useLibraryPanelState";
 
 interface SessionLibrarySidebarProps extends CreateExerciseActions {
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
-  sessionTemplates: SessionTemplateSummary[];
+  libraryPanel: ReturnType<typeof useLibraryPanelState>;
+  filteredExercises: ExerciseWithDetails[];
+  filteredBlockTemplates: LibraryTemplate[];
+  onQuickAdd: () => void;
 }
 
 /** Swaps the session/program canvas's left panel between the Exercise
@@ -24,33 +24,61 @@ export function SessionLibrarySidebar({
   exercises,
   categories,
   styles,
-  sessionTemplates,
+  unitTypes,
+  libraryPanel,
+  filteredExercises,
+  filteredBlockTemplates,
+  onQuickAdd,
   profileId,
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
   createCategoryAction,
   createStyleAction,
+  createUnitTypeAction,
 }: SessionLibrarySidebarProps) {
-  const [tab, setTab] = useState<LibraryTab>("exercises");
   const tabs = (
-    <LibraryTabs active={tab} onChange={setTab} className="flex-1" />
+    <LibraryTabs
+      active={libraryPanel.tab}
+      onChange={libraryPanel.setTab}
+      className="flex-1"
+    />
   );
 
-  return tab === "exercises" ? (
+  return libraryPanel.tab === "exercises" ? (
     <ExerciseLibraryPanel
       exercises={exercises}
       categories={categories}
       styles={styles}
+      unitTypes={unitTypes}
       tabs={tabs}
+      items={filteredExercises}
+      search={libraryPanel.exerciseSearch}
+      onSearchChange={libraryPanel.setExerciseSearch}
+      categoryId={libraryPanel.exerciseCategoryId}
+      onCategoryChange={libraryPanel.setExerciseCategoryId}
+      searchInputId={libraryPanel.exerciseSearchInputId}
+      selectedIndex={libraryPanel.selectedIndex}
+      onSelectedIndexChange={libraryPanel.setSelectedIndex}
+      onQuickAdd={onQuickAdd}
       profileId={profileId}
       createExerciseAction={createExerciseAction}
       updateExerciseAction={updateExerciseAction}
       updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
       createCategoryAction={createCategoryAction}
       createStyleAction={createStyleAction}
+      createUnitTypeAction={createUnitTypeAction}
     />
   ) : (
-    <BlockLibraryPanel sessionTemplates={sessionTemplates} tabs={tabs} />
+    <BlockLibraryPanel
+      tabs={tabs}
+      items={filteredBlockTemplates}
+      search={libraryPanel.blockSearch}
+      onSearchChange={libraryPanel.setBlockSearch}
+      searchInputId={libraryPanel.blockSearchInputId}
+      selectedIndex={libraryPanel.selectedIndex}
+      onSelectedIndexChange={libraryPanel.setSelectedIndex}
+      onQuickAdd={onQuickAdd}
+    />
   );
 }

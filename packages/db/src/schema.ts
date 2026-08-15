@@ -139,9 +139,19 @@ export type ExerciseCategoryLinkRow = {
   category_id: string;
 };
 
+export type UnitTypeRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  position: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ExerciseUnitTypeRow = {
   exercise_id: string;
-  unit_type: string;
+  unit_type_id: string;
   position: number;
 };
 
@@ -432,6 +442,12 @@ export type Database = {
         Insert: Partial<ExerciseStyleRow> &
           Pick<ExerciseStyleRow, "name" | "created_by">;
         Update: Partial<ExerciseStyleRow>;
+        Relationships: [];
+      };
+      unit_types: {
+        Row: UnitTypeRow;
+        Insert: Partial<UnitTypeRow> & Pick<UnitTypeRow, "name" | "created_by">;
+        Update: Partial<UnitTypeRow>;
         Relationships: [];
       };
       programs: {

@@ -6,6 +6,7 @@ import type {
   ExerciseWithDetails,
   SessionRow,
   SessionTemplateSummary,
+  UnitTypeRow,
 } from "@hooper/db";
 import {
   BlockExerciseMeasurementModal,
@@ -33,6 +34,12 @@ interface SessionModalsProps {
   totalWeeks: number;
   exercises: ExerciseWithDetails[];
   styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
+  profileId: string;
   /** The duplicate modal's session's current linked weeks (its own week
    * only, if it isn't linked to anything). */
   linkedWeeks: number[];
@@ -69,6 +76,9 @@ export function SessionModals({
   totalWeeks,
   exercises,
   styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
   linkedWeeks,
   seedExerciseName,
   onCreateSession,
@@ -131,6 +141,9 @@ export function SessionModals({
             exercises,
           )}
           styles={styles}
+          unitTypes={unitTypes}
+          createUnitTypeAction={createUnitTypeAction}
+          profileId={profileId}
         />
       )}
       {editingSupersetBlock && (
@@ -138,6 +151,9 @@ export function SessionModals({
           block={editingSupersetBlock}
           exercises={exercises}
           styles={styles}
+          unitTypes={unitTypes}
+          createUnitTypeAction={createUnitTypeAction}
+          profileId={profileId}
           onClose={onCloseSupersetEditor}
           onSave={onSaveSupersetMeasurements}
         />

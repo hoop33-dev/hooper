@@ -1,11 +1,11 @@
 "use client";
 
-import type { UnitType } from "@/src/constants/unitTypes";
 import type {
   ExerciseCategoryRow,
   ExerciseStyleRow,
   ExerciseVideoSource,
   ExerciseWithDetails,
+  UnitTypeRow,
 } from "@hooper/db";
 import type { MouseEvent } from "react";
 import { InlineConfirmBar } from "../ui/InlineConfirmBar";
@@ -15,7 +15,7 @@ import { useModalDismiss } from "../ui/useModalDismiss";
 import { CategoryCombobox } from "./CategoryCombobox";
 import { ParentExerciseSelect } from "./ParentExerciseSelect";
 import { StyleSelect } from "./StyleSelect";
-import { UnitTypeSelector } from "./UnitTypeSelector";
+import { UnitTypeSelect } from "./UnitTypeSelect";
 import { VideoField } from "./VideoField";
 import type { ActionResult, ExerciseModalProps } from "./exerciseModalTypes";
 import { useExerciseModalForm } from "./useExerciseModalForm";
@@ -73,6 +73,7 @@ export function ExerciseModal(props: ExerciseModalProps) {
     deleteAction,
     createCategoryAction,
     createStyleAction,
+    createUnitTypeAction,
     profileId,
   } = props;
   const form = useExerciseModalForm(props);
@@ -108,7 +109,10 @@ export function ExerciseModal(props: ExerciseModalProps) {
       onStyleCreated={form.addStyle}
       createStyleAction={createStyleAction}
       unitTypes={form.unitTypes}
-      onUnitTypesChange={form.setUnitTypes}
+      unitTypeIds={form.unitTypeIds}
+      onUnitTypeIdsChange={form.setUnitTypeIds}
+      onUnitTypeCreated={form.addUnitType}
+      createUnitTypeAction={createUnitTypeAction}
       error={form.error}
       deleteAction={deleteAction}
       onDelete={form.handleDelete}
@@ -145,8 +149,11 @@ type ModalLayoutProps = {
   onDefaultStyleChange: (id: string) => void;
   onStyleCreated: (style: ExerciseStyleRow) => void;
   createStyleAction?: ExerciseModalProps["createStyleAction"];
-  unitTypes: UnitType[];
-  onUnitTypesChange: (types: UnitType[]) => void;
+  unitTypes: UnitTypeRow[];
+  unitTypeIds: string[];
+  onUnitTypeIdsChange: (ids: string[]) => void;
+  onUnitTypeCreated: (unitType: UnitTypeRow) => void;
+  createUnitTypeAction?: ExerciseModalProps["createUnitTypeAction"];
   error: string | null;
   deleteAction?: (id: string) => Promise<ActionResult>;
   onDelete: () => void;
@@ -182,7 +189,10 @@ function ModalLayout({
   onStyleCreated,
   createStyleAction,
   unitTypes,
-  onUnitTypesChange,
+  unitTypeIds,
+  onUnitTypeIdsChange,
+  onUnitTypeCreated,
+  createUnitTypeAction,
   error,
   deleteAction,
   onDelete,
@@ -214,16 +224,18 @@ function ModalLayout({
           onParentChange={onParentChange}
           hasVariants={hasVariants}
           lockedParentId={lockedParentId}
-        />
-        <ModalFooter
           styles={styles}
           defaultStyleId={defaultStyleId}
           onDefaultStyleChange={onDefaultStyleChange}
           onStyleCreated={onStyleCreated}
           createStyleAction={createStyleAction}
-          profileId={profileId}
           unitTypes={unitTypes}
-          onUnitTypesChange={onUnitTypesChange}
+          unitTypeIds={unitTypeIds}
+          onUnitTypeIdsChange={onUnitTypeIdsChange}
+          onUnitTypeCreated={onUnitTypeCreated}
+          createUnitTypeAction={createUnitTypeAction}
+        />
+        <ModalFooter
           error={error}
           mode={mode}
           deleteAction={deleteAction}
@@ -237,26 +249,54 @@ function ModalLayout({
   );
 }
 
-function ModalColumnBody({
-  name,
-  description,
-  nameError,
-  onNameChange,
-  onDescriptionChange,
-  categories,
-  categoryIds,
-  onCategoryChange,
-  createCategoryAction,
+function ExerciseTaxonomyFields({
   profileId,
-  videoUrl,
-  videoSource,
-  onVideoChange,
-  baseExercises,
-  parentId,
-  onParentChange,
-  hasVariants,
-  lockedParentId,
+  styles,
+  defaultStyleId,
+  onDefaultStyleChange,
+  onStyleCreated,
+  createStyleAction,
+  unitTypes,
+  unitTypeIds,
+  onUnitTypeIdsChange,
+  onUnitTypeCreated,
+  createUnitTypeAction,
 }: {
+  profileId: string;
+  styles: ExerciseStyleRow[];
+  defaultStyleId: string;
+  onDefaultStyleChange: (id: string) => void;
+  onStyleCreated: (style: ExerciseStyleRow) => void;
+  createStyleAction?: ExerciseModalProps["createStyleAction"];
+  unitTypes: UnitTypeRow[];
+  unitTypeIds: string[];
+  onUnitTypeIdsChange: (ids: string[]) => void;
+  onUnitTypeCreated: (unitType: UnitTypeRow) => void;
+  createUnitTypeAction?: ExerciseModalProps["createUnitTypeAction"];
+}) {
+  return (
+    <>
+      <StyleSelect
+        styles={styles}
+        value={defaultStyleId}
+        onChange={onDefaultStyleChange}
+        createStyleAction={createStyleAction}
+        profileId={profileId}
+        onStyleCreated={onStyleCreated}
+      />
+      <UnitTypeSelect
+        unitTypes={unitTypes}
+        selected={unitTypeIds}
+        onChange={onUnitTypeIdsChange}
+        createUnitTypeAction={createUnitTypeAction}
+        profileId={profileId}
+        onUnitTypeCreated={onUnitTypeCreated}
+      />
+    </>
+  );
+}
+
+type ModalMainColumnProps = {
   name: string;
   description: string;
   nameError?: string;
@@ -267,40 +307,105 @@ function ModalColumnBody({
   onCategoryChange: (ids: string[]) => void;
   createCategoryAction?: ExerciseModalProps["createCategoryAction"];
   profileId: string;
-  videoUrl?: string | null;
-  videoSource?: ExerciseVideoSource | null;
-  onVideoChange: (value: VideoFieldState) => void;
   baseExercises: ExerciseWithDetails[];
   parentId: string;
   onParentChange: (id: string) => void;
   hasVariants: boolean;
   lockedParentId?: string;
-}) {
+  styles: ExerciseStyleRow[];
+  defaultStyleId: string;
+  onDefaultStyleChange: (id: string) => void;
+  onStyleCreated: (style: ExerciseStyleRow) => void;
+  createStyleAction?: ExerciseModalProps["createStyleAction"];
+  unitTypes: UnitTypeRow[];
+  unitTypeIds: string[];
+  onUnitTypeIdsChange: (ids: string[]) => void;
+  onUnitTypeCreated: (unitType: UnitTypeRow) => void;
+  createUnitTypeAction?: ExerciseModalProps["createUnitTypeAction"];
+};
+
+function ModalMainColumn({
+  name,
+  description,
+  nameError,
+  onNameChange,
+  onDescriptionChange,
+  categories,
+  categoryIds,
+  onCategoryChange,
+  createCategoryAction,
+  profileId,
+  baseExercises,
+  parentId,
+  onParentChange,
+  hasVariants,
+  lockedParentId,
+  styles,
+  defaultStyleId,
+  onDefaultStyleChange,
+  onStyleCreated,
+  createStyleAction,
+  unitTypes,
+  unitTypeIds,
+  onUnitTypeIdsChange,
+  onUnitTypeCreated,
+  createUnitTypeAction,
+}: ModalMainColumnProps) {
+  return (
+    <div className="border-portal-border flex flex-1 flex-col gap-5 overflow-y-auto border-r p-6">
+      <ExerciseFormFields
+        name={name}
+        description={description}
+        onNameChange={onNameChange}
+        onDescriptionChange={onDescriptionChange}
+        error={nameError}
+      />
+      <CategoryCombobox
+        categories={categories}
+        selected={categoryIds}
+        onChange={onCategoryChange}
+        createCategoryAction={createCategoryAction}
+        profileId={profileId}
+      />
+      <ParentExerciseSelect
+        baseExercises={baseExercises}
+        value={lockedParentId ?? parentId}
+        onChange={onParentChange}
+        disabled={hasVariants}
+        locked={!!lockedParentId}
+      />
+      <ExerciseTaxonomyFields
+        profileId={profileId}
+        styles={styles}
+        defaultStyleId={defaultStyleId}
+        onDefaultStyleChange={onDefaultStyleChange}
+        onStyleCreated={onStyleCreated}
+        createStyleAction={createStyleAction}
+        unitTypes={unitTypes}
+        unitTypeIds={unitTypeIds}
+        onUnitTypeIdsChange={onUnitTypeIdsChange}
+        onUnitTypeCreated={onUnitTypeCreated}
+        createUnitTypeAction={createUnitTypeAction}
+      />
+    </div>
+  );
+}
+
+type ModalColumnBodyProps = ModalMainColumnProps & {
+  videoUrl?: string | null;
+  videoSource?: ExerciseVideoSource | null;
+  onVideoChange: (value: VideoFieldState) => void;
+};
+
+function ModalColumnBody({
+  videoUrl,
+  videoSource,
+  onVideoChange,
+  ...mainColumnProps
+}: ModalColumnBodyProps) {
   return (
     <div className="flex flex-1 overflow-hidden">
-      <div className="border-portal-border flex flex-1 flex-col gap-5 overflow-y-auto border-r p-6">
-        <ExerciseFormFields
-          name={name}
-          description={description}
-          onNameChange={onNameChange}
-          onDescriptionChange={onDescriptionChange}
-          error={nameError}
-        />
-        <CategoryCombobox
-          categories={categories}
-          selected={categoryIds}
-          onChange={onCategoryChange}
-          createCategoryAction={createCategoryAction}
-          profileId={profileId}
-        />
-        <ParentExerciseSelect
-          baseExercises={baseExercises}
-          value={lockedParentId ?? parentId}
-          onChange={onParentChange}
-          disabled={hasVariants}
-          locked={!!lockedParentId}
-        />
-      </div>
+      <ModalMainColumn {...mainColumnProps} />
 
       <div className="flex w-72 flex-shrink-0 flex-col gap-5 overflow-y-auto p-6">
         <VideoField
@@ -314,14 +419,6 @@ function ModalColumnBody({
 }
 
 function ModalFooter({
-  styles,
-  defaultStyleId,
-  onDefaultStyleChange,
-  onStyleCreated,
-  createStyleAction,
-  profileId,
-  unitTypes,
-  onUnitTypesChange,
   error,
   mode,
   deleteAction,
@@ -330,14 +427,6 @@ function ModalFooter({
   saving,
   onSave,
 }: {
-  styles: ExerciseStyleRow[];
-  defaultStyleId: string;
-  onDefaultStyleChange: (id: string) => void;
-  onStyleCreated: (style: ExerciseStyleRow) => void;
-  createStyleAction?: ExerciseModalProps["createStyleAction"];
-  profileId: string;
-  unitTypes: UnitType[];
-  onUnitTypesChange: (types: UnitType[]) => void;
   error: string | null;
   mode: "create" | "edit";
   deleteAction?: (id: string) => Promise<ActionResult>;
@@ -348,19 +437,6 @@ function ModalFooter({
 }) {
   return (
     <div className="border-portal-border flex flex-col gap-3 border-t p-4">
-      <div className="max-w-xs">
-        <StyleSelect
-          styles={styles}
-          value={defaultStyleId}
-          onChange={onDefaultStyleChange}
-          createStyleAction={createStyleAction}
-          profileId={profileId}
-          onStyleCreated={onStyleCreated}
-        />
-      </div>
-
-      <UnitTypeSelector selected={unitTypes} onChange={onUnitTypesChange} />
-
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <div className="flex items-center justify-between">

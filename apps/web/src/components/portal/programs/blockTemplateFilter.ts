@@ -42,3 +42,25 @@ export function libraryTemplates(
     )
     .filter((b) => !q || b.name.toLowerCase().includes(q));
 }
+
+/** Decodes a `LibraryTemplate.dragId` back into its template kind and id —
+ * shared by the dnd drop handlers and the "quick add" keyboard shortcut,
+ * which both need to know whether a dragId refers to a single-block or
+ * multi-block template without duplicating the prefix format. */
+export function parseLibraryTemplateDragId(
+  dragId: string,
+): { kind: "block-template" | "session-template"; id: string } | null {
+  if (dragId.startsWith("block-template:")) {
+    return {
+      kind: "block-template",
+      id: dragId.slice("block-template:".length),
+    };
+  }
+  if (dragId.startsWith("session-template:")) {
+    return {
+      kind: "session-template",
+      id: dragId.slice("session-template:".length),
+    };
+  }
+  return null;
+}

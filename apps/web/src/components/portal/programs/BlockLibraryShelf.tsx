@@ -1,27 +1,40 @@
 "use client";
 
-import type { SessionTemplateSummary } from "@hooper/db";
 import Link from "next/link";
-import { useState } from "react";
-import { libraryTemplates } from "./blockTemplateFilter";
+import type { LibraryTemplate } from "./blockTemplateFilter";
 import { DraggableBlockTemplateRow } from "./dnd/DraggableBlockTemplateRow";
+import { handleLibrarySearchKeyDown } from "./librarySearchKeyboardNav";
 
 interface BlockLibraryShelfProps {
-  sessionTemplates: SessionTemplateSummary[];
+  /** Pre-filtered by the shell (ProgramCanvasShell) from `search`, so what's
+   * rendered always matches what Shift+A targets. */
+  items: LibraryTemplate[];
+  search: string;
+  onSearchChange: (v: string) => void;
+  searchInputId: string;
+  selectedIndex: number | null;
+  onSelectedIndexChange: (index: number) => void;
+  onQuickAdd: () => void;
 }
 
 function ShelfSidebar({
   search,
   onSearch,
+  onSearchKeyDown,
+  searchInputId,
 }: {
   search: string;
   onSearch: (v: string) => void;
+  onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  searchInputId: string;
 }) {
   return (
     <div className="border-portal-border flex w-[180px] flex-shrink-0 flex-col gap-2 border-r p-2.5">
       <input
+        id={searchInputId}
         value={search}
         onChange={(e) => onSearch(e.target.value)}
+        onKeyDown={onSearchKeyDown}
         placeholder="Search…"
         className="border-portal-border bg-portal-bg text-portal-text1 h-7 w-full rounded-md border px-2 text-[11px] outline-none"
       />
@@ -41,21 +54,36 @@ function ShelfSidebar({
  * ProgramLibraryShelf toggle is open (see ProgramLibraryShelf.tsx, which
  * owns the shared open/collapsed + Exercises/Blocks tab chrome). */
 export function BlockLibraryShelfBody({
-  sessionTemplates,
+  items,
+  search,
+  onSearchChange,
+  searchInputId,
+  selectedIndex,
+  onSelectedIndexChange,
+  onQuickAdd,
 }: BlockLibraryShelfProps) {
-  const [search, setSearch] = useState("");
-  const filtered = libraryTemplates(sessionTemplates, search);
-
   return (
     <div className="flex h-[190px]">
-      <ShelfSidebar search={search} onSearch={setSearch} />
+      <ShelfSidebar
+        search={search}
+        onSearch={onSearchChange}
+        onSearchKeyDown={(e) =>
+          handleLibrarySearchKeyDown(e, {
+            itemCount: items.length,
+            selectedIndex,
+            onSelectedIndexChange,
+            onQuickAdd,
+          })
+        }
+        searchInputId={searchInputId}
+      />
       <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto p-2.5">
-        {filtered.length === 0 ? (
+        {items.length === 0 ? (
           <div className="text-portal-text3 px-2 py-6 text-center text-xs">
             No block templates yet
           </div>
         ) : (
-          filtered.map((b) => (
+          items.map((b, index) => (
             <DraggableBlockTemplateRow
               key={b.dragId}
               dragId={b.dragId}
@@ -63,6 +91,7 @@ export function BlockLibraryShelfBody({
               exerciseCount={b.exerciseCount}
               blockCount={b.blockCount}
               variant="card"
+              isSelected={index === selectedIndex}
             />
           ))
         )}

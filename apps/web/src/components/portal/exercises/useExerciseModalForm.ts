@@ -1,11 +1,14 @@
 "use client";
 
-import type { UnitType } from "@/src/constants/unitTypes";
 import {
   deleteExerciseVideo,
   uploadExerciseVideo,
 } from "@/src/services/exerciseVideo.client";
-import type { ExerciseStyleRow, ExerciseVideoSource } from "@hooper/db";
+import type {
+  ExerciseStyleRow,
+  ExerciseVideoSource,
+  UnitTypeRow,
+} from "@hooper/db";
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type {
   ExerciseFormData,
@@ -36,7 +39,7 @@ function buildFormData(
   name: string,
   description: string,
   categoryIds: string[],
-  unitTypes: UnitType[],
+  unitTypeIds: string[],
   parentId: string,
   defaultStyleId: string,
   videoState: VideoFieldState,
@@ -47,7 +50,7 @@ function buildFormData(
     name: name.trim(),
     description: description.trim(),
     categoryIds,
-    unitTypes,
+    unitTypeIds,
     parentId: parentId || null,
     defaultStyleId: defaultStyleId || null,
   };
@@ -104,7 +107,7 @@ type FormFields = {
   name: string;
   description: string;
   categoryIds: string[];
-  unitTypes: UnitType[];
+  unitTypeIds: string[];
   parentId: string;
   defaultStyleId: string;
   videoState: VideoFieldState;
@@ -134,7 +137,7 @@ async function runSave(
     name,
     description,
     categoryIds,
-    unitTypes,
+    unitTypeIds,
     parentId,
     defaultStyleId,
     videoState,
@@ -154,7 +157,7 @@ async function runSave(
     name,
     description,
     categoryIds,
-    unitTypes,
+    unitTypeIds,
     parentId,
     defaultStyleId,
     videoState,
@@ -221,8 +224,8 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
   const [categoryIds, setCategoryIds] = useState<string[]>(
     exercise?.categories.map((c) => c.id) ?? [],
   );
-  const [unitTypes, setUnitTypes] = useState<UnitType[]>(
-    (exercise?.unitTypes ?? []) as UnitType[],
+  const [unitTypeIds, setUnitTypeIds] = useState<string[]>(
+    exercise?.unitTypeIds ?? [],
   );
   const [parentId, setParentId] = useState<string>(
     lockedParentId ?? exercise?.parent_id ?? "",
@@ -231,6 +234,7 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
     exercise?.default_style_id ?? "",
   );
   const [styles, setStyles] = useState<ExerciseStyleRow[]>(props.styles);
+  const [unitTypes, setUnitTypes] = useState<UnitTypeRow[]>(props.unitTypes);
   const [videoState, setVideoState] = useState<VideoFieldState>(() =>
     initialVideoState(exercise),
   );
@@ -242,6 +246,10 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
     setStyles((prev) => [...prev, style]);
   }
 
+  function addUnitType(unitType: UnitTypeRow) {
+    setUnitTypes((prev) => [...prev, unitType]);
+  }
+
   const handleSave = () =>
     runSave(
       props,
@@ -249,7 +257,7 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
         name,
         description,
         categoryIds,
-        unitTypes,
+        unitTypeIds,
         parentId,
         defaultStyleId,
         videoState,
@@ -266,14 +274,16 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
     setDescription,
     categoryIds,
     setCategoryIds,
-    unitTypes,
-    setUnitTypes,
+    unitTypeIds,
+    setUnitTypeIds,
     parentId,
     setParentId,
     defaultStyleId,
     setDefaultStyleId,
     styles,
     addStyle,
+    unitTypes,
+    addUnitType,
     setVideoState,
     saving,
     error,

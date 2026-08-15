@@ -5,6 +5,7 @@ import type {
   ExerciseStyleRow,
   ExerciseVideoSource,
   ExerciseWithDetails,
+  UnitTypeRow,
 } from "@hooper/db";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ interface ExerciseLibraryShellProps {
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
   styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
   profileId: string;
   searchQuery: string;
   selectedCategoryId: string;
@@ -43,6 +45,10 @@ interface ExerciseLibraryShellProps {
     name: string;
     created_by: string;
   }) => Promise<{ ok: boolean; data?: ExerciseStyleRow; error?: string }>;
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
 }
 
 function SearchBar({
@@ -249,6 +255,23 @@ function LibraryToolbar({
         </svg>
         Manage styles
       </Link>
+      <Link
+        href="/exercises/unit-types"
+        className="border-portal-border bg-portal-card text-portal-text1 hover:bg-portal-border/50 inline-flex h-9 flex-shrink-0 items-center gap-1.5 rounded-lg border px-4 text-sm font-semibold whitespace-nowrap transition">
+        <svg
+          className="text-portal-text2 h-3.5 w-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9 7h6m-6 5h6m-6 5h6M5 7h.01M5 12h.01M5 17h.01"
+          />
+        </svg>
+        Manage unit types
+      </Link>
       <div className="ml-auto flex flex-shrink-0 items-center gap-3">
         <SearchBar value={search} onChange={onSearchChange} />
         <PortalButton variant="primary" onClick={onCreateClick}>
@@ -321,6 +344,7 @@ export function ExerciseLibraryShell({
   exercises,
   categories,
   styles,
+  unitTypes,
   profileId,
   initialEditExerciseId,
   createAction,
@@ -329,6 +353,7 @@ export function ExerciseLibraryShell({
   updateVideoUrlAction,
   createCategoryAction,
   createStyleAction,
+  createUnitTypeAction,
 }: ExerciseLibraryShellProps) {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -379,6 +404,7 @@ export function ExerciseLibraryShell({
           exercise={modal.editingExercise ?? undefined}
           categories={categories}
           styles={styles}
+          unitTypes={unitTypes}
           baseExercises={baseExercises}
           profileId={profileId}
           onSave={modal.handleSaved}
@@ -390,6 +416,7 @@ export function ExerciseLibraryShell({
           updateVideoUrlAction={updateVideoUrlAction}
           createCategoryAction={createCategoryAction}
           createStyleAction={createStyleAction}
+          createUnitTypeAction={createUnitTypeAction}
         />
       )}
     </div>

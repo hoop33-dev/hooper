@@ -3,6 +3,7 @@
 import type { FormSummary, ProgramRow } from "@hooper/db";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import {
@@ -25,6 +26,8 @@ interface ProgramDetailActionsProps {
     programId: string,
     formId: string | null,
   ) => Promise<ActionResult<ProgramRow>>;
+  /** Rendered immediately to the left of the "Edit program" button. */
+  shortcutsButton?: ReactNode;
 }
 
 export function ProgramDetailActions({
@@ -34,6 +37,7 @@ export function ProgramDetailActions({
   deleteAction,
   publishAction,
   attachFormAction,
+  shortcutsButton,
 }: ProgramDetailActionsProps) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -71,9 +75,12 @@ export function ProgramDetailActions({
         className="text-portal-text2 text-xs font-semibold hover:underline">
         ← Back to programs
       </Link>
-      <PortalButton variant="secondary" onClick={() => setEditing(true)}>
-        Edit program
-      </PortalButton>
+      <div className="flex items-center gap-2">
+        {shortcutsButton}
+        <PortalButton variant="secondary" onClick={() => setEditing(true)}>
+          Edit program
+        </PortalButton>
+      </div>
       {editing && (
         <ProgramEditDrawer
           program={current}

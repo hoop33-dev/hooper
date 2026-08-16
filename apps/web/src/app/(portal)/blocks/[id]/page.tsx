@@ -8,10 +8,12 @@ import type {
 } from "@/src/services/block.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
+import { listStyles } from "@/src/services/exerciseStyle.service";
 import {
   getSessionTemplateById,
   listSessionTemplates,
 } from "@/src/services/sessionTemplate.service";
+import { listUnitTypes } from "@/src/services/unitType.service";
 import type { SessionWithBlocks } from "@hooper/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -21,6 +23,8 @@ import {
   updateExerciseVideoUrlAction,
 } from "../../exercises/actions";
 import { createCategoryAction } from "../../exercises/categories/actions";
+import { createStyleAction } from "../../exercises/styles/actions";
+import { createUnitTypeAction } from "../../exercises/unit-types/actions";
 import {
   addExerciseToBlockTemplateAction,
   createBlockTemplateAction,
@@ -89,12 +93,16 @@ async function loadBlockTemplatePageData(templateId: string) {
     templateResult,
     exercisesResult,
     categoriesResult,
+    stylesResult,
+    unitTypesResult,
     profileResult,
     sessionTemplatesResult,
   ] = await Promise.all([
     getSessionTemplateById(templateId),
     listExercises(),
     listCategories(),
+    listStyles(),
+    listUnitTypes(),
     getCoachProfile(),
     listSessionTemplates(),
   ]);
@@ -103,6 +111,8 @@ async function loadBlockTemplatePageData(templateId: string) {
     template: templateResult,
     exercises: exercisesResult.ok ? exercisesResult.data : [],
     categories: categoriesResult.ok ? categoriesResult.data : [],
+    styles: stylesResult.ok ? stylesResult.data : [],
+    unitTypes: unitTypesResult.ok ? unitTypesResult.data : [],
     profileId: profileResult.ok ? profileResult.data.id : "",
     // Excludes itself — dragging a template into its own editor would nest a
     // copy of a template inside itself, which the Block Library has no
@@ -124,6 +134,8 @@ export default async function BlockTemplateEditorPage({
     template: templateResult,
     exercises,
     categories,
+    styles,
+    unitTypes,
     profileId,
     sessionTemplates,
   } = await loadBlockTemplatePageData(id);
@@ -164,6 +176,8 @@ export default async function BlockTemplateEditorPage({
         session={sessionShape}
         exercises={exercises}
         categories={categories}
+        styles={styles}
+        unitTypes={unitTypes}
         sessionTemplates={sessionTemplates}
         createBlockAction={createBlockAction}
         updateBlockAction={updateBlockTemplateAction}
@@ -185,6 +199,8 @@ export default async function BlockTemplateEditorPage({
         updateExerciseAction={updateExerciseAction}
         updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
         createCategoryAction={createCategoryAction}
+        createStyleAction={createStyleAction}
+        createUnitTypeAction={createUnitTypeAction}
       />
     </div>
   );

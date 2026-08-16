@@ -8,6 +8,7 @@ import {
 import type {
   BlockExerciseWithDetails,
   BlockWithExercises,
+  ExerciseStyleRow,
   ExerciseWithDetails,
 } from "@hooper/db";
 import { useState } from "react";
@@ -22,6 +23,7 @@ interface BlockListProps {
   sessionId: string;
   blocks: BlockWithExercises[];
   exercises: ExerciseWithDetails[];
+  styles: ExerciseStyleRow[];
   onOpenExercise: (be: BlockExerciseWithDetails) => void;
   onRemoveExercise: (exerciseRowId: string) => void;
   onRenameBlock: (blockId: string, name: string) => void;
@@ -102,6 +104,7 @@ export function BlockList({
   sessionId,
   blocks,
   exercises,
+  styles,
   onOpenExercise,
   onRemoveExercise,
   onRenameBlock,
@@ -128,6 +131,7 @@ export function BlockList({
             <BlockCard
               block={block}
               exercises={exercises}
+              styles={styles}
               onOpenExercise={onOpenExercise}
               onRemoveExercise={onRemoveExercise}
               onRename={(name) => onRenameBlock(block.id, name)}

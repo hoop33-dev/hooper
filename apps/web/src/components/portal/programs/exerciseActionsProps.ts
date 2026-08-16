@@ -1,4 +1,9 @@
-import type { ExerciseCategoryRow, ExerciseVideoSource } from "@hooper/db";
+import type {
+  ExerciseCategoryRow,
+  ExerciseStyleRow,
+  ExerciseVideoSource,
+  UnitTypeRow,
+} from "@hooper/db";
 import type {
   ActionResult,
   ExerciseFormData,
@@ -24,4 +29,18 @@ export interface CreateExerciseActions {
     name: string;
     created_by: string;
   }) => Promise<{ ok: boolean; data?: ExerciseCategoryRow; error?: string }>;
+  styles: ExerciseStyleRow[];
+  /** Optional — powers the "+ Add style" affordance inside the create
+   * exercise modal's default style selector. */
+  createStyleAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: ExerciseStyleRow; error?: string }>;
+  unitTypes: UnitTypeRow[];
+  /** Optional — powers the "+ Add unit type" affordance inside the create
+   * exercise modal's unit type selector. */
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
 }

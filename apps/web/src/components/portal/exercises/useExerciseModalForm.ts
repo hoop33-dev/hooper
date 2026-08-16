@@ -1,11 +1,14 @@
 "use client";
 
-import type { UnitType } from "@/src/constants/unitTypes";
 import {
   deleteExerciseVideo,
   uploadExerciseVideo,
 } from "@/src/services/exerciseVideo.client";
-import type { ExerciseVideoSource } from "@hooper/db";
+import type {
+  ExerciseStyleRow,
+  ExerciseVideoSource,
+  UnitTypeRow,
+} from "@hooper/db";
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type {
   ExerciseFormData,
@@ -36,7 +39,9 @@ function buildFormData(
   name: string,
   description: string,
   categoryIds: string[],
-  unitTypes: UnitType[],
+  unitTypeIds: string[],
+  parentId: string,
+  defaultStyleId: string,
   videoState: VideoFieldState,
   existingSource: ExerciseVideoSource | null,
 ): ExerciseFormData {
@@ -45,7 +50,9 @@ function buildFormData(
     name: name.trim(),
     description: description.trim(),
     categoryIds,
-    unitTypes,
+    unitTypeIds,
+    parentId: parentId || null,
+    defaultStyleId: defaultStyleId || null,
   };
   if (decision.action === "clear")
     return { ...base, videoUrl: null, videoSource: null };
@@ -100,7 +107,9 @@ type FormFields = {
   name: string;
   description: string;
   categoryIds: string[];
-  unitTypes: UnitType[];
+  unitTypeIds: string[];
+  parentId: string;
+  defaultStyleId: string;
   videoState: VideoFieldState;
 };
 
@@ -124,7 +133,15 @@ async function runSave(
     updateAction,
     updateVideoUrlAction,
   } = props;
-  const { name, description, categoryIds, unitTypes, videoState } = fields;
+  const {
+    name,
+    description,
+    categoryIds,
+    unitTypeIds,
+    parentId,
+    defaultStyleId,
+    videoState,
+  } = fields;
   const { setNameError, setSaving, setError } = setters;
 
   if (!name.trim()) {
@@ -140,7 +157,9 @@ async function runSave(
     name,
     description,
     categoryIds,
-    unitTypes,
+    unitTypeIds,
+    parentId,
+    defaultStyleId,
     videoState,
     existingSource,
   );
@@ -199,15 +218,23 @@ async function runDelete(
 }
 
 export function useExerciseModalForm(props: ExerciseModalProps) {
-  const { exercise } = props;
+  const { exercise, lockedParentId } = props;
   const [name, setName] = useState(exercise?.name ?? "");
   const [description, setDescription] = useState(exercise?.description ?? "");
   const [categoryIds, setCategoryIds] = useState<string[]>(
     exercise?.categories.map((c) => c.id) ?? [],
   );
-  const [unitTypes, setUnitTypes] = useState<UnitType[]>(
-    (exercise?.unitTypes ?? []) as UnitType[],
+  const [unitTypeIds, setUnitTypeIds] = useState<string[]>(
+    exercise?.unitTypeIds ?? [],
   );
+  const [parentId, setParentId] = useState<string>(
+    lockedParentId ?? exercise?.parent_id ?? "",
+  );
+  const [defaultStyleId, setDefaultStyleId] = useState<string>(
+    exercise?.default_style_id ?? "",
+  );
+  const [styles, setStyles] = useState<ExerciseStyleRow[]>(props.styles);
+  const [unitTypes, setUnitTypes] = useState<UnitTypeRow[]>(props.unitTypes);
   const [videoState, setVideoState] = useState<VideoFieldState>(() =>
     initialVideoState(exercise),
   );
@@ -215,10 +242,26 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | undefined>();
 
+  function addStyle(style: ExerciseStyleRow) {
+    setStyles((prev) => [...prev, style]);
+  }
+
+  function addUnitType(unitType: UnitTypeRow) {
+    setUnitTypes((prev) => [...prev, unitType]);
+  }
+
   const handleSave = () =>
     runSave(
       props,
-      { name, description, categoryIds, unitTypes, videoState },
+      {
+        name,
+        description,
+        categoryIds,
+        unitTypeIds,
+        parentId,
+        defaultStyleId,
+        videoState,
+      },
       { setNameError, setSaving, setError },
     );
 
@@ -231,8 +274,16 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
     setDescription,
     categoryIds,
     setCategoryIds,
+    unitTypeIds,
+    setUnitTypeIds,
+    parentId,
+    setParentId,
+    defaultStyleId,
+    setDefaultStyleId,
+    styles,
+    addStyle,
     unitTypes,
-    setUnitTypes,
+    addUnitType,
     setVideoState,
     saving,
     error,

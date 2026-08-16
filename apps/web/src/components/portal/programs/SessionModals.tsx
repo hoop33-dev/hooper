@@ -1,9 +1,12 @@
-import type { LinkScope, MeasurementInput } from "@/src/services/block.service";
+import type { LinkScope } from "@/src/services/block.service";
 import type {
   BlockExerciseWithDetails,
   BlockWithExercises,
+  ExerciseStyleRow,
+  ExerciseWithDetails,
   SessionRow,
   SessionTemplateSummary,
+  UnitTypeRow,
 } from "@hooper/db";
 import {
   BlockExerciseMeasurementModal,
@@ -16,8 +19,12 @@ import {
 } from "./SessionCreateModal";
 import { SessionDuplicateModal } from "./SessionDuplicateModal";
 import { SessionRenamePopover } from "./SessionRenamePopover";
-import { SupersetRoundsModal } from "./SupersetRoundsModal";
+import {
+  SupersetRoundsModal,
+  type SupersetExercisePayload,
+} from "./SupersetRoundsModal";
 import type { SessionModalState } from "./useProgramCanvasState";
+import { variantOptionsFor } from "./variantOptions";
 
 interface SessionModalsProps {
   sessionModal: SessionModalState;
@@ -25,6 +32,14 @@ interface SessionModalsProps {
   existingSessions: SessionRow[];
   sessionTemplates?: SessionTemplateSummary[];
   totalWeeks: number;
+  exercises: ExerciseWithDetails[];
+  styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: (input: {
+    name: string;
+    created_by: string;
+  }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
+  profileId: string;
   /** The duplicate modal's session's current linked weeks (its own week
    * only, if it isn't linked to anything). */
   linkedWeeks: number[];
@@ -48,7 +63,8 @@ interface SessionModalsProps {
   editingSupersetBlock: BlockWithExercises | null;
   onCloseSupersetEditor: () => void;
   onSaveSupersetMeasurements: (
-    perExercise: { id: string; measurements: MeasurementInput[] }[],
+    rounds: number,
+    perExercise: SupersetExercisePayload[],
   ) => Promise<void>;
 }
 
@@ -58,6 +74,11 @@ export function SessionModals({
   existingSessions,
   sessionTemplates,
   totalWeeks,
+  exercises,
+  styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
   linkedWeeks,
   seedExerciseName,
   onCreateSession,
@@ -115,11 +136,24 @@ export function SessionModals({
           linkedWeeks={editingExerciseLinkedWeeks}
           onClose={onCloseExerciseEditor}
           onSave={onSaveExerciseMeasurement}
+          variantOptions={variantOptionsFor(
+            editingExercise.exercise,
+            exercises,
+          )}
+          styles={styles}
+          unitTypes={unitTypes}
+          createUnitTypeAction={createUnitTypeAction}
+          profileId={profileId}
         />
       )}
       {editingSupersetBlock && (
         <SupersetRoundsModal
           block={editingSupersetBlock}
+          exercises={exercises}
+          styles={styles}
+          unitTypes={unitTypes}
+          createUnitTypeAction={createUnitTypeAction}
+          profileId={profileId}
           onClose={onCloseSupersetEditor}
           onSave={onSaveSupersetMeasurements}
         />

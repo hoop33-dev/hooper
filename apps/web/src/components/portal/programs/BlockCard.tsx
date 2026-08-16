@@ -9,6 +9,7 @@ import {
 import type {
   BlockExerciseWithDetails,
   BlockWithExercises,
+  ExerciseStyleRow,
   ExerciseWithDetails,
 } from "@hooper/db";
 import { useState } from "react";
@@ -491,6 +492,7 @@ function BlockCardHeader({
 
 interface BlockCardBodyProps {
   block: BlockWithExercises;
+  styles: ExerciseStyleRow[];
   readOnly?: boolean;
   dense?: boolean;
   onOpenExercise: (blockExercise: BlockExerciseWithDetails) => void;
@@ -499,6 +501,7 @@ interface BlockCardBodyProps {
 
 function BlockCardBody({
   block,
+  styles,
   readOnly,
   dense,
   onOpenExercise,
@@ -517,6 +520,7 @@ function BlockCardBody({
           <SortableBlockExerciseRow
             key={be.id}
             blockExercise={be}
+            styles={styles}
             readOnly={readOnly}
             dense={dense}
             onOpen={() => onOpenExercise(be)}
@@ -530,6 +534,7 @@ function BlockCardBody({
 
 interface BlockCardProps {
   block: BlockWithExercises;
+  styles: ExerciseStyleRow[];
   readOnly?: boolean;
   dense?: boolean;
   exercises?: ExerciseWithDetails[];
@@ -548,6 +553,7 @@ interface BlockCardProps {
 
 export function BlockCard({
   block,
+  styles,
   readOnly,
   dense,
   exercises,
@@ -601,6 +607,7 @@ export function BlockCard({
       />
       <BlockCardBody
         block={block}
+        styles={styles}
         readOnly={readOnly}
         dense={dense}
         onOpenExercise={onOpenExercise}

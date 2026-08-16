@@ -3,7 +3,11 @@
 import { cn } from "@/src/lib/cn";
 import { useDroppable } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
-import type { BlockExerciseWithDetails, SessionWithBlocks } from "@hooper/db";
+import type {
+  BlockExerciseWithDetails,
+  ExerciseStyleRow,
+  SessionWithBlocks,
+} from "@hooper/db";
 import Link from "next/link";
 import { BookmarkIcon, DuplicateIcon, LinkIcon, PencilIcon } from "../ui/icons";
 import { InlineConfirmDelete } from "../ui/InlineConfirmDelete";
@@ -19,6 +23,7 @@ import {
 interface SessionCanvasColumnProps {
   programId: string;
   session: SessionWithBlocks;
+  styles: ExerciseStyleRow[];
   onRename: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -171,6 +176,7 @@ function ColumnHeader({
 export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
   const {
     session,
+    styles,
     onAddBlock,
     onOpenExercise,
     onRemoveExercise,
@@ -223,6 +229,7 @@ export function SessionCanvasColumn(props: SessionCanvasColumnProps) {
           <div key={block.id} className="contents">
             <BlockCard
               block={block}
+              styles={styles}
               dense
               onOpenExercise={onOpenExercise}
               onRemoveExercise={(exerciseRowId) =>

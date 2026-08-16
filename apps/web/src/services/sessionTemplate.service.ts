@@ -4,10 +4,12 @@ import { createClient } from "@/src/lib/supabase/server";
 import type {
   EnteredBy,
   ExerciseCategoryRow,
+  ExerciseStyleRow,
   SessionRow,
   SessionTemplateRow,
   SessionTemplateSummary,
   SessionTemplateWithBlocks,
+  UnitTypeRow,
 } from "@hooper/db";
 import type { SupabaseClient } from "./block.service";
 import {
@@ -68,15 +70,22 @@ export async function getSessionTemplateById(
       .single();
     if (error) return err(error.message);
 
-    const { data: cats } = await supabase
-      .from("exercise_categories")
-      .select("*");
+    const [{ data: cats }, { data: styles }, { data: unitTypes }] =
+      await Promise.all([
+        supabase.from("exercise_categories").select("*"),
+        supabase.from("exercise_styles").select("*"),
+        supabase.from("unit_types").select("*"),
+      ]);
     const allCategories = (cats ?? []) as ExerciseCategoryRow[];
+    const allStyles = (styles ?? []) as ExerciseStyleRow[];
+    const allUnitTypes = (unitTypes ?? []) as UnitTypeRow[];
 
     return ok(
       shapeSessionTemplate(
         data as unknown as RawSessionTemplate,
         allCategories,
+        allStyles,
+        allUnitTypes,
       ),
     );
   } catch (e) {

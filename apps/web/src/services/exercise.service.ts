@@ -4,8 +4,10 @@ import { createClient } from "@/src/lib/supabase/server";
 import type {
   ExerciseCategoryRow,
   ExerciseRow,
+  ExerciseStyleRow,
   ExerciseVideoSource,
   ExerciseWithDetails,
+  UnitTypeRow,
 } from "@hooper/db";
 
 export type CreateExerciseInput = {
@@ -14,7 +16,10 @@ export type CreateExerciseInput = {
   videoUrl?: string | null;
   videoSource?: ExerciseVideoSource | null;
   categoryIds: string[];
-  unitTypes: string[];
+  unitTypeIds: string[];
+  /** The base exercise this is a variant of — omit/null for a base exercise. */
+  parentId?: string | null;
+  defaultStyleId?: string | null;
   created_by: string;
 };
 
@@ -24,26 +29,55 @@ export type UpdateExerciseInput = {
   videoUrl?: string | null;
   videoSource?: ExerciseVideoSource | null;
   categoryIds: string[];
-  unitTypes: string[];
+  unitTypeIds: string[];
+  parentId?: string | null;
+  defaultStyleId?: string | null;
 };
 
 export type RawExercise = ExerciseRow & {
   exercise_category_links: { category_id: string }[];
-  exercise_unit_types: { unit_type: string; position: number }[];
+  exercise_unit_types: { unit_type_id: string; position: number }[];
 };
 
 export function toExerciseWithDetails(
   raw: RawExercise,
   allCategories: ExerciseCategoryRow[],
+  allStyles: ExerciseStyleRow[],
+  allUnitTypes: UnitTypeRow[],
 ): ExerciseWithDetails {
   const categoryIds = new Set(
     raw.exercise_category_links.map((l) => l.category_id),
   );
   const categories = allCategories.filter((c) => categoryIds.has(c.id));
-  const unitTypes = [...raw.exercise_unit_types]
-    .sort((a, b) => a.position - b.position)
-    .map((u) => u.unit_type);
-  return { ...raw, categories, unitTypes };
+  const sortedUnitTypeLinks = [...raw.exercise_unit_types].sort(
+    (a, b) => a.position - b.position,
+  );
+  const unitTypeIds = sortedUnitTypeLinks.map((u) => u.unit_type_id);
+  const unitTypeById = new Map(allUnitTypes.map((u) => [u.id, u.name]));
+  const unitTypes = unitTypeIds
+    .map((id) => unitTypeById.get(id))
+    .filter(Boolean) as string[];
+  const defaultStyle =
+    allStyles.find((s) => s.id === raw.default_style_id) ?? null;
+  return {
+    ...raw,
+    categories,
+    unitTypes,
+    unitTypeIds,
+    defaultStyle,
+    variants: [],
+  };
+}
+
+/** Attaches each base exercise's variants (the other exercises whose
+ * parent_id points back at it) — single-level, so a variant's own
+ * `variants` stays empty. */
+function withVariants(exercises: ExerciseWithDetails[]): ExerciseWithDetails[] {
+  return exercises.map((ex) =>
+    ex.parent_id
+      ? ex
+      : { ...ex, variants: exercises.filter((v) => v.parent_id === ex.id) },
+  );
 }
 
 export type ExerciseListOptions = {
@@ -60,7 +94,7 @@ export async function listExercises(
     let query = supabase
       .from("exercises")
       .select(
-        "*, exercise_category_links(category_id), exercise_unit_types(unit_type, position)",
+        "*, exercise_category_links(category_id), exercise_unit_types(unit_type_id, position)",
       )
       .order("name");
 
@@ -81,13 +115,25 @@ export async function listExercises(
     const { data, error } = await query;
     if (error) return err(error.message);
 
-    const { data: cats } = await supabase
-      .from("exercise_categories")
-      .select("*");
+    const [{ data: cats }, { data: styles }, { data: unitTypes }] =
+      await Promise.all([
+        supabase.from("exercise_categories").select("*"),
+        supabase.from("exercise_styles").select("*"),
+        supabase.from("unit_types").select("*"),
+      ]);
 
     const allCategories = (cats ?? []) as ExerciseCategoryRow[];
-    const exercises = (data ?? []).map((raw) =>
-      toExerciseWithDetails(raw as unknown as RawExercise, allCategories),
+    const allStyles = (styles ?? []) as ExerciseStyleRow[];
+    const allUnitTypes = (unitTypes ?? []) as UnitTypeRow[];
+    const exercises = withVariants(
+      (data ?? []).map((raw) =>
+        toExerciseWithDetails(
+          raw as unknown as RawExercise,
+          allCategories,
+          allStyles,
+          allUnitTypes,
+        ),
+      ),
     );
 
     return ok(exercises);
@@ -114,13 +160,13 @@ async function insertCategoryLinks(
 async function insertUnitTypes(
   supabase: Awaited<ReturnType<typeof createClient>>,
   exerciseId: string,
-  unitTypes: string[],
+  unitTypeIds: string[],
 ): Promise<string | null> {
-  if (unitTypes.length === 0) return null;
+  if (unitTypeIds.length === 0) return null;
   const { error } = await supabase.from("exercise_unit_types").insert(
-    unitTypes.map((unit_type, position) => ({
+    unitTypeIds.map((unit_type_id, position) => ({
       exercise_id: exerciseId,
-      unit_type,
+      unit_type_id,
       position,
     })),
   );
@@ -140,6 +186,8 @@ export async function createExercise(
         description: input.description ?? null,
         video_url: input.videoUrl ?? null,
         video_source: input.videoSource ?? null,
+        parent_id: input.parentId ?? null,
+        default_style_id: input.defaultStyleId ?? null,
         created_by: input.created_by,
       })
       .select()
@@ -154,7 +202,7 @@ export async function createExercise(
     );
     if (linkErr) return err(linkErr);
 
-    const unitErr = await insertUnitTypes(supabase, data.id, input.unitTypes);
+    const unitErr = await insertUnitTypes(supabase, data.id, input.unitTypeIds);
     if (unitErr) return err(unitErr);
 
     return ok(data);
@@ -178,6 +226,9 @@ export async function updateExercise(
       updatePayload.video_url = input.videoUrl ?? null;
       updatePayload.video_source = input.videoSource ?? null;
     }
+    if ("parentId" in input) updatePayload.parent_id = input.parentId ?? null;
+    if ("defaultStyleId" in input)
+      updatePayload.default_style_id = input.defaultStyleId ?? null;
 
     const { data, error } = await supabase
       .from("exercises")
@@ -197,7 +248,7 @@ export async function updateExercise(
     const linkErr = await insertCategoryLinks(supabase, id, input.categoryIds);
     if (linkErr) return err(linkErr);
 
-    const unitErr = await insertUnitTypes(supabase, id, input.unitTypes);
+    const unitErr = await insertUnitTypes(supabase, id, input.unitTypeIds);
     if (unitErr) return err(unitErr);
 
     return ok(data);

@@ -21,7 +21,9 @@ export async function createExerciseAction(
     videoUrl: data.videoUrl,
     videoSource: data.videoSource,
     categoryIds: data.categoryIds,
-    unitTypes: data.unitTypes,
+    unitTypeIds: data.unitTypeIds,
+    parentId: data.parentId,
+    defaultStyleId: data.defaultStyleId,
     created_by: data.created_by,
   });
   if (result.ok) revalidatePath("/exercises");
@@ -41,7 +43,9 @@ export async function updateExerciseAction(
       ? { videoUrl: data.videoUrl, videoSource: data.videoSource }
       : {}),
     categoryIds: data.categoryIds,
-    unitTypes: data.unitTypes,
+    unitTypeIds: data.unitTypeIds,
+    parentId: data.parentId,
+    defaultStyleId: data.defaultStyleId,
   });
   if (result.ok) revalidatePath("/exercises");
   return result.ok ? { ok: true } : { ok: false, error: result.error };

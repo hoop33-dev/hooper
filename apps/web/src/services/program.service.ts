@@ -3,10 +3,12 @@ import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type {
   ExerciseCategoryRow,
+  ExerciseStyleRow,
   ProgramRow,
   ProgramSummary,
   ProgramWithSessions,
   SessionRow,
+  UnitTypeRow,
 } from "@hooper/db";
 import {
   SESSION_SELECT,
@@ -99,10 +101,15 @@ export async function getProgramById(
 
     if (error) return err(error.message);
 
-    const { data: cats } = await supabase
-      .from("exercise_categories")
-      .select("*");
+    const [{ data: cats }, { data: styles }, { data: unitTypes }] =
+      await Promise.all([
+        supabase.from("exercise_categories").select("*"),
+        supabase.from("exercise_styles").select("*"),
+        supabase.from("unit_types").select("*"),
+      ]);
     const allCategories = (cats ?? []) as ExerciseCategoryRow[];
+    const allStyles = (styles ?? []) as ExerciseStyleRow[];
+    const allUnitTypes = (unitTypes ?? []) as UnitTypeRow[];
 
     const raw = data as unknown as RawProgram;
 
@@ -116,7 +123,12 @@ export async function getProgramById(
       .sort((a, b) => a.week_number - b.week_number || a.position - b.position)
       .map(({ blocks, ...session }) => ({
         ...session,
-        blocks: shapeBlocksWithExercises(blocks, allCategories),
+        blocks: shapeBlocksWithExercises(
+          blocks,
+          allCategories,
+          allStyles,
+          allUnitTypes,
+        ),
       }));
 
     return ok({

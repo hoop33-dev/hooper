@@ -54,6 +54,8 @@ apps/mobile/android
 __pycache__/
 *.pyc
 
+
 # supabase
 supabase/.temp/
 
+apps/mobile/ios

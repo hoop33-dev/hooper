@@ -3,17 +3,23 @@
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import type {
   ExerciseCategoryRow,
+  ExerciseStyleRow,
   ExerciseWithDetails,
   ProgramWithSessions,
   SessionTemplateSummary,
+  UnitTypeRow,
 } from "@hooper/db";
+import { useToast } from "../ui/Toast";
+import { libraryTemplates, type LibraryTemplate } from "./blockTemplateFilter";
 import { DragIndicatorContext } from "./dnd/DragIndicatorContext";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
 import type { CreateExerciseActions } from "./exerciseActionsProps";
+import { filterExercises } from "./exerciseFilter";
 import { ProgramLibraryShelf } from "./ProgramLibraryShelf";
 import { SaveAsTemplatePopover } from "./SaveAsTemplatePopover";
 import { SessionCanvasRow } from "./SessionCanvasRow";
 import { SessionModals } from "./SessionModals";
+import { useLibraryShortcuts } from "./useLibraryShortcuts";
 import {
   useProgramCanvasState,
   type ProgramCanvasActions,
@@ -48,20 +54,26 @@ function ProgramCanvasBody({
   program,
   exercises,
   categories,
-  sessionTemplates,
+  styles,
   state,
   onSaveBlockAsTemplate,
   saveSessionAsTemplateEnabled,
   createExerciseActions,
+  filteredExercises,
+  filteredBlockTemplates,
+  onQuickAdd,
 }: {
   program: ProgramWithSessions;
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
-  sessionTemplates: SessionTemplateSummary[];
+  styles: ExerciseStyleRow[];
   state: CanvasState;
   onSaveBlockAsTemplate: ((blockId: string) => void) | undefined;
   saveSessionAsTemplateEnabled: boolean;
   createExerciseActions: CreateExerciseActions;
+  filteredExercises: ExerciseWithDetails[];
+  filteredBlockTemplates: LibraryTemplate[];
+  onQuickAdd: () => void;
 }) {
   return (
     <>
@@ -78,6 +90,7 @@ function ProgramCanvasBody({
         programId={program.id}
         weekNumber={state.selectedWeek}
         sessions={state.weekSessions}
+        styles={styles}
         onRenameSession={(session) =>
           state.setSessionModal({ type: "rename", session })
         }
@@ -112,7 +125,10 @@ function ProgramCanvasBody({
       <ProgramLibraryShelf
         exercises={exercises}
         categories={categories}
-        sessionTemplates={sessionTemplates}
+        libraryPanel={state.libraryPanel}
+        filteredExercises={filteredExercises}
+        filteredBlockTemplates={filteredBlockTemplates}
+        onQuickAdd={onQuickAdd}
         {...createExerciseActions}
       />
       <DragOverlay dropAnimation={state.dnd.dropAnimation}>
@@ -129,12 +145,135 @@ function ProgramCanvasBody({
   );
 }
 
+/** Last session in the currently-viewed week — the shared target for the
+ * Shift+W/Shift+A "quick add" shortcuts (see createQuickAddHandlers). */
+function lastWeekSession(state: CanvasState) {
+  return state.weekSessions[state.weekSessions.length - 1];
+}
+
+/** Shift+W/Shift+A act on the last session (and, for Shift+A, its last
+ * block) in the currently-viewed week — split out of the Shell component so
+ * it stays under the lint's max-lines-per-function limit. Not a hook itself
+ * (no React hooks called), just a plain closure factory. */
+function createQuickAddHandlers(
+  state: CanvasState,
+  filteredExercises: ExerciseWithDetails[],
+  filteredBlockTemplates: LibraryTemplate[],
+  showError: (message: string) => void,
+) {
+  function onAddBlock() {
+    const lastSession = lastWeekSession(state);
+    if (!lastSession) {
+      showError("Add a session to this week first.");
+      return;
+    }
+    state.blockActions.addBlock(lastSession.id, "New block");
+  }
+
+  function onAddSelected() {
+    const lastSession = lastWeekSession(state);
+    if (!lastSession) {
+      showError("Add a session to this week first.");
+      return;
+    }
+    if (state.libraryPanel.tab === "exercises") {
+      const exercise = filteredExercises[state.libraryPanel.selectedIndex ?? 0];
+      if (!exercise) {
+        showError("No exercises match your search.");
+        return;
+      }
+      const lastBlock = lastSession.blocks[lastSession.blocks.length - 1];
+      if (!lastBlock) {
+        showError("Add a block to this session first.");
+        return;
+      }
+      state.blockActions.addExerciseToBlock(lastBlock.id, exercise.id);
+      return;
+    }
+    const template =
+      filteredBlockTemplates[state.libraryPanel.selectedIndex ?? 0];
+    if (!template) {
+      showError("No block templates match your search.");
+      return;
+    }
+    state.blockActions.addBlockFromTemplate(lastSession.id, template.dragId);
+  }
+
+  return { onAddBlock, onAddSelected };
+}
+
+/** Whether any modal is currently open on the program canvas — the keyboard
+ * shortcuts go inert while one is, so they don't fight a modal's own
+ * inputs/focus. */
+function isProgramModalOpen(state: CanvasState): boolean {
+  return (
+    state.sessionModal !== null ||
+    state.blockActions.editingExercise !== null ||
+    state.blockActions.editingSupersetBlock !== null ||
+    state.blockActions.savingAsTemplateBlock !== null ||
+    state.weekAddModalOpen
+  );
+}
+
+/** Computes the filtered library lists and wires up the Shift+F/B/Q/W/A
+ * shortcuts — split out of the Shell component so it stays under the lint's
+ * max-lines-per-function limit. */
+function useProgramLibraryShortcuts(
+  state: CanvasState,
+  exercises: ExerciseWithDetails[],
+  categories: ExerciseCategoryRow[],
+  sessionTemplates: SessionTemplateSummary[],
+) {
+  const { showError } = useToast();
+  const baseExercises = exercises.filter((ex) => !ex.parent_id);
+  const filteredExercises = filterExercises(
+    baseExercises,
+    state.libraryPanel.exerciseSearch,
+    state.libraryPanel.exerciseCategoryId,
+    categories,
+  );
+  const filteredBlockTemplates = libraryTemplates(
+    sessionTemplates,
+    state.libraryPanel.blockSearch,
+  );
+  const { onAddBlock, onAddSelected } = createQuickAddHandlers(
+    state,
+    filteredExercises,
+    filteredBlockTemplates,
+    showError,
+  );
+
+  useLibraryShortcuts({
+    isModalOpen: isProgramModalOpen(state),
+    onFocusExercises: state.libraryPanel.focusExercises,
+    onFocusBlocks: state.libraryPanel.focusBlocks,
+    onAddSession: () =>
+      state.setSessionModal({ type: "create", weekNumber: state.selectedWeek }),
+    onAddBlock,
+    onAddSelected,
+    onToggleLibraryOpen: () =>
+      state.libraryPanel.setOpen(!state.libraryPanel.open),
+  });
+
+  return { filteredExercises, filteredBlockTemplates, onAddSelected };
+}
+
 function ProgramCanvasModals({
   state,
   totalWeeks,
+  exercises,
+  styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
 }: {
   state: CanvasState;
   totalWeeks: number;
+  exercises: ExerciseWithDetails[];
+  styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction?: CreateExerciseActions["createUnitTypeAction"];
+  profileId: string;
 }) {
   const seedExerciseName =
     state.sessionModal?.type === "create" && state.sessionModal.seedExerciseId
@@ -149,6 +288,11 @@ function ProgramCanvasModals({
         existingSessions={state.sessions}
         sessionTemplates={state.sessionTemplates}
         totalWeeks={totalWeeks}
+        exercises={exercises}
+        styles={styles}
+        unitTypes={unitTypes}
+        createUnitTypeAction={createUnitTypeAction}
+        profileId={profileId}
         linkedWeeks={state.linkedWeeksForSessionModal}
         seedExerciseName={seedExerciseName}
         onCreateSession={state.handleCreateSession}
@@ -197,6 +341,10 @@ export function ProgramCanvasShell({
   updateExerciseAction,
   updateExerciseVideoUrlAction,
   createCategoryAction,
+  styles,
+  createStyleAction,
+  unitTypes,
+  createUnitTypeAction,
   ...actions
 }: ProgramCanvasShellProps) {
   const createExerciseActions: CreateExerciseActions = {
@@ -205,6 +353,10 @@ export function ProgramCanvasShell({
     updateExerciseAction,
     updateExerciseVideoUrlAction,
     createCategoryAction,
+    styles,
+    createStyleAction,
+    unitTypes,
+    createUnitTypeAction,
   };
   const state = useProgramCanvasState(
     program,
@@ -216,6 +368,9 @@ export function ProgramCanvasShell({
     state,
     !!actions.saveBlockAsTemplateAction,
   );
+
+  const { filteredExercises, filteredBlockTemplates, onAddSelected } =
+    useProgramLibraryShortcuts(state, exercises, categories, sessionTemplates);
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -231,16 +386,27 @@ export function ProgramCanvasShell({
             program={program}
             exercises={exercises}
             categories={categories}
-            sessionTemplates={sessionTemplates}
+            styles={styles}
             state={state}
             onSaveBlockAsTemplate={onSaveBlockAsTemplate}
             saveSessionAsTemplateEnabled={!!actions.saveSessionAsTemplateAction}
             createExerciseActions={createExerciseActions}
+            filteredExercises={filteredExercises}
+            filteredBlockTemplates={filteredBlockTemplates}
+            onQuickAdd={onAddSelected}
           />
         </DragIndicatorContext.Provider>
       </DndContext>
 
-      <ProgramCanvasModals state={state} totalWeeks={program.weeks} />
+      <ProgramCanvasModals
+        state={state}
+        totalWeeks={program.weeks}
+        exercises={exercises}
+        styles={styles}
+        unitTypes={unitTypes}
+        createUnitTypeAction={createUnitTypeAction}
+        profileId={profileId}
+      />
     </div>
   );
 }

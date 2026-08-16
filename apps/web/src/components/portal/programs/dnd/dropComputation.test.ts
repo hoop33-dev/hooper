@@ -13,11 +13,16 @@ function makeExercise(id: string): ExerciseWithDetails {
     description: null,
     video_url: null,
     video_source: null,
+    parent_id: null,
+    default_style_id: null,
     created_by: "coach1",
     created_at: "",
     updated_at: "",
     categories: [],
     unitTypes: ["Reps"],
+    unitTypeIds: [],
+    defaultStyle: null,
+    variants: [],
   };
 }
 
@@ -33,9 +38,12 @@ function makeBlockExercise(
     sets: 3,
     notes: null,
     link_group_id: null,
+    style_id: null,
     created_at: "",
     updated_at: "",
     exercise: makeExercise(id),
+    setVariants: {},
+    setStyles: {},
     measurements: [
       {
         block_exercise_id: id,

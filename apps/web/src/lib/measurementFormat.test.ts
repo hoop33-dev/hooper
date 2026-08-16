@@ -4,6 +4,7 @@ import {
   defaultUnitFor,
   formatMeasurementCompact,
   formatMeasurementSummary,
+  isUnitTypeComboUniform,
   measurementStatColumns,
   unitOptionsFor,
   type Measurement,
@@ -280,6 +281,95 @@ describe("measurementStatColumns", () => {
       { key: "sets", label: "SETS", value: "3" },
       { key: "Time", label: "TIME", value: "—" },
       { key: "Distance", label: "DISTANCE", value: "100m" },
+    ]);
+  });
+});
+
+/** Set 0 is Shots+Makes, set 1 is Time only — a per-set unit-type combo
+ * that no longer agrees across sets, the case formatMeasurementCompact/
+ * formatMeasurementSummary/measurementStatColumns fall back to "Custom"/
+ * "mixed units" for instead of the normal grouped breakdown. */
+function mixedUnitMeasurements(): Measurement[] {
+  return [
+    {
+      unit_type: "Shots",
+      set_index: 0,
+      value: 10,
+      value_entered_by: "coach",
+      value_unit: null,
+    },
+    {
+      unit_type: "Makes",
+      set_index: 0,
+      value: 0,
+      value_entered_by: "coach",
+      value_unit: null,
+    },
+    {
+      unit_type: "Time",
+      set_index: 1,
+      value: 45,
+      value_entered_by: "coach",
+      value_unit: "sec",
+    },
+  ];
+}
+
+describe("isUnitTypeComboUniform", () => {
+  it("is true when every set shares the same ordered unit-type combo", () => {
+    expect(
+      isUnitTypeComboUniform(
+        [
+          ...measurement("Reps", { value: 8 }, 3),
+          ...measurement("Weight", { value: 60 }, 3),
+        ],
+        3,
+      ),
+    ).toBe(true);
+  });
+
+  it("is false when a set's unit-type combo differs from set 0's", () => {
+    expect(isUnitTypeComboUniform(mixedUnitMeasurements(), 2)).toBe(false);
+  });
+
+  it("is true for zero sets or no measurements at all", () => {
+    expect(isUnitTypeComboUniform([], 0)).toBe(true);
+    expect(isUnitTypeComboUniform([], 3)).toBe(true);
+  });
+});
+
+describe("formatMeasurementCompact — non-uniform sets", () => {
+  it("falls back to sets×Custom once unit types differ per set", () => {
+    expect(
+      formatMeasurementCompact({
+        sets: 2,
+        measurements: mixedUnitMeasurements(),
+      }),
+    ).toBe("2×Custom");
+  });
+});
+
+describe("formatMeasurementSummary — non-uniform sets", () => {
+  it("falls back to sets · mixed units once unit types differ per set", () => {
+    expect(
+      formatMeasurementSummary({
+        sets: 2,
+        measurements: mixedUnitMeasurements(),
+      }),
+    ).toBe("2 sets · mixed units");
+  });
+});
+
+describe("measurementStatColumns — non-uniform sets", () => {
+  it("collapses to a SETS column plus a single Custom column", () => {
+    expect(
+      measurementStatColumns({
+        sets: 2,
+        measurements: mixedUnitMeasurements(),
+      }),
+    ).toEqual([
+      { key: "sets", label: "SETS", value: "2" },
+      { key: "custom", label: "", value: "Custom" },
     ]);
   });
 });

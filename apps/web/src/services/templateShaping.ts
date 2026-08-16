@@ -6,13 +6,15 @@ import type {
   BlockTemplateRow,
   BlockWithExercises,
   ExerciseCategoryRow,
+  ExerciseStyleRow,
   SessionTemplateRow,
   SessionTemplateWithBlocks,
+  UnitTypeRow,
 } from "@hooper/db";
 import { toExerciseWithDetails, type RawExercise } from "./exercise.service";
 
 export const TEMPLATE_BLOCK_EXERCISE_SELECT =
-  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type, position)), block_template_exercise_measurements(*)";
+  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type_id, position)), block_template_exercise_measurements(*)";
 
 const TEMPLATE_BLOCK_SELECT = `*, block_template_exercises(${TEMPLATE_BLOCK_EXERCISE_SELECT})`;
 
@@ -45,6 +47,8 @@ export type RawSessionTemplate = SessionTemplateRow & {
 export function shapeBlockTemplatesWithExercises(
   rawBlocks: RawTemplateBlock[],
   allCategories: ExerciseCategoryRow[],
+  allStyles: ExerciseStyleRow[],
+  allUnitTypes: UnitTypeRow[],
 ): BlockWithExercises[] {
   return [...rawBlocks]
     .sort((a, b) => a.position - b.position)
@@ -64,7 +68,18 @@ export function shapeBlockTemplatesWithExercises(
             ...blockExercise,
             block_id: block_template_id,
             link_group_id: null,
-            exercise: toExerciseWithDetails(exercise, allCategories),
+            // Templates have no style_id/set-variant/set-style columns of
+            // their own — a template exercise always shows its plain unit
+            // types.
+            style_id: null,
+            setVariants: {},
+            setStyles: {},
+            exercise: toExerciseWithDetails(
+              exercise,
+              allCategories,
+              allStyles,
+              allUnitTypes,
+            ),
             measurements: [...block_template_exercise_measurements]
               .sort(
                 (a, b) => a.position - b.position || a.set_index - b.set_index,
@@ -86,10 +101,17 @@ export function shapeBlockTemplatesWithExercises(
 export function shapeSessionTemplate(
   raw: RawSessionTemplate,
   allCategories: ExerciseCategoryRow[],
+  allStyles: ExerciseStyleRow[],
+  allUnitTypes: UnitTypeRow[],
 ): SessionTemplateWithBlocks {
   const { block_templates, ...sessionTemplate } = raw;
   return {
     ...sessionTemplate,
-    blocks: shapeBlockTemplatesWithExercises(block_templates, allCategories),
+    blocks: shapeBlockTemplatesWithExercises(
+      block_templates,
+      allCategories,
+      allStyles,
+      allUnitTypes,
+    ),
   };
 }

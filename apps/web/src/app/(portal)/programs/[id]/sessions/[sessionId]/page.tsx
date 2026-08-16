@@ -2,16 +2,19 @@ import type { ExerciseFormData } from "@/src/components/portal/exercises/Exercis
 import { SaveSessionAsTemplateButton } from "@/src/components/portal/programs/SaveSessionAsTemplateButton";
 import { SessionNavArrows } from "@/src/components/portal/programs/SessionNavArrows";
 import { SessionViewShell } from "@/src/components/portal/programs/SessionViewShell";
+import { ShortcutsButton } from "@/src/components/portal/programs/ShortcutsButton";
 import { ArrowLeftIcon } from "@/src/components/portal/ui/icons";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { getCoachProfile } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
+import { listStyles } from "@/src/services/exerciseStyle.service";
 import {
   getSessionById,
   listSessionsForProgram,
 } from "@/src/services/session.service";
 import { listSessionTemplates } from "@/src/services/sessionTemplate.service";
+import { listUnitTypes } from "@/src/services/unitType.service";
 import type { SessionRow } from "@hooper/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -27,6 +30,8 @@ import {
   updateExerciseVideoUrlAction,
 } from "../../../../exercises/actions";
 import { createCategoryAction } from "../../../../exercises/categories/actions";
+import { createStyleAction } from "../../../../exercises/styles/actions";
+import { createUnitTypeAction } from "../../../../exercises/unit-types/actions";
 import {
   addExerciseToBlockAction,
   createBlockAction,
@@ -63,6 +68,7 @@ function SessionPageActions({
         Back to program
       </Link>
       <div className="mt-2 flex items-center gap-2">
+        <ShortcutsButton variant="session" />
         <SessionNavArrows
           programId={programId}
           sessions={programSessions}
@@ -82,6 +88,8 @@ async function loadSessionPageData(programId: string, sessionId: string) {
     sessionResult,
     exercisesResult,
     categoriesResult,
+    stylesResult,
+    unitTypesResult,
     profileResult,
     sessionTemplatesResult,
     programSessionsResult,
@@ -89,6 +97,8 @@ async function loadSessionPageData(programId: string, sessionId: string) {
     getSessionById(sessionId),
     listExercises(),
     listCategories(),
+    listStyles(),
+    listUnitTypes(),
     getCoachProfile(),
     listSessionTemplates(),
     listSessionsForProgram(programId),
@@ -98,6 +108,8 @@ async function loadSessionPageData(programId: string, sessionId: string) {
     session: sessionResult,
     exercises: exercisesResult.ok ? exercisesResult.data : [],
     categories: categoriesResult.ok ? categoriesResult.data : [],
+    styles: stylesResult.ok ? stylesResult.data : [],
+    unitTypes: unitTypesResult.ok ? unitTypesResult.data : [],
     profileId: profileResult.ok ? profileResult.data.id : "",
     sessionTemplates: sessionTemplatesResult.ok
       ? sessionTemplatesResult.data
@@ -116,6 +128,8 @@ export default async function SessionViewPage({
     session: sessionResult,
     exercises,
     categories,
+    styles,
+    unitTypes,
     profileId,
     sessionTemplates,
     programSessions,
@@ -157,6 +171,8 @@ export default async function SessionViewPage({
         session={sessionResult.data}
         exercises={exercises}
         categories={categories}
+        styles={styles}
+        unitTypes={unitTypes}
         sessionTemplates={sessionTemplates}
         createBlockAction={createBlockAction}
         updateBlockAction={updateBlockAction}
@@ -177,6 +193,8 @@ export default async function SessionViewPage({
         updateExerciseAction={updateExerciseAction}
         updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
         createCategoryAction={createCategoryAction}
+        createStyleAction={createStyleAction}
+        createUnitTypeAction={createUnitTypeAction}
       />
     </div>
   );

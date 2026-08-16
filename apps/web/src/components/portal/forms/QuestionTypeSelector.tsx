@@ -9,8 +9,8 @@ interface QuestionTypeSelectorProps {
   onChange: (type: FormQuestionType) => void;
 }
 
-/** Single-select pill row for a question's answer type — same visual
- * language as UnitTypeSelector, but exactly one type is ever selected. */
+/** Single-select pill row for a question's answer type — a plain pill
+ * toggle group, but exactly one type is ever selected. */
 export function QuestionTypeSelector({
   selected,
   onChange,

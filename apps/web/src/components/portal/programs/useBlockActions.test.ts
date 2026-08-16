@@ -1,5 +1,6 @@
 import type {
   BlockExerciseWithDetails,
+  BlockRow,
   BlockWithExercises,
   EnteredBy,
 } from "@hooper/db";
@@ -16,11 +17,16 @@ const exercise = {
   description: null,
   video_url: null,
   video_source: null,
+  parent_id: null,
+  default_style_id: null,
   created_by: "coach-1",
   created_at: "",
   updated_at: "",
   categories: [],
   unitTypes: [],
+  unitTypeIds: [],
+  defaultStyle: null,
+  variants: [],
 };
 
 function makeMeasurement(
@@ -53,10 +59,13 @@ function makeExerciseRow(
     sets: 1,
     notes: null,
     link_group_id: null,
+    style_id: null,
     created_at: "",
     updated_at: "",
     exercise,
     measurements: [makeMeasurement(id, value)],
+    setVariants: {},
+    setStyles: {},
   };
 }
 
@@ -85,9 +94,14 @@ function makeSaveData(sets: number) {
     sets,
     measurements: [
       {
-        unit_type: "Reps",
-        value_unit: null,
-        sets: [{ value: sets, value_entered_by: "coach" as EnteredBy }],
+        slots: [
+          {
+            unit_type: "Reps",
+            value_unit: null,
+            value: sets,
+            value_entered_by: "coach" as EnteredBy,
+          },
+        ],
       },
     ],
   };
@@ -107,6 +121,13 @@ function makeFakeCtx(initialBlocks: BlockWithExercises[]) {
     getBlocks: () => current,
     showError: vi.fn(),
     onSaved: vi.fn(),
+    updateBlockAction: vi.fn(async (id: string, data: Partial<BlockRow>) => ({
+      ok: true,
+      data: {
+        ...(current.find((b) => b.id === id) as BlockWithExercises),
+        ...data,
+      },
+    })),
   };
 }
 
@@ -187,7 +208,8 @@ describe("runSaveSupersetMeasurements", () => {
     const e1 = makeExerciseRow("be-1", "block-1", 1);
     const e2 = makeExerciseRow("be-2", "block-1", 2);
     const e3 = makeExerciseRow("be-3", "block-1", 3);
-    const initialBlocks = [makeBlock("block-1", [e1, e2, e3], true)];
+    const block = makeBlock("block-1", [e1, e2, e3], true);
+    const initialBlocks = [block];
     const ctx = makeFakeCtx(initialBlocks);
 
     const confirmedE1 = { ...e1, measurements: [makeMeasurement("be-1", 100)] };
@@ -203,6 +225,8 @@ describe("runSaveSupersetMeasurements", () => {
     });
 
     await runSaveSupersetMeasurements(
+      block,
+      block.sets ?? 1,
       [
         { id: "be-1", measurements: [] },
         { id: "be-2", measurements: [] },
@@ -230,5 +254,106 @@ describe("runSaveSupersetMeasurements", () => {
     expect(rows.find((r) => r.id === "be-3")?.measurements).toBe(
       e3.measurements,
     );
+  });
+
+  it("omits variant/style fields entirely (rather than sending them as undefined) when a payload entry doesn't set them, and leaves the exercise's existing overrides untouched locally", async () => {
+    const e1 = {
+      ...makeExerciseRow("be-1", "block-1", 1),
+      setVariants: { 0: exercise },
+      setStyles: {},
+    };
+    const block = makeBlock("block-1", [e1], true);
+    const ctx = makeFakeCtx([block]);
+
+    const updateBlockExerciseAction = vi.fn(async (id: string) => ({
+      ok: true,
+      data: { ...e1, id },
+    }));
+
+    await runSaveSupersetMeasurements(
+      block,
+      block.sets ?? 1,
+      [{ id: "be-1", measurements: [] }],
+      { ...ctx, updateBlockExerciseAction },
+    );
+
+    // Neither `style_id` nor the other variant/style keys should be present
+    // at all on the call — block.service.ts treats a present-but-undefined
+    // `style_id` as an explicit "clear the style" instruction.
+    const [, sentData] = updateBlockExerciseAction.mock.calls[0] as unknown as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(sentData).not.toHaveProperty("style_id");
+    expect(sentData).not.toHaveProperty("exercise_id");
+    expect(sentData).not.toHaveProperty("set_variants");
+    expect(sentData).not.toHaveProperty("set_styles");
+
+    // The optimistic patch must not clobber the exercise's existing
+    // setVariants/setStyles with undefined either.
+    const patched = ctx
+      .getBlocks()
+      .flatMap((b) => b.exercises)
+      .find((r) => r.id === "be-1");
+    expect(patched?.setVariants).toEqual({ 0: exercise });
+    expect(patched?.setStyles).toEqual({});
+  });
+
+  it("forwards each exercise's resolved variant/style overrides to the server save and to the optimistic patch", async () => {
+    const e1 = makeExerciseRow("be-1", "block-1", 1);
+    const block = makeBlock("block-1", [e1], true);
+    const ctx = makeFakeCtx([block]);
+
+    const updateBlockExerciseAction = vi.fn(async (id: string, data) => ({
+      ok: true,
+      data: { ...e1, id, ...data },
+    }));
+
+    const variant = { ...exercise, id: "ex-variant" };
+    const style = { id: "style-1", name: "Working" } as unknown as NonNullable<
+      BlockExerciseWithDetails["setStyles"][number]
+    >;
+
+    await runSaveSupersetMeasurements(
+      block,
+      block.sets ?? 1,
+      [
+        {
+          id: "be-1",
+          measurements: [],
+          exercise_id: "ex-variant",
+          style_id: "style-1",
+          set_variants: { 0: "ex-variant" },
+          set_styles: { 0: "style-1" },
+          resolvedSetVariants: { 0: variant },
+          resolvedSetStyles: { 0: style },
+        },
+      ],
+      { ...ctx, updateBlockExerciseAction },
+    );
+
+    expect(updateBlockExerciseAction).toHaveBeenCalledWith(
+      "be-1",
+      expect.objectContaining({
+        exercise_id: "ex-variant",
+        style_id: "style-1",
+        set_variants: { 0: "ex-variant" },
+        set_styles: { 0: "style-1" },
+      }),
+    );
+
+    // The optimistic patch (applied before the server round trip resolves)
+    // already carries the resolved variant/style so the UI reflects the
+    // edit immediately rather than only after the save confirms.
+    expect(ctx.setBlocks).toHaveBeenCalledWith([
+      expect.objectContaining({
+        exercises: [
+          expect.objectContaining({
+            setVariants: { 0: variant },
+            setStyles: { 0: style },
+          }),
+        ],
+      }),
+    ]);
   });
 });

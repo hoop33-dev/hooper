@@ -1,26 +1,36 @@
 "use client";
 
-import type { SessionTemplateSummary } from "@hooper/db";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useState } from "react";
-import { libraryTemplates } from "./blockTemplateFilter";
+import type { LibraryTemplate } from "./blockTemplateFilter";
 import { DraggableBlockTemplateRow } from "./dnd/DraggableBlockTemplateRow";
+import { handleLibrarySearchKeyDown } from "./librarySearchKeyboardNav";
 
 interface BlockLibraryPanelProps {
-  sessionTemplates: SessionTemplateSummary[];
   /** Replaces the plain "Block Library" title with the Exercises/Blocks tab
    * switcher (see ExerciseLibraryPanel's matching prop). */
   tabs?: ReactNode;
+  /** Pre-filtered by the shell (SessionViewShell) from `search`, so what's
+   * rendered always matches what Shift+A targets. */
+  items: LibraryTemplate[];
+  search: string;
+  onSearchChange: (v: string) => void;
+  searchInputId: string;
+  selectedIndex: number | null;
+  onSelectedIndexChange: (index: number) => void;
+  onQuickAdd: () => void;
 }
 
 export function BlockLibraryPanel({
-  sessionTemplates,
   tabs,
+  items,
+  search,
+  onSearchChange,
+  searchInputId,
+  selectedIndex,
+  onSelectedIndexChange,
+  onQuickAdd,
 }: BlockLibraryPanelProps) {
-  const [search, setSearch] = useState("");
-  const filtered = libraryTemplates(sessionTemplates, search);
-
   return (
     <div className="border-portal-border bg-portal-card flex w-[280px] flex-shrink-0 flex-col border-r">
       <div className="border-portal-border border-b px-3.5 py-3">
@@ -30,30 +40,38 @@ export function BlockLibraryPanel({
               Block Library
             </span>
           )}
-          <span className="text-portal-text3 text-[11px]">
-            {filtered.length}
-          </span>
+          <span className="text-portal-text3 text-[11px]">{items.length}</span>
         </div>
         <input
+          id={searchInputId}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={(e) =>
+            handleLibrarySearchKeyDown(e, {
+              itemCount: items.length,
+              selectedIndex,
+              onSelectedIndexChange,
+              onQuickAdd,
+            })
+          }
           placeholder="Search blocks…"
           className="border-portal-border bg-portal-bg text-portal-text1 focus:border-portal-orange h-8 w-full rounded-lg border px-2.5 text-xs outline-none"
         />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {filtered.length === 0 ? (
+        {items.length === 0 ? (
           <div className="text-portal-text3 px-3.5 py-6 text-center text-xs">
             No block templates yet
           </div>
         ) : (
-          filtered.map((b) => (
+          items.map((b, index) => (
             <DraggableBlockTemplateRow
               key={b.dragId}
               dragId={b.dragId}
               name={b.name}
               exerciseCount={b.exerciseCount}
               blockCount={b.blockCount}
+              isSelected={index === selectedIndex}
             />
           ))
         )}

@@ -17,20 +17,29 @@ export function SessionFooterNav({
   onComplete,
 }: SessionFooterNavProps) {
   return (
-    <View className="border-border-subtle flex-row gap-2.5 border-t px-5 pb-8 pt-2.5">
-      {canGoPrev ? (
-        <Button variant="secondary" size="lg" className="flex-1" onPress={onPrev}>
-          Prev
-        </Button>
-      ) : (
-        <View className="flex-1" />
-      )}
+    <View className="border-border-subtle flex-row gap-2.5 border-t px-5 pt-2.5 pb-8">
+      <Button
+        variant="secondary"
+        size="lg"
+        className="flex-1"
+        onPress={onPrev}
+        disabled={!canGoPrev}>
+        Prev
+      </Button>
       {!isLastBlock ? (
-        <Button variant="primary" size="lg" className="flex-[2]" onPress={onNext}>
+        <Button
+          variant="primary"
+          size="lg"
+          className="flex-[2]"
+          onPress={onNext}>
           Next block
         </Button>
       ) : (
-        <Button variant="primary" size="lg" className="bg-success flex-[2]" onPress={onComplete}>
+        <Button
+          variant="primary"
+          size="lg"
+          className="flex-[2]"
+          onPress={onComplete}>
           Complete session
         </Button>
       )}

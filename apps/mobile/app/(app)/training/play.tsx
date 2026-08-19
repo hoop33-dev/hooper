@@ -3,12 +3,33 @@ import { BlockProgressHeader } from "@/src/components/training/BlockProgressHead
 import { BlockTabs } from "@/src/components/training/BlockTabs";
 import { PauseOverlay } from "@/src/components/training/PauseOverlay";
 import { SessionFooterNav } from "@/src/components/training/SessionFooterNav";
+import { SessionProgressBar } from "@/src/components/training/SessionProgressBar";
 import { SetValueSheet } from "@/src/components/training/SetValueSheet";
 import { colors } from "@/src/constants/theme";
-import { isBlockDone, useSessionPlayer } from "@/src/hooks/useSessionPlayer";
+import {
+  isBlockDone,
+  useSessionPlayer,
+  type SetsByBlockExercise,
+} from "@/src/hooks/useSessionPlayer";
 import { useAuthStore } from "@/src/stores/auth.store";
+import type { AthleteSessionDetail } from "@hooper/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ActivityIndicator, Alert, View } from "react-native";
+
+function countSets(
+  session: AthleteSessionDetail,
+  setsState: SetsByBlockExercise,
+) {
+  let doneSets = 0;
+  let totalSets = 0;
+  for (const block of session.blocks) {
+    for (const be of block.exercises) {
+      totalSets += be.sets;
+      doneSets += (setsState[be.id] ?? []).filter((s) => s.done).length;
+    }
+  }
+  return { doneSets, totalSets };
+}
 
 export default function SessionPlayerScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
@@ -47,6 +68,7 @@ export default function SessionPlayerScreen() {
   }
 
   const doneFlags = session.blocks.map((b) => isBlockDone(b, setsState));
+  const { doneSets, totalSets } = countSets(session, setsState);
 
   return (
     <View className="bg-surface flex-1">
@@ -59,6 +81,7 @@ export default function SessionPlayerScreen() {
         onTogglePause={player.togglePause}
         onExit={handleExit}
       />
+      <SessionProgressBar doneSets={doneSets} totalSets={totalSets} />
       <BlockTabs
         blocks={session.blocks}
         blockIdx={blockIdx}

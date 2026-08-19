@@ -1,12 +1,22 @@
-import type { SessionCompletionRow } from "@hooper/db";
-import { Button, Caption, H2, Meta, RowTitle } from "@/src/components/ui";
+import {
+  Button,
+  Caption,
+  H2,
+  Meta,
+  RowTitle,
+  Slider,
+} from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
 import { getLogsForCompletion } from "@/src/services/measurementLog.service";
 import { getSessionDetail } from "@/src/services/program.service";
-import { completeSession, getCompletion } from "@/src/services/sessionCompletion.service";
+import {
+  completeSession,
+  getCompletion,
+} from "@/src/services/sessionCompletion.service";
+import type { SessionCompletionRow } from "@hooper/db";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 function formatDuration(seconds: number): string {
@@ -14,22 +24,9 @@ function formatDuration(seconds: number): string {
   return `${minutes < 1 ? "<1" : minutes} min`;
 }
 
-const RPE_LABELS: Record<number, string> = {
-  1: "Easy.",
-  2: "Easy.",
-  3: "Light.",
-  4: "Moderate.",
-  5: "Getting there.",
-  6: "Good effort.",
-  7: "Solid work.",
-  8: "Worked hard.",
-  9: "Pushed it.",
-  10: "Left it all out there.",
-};
-
 function SuccessBadge() {
   return (
-    <View className="border-success mb-5 h-[88px] w-[88px] items-center justify-center rounded-full border-2 bg-success/10">
+    <View className="border-success bg-success/10 mb-5 h-[88px] w-[88px] items-center justify-center rounded-full border-2">
       <Svg width={38} height={38} viewBox="0 0 38 38" fill="none">
         <Path
           d="M7 19l8 8 16-14"
@@ -43,7 +40,15 @@ function SuccessBadge() {
   );
 }
 
-function StatsRow({ elapsedSeconds, sets, exercises }: { elapsedSeconds: number; sets: number; exercises: number }) {
+function StatsRow({
+  elapsedSeconds,
+  sets,
+  exercises,
+}: {
+  elapsedSeconds: number;
+  sets: number;
+  exercises: number;
+}) {
   const stats: [string, string][] = [
     ["Duration", formatDuration(elapsedSeconds)],
     ["Sets", String(sets)],
@@ -64,37 +69,27 @@ function StatsRow({ elapsedSeconds, sets, exercises }: { elapsedSeconds: number;
   );
 }
 
-function RpeOption({ n, rpe, onPress }: { n: number; rpe: number | null; onPress: () => void }) {
-  const selected = rpe === n;
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-1 items-center rounded-md border py-2"
-      style={{
-        backgroundColor: selected ? colors.brandOrange : rpe && n <= rpe ? "rgba(241,88,37,0.08)" : colors.surface3,
-        borderColor: selected ? colors.brandOrange : colors.borderSubtle,
-      }}>
-      <Caption className={selected ? "text-white" : ""}>{n}</Caption>
-    </Pressable>
-  );
-}
-
-function RpeCard({ rpe, onChange }: { rpe: number | null; onChange: (n: number) => void }) {
+function RpeCard({
+  rpe,
+  onChange,
+}: {
+  rpe: number | null;
+  onChange: (n: number) => void;
+}) {
+  const current = rpe ?? Math.round((1 + 10) / 2);
   return (
     <View className="bg-surface-2 border-border-subtle w-full rounded-2xl border px-4.5 py-4">
       <RowTitle className="mb-0.5">How hard was it?</RowTitle>
       <Meta className="mb-3">Rate perceived exertion · 1–10</Meta>
-      <View className="flex-row gap-1">
-        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-          <RpeOption key={n} n={n} rpe={rpe} onPress={() => onChange(n)} />
-        ))}
-      </View>
-      {rpe ? <Caption className="mt-2.5 italic">{RPE_LABELS[rpe]}</Caption> : null}
+      <Slider value={current} min={1} max={10} onChange={onChange} />
     </View>
   );
 }
 
-async function loadCompletionSummary(sessionCompletionId: string, sessionId: string) {
+async function loadCompletionSummary(
+  sessionCompletionId: string,
+  sessionId: string,
+) {
   const [completion, session, logs] = await Promise.all([
     getCompletion(sessionCompletionId),
     getSessionDetail(sessionId),
@@ -109,24 +104,27 @@ async function loadCompletionSummary(sessionCompletionId: string, sessionId: str
   };
 }
 
-export default function SessionCompleteScreen() {
-  const { sessionCompletionId, sessionId } = useLocalSearchParams<{
-    sessionCompletionId: string;
-    sessionId: string;
-  }>();
-  const router = useRouter();
-  const [completion, setCompletion] = useState<SessionCompletionRow | null>(null);
+function useCompletionSummary(
+  sessionCompletionId: string | undefined,
+  sessionId: string | undefined,
+) {
+  const [completion, setCompletion] = useState<SessionCompletionRow | null>(
+    null,
+  );
   const [sessionName, setSessionName] = useState("");
-  const [stats, setStats] = useState<{ sets: number; exercises: number } | null>(null);
-  const [rpe, setRpe] = useState<number | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
+  const [stats, setStats] = useState<{
+    sets: number;
+    exercises: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!sessionCompletionId || !sessionId) return;
     let cancelled = false;
     async function load() {
-      const summary = await loadCompletionSummary(sessionCompletionId, sessionId);
+      const summary = await loadCompletionSummary(
+        sessionCompletionId!,
+        sessionId!,
+      );
       if (cancelled) return;
       setCompletion(summary.completion);
       setSessionName(summary.sessionName);
@@ -138,16 +136,44 @@ export default function SessionCompleteScreen() {
     };
   }, [sessionCompletionId, sessionId]);
 
+  return { completion, sessionName, stats };
+}
+
+function useElapsedSeconds(completion: SessionCompletionRow | null) {
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
   useEffect(() => {
     if (!completion) return;
     function tick() {
       const elapsedMs = Date.now() - new Date(completion!.started_at).getTime();
-      setElapsedSeconds(Math.max(0, Math.round(elapsedMs / 1000) - completion!.paused_duration_seconds));
+      setElapsedSeconds(
+        Math.max(
+          0,
+          Math.round(elapsedMs / 1000) - completion!.paused_duration_seconds,
+        ),
+      );
     }
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [completion]);
+
+  return elapsedSeconds;
+}
+
+export default function SessionCompleteScreen() {
+  const { sessionCompletionId, sessionId } = useLocalSearchParams<{
+    sessionCompletionId: string;
+    sessionId: string;
+  }>();
+  const router = useRouter();
+  const { completion, sessionName, stats } = useCompletionSummary(
+    sessionCompletionId,
+    sessionId,
+  );
+  const elapsedSeconds = useElapsedSeconds(completion);
+  const [rpe, setRpe] = useState<number | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   async function handleDone() {
     if (!rpe || !completion || submitting) return;
@@ -174,11 +200,19 @@ export default function SessionCompleteScreen() {
         <SuccessBadge />
         <H2 className="mb-1">Session done.</H2>
         <Caption className="mb-7">{sessionName}</Caption>
-        <StatsRow elapsedSeconds={elapsedSeconds} sets={stats.sets} exercises={stats.exercises} />
+        <StatsRow
+          elapsedSeconds={elapsedSeconds}
+          sets={stats.sets}
+          exercises={stats.exercises}
+        />
         <RpeCard rpe={rpe} onChange={setRpe} />
       </View>
       <View className="pb-9">
-        <Button variant="primary" size="lg" disabled={!rpe || submitting} onPress={handleDone}>
+        <Button
+          variant="primary"
+          size="lg"
+          disabled={!rpe || submitting}
+          onPress={handleDone}>
           {submitting ? <ActivityIndicator color="#fff" /> : "Done"}
         </Button>
       </View>

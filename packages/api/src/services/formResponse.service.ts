@@ -1,4 +1,3 @@
-import { getClient } from "../client";
 import type {
   FormQuestionOptionRow,
   FormQuestionRow,
@@ -6,6 +5,7 @@ import type {
   FormWithQuestions,
   SessionCompletionRow,
 } from "@hooper/db";
+import { getClient } from "../client";
 import { startOrResumeSession } from "./sessionCompletion.service";
 
 // Mirrors apps/web/src/services/form.service.ts's QUESTION_SELECT/getFormById
@@ -43,10 +43,32 @@ export async function getProgramForm(
     .sort((a, b) => a.position - b.position)
     .map(({ form_question_options, ...question }) => ({
       ...question,
-      options: [...form_question_options].sort((a, b) => a.position - b.position),
+      options: [...form_question_options].sort(
+        (a, b) => a.position - b.position,
+      ),
     }));
 
   return { ...raw, questions };
+}
+
+/** The athlete's own most recent submission for this form, if any — used to
+ * pre-fill the next check-in so returning athletes aren't re-typing the same
+ * answers every session. */
+export async function getLastFormResponse(
+  athleteProfileId: string,
+  formId: string,
+): Promise<Record<string, unknown> | null> {
+  const client = getClient();
+  const { data, error } = await client
+    .from("form_responses")
+    .select("answers")
+    .eq("athlete_profile_id", athleteProfileId)
+    .eq("form_id", formId)
+    .order("submitted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data?.answers as Record<string, unknown> | undefined) ?? null;
 }
 
 /**

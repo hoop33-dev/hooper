@@ -1,5 +1,8 @@
+import type {
+  AthleteMeasurementLogRow,
+  MeasurementLogStatus,
+} from "@hooper/db";
 import { getClient } from "../client";
-import type { AthleteMeasurementLogRow, MeasurementLogStatus } from "@hooper/db";
 import type { AthleteSessionDetail } from "./program.service";
 
 export type UpsertSetLogInput = {
@@ -44,7 +47,8 @@ export async function upsertSetLog(
         logged_at: new Date().toISOString(),
       },
       {
-        onConflict: "session_completion_id,block_exercise_id,position,set_index",
+        onConflict:
+          "session_completion_id,block_exercise_id,position,set_index",
       },
     )
     .select()
@@ -151,16 +155,22 @@ export async function buildPrefillMap(
   athleteProfileId: string,
   session: AthleteSessionDetail,
 ): Promise<Map<PrefillKey, number>> {
-  const blanks = new Map<PrefillKey, { exerciseId: string; unitType: string }>();
+  const blanks = new Map<
+    PrefillKey,
+    { exerciseId: string; unitType: string }
+  >();
   for (const block of session.blocks) {
     for (const blockExercise of block.exercises) {
       for (const measurement of blockExercise.measurements) {
-        if (measurement.value_entered_by === "athlete" && measurement.value === null) {
-          const key = prefillKey(blockExercise.exercise_id, measurement.unit_type);
-          blanks.set(key, {
-            exerciseId: blockExercise.exercise_id,
-            unitType: measurement.unit_type,
-          });
+        if (
+          measurement.value_entered_by === "athlete" &&
+          measurement.value === null
+        ) {
+          const exerciseId =
+            blockExercise.setVariants[measurement.set_index]?.id ??
+            blockExercise.exercise_id;
+          const key = prefillKey(exerciseId, measurement.unit_type);
+          blanks.set(key, { exerciseId, unitType: measurement.unit_type });
         }
       }
     }
@@ -168,7 +178,11 @@ export async function buildPrefillMap(
 
   const entries = await Promise.all(
     [...blanks.entries()].map(async ([key, { exerciseId, unitType }]) => {
-      const value = await getLastLoggedValue(athleteProfileId, exerciseId, unitType);
+      const value = await getLastLoggedValue(
+        athleteProfileId,
+        exerciseId,
+        unitType,
+      );
       return [key, value] as const;
     }),
   );

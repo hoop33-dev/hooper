@@ -31,6 +31,9 @@ export { Pill } from "./Pill";
 
 export { Field } from "./Field";
 
+export { Slider } from "./Slider";
+export type { SliderProps } from "./Slider";
+
 export { OtpInput } from "./OtpInput";
 
 export { Switch } from "./Switch";

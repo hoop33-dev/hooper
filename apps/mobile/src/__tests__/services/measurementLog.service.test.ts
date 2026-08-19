@@ -4,8 +4,8 @@ import {
   prefillKey,
   upsertSetLog,
 } from "@/src/services/measurementLog.service";
-import { initClient } from "@hooper/api";
 import type { AthleteSessionDetail } from "@/src/services/program.service";
+import { initClient } from "@hooper/api";
 
 const mockSupabase = { from: jest.fn() };
 const mockFrom = mockSupabase.from;
@@ -49,13 +49,15 @@ function makeLastValueBuilder(resolveValue: unknown) {
   return { select };
 }
 
-function session(measurements: {
-  exerciseId: string;
-  position: number;
-  unitType: string;
-  value: number | null;
-  valueEnteredBy: "coach" | "athlete";
-}[]): AthleteSessionDetail {
+function session(
+  measurements: {
+    exerciseId: string;
+    position: number;
+    unitType: string;
+    value: number | null;
+    valueEnteredBy: "coach" | "athlete";
+  }[],
+): AthleteSessionDetail {
   return {
     id: "s1",
     program_id: "p1",
@@ -85,6 +87,7 @@ function session(measurements: {
           sets: 1,
           notes: null,
           link_group_id: null,
+          style_id: null,
           created_at: "",
           updated_at: "",
           exercise: {
@@ -93,10 +96,15 @@ function session(measurements: {
             description: null,
             video_url: null,
             video_source: null,
+            parent_id: null,
+            default_style_id: null,
             created_by: "coach",
             created_at: "",
             updated_at: "",
           },
+          style: null,
+          setVariants: {},
+          setStyles: {},
           measurements: [
             {
               block_exercise_id: `be${i}`,
@@ -120,7 +128,10 @@ function session(measurements: {
 
 describe("upsertSetLog", () => {
   it("upserts on the (session_completion, block_exercise, position, set_index) grain", async () => {
-    const builder = makeUpsertSingleBuilder({ data: { id: "log1" }, error: null });
+    const builder = makeUpsertSingleBuilder({
+      data: { id: "log1" },
+      error: null,
+    });
     mockFrom.mockReturnValue(builder);
 
     await upsertSetLog({
@@ -144,7 +155,10 @@ describe("upsertSetLog", () => {
         actual_value: 42,
         status: "completed",
       }),
-      { onConflict: "session_completion_id,block_exercise_id,position,set_index" },
+      {
+        onConflict:
+          "session_completion_id,block_exercise_id,position,set_index",
+      },
     );
   });
 });
@@ -171,7 +185,15 @@ describe("markSetPending", () => {
 
 describe("buildPrefillMap", () => {
   it("skips measurements the coach specified a value for", async () => {
-    const s = session([{ exerciseId: "ex1", position: 0, unitType: "kg", value: 40, valueEnteredBy: "coach" }]);
+    const s = session([
+      {
+        exerciseId: "ex1",
+        position: 0,
+        unitType: "kg",
+        value: 40,
+        valueEnteredBy: "coach",
+      },
+    ]);
 
     const result = await buildPrefillMap("p1", s);
 
@@ -180,7 +202,15 @@ describe("buildPrefillMap", () => {
   });
 
   it("skips athlete-entered measurements that already have a value", async () => {
-    const s = session([{ exerciseId: "ex1", position: 0, unitType: "kg", value: 20, valueEnteredBy: "athlete" }]);
+    const s = session([
+      {
+        exerciseId: "ex1",
+        position: 0,
+        unitType: "kg",
+        value: 20,
+        valueEnteredBy: "athlete",
+      },
+    ]);
 
     const result = await buildPrefillMap("p1", s);
 
@@ -189,8 +219,18 @@ describe("buildPrefillMap", () => {
   });
 
   it("looks up history only for genuinely blank athlete-entered measurements", async () => {
-    const s = session([{ exerciseId: "ex1", position: 0, unitType: "kg", value: null, valueEnteredBy: "athlete" }]);
-    mockFrom.mockReturnValue(makeLastValueBuilder({ data: { actual_value: 55 }, error: null }));
+    const s = session([
+      {
+        exerciseId: "ex1",
+        position: 0,
+        unitType: "kg",
+        value: null,
+        valueEnteredBy: "athlete",
+      },
+    ]);
+    mockFrom.mockReturnValue(
+      makeLastValueBuilder({ data: { actual_value: 55 }, error: null }),
+    );
 
     const result = await buildPrefillMap("p1", s);
 
@@ -198,7 +238,15 @@ describe("buildPrefillMap", () => {
   });
 
   it("omits an entry when there's no prior logged value", async () => {
-    const s = session([{ exerciseId: "ex1", position: 0, unitType: "kg", value: null, valueEnteredBy: "athlete" }]);
+    const s = session([
+      {
+        exerciseId: "ex1",
+        position: 0,
+        unitType: "kg",
+        value: null,
+        valueEnteredBy: "athlete",
+      },
+    ]);
     mockFrom.mockReturnValue(makeLastValueBuilder({ data: null, error: null }));
 
     const result = await buildPrefillMap("p1", s);

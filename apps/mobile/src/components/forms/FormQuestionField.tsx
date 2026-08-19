@@ -1,8 +1,14 @@
+import {
+  Button,
+  Caption,
+  Field,
+  HEADING_FONT,
+  Slider,
+} from "@/src/components/ui";
+import { bodyFont, colors } from "@/src/constants/theme";
 import type { FormQuestionWithOptions } from "@hooper/db";
-import { Button, Caption, Field, H3, HEADING_FONT } from "@/src/components/ui";
-import { bodyFont, colors, shadows } from "@/src/constants/theme";
-import { useEffect, useRef, useState } from "react";
-import { PanResponder, Pressable, Text, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Pressable, Text, TextInput, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 export type FormAnswerValue = string | number | boolean;
@@ -62,7 +68,14 @@ function StepperField({ question, value, onChange }: FieldProps) {
         onPress={() => step(-1)}
         hitSlop={8}
         className="bg-surface-3 h-10 w-10 items-center justify-center rounded-full">
-        <Text style={{ fontFamily: bodyFont("700"), fontSize: 20, color: colors.textSecondary }}>−</Text>
+        <Text
+          style={{
+            fontFamily: bodyFont("700"),
+            fontSize: 20,
+            color: colors.textSecondary,
+          }}>
+          −
+        </Text>
       </Pressable>
 
       <View className="flex-row items-baseline gap-1.5">
@@ -89,99 +102,34 @@ function StepperField({ question, value, onChange }: FieldProps) {
         onPress={() => step(1)}
         hitSlop={8}
         className="bg-brand-orange h-10 w-10 items-center justify-center rounded-full">
-        <Text style={{ fontFamily: bodyFont("700"), fontSize: 20, color: colors.textPrimary }}>+</Text>
+        <Text
+          style={{
+            fontFamily: bodyFont("700"),
+            fontSize: 20,
+            color: colors.textPrimary,
+          }}>
+          +
+        </Text>
       </Pressable>
     </View>
   );
 }
 
-const THUMB_SIZE = 22;
-
 function SliderField({ question, value, onChange }: FieldProps) {
   const min = question.min_value ?? 1;
   const max = question.max_value ?? 10;
-  const current = typeof value === "number" ? value : Math.round((min + max) / 2);
-
-  const [trackWidth, setTrackWidth] = useState(0);
-  const [labelWidth, setLabelWidth] = useState(0);
-  const containerRef = useRef<View>(null);
-  const pageX = useRef(0);
-
-  // PanResponder.create runs once (it lives inside a useRef initializer), so
-  // its handlers permanently close over whatever `trackWidth`/`onChange` were
-  // on the first render — without this ref they'd always see trackWidth = 0
-  // and every touch would resolve to `min`. Reading through a ref that's
-  // updated every render keeps the handlers current.
-  const latest = useRef({ trackWidth, min, max, onChange });
-  latest.current = { trackWidth, min, max, onChange };
-
-  function positionToValue(x: number) {
-    const { trackWidth, min, max } = latest.current;
-    if (trackWidth <= 0 || max === min) return min;
-    const ratio = Math.min(1, Math.max(0, x / trackWidth));
-    return Math.round(min + ratio * (max - min));
-  }
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (_e, gesture) =>
-        latest.current.onChange(positionToValue(gesture.x0 - pageX.current)),
-      onPanResponderMove: (_e, gesture) =>
-        latest.current.onChange(positionToValue(gesture.moveX - pageX.current)),
-    }),
-  ).current;
-
-  const ratio = max === min ? 0 : (current - min) / (max - min);
-  const thumbCenter = trackWidth * ratio;
-  const labelLeft = Math.min(
-    Math.max(thumbCenter - labelWidth / 2, 0),
-    Math.max(trackWidth - labelWidth, 0),
-  );
+  const current =
+    typeof value === "number" ? value : Math.round((min + max) / 2);
 
   return (
-    <View>
-      <View style={{ height: 34 }}>
-        <H3
-          onLayout={(e) => setLabelWidth(e.nativeEvent.layout.width)}
-          className="text-brand-orange"
-          style={{ position: "absolute", left: labelLeft }}>
-          {current}
-        </H3>
-      </View>
-
-      <View
-        ref={containerRef}
-        onLayout={(e) => {
-          setTrackWidth(e.nativeEvent.layout.width);
-          containerRef.current?.measure((_x, _y, _w, _h, pgX) => {
-            pageX.current = pgX;
-          });
-        }}
-        {...panResponder.panHandlers}
-        className="justify-center"
-        style={{ height: 32 }}>
-        <View className="bg-surface-3 rounded-full" style={{ height: 4 }} />
-        <View
-          className="bg-brand-orange absolute rounded-full"
-          style={{ height: 4, width: thumbCenter }}
-        />
-        <View
-          pointerEvents="none"
-          className="absolute rounded-full bg-white"
-          style={[
-            { width: THUMB_SIZE, height: THUMB_SIZE, left: thumbCenter - THUMB_SIZE / 2 },
-            shadows.sm,
-          ]}
-        />
-      </View>
-
-      <View className="mt-2 flex-row items-center justify-between">
-        <Caption>{question.min_label ?? min}</Caption>
-        <Caption>{question.max_label ?? max}</Caption>
-      </View>
-    </View>
+    <Slider
+      value={current}
+      min={min}
+      max={max}
+      minLabel={question.min_label ?? undefined}
+      maxLabel={question.max_label ?? undefined}
+      onChange={onChange}
+    />
   );
 }
 
@@ -199,7 +147,10 @@ function DropdownField({ question, value, onChange }: FieldProps) {
         style={{ height: 48 }}>
         <Text
           className={selected ? "text-text-primary" : "text-text-disabled"}
-          style={{ fontFamily: bodyFont(selected ? "600" : "400"), fontSize: 15 }}
+          style={{
+            fontFamily: bodyFont(selected ? "600" : "400"),
+            fontSize: 15,
+          }}
           numberOfLines={1}>
           {selected ? selected.label : "Select an option"}
         </Text>
@@ -234,8 +185,13 @@ function DropdownField({ question, value, onChange }: FieldProps) {
                   i > 0 ? "border-border-subtle border-t" : ""
                 } ${isSelected ? "bg-surface-3" : ""}`}>
                 <Text
-                  className={isSelected ? "text-brand-orange" : "text-text-primary"}
-                  style={{ fontFamily: bodyFont(isSelected ? "600" : "400"), fontSize: 15 }}>
+                  className={
+                    isSelected ? "text-brand-orange" : "text-text-primary"
+                  }
+                  style={{
+                    fontFamily: bodyFont(isSelected ? "600" : "400"),
+                    fontSize: 15,
+                  }}>
                   {option.label}
                 </Text>
                 {isSelected ? (
@@ -278,6 +234,29 @@ function YesNoField({ value, onChange }: FieldProps) {
       })}
     </View>
   );
+}
+
+/** The cosmetic starting value each field type shows before the athlete
+ * touches it — StepperField's min, SliderField's midpoint (kept in sync with
+ * those components' own fallback math). ShortTextField/DropdownField/
+ * YesNoField render unselected/empty with no value, so have nothing
+ * meaningful to default to. */
+export function defaultAnswerForQuestion(
+  question: FormQuestionWithOptions,
+): FormAnswerValue | undefined {
+  switch (question.type) {
+    case "number":
+      return question.min_value ?? 0;
+    case "slider": {
+      const min = question.min_value ?? 1;
+      const max = question.max_value ?? 10;
+      return Math.round((min + max) / 2);
+    }
+    case "short_text":
+    case "dropdown":
+    case "yes_no":
+      return undefined;
+  }
 }
 
 /** Runtime renderer for a form_questions row — the coach-side builder

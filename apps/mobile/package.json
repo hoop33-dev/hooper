@@ -5,13 +5,13 @@
   "main": "expo-router/entry",
   "scripts": {
     "android": "expo run:android",
+    "dev": "expo start",
     "ios": "expo run:ios",
     "lint": "eslint .",
     "lint:dead": "knip",
     "lint:deps": "depcruise src app --config .dependency-cruiser.cjs",
     "lint:fix": "eslint . --fix",
     "quality": "npm run lint && npm run lint:deps",
-    "start": "expo start",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "typecheck": "tsc --noEmit"

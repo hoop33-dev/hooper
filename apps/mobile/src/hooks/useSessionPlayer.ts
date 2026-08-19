@@ -1,5 +1,5 @@
-import type { AthleteMeasurementLogRow, SessionCompletionRow } from "@hooper/db";
 import type { SetRowState } from "@/src/components/training/ExerciseSetsCard";
+import { resolveSetExercise } from "@/src/lib/blockExerciseDisplay";
 import {
   buildPrefillMap,
   getLogsForCompletion,
@@ -18,6 +18,10 @@ import {
   resumeSession,
   startOrResumeSession,
 } from "@/src/services/sessionCompletion.service";
+import type {
+  AthleteMeasurementLogRow,
+  SessionCompletionRow,
+} from "@hooper/db";
 import { useEffect, useState } from "react";
 
 export type SetsByBlockExercise = Record<string, SetRowState[]>;
@@ -37,14 +41,20 @@ function buildExerciseSets(
 ): SetRowState[] {
   const rows: SetRowState[] = [];
   for (let setIndex = 0; setIndex < be.sets; setIndex++) {
-    const done = beLogs.some((l) => l.set_index === setIndex && l.status === "completed");
+    const done = beLogs.some(
+      (l) => l.set_index === setIndex && l.status === "completed",
+    );
     const values: Record<number, number> = {};
     for (const m of be.measurements.filter((m) => m.set_index === setIndex)) {
-      const existing = beLogs.find((l) => l.set_index === setIndex && l.position === m.position);
+      const existing = beLogs.find(
+        (l) => l.set_index === setIndex && l.position === m.position,
+      );
       if (existing?.actual_value != null) {
         values[m.position] = existing.actual_value;
       } else if (m.value_entered_by === "athlete" && m.value === null) {
-        values[m.position] = prefill.get(prefillKey(be.exercise_id, m.unit_type)) ?? 0;
+        const setExerciseId = resolveSetExercise(be, setIndex).id;
+        values[m.position] =
+          prefill.get(prefillKey(setExerciseId, m.unit_type)) ?? 0;
       } else {
         values[m.position] = m.value ?? 0;
       }
@@ -68,17 +78,29 @@ function buildInitialSetsState(
   const result: SetsByBlockExercise = {};
   for (const block of session.blocks) {
     for (const be of block.exercises) {
-      result[be.id] = buildExerciseSets(be, logsByBlockExercise.get(be.id) ?? [], prefill);
+      result[be.id] = buildExerciseSets(
+        be,
+        logsByBlockExercise.get(be.id) ?? [],
+        prefill,
+      );
     }
   }
   return result;
 }
 
-export function isBlockDone(block: AthleteBlock, setsState: SetsByBlockExercise): boolean {
-  return block.exercises.every((be) => (setsState[be.id] ?? []).every((s) => s.done));
+export function isBlockDone(
+  block: AthleteBlock,
+  setsState: SetsByBlockExercise,
+): boolean {
+  return block.exercises.every((be) =>
+    (setsState[be.id] ?? []).every((s) => s.done),
+  );
 }
 
-async function loadSessionPlayerData(sessionId: string, athleteProfileId: string) {
+async function loadSessionPlayerData(
+  sessionId: string,
+  athleteProfileId: string,
+) {
   const [completion, session] = await Promise.all([
     startOrResumeSession(sessionId, athleteProfileId),
     getSessionDetail(sessionId),
@@ -88,8 +110,13 @@ async function loadSessionPlayerData(sessionId: string, athleteProfileId: string
     buildPrefillMap(athleteProfileId, session),
   ]);
   const setsState = buildInitialSetsState(session, logs, prefill);
-  const firstIncomplete = session.blocks.findIndex((b) => !isBlockDone(b, setsState));
-  const blockIdx = firstIncomplete === -1 ? Math.max(0, session.blocks.length - 1) : firstIncomplete;
+  const firstIncomplete = session.blocks.findIndex(
+    (b) => !isBlockDone(b, setsState),
+  );
+  const blockIdx =
+    firstIncomplete === -1
+      ? Math.max(0, session.blocks.length - 1)
+      : firstIncomplete;
   return { completion, session, setsState, blockIdx };
 }
 
@@ -108,7 +135,7 @@ function buildSheetState(
     setIndex,
     position,
     unitType: measurement.unit_type,
-    exerciseName: be.exercise.name,
+    exerciseName: resolveSetExercise(be, setIndex).name,
     currentValue: setsState[be.id]?.[setIndex]?.values[position] ?? 0,
   };
 }
@@ -122,7 +149,10 @@ function applyFieldValue(
   const rows = [...(setsState[sheet.blockExerciseId] ?? [])];
   const row = rows[sheet.setIndex];
   if (!row) return setsState;
-  rows[sheet.setIndex] = { ...row, values: { ...row.values, [sheet.position]: value } };
+  rows[sheet.setIndex] = {
+    ...row,
+    values: { ...row.values, [sheet.position]: value },
+  };
   return { ...setsState, [sheet.blockExerciseId]: rows };
 }
 
@@ -170,6 +200,7 @@ async function persistSetDone(params: {
 }) {
   const { completion, athleteProfileId, be, setIndex, row } = params;
   const positions = be.measurements.filter((m) => m.set_index === setIndex);
+  const exerciseId = resolveSetExercise(be, setIndex).id;
   await Promise.all(
     positions.map((m) =>
       upsertSetLog({
@@ -178,7 +209,7 @@ async function persistSetDone(params: {
         position: m.position,
         setIndex,
         athleteProfileId,
-        exerciseId: be.exercise_id,
+        exerciseId,
         unitType: m.unit_type,
         plannedValue: m.value,
         actualValue: row.values[m.position] ?? null,
@@ -195,19 +226,15 @@ async function performPauseToggle(
   return paused ? resumeSession(completionId) : pauseSession(completionId);
 }
 
-/** Owns every piece of state and every persistence call for the session
- * player screen: loading/resuming the attempt, per-set local edits, the
- * network call that actually logs a completed set, and pause/resume. The
- * screen itself just renders what this returns. */
-export function useSessionPlayer(sessionId: string, athleteProfileId: string | undefined) {
-  const [session, setSession] = useState<AthleteSessionDetail | null>(null);
-  const [completion, setCompletion] = useState<SessionCompletionRow | null>(null);
-  const [setsState, setSetsState] = useState<SetsByBlockExercise>({});
-  const [blockIdx, setBlockIdx] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [pausing, setPausing] = useState(false);
-  const [sheet, setSheet] = useState<SheetState | null>(null);
-
+function useInitialSessionLoad(
+  sessionId: string,
+  athleteProfileId: string | undefined,
+  setCompletion: (c: SessionCompletionRow) => void,
+  setSession: (s: AthleteSessionDetail) => void,
+  setSetsState: (s: SetsByBlockExercise) => void,
+  setBlockIdx: (i: number) => void,
+  setPaused: (p: boolean) => void,
+) {
   useEffect(() => {
     if (!athleteProfileId || !sessionId) return;
     let cancelled = false;
@@ -224,10 +251,50 @@ export function useSessionPlayer(sessionId: string, athleteProfileId: string | u
     return () => {
       cancelled = true;
     };
-  }, [athleteProfileId, sessionId]);
+  }, [
+    athleteProfileId,
+    sessionId,
+    setCompletion,
+    setSession,
+    setSetsState,
+    setBlockIdx,
+    setPaused,
+  ]);
+}
 
-  const openField = (be: AthleteBlockExercise, setIndex: number, position: number) =>
-    setSheet(buildSheetState(be, setIndex, position, setsState));
+/** Owns every piece of state and every persistence call for the session
+ * player screen: loading/resuming the attempt, per-set local edits, the
+ * network call that actually logs a completed set, and pause/resume. The
+ * screen itself just renders what this returns. */
+export function useSessionPlayer(
+  sessionId: string,
+  athleteProfileId: string | undefined,
+) {
+  const [session, setSession] = useState<AthleteSessionDetail | null>(null);
+  const [completion, setCompletion] = useState<SessionCompletionRow | null>(
+    null,
+  );
+  const [setsState, setSetsState] = useState<SetsByBlockExercise>({});
+  const [blockIdx, setBlockIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [pausing, setPausing] = useState(false);
+  const [sheet, setSheet] = useState<SheetState | null>(null);
+
+  useInitialSessionLoad(
+    sessionId,
+    athleteProfileId,
+    setCompletion,
+    setSession,
+    setSetsState,
+    setBlockIdx,
+    setPaused,
+  );
+
+  const openField = (
+    be: AthleteBlockExercise,
+    setIndex: number,
+    position: number,
+  ) => setSheet(buildSheetState(be, setIndex, position, setsState));
 
   function confirmField(value: number) {
     setSetsState((prev) => applyFieldValue(prev, sheet, value));
@@ -244,7 +311,9 @@ export function useSessionPlayer(sessionId: string, athleteProfileId: string | u
     if (!be || !row) return;
     if (row.done) {
       await persistSetPending({ completion, be, setIndex });
-      setSetsState((prev) => markRowDone(prev, blockExerciseId, setIndex, false));
+      setSetsState((prev) =>
+        markRowDone(prev, blockExerciseId, setIndex, false),
+      );
       return;
     }
     await persistSetDone({ completion, athleteProfileId, be, setIndex, row });
@@ -265,7 +334,9 @@ export function useSessionPlayer(sessionId: string, athleteProfileId: string | u
 
   function goBlock(delta: number) {
     if (!session) return;
-    setBlockIdx((i) => Math.min(session.blocks.length - 1, Math.max(0, i + delta)));
+    setBlockIdx((i) =>
+      Math.min(session.blocks.length - 1, Math.max(0, i + delta)),
+    );
   }
 
   return {

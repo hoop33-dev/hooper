@@ -1,18 +1,73 @@
-import type { FormQuestionWithOptions, FormWithQuestions } from "@hooper/db";
 import {
   FormQuestionField,
+  defaultAnswerForQuestion,
   type FormAnswerValue,
 } from "@/src/components/forms/FormQuestionField";
-import { Button, Caption, H2, Lead, RowTitle, ScreenHeader } from "@/src/components/ui";
+import {
+  Button,
+  Caption,
+  H2,
+  Lead,
+  RowTitle,
+  ScreenHeader,
+} from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
-import { getProgramForm, submitPreSessionForm } from "@/src/services/formResponse.service";
+import {
+  getLastFormResponse,
+  getProgramForm,
+  submitPreSessionForm,
+} from "@/src/services/formResponse.service";
 import { startOrResumeSession } from "@/src/services/sessionCompletion.service";
 import { useAuthStore } from "@/src/stores/auth.store";
+import type { FormQuestionWithOptions, FormWithQuestions } from "@hooper/db";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 
 type Answers = Record<string, FormAnswerValue>;
+
+/** The athlete's prior answer to this question, if it's still usable —
+ * short_text is deliberately never carried forward (typed answers go stale
+ * fast), and a stale dropdown value that no longer matches any option is
+ * dropped rather than silently selecting nothing behind the scenes. */
+function priorAnswerValue(
+  question: FormQuestionWithOptions,
+  prior: unknown,
+): FormAnswerValue | undefined {
+  switch (question.type) {
+    case "number":
+    case "slider":
+      return typeof prior === "number" ? prior : undefined;
+    case "yes_no":
+      return typeof prior === "boolean" ? prior : undefined;
+    case "dropdown":
+      return typeof prior === "string" &&
+        question.options.some((o) => o.label === prior)
+        ? prior
+        : undefined;
+    case "short_text":
+      return undefined;
+  }
+}
+
+/** Seeds the answer state so a question counts as already answered — and
+ * gets submitted as-is if the athlete never touches it — whenever it has
+ * something sensible to start from: their own last response (all types but
+ * short_text) falling back to the field's cosmetic default (number/slider
+ * only; dropdown/yes_no/short_text have no meaningful unselected default). */
+function buildInitialAnswers(
+  form: FormWithQuestions,
+  lastResponse: Record<string, unknown> | null,
+): Answers {
+  const answers: Answers = {};
+  for (const question of form.questions) {
+    const prior = priorAnswerValue(question, lastResponse?.[question.id]);
+    const seeded =
+      prior !== undefined ? prior : defaultAnswerForQuestion(question);
+    if (seeded !== undefined) answers[question.id] = seeded;
+  }
+  return answers;
+}
 
 function QuestionListItem({
   index,
@@ -77,9 +132,17 @@ function PreSessionFormBody({
           />
         ))}
       </ScrollView>
-      <View className="border-border-subtle border-t px-5 pb-8 pt-3">
-        <Button variant="primary" size="lg" disabled={requiredMissing || submitting} onPress={onSubmit}>
-          {submitting ? <ActivityIndicator color="#fff" /> : "Let's get to work."}
+      <View className="border-border-subtle border-t px-5 pt-3 pb-8">
+        <Button
+          variant="primary"
+          size="lg"
+          disabled={requiredMissing || submitting}
+          onPress={onSubmit}>
+          {submitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            "Let's get to work."
+          )}
         </Button>
       </View>
     </>
@@ -93,7 +156,9 @@ export default function PreSessionFormScreen() {
   }>();
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
-  const [form, setForm] = useState<FormWithQuestions | null | undefined>(undefined);
+  const [form, setForm] = useState<FormWithQuestions | null | undefined>(
+    undefined,
+  );
   const [answers, setAnswers] = useState<Answers>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -107,9 +172,18 @@ export default function PreSessionFormScreen() {
       if (!programForm) {
         // No check-in form attached — start the session directly.
         await startOrResumeSession(sessionId, profile!.id);
-        router.replace({ pathname: "/(app)/training/play", params: { sessionId } });
+        router.replace({
+          pathname: "/(app)/training/play",
+          params: { sessionId },
+        });
         return;
       }
+      const lastResponse = await getLastFormResponse(
+        profile!.id,
+        programForm.id,
+      );
+      if (cancelled) return;
+      setAnswers(buildInitialAnswers(programForm, lastResponse));
       setForm(programForm);
     }
     go();
@@ -123,7 +197,10 @@ export default function PreSessionFormScreen() {
     setSubmitting(true);
     try {
       await submitPreSessionForm(sessionId, profile.id, form.id, answers);
-      router.replace({ pathname: "/(app)/training/play", params: { sessionId } });
+      router.replace({
+        pathname: "/(app)/training/play",
+        params: { sessionId },
+      });
     } finally {
       setSubmitting(false);
     }
@@ -131,9 +208,16 @@ export default function PreSessionFormScreen() {
 
   return (
     <View className="bg-surface flex-1">
-      <ScreenHeader title="" backLabel="Session overview" onBack={() => router.back()} />
+      <ScreenHeader
+        title=""
+        backLabel="Session overview"
+        onBack={() => router.back()}
+      />
       {form === undefined ? (
-        <ActivityIndicator color={colors.textTertiary} style={{ marginTop: 48 }} />
+        <ActivityIndicator
+          color={colors.textTertiary}
+          style={{ marginTop: 48 }}
+        />
       ) : form === null ? null : (
         <PreSessionFormBody
           form={form}

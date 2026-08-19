@@ -1,27 +1,36 @@
-import { getClient } from "../client";
 import type {
   BlockExerciseMeasurementRow,
   BlockExerciseRow,
   BlockRow,
   ExerciseRow,
+  ExerciseStyleRow,
   ProgramRow,
   SessionRow,
 } from "@hooper/db";
+import { getClient } from "../client";
 
 // Mirrors apps/web/src/services/programShaping.ts's BLOCK_EXERCISE_SELECT /
 // SESSION_SELECT — that file isn't importable from mobile (it lives in the
 // Next app), so the nested-select shape is duplicated here. Lighter than the
-// web version: no exercise_category_links/exercise_unit_types, since the
-// session player doesn't need exercise categories, just the exercise itself
-// and its planned measurements.
+// web version: no exercise_category_links/exercise_unit_types/defaultStyle/
+// variants list, since the session player doesn't browse the library, just
+// needs the exercise itself, its planned measurements, its resolved style,
+// and its per-set variant/style overrides.
 const BLOCK_EXERCISE_SELECT =
-  "*, exercise:exercises(*), block_exercise_measurements(*)";
+  "*, exercise:exercises(*), block_exercise_measurements(*), style:exercise_styles(*), block_exercise_set_variants(set_index, exercise:exercises(*)), block_exercise_set_styles(set_index, style:exercise_styles(*))";
 const BLOCK_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
 const SESSION_SELECT = `*, blocks(${BLOCK_SELECT})`;
 
 export type AthleteBlockExercise = BlockExerciseRow & {
   exercise: ExerciseRow;
   measurements: BlockExerciseMeasurementRow[];
+  style: ExerciseStyleRow | null;
+  /** Sparse, keyed by set_index — only sets whose exercise differs from
+   * exercise_id have an entry. */
+  setVariants: Record<number, ExerciseRow>;
+  /** Sparse, keyed by set_index — a null entry means that set explicitly
+   * has no style; a missing key means it inherits `style`. */
+  setStyles: Record<number, ExerciseStyleRow | null>;
 };
 export type AthleteBlock = BlockRow & { exercises: AthleteBlockExercise[] };
 export type AthleteSessionDetail = SessionRow & { blocks: AthleteBlock[] };
@@ -29,6 +38,12 @@ export type AthleteSessionDetail = SessionRow & { blocks: AthleteBlock[] };
 type RawBlockExercise = BlockExerciseRow & {
   exercise: ExerciseRow;
   block_exercise_measurements: BlockExerciseMeasurementRow[];
+  style: ExerciseStyleRow | null;
+  block_exercise_set_variants: { set_index: number; exercise: ExerciseRow }[];
+  block_exercise_set_styles: {
+    set_index: number;
+    style: ExerciseStyleRow | null;
+  }[];
 };
 type RawBlock = BlockRow & { block_exercises: RawBlockExercise[] };
 type RawSession = SessionRow & { blocks: RawBlock[] };
@@ -43,12 +58,28 @@ function shapeSession(raw: RawSession): AthleteSessionDetail {
         ...block,
         exercises: [...block_exercises]
           .sort((a, b) => a.position - b.position)
-          .map(({ block_exercise_measurements, ...blockExercise }) => ({
-            ...blockExercise,
-            measurements: [...block_exercise_measurements].sort(
-              (a, b) => a.position - b.position || a.set_index - b.set_index,
-            ),
-          })),
+          .map(
+            ({
+              block_exercise_measurements,
+              block_exercise_set_variants,
+              block_exercise_set_styles,
+              ...blockExercise
+            }) => ({
+              ...blockExercise,
+              measurements: [...block_exercise_measurements].sort(
+                (a, b) => a.position - b.position || a.set_index - b.set_index,
+              ),
+              setVariants: Object.fromEntries(
+                block_exercise_set_variants.map((v) => [
+                  v.set_index,
+                  v.exercise,
+                ]),
+              ),
+              setStyles: Object.fromEntries(
+                block_exercise_set_styles.map((s) => [s.set_index, s.style]),
+              ),
+            }),
+          ),
       })),
   };
 }
@@ -153,7 +184,8 @@ async function buildProgramCard(
     completedSessions: completedIds.size,
     currentWeek:
       nextSession?.week_number ?? sessions[sessions.length - 1].week_number,
-    lastSessionDurationSeconds: completions?.[0]?.active_duration_seconds ?? null,
+    lastSessionDurationSeconds:
+      completions?.[0]?.active_duration_seconds ?? null,
     nextSessionId: nextSession?.id ?? null,
     nextSessionName: nextSession?.name ?? null,
   };
@@ -189,7 +221,9 @@ export async function listAssignedPrograms(
   if (error) throw new Error(error.message);
 
   return Promise.all(
-    (programs ?? []).map((program) => buildProgramCard(program, athleteProfileId)),
+    (programs ?? []).map((program) =>
+      buildProgramCard(program, athleteProfileId),
+    ),
   );
 }
 

@@ -1,6 +1,6 @@
-import type { AthleteBlock } from "@hooper/api";
 import { Meta } from "@/src/components/ui";
-import { View } from "react-native";
+import type { AthleteBlock } from "@hooper/api";
+import { View, type LayoutRectangle } from "react-native";
 
 import { ExerciseSetsCard, type SetRowState } from "./ExerciseSetsCard";
 
@@ -8,39 +8,50 @@ type SupersetBlockProps = {
   block: AthleteBlock;
   /** blockExerciseId -> per-round state, same shape ExerciseSetsCard expects. */
   setsByBlockExercise: Record<string, SetRowState[]>;
-  onFieldTap: (blockExerciseId: string, setIndex: number, position: number) => void;
+  onFieldTap: (
+    blockExerciseId: string,
+    setIndex: number,
+    position: number,
+  ) => void;
   onSetDone: (blockExerciseId: string, setIndex: number) => void;
+  /** Reports each exercise card's layout within the scrolling block content,
+   * so BlockContent can scroll the next one into view on completion. */
+  onCardLayout: (blockExerciseId: string, layout: LayoutRectangle) => void;
 };
 
 /**
  * A superset/circuit block: every exercise shares the same round count
  * (block.sets). Each exercise still gets its own ExerciseSetsCard — set_index
- * *is* the round number here, so labeling rows "Round" instead of "Set" is
- * the only real difference from a regular block.
+ * *is* the round number here.
  */
 export function SupersetBlock({
   block,
   setsByBlockExercise,
   onFieldTap,
   onSetDone,
+  onCardLayout,
 }: SupersetBlockProps) {
   return (
     <View>
       <Meta className="mb-3">
-        {block.sets ?? block.exercises[0]?.sets ?? 0} rounds · {block.exercises.length}{" "}
-        exercises
+        {block.sets ?? block.exercises[0]?.sets ?? 0} rounds ·{" "}
+        {block.exercises.length} exercises
       </Meta>
       {block.exercises.map((blockExercise) => (
-        <ExerciseSetsCard
+        <View
           key={blockExercise.id}
-          blockExercise={blockExercise}
-          sets={setsByBlockExercise[blockExercise.id] ?? []}
-          setLabel="Round"
-          onFieldTap={(setIndex, position) =>
-            onFieldTap(blockExercise.id, setIndex, position)
-          }
-          onSetDone={(setIndex) => onSetDone(blockExercise.id, setIndex)}
-        />
+          onLayout={(e) =>
+            onCardLayout(blockExercise.id, e.nativeEvent.layout)
+          }>
+          <ExerciseSetsCard
+            blockExercise={blockExercise}
+            sets={setsByBlockExercise[blockExercise.id] ?? []}
+            onFieldTap={(setIndex, position) =>
+              onFieldTap(blockExercise.id, setIndex, position)
+            }
+            onSetDone={(setIndex) => onSetDone(blockExercise.id, setIndex)}
+          />
+        </View>
       ))}
     </View>
   );

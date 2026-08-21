@@ -4,7 +4,6 @@ import { BlockTabs } from "@/src/components/training/BlockTabs";
 import { PauseOverlay } from "@/src/components/training/PauseOverlay";
 import { SessionFooterNav } from "@/src/components/training/SessionFooterNav";
 import { SessionProgressBar } from "@/src/components/training/SessionProgressBar";
-import { SetValueSheet } from "@/src/components/training/SetValueSheet";
 import { colors } from "@/src/constants/theme";
 import {
   isBlockDone,
@@ -15,6 +14,7 @@ import { useAuthStore } from "@/src/stores/auth.store";
 import type { AthleteSessionDetail } from "@hooper/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ActivityIndicator, Alert, View } from "react-native";
+import { useSharedValue } from "react-native-reanimated";
 
 function countSets(
   session: AthleteSessionDetail,
@@ -31,6 +31,17 @@ function countSets(
   return { doneSets, totalSets };
 }
 
+function confirmExit(onExit: () => void) {
+  Alert.alert(
+    "Exit workout?",
+    "Your progress is saved — you can pick up where you left off.",
+    [
+      { text: "Keep going", style: "cancel" },
+      { text: "Exit", style: "destructive", onPress: onExit },
+    ],
+  );
+}
+
 export default function SessionPlayerScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const router = useRouter();
@@ -39,6 +50,7 @@ export default function SessionPlayerScreen() {
 
   const { session, completion, blockIdx, setsState } = player;
   const curBlock = session?.blocks[blockIdx] ?? null;
+  const blockScrollX = useSharedValue(0);
 
   function handleComplete() {
     if (!completion || !session) return;
@@ -46,17 +58,6 @@ export default function SessionPlayerScreen() {
       pathname: "/(app)/training/complete",
       params: { sessionCompletionId: completion.id, sessionId: session.id },
     });
-  }
-
-  function handleExit() {
-    Alert.alert(
-      "Exit workout?",
-      "Your progress is saved — you can pick up where you left off.",
-      [
-        { text: "Keep going", style: "cancel" },
-        { text: "Exit", style: "destructive", onPress: () => router.back() },
-      ],
-    );
   }
 
   if (!session || !curBlock || !completion) {
@@ -79,7 +80,7 @@ export default function SessionPlayerScreen() {
         paused={player.paused}
         pausing={player.pausing}
         onTogglePause={player.togglePause}
-        onExit={handleExit}
+        onExit={() => confirmExit(() => router.back())}
       />
       <SessionProgressBar doneSets={doneSets} totalSets={totalSets} />
       <BlockTabs
@@ -87,12 +88,16 @@ export default function SessionPlayerScreen() {
         blockIdx={blockIdx}
         doneFlags={doneFlags}
         onSelect={player.setBlockIdx}
+        scrollX={blockScrollX}
       />
       <BlockContent
-        block={curBlock}
+        blocks={session.blocks}
+        blockIdx={blockIdx}
         setsByBlockExercise={setsState}
-        onFieldTap={player.openField}
+        onValueChange={player.setFieldValue}
         onSetDone={player.markSetDone}
+        onBlockIdxChange={player.setBlockIdx}
+        scrollX={blockScrollX}
       />
       <SessionFooterNav
         canGoPrev={blockIdx > 0}
@@ -102,14 +107,6 @@ export default function SessionPlayerScreen() {
         onComplete={handleComplete}
       />
       {player.paused ? <PauseOverlay onResume={player.togglePause} /> : null}
-      <SetValueSheet
-        visible={!!player.sheet}
-        exerciseName={player.sheet?.exerciseName ?? ""}
-        unitType={player.sheet?.unitType ?? ""}
-        initialValue={player.sheet?.currentValue ?? null}
-        onConfirm={player.confirmField}
-        onClose={player.closeSheet}
-      />
     </View>
   );
 }

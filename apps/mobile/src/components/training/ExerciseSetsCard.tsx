@@ -13,8 +13,8 @@ import type {
   BlockExerciseMeasurementRow,
   ExerciseVideoSource,
 } from "@hooper/db";
-import { useState } from "react";
-import { Image, Linking, Pressable, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Image, Linking, Pressable, TextInput, View } from "react-native";
 
 import { NoteIcon, PlayIcon } from "./icons";
 
@@ -27,7 +27,7 @@ export type SetRowState = {
 type ExerciseSetsCardProps = {
   blockExercise: AthleteBlockExercise;
   sets: SetRowState[];
-  onFieldTap: (setIndex: number, position: number) => void;
+  onValueChange: (setIndex: number, position: number, value: number) => void;
   onSetDone: (setIndex: number) => void;
 };
 
@@ -129,11 +129,83 @@ function ExerciseHeader({
   );
 }
 
+/** A single measurement's value box — tapping anywhere in it (not just the
+ * digits) focuses the embedded TextInput, opening the keyboard right there
+ * for direct in-place editing. Replaced a tap-to-open bottom-sheet modal:
+ * the value now commits on blur instead of a separate "Done" confirmation. */
+function FieldBox({
+  unitType,
+  value,
+  done,
+  onChange,
+}: {
+  unitType: string;
+  value: number | undefined;
+  done: boolean;
+  onChange: (value: number) => void;
+}) {
+  const inputRef = useRef<TextInput>(null);
+  const [text, setText] = useState(value !== undefined ? String(value) : "");
+
+  useEffect(() => {
+    setText(value !== undefined ? String(value) : "");
+  }, [value]);
+
+  function commit() {
+    const numeric = Number(text);
+    if (text.trim() !== "" && Number.isFinite(numeric) && numeric >= 0) {
+      if (numeric !== value) onChange(numeric);
+    } else {
+      setText(value !== undefined ? String(value) : "");
+    }
+  }
+
+  return (
+    <Pressable
+      disabled={done}
+      onPress={() => inputRef.current?.focus()}
+      className="flex-1 rounded-lg border px-3 py-2"
+      style={{
+        backgroundColor: done
+          ? "rgba(56,161,105,0.06)"
+          : "rgba(255,255,255,0.04)",
+        borderColor: done ? "rgba(56,161,105,0.14)" : colors.borderSubtle,
+      }}>
+      <Meta
+        className="uppercase"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}>
+        {unitType}
+      </Meta>
+      <TextInput
+        ref={inputRef}
+        editable={!done}
+        value={text}
+        onChangeText={(v) => setText(v.replace(/[^0-9.]/g, ""))}
+        onBlur={commit}
+        keyboardType="decimal-pad"
+        placeholder="—"
+        placeholderTextColor={colors.textDisabled}
+        selectTextOnFocus
+        style={{
+          fontFamily: "BarlowCondensed-ExtraBold",
+          fontSize: 20,
+          lineHeight: 20 * 1.15,
+          letterSpacing: 20 * 0.02,
+          color: done ? "rgba(56,161,105,0.85)" : colors.textPrimary,
+          padding: 0,
+        }}
+      />
+    </Pressable>
+  );
+}
+
 function SetRow({
   set,
   measurements,
   styleName,
-  onFieldTap,
+  onValueChange,
   onSetDone,
 }: {
   set: SetRowState;
@@ -143,7 +215,7 @@ function SetRow({
    * resolveGroupStyle's `uniform`), since that case is already named once
    * on the exercise header instead. */
   styleName?: string | null;
-  onFieldTap: (position: number) => void;
+  onValueChange: (position: number, value: number) => void;
   onSetDone: () => void;
 }) {
   return (
@@ -151,31 +223,13 @@ function SetRow({
       {styleName ? <Meta className="mb-1">{styleName}</Meta> : null}
       <View className="flex-row items-center gap-2">
         {measurements.map((m) => (
-          <Pressable
+          <FieldBox
             key={m.position}
-            disabled={set.done}
-            onPress={() => onFieldTap(m.position)}
-            className="flex-1 rounded-lg border px-3 py-2"
-            style={{
-              backgroundColor: set.done
-                ? "rgba(56,161,105,0.06)"
-                : "rgba(255,255,255,0.04)",
-              borderColor: set.done
-                ? "rgba(56,161,105,0.14)"
-                : colors.borderSubtle,
-            }}>
-            <Meta
-              className="uppercase"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}>
-              {m.unit_type}
-            </Meta>
-            <Title
-              className={set.done ? "text-success/85" : "text-text-primary"}>
-              {set.values[m.position] ?? "—"}
-            </Title>
-          </Pressable>
+            unitType={m.unit_type}
+            value={set.values[m.position]}
+            done={set.done}
+            onChange={(value) => onValueChange(m.position, value)}
+          />
         ))}
 
         <Pressable
@@ -202,7 +256,7 @@ function SetRow({
 export function ExerciseSetsCard({
   blockExercise,
   sets,
-  onFieldTap,
+  onValueChange,
   onSetDone,
 }: ExerciseSetsCardProps) {
   const { measurements, notes } = blockExercise;
@@ -264,7 +318,9 @@ export function ExerciseSetsCard({
                         ? resolveSetStyle(blockExercise, setIndex)?.name
                         : null
                     }
-                    onFieldTap={(position) => onFieldTap(setIndex, position)}
+                    onValueChange={(position, value) =>
+                      onValueChange(setIndex, position, value)
+                    }
                     onSetDone={() => onSetDone(setIndex)}
                   />
                 );

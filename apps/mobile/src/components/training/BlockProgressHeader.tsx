@@ -1,8 +1,14 @@
 import { colors } from "@/src/constants/theme";
+import { useEffect } from "react";
 import { Pressable, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
-import { PauseIcon, PlayIcon } from "./icons";
 import { Caption } from "@/src/components/ui";
+import { PauseIcon, PlayIcon } from "./icons";
 
 type BlockProgressHeaderProps = {
   blockCount: number;
@@ -24,21 +30,10 @@ export function BlockProgressHeader({
   onExit,
 }: BlockProgressHeaderProps) {
   return (
-    <View className="flex-row items-center justify-between px-5 pb-2.5 pt-[54px]">
+    <View className="flex-row items-center justify-between px-5 pt-[54px] pb-2.5">
       <View className="flex-row items-center gap-1">
         {Array.from({ length: blockCount }, (_, i) => (
-          <View
-            key={i}
-            className="h-[3px] rounded-full"
-            style={{
-              width: i === blockIdx ? 22 : 8,
-              backgroundColor: doneFlags[i]
-                ? colors.success
-                : i === blockIdx
-                  ? colors.brandOrange
-                  : "rgba(255,255,255,0.1)",
-            }}
-          />
+          <ProgressPill key={i} active={i === blockIdx} done={doneFlags[i]} />
         ))}
       </View>
       <View className="flex-row items-center gap-2">
@@ -55,15 +50,39 @@ export function BlockProgressHeader({
           ) : (
             <PauseIcon size={10} color={colors.textSecondary} />
           )}
-          <Caption className={paused ? "text-white" : ""}>{paused ? "Resume" : "Pause"}</Caption>
+          <Caption className={paused ? "text-white" : ""}>
+            {paused ? "Resume" : "Pause"}
+          </Caption>
         </Pressable>
         <Pressable
           onPress={onExit}
           className="rounded-full border px-3 py-1.5"
-          style={{ backgroundColor: colors.surface2, borderColor: colors.borderSubtle }}>
+          style={{
+            backgroundColor: colors.surface2,
+            borderColor: colors.borderSubtle,
+          }}>
           <Caption>Exit</Caption>
         </Pressable>
       </View>
     </View>
   );
+}
+
+function ProgressPill({ active, done }: { active: boolean; done: boolean }) {
+  const width = useSharedValue(active ? 22 : 8);
+
+  useEffect(() => {
+    width.value = withTiming(active ? 22 : 8, { duration: 250 });
+  }, [active, width]);
+
+  const style = useAnimatedStyle(() => ({
+    width: width.value,
+    backgroundColor: done
+      ? colors.success
+      : active
+        ? colors.brandOrange
+        : "rgba(255,255,255,0.1)",
+  }));
+
+  return <Animated.View className="h-[3px] rounded-full" style={style} />;
 }

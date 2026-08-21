@@ -1,5 +1,11 @@
 import { Caption } from "@/src/components/ui";
+import { useEffect } from "react";
 import { View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 type SessionProgressBarProps = {
   doneSets: number;
@@ -14,6 +20,16 @@ export function SessionProgressBar({
   totalSets,
 }: SessionProgressBarProps) {
   const pct = totalSets > 0 ? Math.round((doneSets / totalSets) * 100) : 0;
+  const width = useSharedValue(pct);
+
+  useEffect(() => {
+    width.value = withTiming(pct, { duration: 300 });
+  }, [pct, width]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${width.value}%`,
+  }));
+
   return (
     <View className="px-5 pb-3">
       <View className="mb-1.5 flex-row items-center justify-between">
@@ -23,9 +39,9 @@ export function SessionProgressBar({
         <Caption className="text-white">{pct}%</Caption>
       </View>
       <View className="h-1 rounded-full bg-white/10">
-        <View
+        <Animated.View
           className="bg-brand-orange h-full rounded-full"
-          style={{ width: `${pct}%` }}
+          style={fillStyle}
         />
       </View>
     </View>

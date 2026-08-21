@@ -8,10 +8,11 @@ type SupersetBlockProps = {
   block: AthleteBlock;
   /** blockExerciseId -> per-round state, same shape ExerciseSetsCard expects. */
   setsByBlockExercise: Record<string, SetRowState[]>;
-  onFieldTap: (
+  onValueChange: (
     blockExerciseId: string,
     setIndex: number,
     position: number,
+    value: number,
   ) => void;
   onSetDone: (blockExerciseId: string, setIndex: number) => void;
   /** Reports each exercise card's layout within the scrolling block content,
@@ -27,7 +28,7 @@ type SupersetBlockProps = {
 export function SupersetBlock({
   block,
   setsByBlockExercise,
-  onFieldTap,
+  onValueChange,
   onSetDone,
   onCardLayout,
 }: SupersetBlockProps) {
@@ -46,8 +47,8 @@ export function SupersetBlock({
           <ExerciseSetsCard
             blockExercise={blockExercise}
             sets={setsByBlockExercise[blockExercise.id] ?? []}
-            onFieldTap={(setIndex, position) =>
-              onFieldTap(blockExercise.id, setIndex, position)
+            onValueChange={(setIndex, position, value) =>
+              onValueChange(blockExercise.id, setIndex, position, value)
             }
             onSetDone={(setIndex) => onSetDone(blockExercise.id, setIndex)}
           />

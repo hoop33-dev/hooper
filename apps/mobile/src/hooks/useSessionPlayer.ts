@@ -25,14 +25,6 @@ import type {
 import { useEffect, useState } from "react";
 
 export type SetsByBlockExercise = Record<string, SetRowState[]>;
-export type SheetState = {
-  blockExerciseId: string;
-  setIndex: number;
-  position: number;
-  unitType: string;
-  exerciseName: string;
-  currentValue: number;
-};
 
 function buildExerciseSets(
   be: AthleteBlockExercise,
@@ -120,40 +112,21 @@ async function loadSessionPlayerData(
   return { completion, session, setsState, blockIdx };
 }
 
-function buildSheetState(
-  be: AthleteBlockExercise,
-  setIndex: number,
-  position: number,
-  setsState: SetsByBlockExercise,
-): SheetState | null {
-  const measurement = be.measurements.find(
-    (m) => m.position === position && m.set_index === setIndex,
-  );
-  if (!measurement) return null;
-  return {
-    blockExerciseId: be.id,
-    setIndex,
-    position,
-    unitType: measurement.unit_type,
-    exerciseName: resolveSetExercise(be, setIndex).name,
-    currentValue: setsState[be.id]?.[setIndex]?.values[position] ?? 0,
-  };
-}
-
 function applyFieldValue(
   setsState: SetsByBlockExercise,
-  sheet: SheetState | null,
+  blockExerciseId: string,
+  setIndex: number,
+  position: number,
   value: number,
 ): SetsByBlockExercise {
-  if (!sheet) return setsState;
-  const rows = [...(setsState[sheet.blockExerciseId] ?? [])];
-  const row = rows[sheet.setIndex];
+  const rows = [...(setsState[blockExerciseId] ?? [])];
+  const row = rows[setIndex];
   if (!row) return setsState;
-  rows[sheet.setIndex] = {
+  rows[setIndex] = {
     ...row,
-    values: { ...row.values, [sheet.position]: value },
+    values: { ...row.values, [position]: value },
   };
-  return { ...setsState, [sheet.blockExerciseId]: rows };
+  return { ...setsState, [blockExerciseId]: rows };
 }
 
 function findBlockExercise(
@@ -219,6 +192,71 @@ async function persistSetDone(params: {
   );
 }
 
+async function persistDoneToggle(params: {
+  completion: SessionCompletionRow;
+  athleteProfileId: string;
+  be: AthleteBlockExercise;
+  setIndex: number;
+  row: SetRowState;
+  nextDone: boolean;
+}) {
+  const { nextDone, ...rest } = params;
+  if (nextDone) {
+    await persistSetDone(rest);
+  } else {
+    await persistSetPending(rest);
+  }
+}
+
+/** Toggles a set's done state — ticking logs it as completed, un-ticking
+ * (tapping an already-done set) reverts the logged rows to "pending" so the
+ * athlete can redo it. Applied optimistically: the tick/progress updates
+ * immediately and the persistence call happens in the background, only
+ * flipping back if it fails, so the athlete isn't stuck waiting on the
+ * network for a response they've already visually confirmed. */
+async function performSetDoneToggle(params: {
+  session: AthleteSessionDetail;
+  completion: SessionCompletionRow;
+  athleteProfileId: string;
+  setsState: SetsByBlockExercise;
+  blockExerciseId: string;
+  setIndex: number;
+  setSetsState: (
+    updater: (prev: SetsByBlockExercise) => SetsByBlockExercise,
+  ) => void;
+}) {
+  const {
+    session,
+    completion,
+    athleteProfileId,
+    setsState,
+    blockExerciseId,
+    setIndex,
+    setSetsState,
+  } = params;
+  const be = findBlockExercise(session, blockExerciseId);
+  const row = setsState[blockExerciseId]?.[setIndex];
+  if (!be || !row) return;
+  const nextDone = !row.done;
+  setSetsState((prev) =>
+    markRowDone(prev, blockExerciseId, setIndex, nextDone),
+  );
+  try {
+    await persistDoneToggle({
+      completion,
+      athleteProfileId,
+      be,
+      setIndex,
+      row,
+      nextDone,
+    });
+  } catch {
+    setSetsState((prev) =>
+      markRowDone(prev, blockExerciseId, setIndex, !nextDone),
+    );
+  }
+}
+
 async function performPauseToggle(
   completionId: string,
   paused: boolean,
@@ -278,7 +316,6 @@ export function useSessionPlayer(
   const [blockIdx, setBlockIdx] = useState(0);
   const [paused, setPaused] = useState(false);
   const [pausing, setPausing] = useState(false);
-  const [sheet, setSheet] = useState<SheetState | null>(null);
 
   useInitialSessionLoad(
     sessionId,
@@ -290,34 +327,28 @@ export function useSessionPlayer(
     setPaused,
   );
 
-  const openField = (
-    be: AthleteBlockExercise,
+  function setFieldValue(
+    blockExerciseId: string,
     setIndex: number,
     position: number,
-  ) => setSheet(buildSheetState(be, setIndex, position, setsState));
-
-  function confirmField(value: number) {
-    setSetsState((prev) => applyFieldValue(prev, sheet, value));
-    setSheet(null);
+    value: number,
+  ) {
+    setSetsState((prev) =>
+      applyFieldValue(prev, blockExerciseId, setIndex, position, value),
+    );
   }
 
-  /** Toggles a set's done state — ticking logs it as completed, un-ticking
-   * (tapping an already-done set) reverts the logged rows to "pending" so
-   * the athlete can redo it. */
   async function markSetDone(blockExerciseId: string, setIndex: number) {
     if (!completion || !athleteProfileId || !session) return;
-    const be = findBlockExercise(session, blockExerciseId);
-    const row = setsState[blockExerciseId]?.[setIndex];
-    if (!be || !row) return;
-    if (row.done) {
-      await persistSetPending({ completion, be, setIndex });
-      setSetsState((prev) =>
-        markRowDone(prev, blockExerciseId, setIndex, false),
-      );
-      return;
-    }
-    await persistSetDone({ completion, athleteProfileId, be, setIndex, row });
-    setSetsState((prev) => markRowDone(prev, blockExerciseId, setIndex, true));
+    await performSetDoneToggle({
+      session,
+      completion,
+      athleteProfileId,
+      setsState,
+      blockExerciseId,
+      setIndex,
+      setSetsState,
+    });
   }
 
   async function togglePause() {
@@ -347,10 +378,7 @@ export function useSessionPlayer(
     setBlockIdx,
     paused,
     pausing,
-    sheet,
-    openField,
-    confirmField,
-    closeSheet: () => setSheet(null),
+    setFieldValue,
     markSetDone,
     togglePause,
     goBlock,

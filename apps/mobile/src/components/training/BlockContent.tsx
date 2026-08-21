@@ -1,80 +1,131 @@
-import { H4, Meta } from "@/src/components/ui";
-import { colors } from "@/src/constants/theme";
-import { useBlockAutoScroll } from "@/src/hooks/useBlockAutoScroll";
-import type { AthleteBlock, AthleteBlockExercise } from "@hooper/api";
-import { ScrollView, View } from "react-native";
+import type { AthleteBlock } from "@hooper/api";
+import { useEffect, useRef, useState } from "react";
+import {
+  useWindowDimensions,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from "react-native";
+import Animated, {
+  useAnimatedScrollHandler,
+  type SharedValue,
+} from "react-native-reanimated";
 
-import { ExerciseSetsCard, type SetRowState } from "./ExerciseSetsCard";
-import { SupersetBlock } from "./SupersetBlock";
+import { BlockPage } from "./BlockPage";
+import type { SetRowState } from "./ExerciseSetsCard";
 
 type BlockContentProps = {
-  block: AthleteBlock;
+  blocks: AthleteBlock[];
+  blockIdx: number;
   setsByBlockExercise: Record<string, SetRowState[]>;
-  onFieldTap: (
-    blockExercise: AthleteBlockExercise,
+  onValueChange: (
+    blockExerciseId: string,
     setIndex: number,
     position: number,
+    value: number,
   ) => void;
   onSetDone: (blockExerciseId: string, setIndex: number) => void;
+  onBlockIdxChange: (index: number) => void;
+  /** Live pixel scroll offset of this pager — read by BlockTabs to move its
+   * indicator and highlight the active tab continuously as the user swipes. */
+  scrollX: SharedValue<number>;
 };
 
 export function BlockContent({
-  block,
+  blocks,
+  blockIdx,
   setsByBlockExercise,
-  onFieldTap,
+  onValueChange,
   onSetDone,
+  onBlockIdxChange,
+  scrollX,
 }: BlockContentProps) {
-  const { scrollRef, onViewportLayout, registerCardLayout } =
-    useBlockAutoScroll(block, setsByBlockExercise);
+  const { width: pageWidth } = useWindowDimensions();
+  const scrollRef = useRef<Animated.ScrollView>(null);
+  // Tracks the index we last scrolled to (or reported) ourselves, so the
+  // sync effect below can tell "blockIdx changed because we scrolled" apart
+  // from "blockIdx changed because a tab/footer button was pressed". Without
+  // this, our own scroll-driven update bounces straight back into another
+  // scrollTo, and rapid tab changes can spiral into an oscillating loop.
+  const lastReportedIdx = useRef(blockIdx);
+  // Index of the in-flight programmatic scrollTo, if any. Firing several tab
+  // taps in a row interrupts each scrollTo's animation with the next one —
+  // and each interrupted animation still delivers its own (stale)
+  // onMomentumScrollEnd, reporting whatever offset it was cancelled at, not
+  // the eventual target. Trusting every one of those as "the user landed
+  // here" fed each stale intermediate index back into onBlockIdxChange,
+  // visibly bouncing the pager back through the tabs it had already passed.
+  // Only the event whose settled index matches the most recent scrollTo we
+  // actually issued is real; anything else is discarded. A real user drag
+  // (onScrollBeginDrag) clears this so its own settle is trusted normally.
+  const pendingScrollTarget = useRef<number | null>(null);
+  // Frozen at mount — `contentOffset` is only a starting position, not a
+  // live-controlled prop; recomputing it from `blockIdx` on every render
+  // made the ScrollView snap (unanimated) back to that offset on renders
+  // that had nothing to do with scrolling, fighting the animated scrollTo
+  // below and compounding the bounce.
+  const [initialContentOffset] = useState(() => ({
+    x: blockIdx * pageWidth,
+    y: 0,
+  }));
+
+  useEffect(() => {
+    scrollX.value = blockIdx * pageWidth;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (blockIdx === lastReportedIdx.current) return;
+    lastReportedIdx.current = blockIdx;
+    pendingScrollTarget.current = blockIdx;
+    scrollRef.current?.scrollTo({ x: blockIdx * pageWidth, animated: true });
+  }, [blockIdx, pageWidth]);
+
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollX.value = e.contentOffset.x;
+  });
+
+  function handleScrollBeginDrag() {
+    pendingScrollTarget.current = null;
+  }
+
+  function handleMomentumScrollEnd(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const raw = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
+    const index = Math.max(0, Math.min(blocks.length - 1, raw));
+    if (
+      pendingScrollTarget.current !== null &&
+      index !== pendingScrollTarget.current
+    ) {
+      return;
+    }
+    pendingScrollTarget.current = null;
+    lastReportedIdx.current = index;
+    if (index !== blockIdx) onBlockIdxChange(index);
+  }
 
   return (
-    <ScrollView
+    <Animated.ScrollView
       ref={scrollRef}
-      onLayout={onViewportLayout}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+      horizontal
+      pagingEnabled
+      showsHorizontalScrollIndicator={false}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+      onScrollBeginDrag={handleScrollBeginDrag}
+      onMomentumScrollEnd={handleMomentumScrollEnd}
+      contentOffset={initialContentOffset}
+      contentContainerStyle={{ height: "100%" }}
       className="flex-1">
-      <View className="mb-4 flex-row items-center gap-2.5">
-        <View
-          className="h-5 w-1 rounded-full"
-          style={{ backgroundColor: colors.brandOrange }}
-        />
-        <View>
-          <H4 style={{ color: colors.brandOrange }}>{block.name}</H4>
-          <Meta className="mt-0.5">
-            {block.exercises.length} exercise
-            {block.exercises.length === 1 ? "" : "s"}
-          </Meta>
+      {blocks.map((block) => (
+        <View key={block.id} style={{ width: pageWidth, height: "100%" }}>
+          <BlockPage
+            block={block}
+            setsByBlockExercise={setsByBlockExercise}
+            onValueChange={onValueChange}
+            onSetDone={onSetDone}
+          />
         </View>
-      </View>
-
-      {block.is_superset ? (
-        <SupersetBlock
-          block={block}
-          setsByBlockExercise={setsByBlockExercise}
-          onFieldTap={(beId, setIndex, position) => {
-            const be = block.exercises.find((e) => e.id === beId);
-            if (be) onFieldTap(be, setIndex, position);
-          }}
-          onSetDone={onSetDone}
-          onCardLayout={registerCardLayout}
-        />
-      ) : (
-        block.exercises.map((be) => (
-          <View
-            key={be.id}
-            onLayout={(e) => registerCardLayout(be.id, e.nativeEvent.layout)}>
-            <ExerciseSetsCard
-              blockExercise={be}
-              sets={setsByBlockExercise[be.id] ?? []}
-              onFieldTap={(setIndex, position) =>
-                onFieldTap(be, setIndex, position)
-              }
-              onSetDone={(setIndex) => onSetDone(be.id, setIndex)}
-            />
-          </View>
-        ))
-      )}
-    </ScrollView>
+      ))}
+    </Animated.ScrollView>
   );
 }

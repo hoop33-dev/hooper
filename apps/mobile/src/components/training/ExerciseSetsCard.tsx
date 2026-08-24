@@ -232,21 +232,29 @@ function SetRow({
           />
         ))}
 
+        {/* Stretches to the row's full height and adds a bit of horizontal
+            padding around the circle, so the tappable area is the whole
+            right-hand column — not just the 40px circle itself, which was
+            easy for a thumb to miss by a few pixels and land on nothing. */}
         <Pressable
           onPress={onSetDone}
-          className="h-10 w-10 items-center justify-center rounded-full border"
-          style={{
-            backgroundColor: set.done
-              ? "rgba(56,161,105,0.12)"
-              : "rgba(241,88,37,0.1)",
-            borderColor: set.done
-              ? "rgba(56,161,105,0.3)"
-              : "rgba(241,88,37,0.28)",
-          }}>
-          <CheckIcon
-            size={16}
-            color={set.done ? colors.success : colors.brandOrange}
-          />
+          className="items-center justify-center px-2"
+          style={{ alignSelf: "stretch" }}>
+          <View
+            className="h-10 w-10 items-center justify-center rounded-full border"
+            style={{
+              backgroundColor: set.done
+                ? "rgba(56,161,105,0.12)"
+                : "rgba(241,88,37,0.1)",
+              borderColor: set.done
+                ? "rgba(56,161,105,0.3)"
+                : "rgba(241,88,37,0.28)",
+            }}>
+            <CheckIcon
+              size={16}
+              color={set.done ? colors.success : colors.brandOrange}
+            />
+          </View>
         </Pressable>
       </View>
     </View>

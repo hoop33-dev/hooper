@@ -1,6 +1,6 @@
 import { CheckIcon, ChevronIcon } from "@/src/components/dashboard/icons";
 import { BodySm, Caption, H4, Meta, Title } from "@/src/components/ui";
-import { colors } from "@/src/constants/theme";
+import { colors, easing } from "@/src/constants/theme";
 import { sortByUnitTypePriority } from "@/src/constants/unitTypes";
 import {
   groupSetsByVariant,
@@ -15,8 +15,33 @@ import type {
 } from "@hooper/db";
 import { useEffect, useRef, useState } from "react";
 import { Image, Linking, Pressable, TextInput, View } from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  type SharedValue,
+} from "react-native-reanimated";
 
 import { NoteIcon, PlayIcon } from "./icons";
+
+/** Drives the shared 0..1 progress behind every "done" fill animation below
+ * — the same withTiming call runs toward 0 or 1 depending on `done`, so
+ * un-ticking a set reverses the exact animation for free, not a special
+ * case. Explicit ease-out (rather than withTiming's default ease-in-out)
+ * because ease-in-out has near-zero velocity for the first ~20% of the
+ * duration — on a short ~240ms fill that reads as a lag before the tap
+ * does anything, rather than an instant response that eases to a stop. */
+function useDoneProgress(done: boolean) {
+  const progress = useSharedValue(done ? 1 : 0);
+  useEffect(() => {
+    progress.value = withTiming(done ? 1 : 0, {
+      duration: easing.base,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [done, progress]);
+  return progress;
+}
 
 export type SetRowState = {
   done: boolean;
@@ -129,6 +154,22 @@ function ExerciseHeader({
   );
 }
 
+/** The green "done" fill for a value box — wipes in from the left as the
+ * set is ticked, and back out (reversed) when un-ticked. */
+function GreenWipeFill({ done }: { done: boolean }) {
+  const progress = useDoneProgress(done);
+  const style = useAnimatedStyle(() => ({
+    width: `${progress.value * 100}%`,
+  }));
+  return (
+    <Animated.View
+      pointerEvents="none"
+      className="absolute inset-0 rounded-lg"
+      style={[{ backgroundColor: "rgba(56,161,105,0.06)" }, style]}
+    />
+  );
+}
+
 /** A single measurement's value box — tapping anywhere in it (not just the
  * digits) focuses the embedded TextInput, opening the keyboard right there
  * for direct in-place editing. Replaced a tap-to-open bottom-sheet modal:
@@ -164,13 +205,12 @@ function FieldBox({
     <Pressable
       disabled={done}
       onPress={() => inputRef.current?.focus()}
-      className="flex-1 rounded-lg border px-3 py-2"
+      className="flex-1 overflow-hidden rounded-lg border px-3 py-2"
       style={{
-        backgroundColor: done
-          ? "rgba(56,161,105,0.06)"
-          : "rgba(255,255,255,0.04)",
-        borderColor: done ? "rgba(56,161,105,0.14)" : colors.borderSubtle,
+        backgroundColor: "rgba(255,255,255,0.04)",
+        borderColor: colors.borderSubtle,
       }}>
+      <GreenWipeFill done={done} />
       <Meta
         className="uppercase"
         numberOfLines={1}
@@ -197,6 +237,59 @@ function FieldBox({
           padding: 0,
         }}
       />
+    </Pressable>
+  );
+}
+
+/** The green "done" fill for the tick button — grows from the button's own
+ * center to fill it, since scaling a same-size circular layer inside a
+ * circular parent reads as "growing outward" with no origin math needed. */
+function GreenCircleFill({ progress }: { progress: SharedValue<number> }) {
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: progress.value }],
+  }));
+  return (
+    <Animated.View
+      pointerEvents="none"
+      className="absolute inset-0 rounded-full"
+      style={[{ backgroundColor: "rgba(56,161,105,0.12)" }, style]}
+    />
+  );
+}
+
+/** The round tick button — stretches to the row's full height and adds a
+ * bit of horizontal padding around the circle, so the tappable area is the
+ * whole right-hand column, not just the 40px circle itself (which was easy
+ * for a thumb to miss by a few pixels and land on nothing). The check icon
+ * itself still snaps color instantly (not crossfaded) — trimmed to cut back
+ * the number of always-mounted animated views, since every block's exercise
+ * list stays mounted for the whole session (the pager isn't virtualized),
+ * so per-row animation cost multiplies across the entire workout. */
+function SetDoneButton({
+  done,
+  onPress,
+}: {
+  done: boolean;
+  onPress: () => void;
+}) {
+  const progress = useDoneProgress(done);
+  return (
+    <Pressable
+      onPress={onPress}
+      className="items-center justify-center px-2"
+      style={{ alignSelf: "stretch" }}>
+      <View
+        className="h-10 w-10 items-center justify-center overflow-hidden rounded-full border"
+        style={{
+          backgroundColor: "rgba(241,88,37,0.1)",
+          borderColor: "rgba(241,88,37,0.28)",
+        }}>
+        <GreenCircleFill progress={progress} />
+        <CheckIcon
+          size={16}
+          color={done ? colors.success : colors.brandOrange}
+        />
+      </View>
     </Pressable>
   );
 }
@@ -232,30 +325,7 @@ function SetRow({
           />
         ))}
 
-        {/* Stretches to the row's full height and adds a bit of horizontal
-            padding around the circle, so the tappable area is the whole
-            right-hand column — not just the 40px circle itself, which was
-            easy for a thumb to miss by a few pixels and land on nothing. */}
-        <Pressable
-          onPress={onSetDone}
-          className="items-center justify-center px-2"
-          style={{ alignSelf: "stretch" }}>
-          <View
-            className="h-10 w-10 items-center justify-center rounded-full border"
-            style={{
-              backgroundColor: set.done
-                ? "rgba(56,161,105,0.12)"
-                : "rgba(241,88,37,0.1)",
-              borderColor: set.done
-                ? "rgba(56,161,105,0.3)"
-                : "rgba(241,88,37,0.28)",
-            }}>
-            <CheckIcon
-              size={16}
-              color={set.done ? colors.success : colors.brandOrange}
-            />
-          </View>
-        </Pressable>
+        <SetDoneButton done={set.done} onPress={onSetDone} />
       </View>
     </View>
   );

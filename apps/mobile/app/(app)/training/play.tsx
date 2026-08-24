@@ -85,7 +85,6 @@ export default function SessionPlayerScreen() {
       <SessionProgressBar doneSets={doneSets} totalSets={totalSets} />
       <BlockTabs
         blocks={session.blocks}
-        blockIdx={blockIdx}
         doneFlags={doneFlags}
         onSelect={player.setBlockIdx}
         scrollX={blockScrollX}

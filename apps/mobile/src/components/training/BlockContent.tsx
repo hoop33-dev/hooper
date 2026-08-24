@@ -63,16 +63,15 @@ export function BlockContent({
   // live-controlled prop; recomputing it from `blockIdx` on every render
   // made the ScrollView snap (unanimated) back to that offset on renders
   // that had nothing to do with scrolling, fighting the animated scrollTo
-  // below and compounding the bounce.
-  const [initialContentOffset] = useState(() => ({
-    x: blockIdx * pageWidth,
-    y: 0,
-  }));
-
-  useEffect(() => {
+  // below and compounding the bounce. `scrollX` is seeded here too, not in
+  // a `useEffect`: BlockTabs reads it directly on the UI thread to decide
+  // which tab is active, which can evaluate before any effect runs — an
+  // effect-based seed left a one-frame flash of tab 0 as "active" when
+  // resuming a session mid-way through.
+  const [initialContentOffset] = useState(() => {
     scrollX.value = blockIdx * pageWidth;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return { x: blockIdx * pageWidth, y: 0 };
+  });
 
   useEffect(() => {
     if (blockIdx === lastReportedIdx.current) return;

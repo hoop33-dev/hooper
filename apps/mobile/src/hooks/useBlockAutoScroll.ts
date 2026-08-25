@@ -1,5 +1,3 @@
-import type { SetRowState } from "@/src/components/training/ExerciseSetsCard";
-import type { AthleteBlock, AthleteBlockExercise } from "@hooper/api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   LayoutChangeEvent,
@@ -7,25 +5,18 @@ import type {
   ScrollView,
 } from "react-native";
 
-function isFullyDone(
-  be: AthleteBlockExercise,
-  setsByBlockExercise: Record<string, SetRowState[]>,
-) {
-  const sets = setsByBlockExercise[be.id] ?? [];
-  return sets.length > 0 && sets.every((s) => s.done);
-}
+export type AutoScrollItem = { id: string; done: boolean };
 
 /**
- * Keeps a block's ScrollView pointed at the "right" exercise without the
- * athlete scrolling manually: jumps to the first not-yet-completed exercise
- * whenever the block itself changes (Next block / Prev / a tab tap — the top
- * of the list if nothing in it has been started yet), and nudges the next
- * exercise into view once the current one's last set is ticked.
+ * Keeps a block's ScrollView pointed at the "right" card without the athlete
+ * scrolling manually: jumps to the first not-yet-completed item whenever
+ * `blockKey` changes (Next block / Prev / a tab tap — the top of the list if
+ * nothing in it has been started yet), and nudges the next item into view
+ * once the current one is ticked done. `items` is caller-supplied so both a
+ * plain block (one item per exercise) and a superset block (one item per
+ * round) can share this hook.
  */
-export function useBlockAutoScroll(
-  block: AthleteBlock,
-  setsByBlockExercise: Record<string, SetRowState[]>,
-) {
+export function useBlockAutoScroll(blockKey: string, items: AutoScrollItem[]) {
   const scrollRef = useRef<ScrollView>(null);
   const [viewportHeight, setViewportHeight] = useState(0);
   const cardLayouts = useRef(new Map<string, LayoutRectangle>());
@@ -35,10 +26,10 @@ export function useBlockAutoScroll(
   const pendingScroll = useRef<{ id: string; animated: boolean } | null>(null);
   // Read by the block-switch effect without being a dependency of it — that
   // effect should fire only on block identity, not every completion update.
-  const latestSets = useRef(setsByBlockExercise);
-  latestSets.current = setsByBlockExercise;
+  const latestItems = useRef(items);
+  latestItems.current = items;
 
-  const scrollExerciseIntoView = useCallback(
+  const scrollItemIntoView = useCallback(
     (id: string, animated: boolean) => {
       const layout = cardLayouts.current.get(id);
       if (!layout || viewportHeight === 0) {
@@ -60,43 +51,36 @@ export function useBlockAutoScroll(
       if (pendingScroll.current?.id === id) {
         const { animated } = pendingScroll.current;
         pendingScroll.current = null;
-        scrollExerciseIntoView(id, animated);
+        scrollItemIntoView(id, animated);
       }
     },
-    [scrollExerciseIntoView],
+    [scrollItemIntoView],
   );
 
-  // Block switch: jump to the first not-yet-completed exercise. Also resets
+  // Block switch: jump to the first not-yet-completed item. Also resets
   // prevDoneIds so the completion-tracking effect below doesn't mistake
-  // "entering a block with some exercises already done" for "just finished
-  // an exercise".
+  // "entering a block with some items already done" for "just finished one".
   useEffect(() => {
-    const sets = latestSets.current;
-    const target =
-      block.exercises.find((be) => !isFullyDone(be, sets)) ??
-      block.exercises[0];
+    const current = latestItems.current;
+    const target = items.find((it) => !it.done) ?? items[0];
     prevDoneIds.current = new Set(
-      block.exercises.filter((be) => isFullyDone(be, sets)).map((be) => be.id),
+      current.filter((it) => it.done).map((it) => it.id),
     );
-    if (target) scrollExerciseIntoView(target.id, false);
-  }, [block, scrollExerciseIntoView]);
+    if (target) scrollItemIntoView(target.id, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blockKey, scrollItemIntoView]);
 
   useEffect(() => {
-    const doneNow = new Set(
-      block.exercises
-        .filter((be) => isFullyDone(be, setsByBlockExercise))
-        .map((be) => be.id),
-    );
-    const justCompleted = block.exercises.find(
-      (be) => doneNow.has(be.id) && !prevDoneIds.current.has(be.id),
+    const doneNow = new Set(items.filter((it) => it.done).map((it) => it.id));
+    const justCompletedIdx = items.findIndex(
+      (it) => doneNow.has(it.id) && !prevDoneIds.current.has(it.id),
     );
     prevDoneIds.current = doneNow;
 
-    if (!justCompleted) return;
-    const idx = block.exercises.findIndex((be) => be.id === justCompleted.id);
-    const next = block.exercises[idx + 1];
-    if (next) scrollExerciseIntoView(next.id, true);
-  }, [block, setsByBlockExercise, scrollExerciseIntoView]);
+    if (justCompletedIdx === -1) return;
+    const next = items[justCompletedIdx + 1];
+    if (next) scrollItemIntoView(next.id, true);
+  }, [items, scrollItemIntoView]);
 
   function onViewportLayout(e: LayoutChangeEvent) {
     setViewportHeight(e.nativeEvent.layout.height);

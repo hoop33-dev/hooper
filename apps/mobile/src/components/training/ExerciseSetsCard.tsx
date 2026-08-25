@@ -56,7 +56,7 @@ type ExerciseSetsCardProps = {
   onSetDone: (setIndex: number) => void;
 };
 
-function VideoThumbnail({
+export function VideoThumbnail({
   videoUrl,
   videoSource,
 }: {
@@ -174,7 +174,7 @@ function GreenWipeFill({ done }: { done: boolean }) {
  * digits) focuses the embedded TextInput, opening the keyboard right there
  * for direct in-place editing. Replaced a tap-to-open bottom-sheet modal:
  * the value now commits on blur instead of a separate "Done" confirmation. */
-function FieldBox({
+export function FieldBox({
   unitType,
   value,
   done,
@@ -265,7 +265,7 @@ function GreenCircleFill({ progress }: { progress: SharedValue<number> }) {
  * the number of always-mounted animated views, since every block's exercise
  * list stays mounted for the whole session (the pager isn't virtualized),
  * so per-row animation cost multiplies across the entire workout. */
-function SetDoneButton({
+export function SetDoneButton({
   done,
   onPress,
 }: {

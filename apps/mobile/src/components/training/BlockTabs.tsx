@@ -11,6 +11,8 @@ import Animated, {
 const TAB_BAR_HEIGHT = 44;
 const INDICATOR_HEIGHT = 2;
 
+const AnimatedCaption = Animated.createAnimatedComponent(Caption);
+
 type BlockTabsProps = {
   blocks: { id: string; name: string }[];
   doneFlags: boolean[];
@@ -31,11 +33,17 @@ type BlockTabProps = {
 };
 
 /**
- * A single tab. Renders the label twice, stacked: a static base layer with
- * the normal inactive styling, and an always-mounted white/bold overlay
- * whose opacity is driven straight off `scrollX` in `useAnimatedStyle` —
- * an instant, UI-thread toggle rather than a JS-state flag that would lag
- * a frame or more behind the underline (see useBlockTabsIndicator.ts).
+ * A single tab. One label node, whose color crossfades between inactive and
+ * active straight off `scrollX` in a UI-thread `useAnimatedStyle` — an
+ * instant toggle rather than a JS-state flag that would lag a frame or more
+ * behind the underline (see useBlockTabsIndicator.ts). Previously this
+ * stacked three copies of the label (an invisible bold "sizer" plus two
+ * absolutely-positioned overlays) to crossfade weight as well as color, but
+ * the overlays' width ended up pinned to the sizer's own measured width —
+ * whenever that measurement came out narrower than the real label (which it
+ * can, e.g. depending on how a given platform resolves synthetic bold on a
+ * custom font), the visible label was clipped with an ellipsis. A single,
+ * naturally-sized text node can't be clipped by another node's measurement.
  */
 function BlockTab({
   name,
@@ -47,14 +55,14 @@ function BlockTab({
   onSelect,
   onLayout,
 }: BlockTabProps) {
-  const activeStyle = useAnimatedStyle(() => {
+  const labelStyle = useAnimatedStyle(() => {
     const active =
       tabCount > 0 &&
       pageWidth > 0 &&
       Math.round(
         Math.min(tabCount - 1, Math.max(0, scrollX.value / pageWidth)),
       ) === index;
-    return { opacity: active ? 1 : 0 };
+    return { color: active ? colors.textPrimary : colors.textTertiary };
   });
 
   return (
@@ -63,41 +71,12 @@ function BlockTab({
       onLayout={onLayout}
       className="flex-row items-center gap-1.5 px-3.5"
       style={{ height: TAB_BAR_HEIGHT }}>
-      <View>
-        {/* Invisible sizer, bold like the active label below: reserves box
-            width for the wider of the two weights up front. font-bold makes
-            iOS synthesize thicker (wider) glyphs even on this named font, so
-            without this the box sizes to the narrower inactive label and
-            clips the bold active one when it's shown. */}
-        <Caption numberOfLines={1} className="font-bold opacity-0">
-          {name}
-        </Caption>
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-          }}>
-          <Caption
-            numberOfLines={1}
-            className={done ? "" : "text-text-tertiary"}>
-            {name}
-          </Caption>
-        </View>
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
-            activeStyle,
-          ]}>
-          <Caption numberOfLines={1} className="font-bold text-white">
-            {name}
-          </Caption>
-        </Animated.View>
-      </View>
+      <AnimatedCaption
+        numberOfLines={1}
+        className={done ? "" : "text-text-tertiary"}
+        style={labelStyle}>
+        {name}
+      </AnimatedCaption>
     </Pressable>
   );
 }

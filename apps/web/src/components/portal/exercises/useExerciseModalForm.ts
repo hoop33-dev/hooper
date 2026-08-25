@@ -1,8 +1,11 @@
 "use client";
 
+import { captureVideoThumbnail } from "@/src/lib/videoThumbnailCapture";
 import {
   deleteExerciseVideo,
+  deleteExerciseVideoThumbnail,
   uploadExerciseVideo,
+  uploadExerciseVideoThumbnail,
 } from "@/src/services/exerciseVideo.client";
 import type {
   ExerciseStyleRow,
@@ -61,6 +64,27 @@ function buildFormData(
   return base;
 }
 
+/** Best-effort — a coach's save shouldn't fail just because a frame
+ * couldn't be captured (unusual codec, etc.); the exercise just falls back
+ * to the icon tile on mobile, same as it does today. */
+async function captureAndUploadThumbnail(
+  exerciseId: string,
+  file: File,
+  profileId: string,
+): Promise<string | null> {
+  try {
+    const thumbnail = await captureVideoThumbnail(file);
+    const result = await uploadExerciseVideoThumbnail(
+      exerciseId,
+      thumbnail,
+      profileId,
+    );
+    return result.ok ? result.data : null;
+  } catch {
+    return null;
+  }
+}
+
 async function persistUploadedVideo(
   exerciseId: string,
   file: File,
@@ -69,10 +93,16 @@ async function persistUploadedVideo(
 ): Promise<string | null> {
   const uploadResult = await uploadExerciseVideo(exerciseId, file, profileId);
   if (!uploadResult.ok) return uploadResult.error ?? "Failed to upload video.";
+  const thumbnailUrl = await captureAndUploadThumbnail(
+    exerciseId,
+    file,
+    profileId,
+  );
   const urlResult = await updateVideoUrlAction(
     exerciseId,
     uploadResult.data,
     "upload",
+    thumbnailUrl,
   );
   return urlResult.ok ? null : (urlResult.error ?? "Failed to save video.");
 }
@@ -91,6 +121,7 @@ async function syncExerciseVideo(
 ): Promise<string | null> {
   if (existingSource === "upload" && decision.action !== "none") {
     await deleteExerciseVideo(exerciseId, profileId);
+    await deleteExerciseVideoThumbnail(exerciseId, profileId);
   }
   if (decision.action === "upload-pending" && videoState.file) {
     return persistUploadedVideo(
@@ -213,6 +244,7 @@ async function runDelete(
   }
   if (exercise.video_source === "upload") {
     await deleteExerciseVideo(exercise.id, profileId);
+    await deleteExerciseVideoThumbnail(exercise.id, profileId);
   }
   onDelete?.();
 }

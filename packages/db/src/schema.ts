@@ -103,6 +103,7 @@ export type ExerciseCategoryRow = {
 };
 
 export type ExerciseVideoSource = "upload" | "link";
+export type ExerciseVideoOrientation = "landscape" | "portrait";
 
 export type ExerciseRow = {
   id: string;
@@ -111,6 +112,18 @@ export type ExerciseRow = {
   video_url: string | null;
   /** Whether video_url points at an uploaded file or an external link. Null iff video_url is null. */
   video_source: ExerciseVideoSource | null;
+  /** Landscape vs portrait framing for the in-app player, so it can rotate a
+   * landscape video to fill its always-portrait frame. Computed once
+   * server-side from YouTube's oEmbed thumbnail dimensions when video_source
+   * is "link"; always null for "upload" (the player reads orientation live
+   * from the decoded video instead) and when there's no video. */
+  video_orientation: ExerciseVideoOrientation | null;
+  /** Captured client-side at upload time (see
+   * apps/web/src/lib/videoThumbnailCapture.ts) — uploads have no
+   * ID-derived thumbnail the way YouTube links do. Null for "link" videos
+   * (mobile derives their thumbnail from the URL) and when there's no
+   * video. */
+  video_thumbnail_url: string | null;
   /** The base exercise this is a variant of — null for a base exercise.
    * Single-level only (a variant's own parent_id is never itself set),
    * enforced at the app layer, not the DB. */

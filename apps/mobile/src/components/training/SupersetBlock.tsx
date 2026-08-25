@@ -63,6 +63,9 @@ function RoundExerciseRow({
           <VideoThumbnail
             videoUrl={exercise.video_url}
             videoSource={exercise.video_source}
+            videoOrientation={exercise.video_orientation}
+            videoThumbnailUrl={exercise.video_thumbnail_url}
+            title={exercise.name}
           />
         ) : null}
         <View className="flex-1">

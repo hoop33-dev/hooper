@@ -13,6 +13,8 @@ function makeExercise(id: string): ExerciseWithDetails {
     description: null,
     video_url: null,
     video_source: null,
+    video_orientation: null,
+    video_thumbnail_url: null,
     parent_id: null,
     default_style_id: null,
     created_by: "coach1",

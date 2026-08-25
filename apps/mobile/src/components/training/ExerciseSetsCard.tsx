@@ -11,10 +11,11 @@ import { getVideoThumbnailUrl } from "@/src/lib/videoThumbnail";
 import type { AthleteBlockExercise } from "@hooper/api";
 import type {
   BlockExerciseMeasurementRow,
+  ExerciseVideoOrientation,
   ExerciseVideoSource,
 } from "@hooper/db";
 import { useEffect, useRef, useState } from "react";
-import { Image, Linking, Pressable, TextInput, View } from "react-native";
+import { Image, Pressable, TextInput, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -24,6 +25,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { NoteIcon, PlayIcon } from "./icons";
+import { VideoPlayerModal } from "./videoPlayer/VideoPlayerModal";
 
 /** Drives the shared 0..1 progress behind every "done" fill animation below
  * — the same withTiming call runs toward 0 or 1 depending on `done`, so
@@ -59,28 +61,48 @@ type ExerciseSetsCardProps = {
 export function VideoThumbnail({
   videoUrl,
   videoSource,
+  videoOrientation,
+  videoThumbnailUrl,
+  title,
 }: {
   videoUrl: string;
   videoSource: ExerciseVideoSource | null;
+  videoOrientation: ExerciseVideoOrientation | null;
+  /** Captured client-side at upload time (apps/web/src/lib/videoThumbnailCapture.ts)
+   * — only ever set for "upload" videos. YouTube links derive their
+   * thumbnail from the URL instead (getVideoThumbnailUrl below). */
+  videoThumbnailUrl: string | null;
+  title: string;
 }) {
+  const [playerOpen, setPlayerOpen] = useState(false);
   const thumbnailUrl =
-    videoSource === "link" ? getVideoThumbnailUrl(videoUrl) : null;
+    videoSource === "link" ? getVideoThumbnailUrl(videoUrl) : videoThumbnailUrl;
   return (
-    <Pressable
-      onPress={() => Linking.openURL(videoUrl)}
-      className="h-16 w-16 items-center justify-center overflow-hidden rounded-xl"
-      style={{ backgroundColor: "#16261F" }}>
-      {thumbnailUrl ? (
-        <Image
-          source={{ uri: thumbnailUrl }}
-          className="absolute h-16 w-16"
-          resizeMode="cover"
-        />
-      ) : null}
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-black/35">
-        <PlayIcon size={14} color="#fff" />
-      </View>
-    </Pressable>
+    <>
+      <Pressable
+        onPress={() => setPlayerOpen(true)}
+        className="h-16 w-16 items-center justify-center overflow-hidden rounded-xl"
+        style={{ backgroundColor: "#16261F" }}>
+        {thumbnailUrl ? (
+          <Image
+            source={{ uri: thumbnailUrl }}
+            className="absolute h-16 w-16"
+            resizeMode="cover"
+          />
+        ) : null}
+        <View className="h-9 w-9 items-center justify-center rounded-full bg-black/35">
+          <PlayIcon size={14} color="#fff" />
+        </View>
+      </Pressable>
+      <VideoPlayerModal
+        visible={playerOpen}
+        onClose={() => setPlayerOpen(false)}
+        videoUrl={videoUrl}
+        videoSource={videoSource ?? "upload"}
+        videoOrientation={videoOrientation}
+        title={title}
+      />
+    </>
   );
 }
 
@@ -110,6 +132,8 @@ function ExerciseHeader({
   name,
   videoUrl,
   videoSource,
+  videoOrientation,
+  videoThumbnailUrl,
   notes,
   setsLabel,
   doneCount,
@@ -119,6 +143,8 @@ function ExerciseHeader({
   name: string;
   videoUrl: string | null;
   videoSource: ExerciseVideoSource | null;
+  videoOrientation: ExerciseVideoOrientation | null;
+  videoThumbnailUrl: string | null;
   notes: string | null;
   /** Only set when the whole group shares one style — e.g. "Warmup · 4
    * sets". There's no plain "4 sets" fallback; per-set style subheadings
@@ -133,7 +159,13 @@ function ExerciseHeader({
       className={`border px-4 py-3 ${allDone ? "border-success/20 bg-success/[0.07]" : "bg-surface-2 border-border-subtle"}`}>
       <View className="flex-row items-start gap-3">
         {videoUrl ? (
-          <VideoThumbnail videoUrl={videoUrl} videoSource={videoSource} />
+          <VideoThumbnail
+            videoUrl={videoUrl}
+            videoSource={videoSource}
+            videoOrientation={videoOrientation}
+            videoThumbnailUrl={videoThumbnailUrl}
+            title={name}
+          />
         ) : null}
         <View className="flex-1">
           <Title
@@ -374,6 +406,8 @@ export function ExerciseSetsCard({
               name={group.exercise.name}
               videoUrl={group.exercise.video_url}
               videoSource={group.exercise.video_source}
+              videoOrientation={group.exercise.video_orientation}
+              videoThumbnailUrl={group.exercise.video_thumbnail_url}
               notes={groupIndex === 0 ? notes : null}
               setsLabel={setsLabel}
               doneCount={doneCount}

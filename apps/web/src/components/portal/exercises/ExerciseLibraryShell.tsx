@@ -36,6 +36,7 @@ interface ExerciseLibraryShellProps {
     id: string,
     videoUrl: string,
     videoSource: ExerciseVideoSource,
+    thumbnailUrl?: string | null,
   ) => Promise<ActionResult>;
   createCategoryAction?: (input: {
     name: string;

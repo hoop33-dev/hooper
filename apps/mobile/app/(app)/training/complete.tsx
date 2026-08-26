@@ -180,7 +180,7 @@ export default function SessionCompleteScreen() {
     setSubmitting(true);
     try {
       await completeSession(completion.id, rpe);
-      router.replace("/(app)/training");
+      router.replace("/(app)/player");
     } finally {
       setSubmitting(false);
     }

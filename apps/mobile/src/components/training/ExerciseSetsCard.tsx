@@ -1,7 +1,8 @@
-import { CheckIcon, ChevronIcon } from "@/src/components/dashboard/icons";
+import { ChevronIcon } from "@/src/components/dashboard/icons";
 import { BodySm, Caption, H4, Meta, Title } from "@/src/components/ui";
 import { colors, radii } from "@/src/constants/theme";
 import { sortByUnitTypePriority } from "@/src/constants/unitTypes";
+import { useReducedMotion } from "@/src/hooks/useReducedMotion";
 import {
   groupSetsByVariant,
   resolveGroupStyle,
@@ -16,9 +17,254 @@ import type {
 } from "@hooper/db";
 import { useEffect, useRef, useState } from "react";
 import { Image, Pressable, TextInput, View } from "react-native";
+import Animated, {
+  Easing,
+  interpolateColor,
+  useAnimatedProps,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
+import { Path, Svg } from "react-native-svg";
 
 import { NoteIcon, PlayIcon } from "./icons";
 import { VideoPlayerModal } from "./videoPlayer/VideoPlayerModal";
+
+const EASE_OUT = Easing.out(Easing.cubic);
+
+// Row (Part 1 baseline) — always plays, with or without reduced motion.
+const FIELD_TEXT_FADE_DURATION = 260;
+const ROW_FADE_DURATION = 280;
+const ROW_FADE_OPACITY = 0.5;
+
+// Field flash (Part 1 effect layer) — dropped under reduced motion.
+const FLASH_DURATION = 340;
+const FLASH_STAGGER = 70;
+const FLASH_BG = "rgba(56,161,105,0.22)";
+const FLASH_BORDER = "rgba(56,161,105,0.55)";
+const FIELD_RADIUS = 8;
+
+// Done control (Part 2) — dropped under reduced motion.
+const DONE_SIZE = 38;
+const DISC_STEP1_DURATION = 79; // 18% of 440ms
+const DISC_STEP2_DURATION = 150; // 52% - 18% of 440ms
+const DISC_STEP3_DURATION = 211; // 100% - 52% of 440ms
+
+const TICK_VIEWBOX = 16;
+const TICK_PATH = "M13.333 4L6 11.333L2.667 8";
+const TICK_PATH_LENGTH = 15.08;
+const TICK_SCALE_DELAY = 240;
+const TICK_SCALE_DURATION = 260;
+const TICK_STROKE_DELAY = 280;
+const TICK_STROKE_DURATION = 240;
+const TICK_OPACITY_DURATION = TICK_SCALE_DURATION * 0.6;
+
+const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+/** Absolutely-positioned green pulse over a field, staggered by its index in
+ * the row (Part 1 — "field settle"). Non-interactive, dropped under reduced
+ * motion (the field's own 260ms colour transition still plays). */
+function FieldFlash({ done, index }: { done: boolean; index: number }) {
+  const reducedMotion = useReducedMotion();
+  const opacity = useSharedValue(0);
+  const prevDone = useRef(done);
+
+  useEffect(() => {
+    if (done && !prevDone.current && !reducedMotion) {
+      opacity.value = withSequence(
+        withDelay(index * FLASH_STAGGER, withTiming(1, { duration: 0 })),
+        withTiming(0, { duration: FLASH_DURATION, easing: EASE_OUT }),
+      );
+    }
+    prevDone.current = done;
+  }, [done, index, reducedMotion, opacity]);
+
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderRadius: FIELD_RADIUS,
+          borderWidth: 1,
+          backgroundColor: FLASH_BG,
+          borderColor: FLASH_BORDER,
+        },
+        style,
+      ]}
+    />
+  );
+}
+
+/** The flex-row holding a set's fields + done button — eases to 50% opacity
+ * over 280ms when the set completes, instead of snapping. Always plays
+ * (reduced motion or not) since this alone is what settles the row into its
+ * correct completed look. Shared by plain exercises and supersets. */
+export function SetFieldRow({
+  done,
+  children,
+}: {
+  done: boolean;
+  children: React.ReactNode;
+}) {
+  const opacity = useSharedValue(done ? ROW_FADE_OPACITY : 1);
+
+  useEffect(() => {
+    opacity.value = withTiming(done ? ROW_FADE_OPACITY : 1, {
+      duration: ROW_FADE_DURATION,
+      easing: EASE_OUT,
+    });
+  }, [done, opacity]);
+
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  return (
+    <Animated.View className="flex-row items-center gap-2" style={style}>
+      {children}
+    </Animated.View>
+  );
+}
+
+/** The green disc behind the done-button's tick (Part 2 — "dot-to-tick
+ * flip"): snaps in small, expands to fill the circle, holds, then fades out
+ * in place. Dropped under reduced motion. */
+function DoneDisc({ done }: { done: boolean }) {
+  const reducedMotion = useReducedMotion();
+  const scale = useSharedValue(0);
+  const opacity = useSharedValue(0);
+  const prevDone = useRef(done);
+
+  useEffect(() => {
+    if (done && !prevDone.current && !reducedMotion) {
+      scale.value = 0.18;
+      opacity.value = 0;
+      scale.value = withSequence(
+        withTiming(0.3, { duration: DISC_STEP1_DURATION, easing: EASE_OUT }),
+        withTiming(1, { duration: DISC_STEP2_DURATION, easing: EASE_OUT }),
+      );
+      opacity.value = withSequence(
+        withTiming(1, { duration: DISC_STEP1_DURATION, easing: EASE_OUT }),
+        withDelay(
+          DISC_STEP2_DURATION,
+          withTiming(0, { duration: DISC_STEP3_DURATION, easing: EASE_OUT }),
+        ),
+      );
+    }
+    prevDone.current = done;
+  }, [done, reducedMotion, scale, opacity]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: DONE_SIZE,
+          height: DONE_SIZE,
+          borderRadius: radii.full,
+          backgroundColor: colors.success,
+        },
+        style,
+      ]}
+    />
+  );
+}
+
+/** The done-button's check mark: always fully drawn at rest (orange before
+ * completion, green after), but on the false→true flip it re-draws itself
+ * under a scale pop — the "confirmation stamp" moment that lands as the
+ * disc behind it fades out. Dropped under reduced motion, in which case it
+ * just appears at its resting state instantly. Kept separate from the
+ * shared CheckIcon (used elsewhere with no animation). */
+function AnimatedCheckTick({
+  done,
+  size,
+  color,
+}: {
+  done: boolean;
+  size: number;
+  color: string;
+}) {
+  const reducedMotion = useReducedMotion();
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+  const strokeOffset = useSharedValue(0);
+  const prevDone = useRef(done);
+
+  useEffect(() => {
+    if (done && !prevDone.current && !reducedMotion) {
+      scale.value = 0.35;
+      opacity.value = 0;
+      strokeOffset.value = TICK_PATH_LENGTH;
+      scale.value = withDelay(
+        TICK_SCALE_DELAY,
+        withSequence(
+          withTiming(1.12, {
+            duration: TICK_SCALE_DURATION * 0.6,
+            easing: EASE_OUT,
+          }),
+          withTiming(1, {
+            duration: TICK_SCALE_DURATION * 0.4,
+            easing: EASE_OUT,
+          }),
+        ),
+      );
+      opacity.value = withDelay(
+        TICK_SCALE_DELAY,
+        withTiming(1, { duration: TICK_OPACITY_DURATION, easing: EASE_OUT }),
+      );
+      strokeOffset.value = withDelay(
+        TICK_STROKE_DELAY,
+        withTiming(0, { duration: TICK_STROKE_DURATION, easing: EASE_OUT }),
+      );
+    }
+    prevDone.current = done;
+  }, [done, reducedMotion, scale, opacity, strokeOffset]);
+
+  const containerStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }],
+  }));
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: strokeOffset.value,
+  }));
+
+  return (
+    <Animated.View style={containerStyle}>
+      <Svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${TICK_VIEWBOX} ${TICK_VIEWBOX}`}
+        fill="none">
+        <AnimatedPath
+          d={TICK_PATH}
+          stroke={color}
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray={[TICK_PATH_LENGTH, TICK_PATH_LENGTH]}
+          animatedProps={animatedProps}
+        />
+      </Svg>
+    </Animated.View>
+  );
+}
 
 export type SetRowState = {
   done: boolean;
@@ -169,15 +415,39 @@ function ExerciseHeader({
  * digits) focuses the embedded TextInput, opening the keyboard right there
  * for direct in-place editing. Replaced a tap-to-open bottom-sheet modal:
  * the value now commits on blur instead of a separate "Done" confirmation. */
+// The value colour cross-fades to its dimmer completed shade over 260ms —
+// always plays, reduced motion or not (see FieldFlash for the effect layer
+// on top of this baseline transition).
+function useFieldTextStyle(done: boolean) {
+  const textFade = useSharedValue(done ? 1 : 0);
+  useEffect(() => {
+    textFade.value = withTiming(done ? 1 : 0, {
+      duration: FIELD_TEXT_FADE_DURATION,
+      easing: EASE_OUT,
+    });
+  }, [done, textFade]);
+  return useAnimatedStyle(() => ({
+    color: interpolateColor(
+      textFade.value,
+      [0, 1],
+      [colors.textPrimary, colors.textSecondary],
+    ),
+  }));
+}
+
 export function FieldBox({
   unitType,
   value,
   done,
+  index,
   onChange,
 }: {
   unitType: string;
   value: number | undefined;
   done: boolean;
+  /** This field's position in the row (0-2) — staggers its completion flash
+   * by `index * 70ms` so the motion reads left-to-right across the row. */
+  index: number;
   onChange: (value: number) => void;
 }) {
   const inputRef = useRef<TextInput>(null);
@@ -196,6 +466,8 @@ export function FieldBox({
     }
   }
 
+  const textStyle = useFieldTextStyle(done);
+
   return (
     <Pressable
       disabled={done}
@@ -204,7 +476,6 @@ export function FieldBox({
       style={{
         backgroundColor: "rgba(255,255,255,0.04)",
         borderColor: colors.borderSubtle,
-        opacity: done ? 0.55 : 1,
       }}>
       <Meta
         className="uppercase"
@@ -213,7 +484,7 @@ export function FieldBox({
         minimumFontScale={0.7}>
         {unitType}
       </Meta>
-      <TextInput
+      <AnimatedTextInput
         ref={inputRef}
         editable={!done}
         value={text}
@@ -223,25 +494,29 @@ export function FieldBox({
         placeholder="—"
         placeholderTextColor={colors.textDisabled}
         selectTextOnFocus
-        style={{
-          fontFamily: "BarlowCondensed-ExtraBold",
-          fontSize: 20,
-          lineHeight: 20 * 1.15,
-          letterSpacing: 20 * 0.02,
-          color: colors.textPrimary,
-          padding: 0,
-        }}
+        style={[
+          {
+            fontFamily: "BarlowCondensed-ExtraBold",
+            fontSize: 20,
+            lineHeight: 20 * 1.15,
+            letterSpacing: 20 * 0.02,
+            padding: 0,
+          },
+          textStyle,
+        ]}
       />
+      <FieldFlash done={done} index={index} />
     </Pressable>
   );
 }
 
 /** The round tick button — stretches to the row's full height and adds a
  * bit of horizontal padding around the circle, so the tappable area is the
- * whole right-hand column, not just the 40px circle itself (which was easy
+ * whole right-hand column, not just the 38px circle itself (which was easy
  * for a thumb to miss by a few pixels and land on nothing). Once done, the
- * orange fill/border drop away and it's just a small green check — no
- * animation between the two states for now. */
+ * orange fill/border drop away and it's a bare green tick — the "dot-to-tick
+ * flip" (DoneDisc + AnimatedCheckTick) plays behind/on it as the confirmation
+ * moment. */
 export function SetDoneButton({
   done,
   onPress,
@@ -255,17 +530,24 @@ export function SetDoneButton({
       className="items-center justify-center px-2"
       style={{ alignSelf: "stretch" }}>
       <View
-        className="h-10 w-10 items-center justify-center"
         style={[
-          { borderRadius: radii.full, opacity: done ? 0.55 : 1 },
+          {
+            width: DONE_SIZE,
+            height: DONE_SIZE,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: radii.full,
+          },
           !done && {
-            borderWidth: 1,
+            borderWidth: 1.5,
             backgroundColor: "rgba(241,88,37,0.1)",
             borderColor: "rgba(241,88,37,0.28)",
           },
         ]}>
-        <CheckIcon
-          size={16}
+        <DoneDisc done={done} />
+        <AnimatedCheckTick
+          done={done}
+          size={12}
           color={done ? colors.success : colors.brandOrange}
         />
       </View>
@@ -293,10 +575,11 @@ function SetRow({
   return (
     <View>
       {styleName ? <Meta className="mb-1">{styleName}</Meta> : null}
-      <View className="flex-row items-center gap-2">
-        {measurements.map((m) => (
+      <SetFieldRow done={set.done}>
+        {measurements.map((m, i) => (
           <FieldBox
             key={m.position}
+            index={i}
             unitType={m.unit_type}
             value={set.values[m.position]}
             done={set.done}
@@ -305,7 +588,7 @@ function SetRow({
         ))}
 
         <SetDoneButton done={set.done} onPress={onSetDone} />
-      </View>
+      </SetFieldRow>
     </View>
   );
 }

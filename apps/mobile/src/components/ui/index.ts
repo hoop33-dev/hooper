@@ -65,6 +65,8 @@ export type { BadgeVariant } from "./Badge";
 export { Card } from "./Card";
 export type { CardVariant } from "./Card";
 
+export { GradientCard } from "./GradientCard";
+
 export { Input } from "./Input";
 
 export { Logo } from "./Logo";

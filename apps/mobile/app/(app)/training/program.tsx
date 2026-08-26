@@ -1,10 +1,9 @@
 import { SessionRow } from "@/src/components/training/SessionRow";
 import {
   BackButton,
-  Button,
   Caption,
+  GradientCard,
   H3,
-  H4,
   Overline,
 } from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
@@ -20,8 +19,18 @@ import {
 import { useAuthStore } from "@/src/stores/auth.store";
 import type { ProgramRow } from "@hooper/db";
 import { useLocalSearchParams, useRouter, type Router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  View,
+  type LayoutChangeEvent,
+} from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 function groupByWeek(
   sessions: AthleteSessionListItem[],
@@ -33,19 +42,6 @@ function groupByWeek(
     weeks.set(s.weekNumber, list);
   }
   return [...weeks.entries()];
-}
-
-/** [min, max] sessions across weeks that have at least one session, as a
- * single reusable label ("4" when uniform, "3-4" otherwise). */
-function sessionsPerWeekLabel(sessions: AthleteSessionListItem[]): string {
-  const counts = new Map<number, number>();
-  for (const s of sessions)
-    counts.set(s.weekNumber, (counts.get(s.weekNumber) ?? 0) + 1);
-  const values = [...counts.values()];
-  if (values.length === 0) return "—";
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  return min === max ? String(min) : `${min}-${max}`;
 }
 
 /** Resumes an in-progress attempt, routes through the pre-session form if
@@ -87,39 +83,129 @@ function ProgressSummaryCard({
   program,
   completedCount,
   totalCount,
-  perWeek,
 }: {
   program: ProgramRow;
   completedCount: number;
   totalCount: number;
-  perWeek: string;
 }) {
+  const pct =
+    totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const width = useSharedValue(pct);
+
+  useEffect(() => {
+    width.value = withTiming(pct, { duration: 300 });
+  }, [pct, width]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${width.value}%`,
+  }));
+
   return (
-    <View className="bg-brand-orange mx-5 mb-4 rounded-2xl px-5 py-5">
+    <GradientCard
+      className="mx-5 mb-4 rounded-2xl"
+      contentClassName="px-5 py-5">
       <H3 className="mb-3">{program.name}</H3>
-      <View className="flex-row gap-6">
-        {[
-          ["Weeks", String(program.weeks)],
-          ["Per week", perWeek],
-          ["Done", `${completedCount}/${totalCount}`],
-        ].map(([label, value]) => (
-          <View key={label}>
-            <H4>{value}</H4>
-            <Caption className="uppercase">{label}</Caption>
-          </View>
-        ))}
+      <View className="mb-1.5 flex-row items-center justify-between">
+        <Caption className="text-white/70">
+          {completedCount}/{totalCount} sessions
+        </Caption>
+        <Caption className="text-white">{pct}%</Caption>
       </View>
-    </View>
+      <View className="h-1.5 rounded-full bg-white/20">
+        <Animated.View
+          className="h-full rounded-full bg-white"
+          style={fillStyle}
+        />
+      </View>
+    </GradientCard>
   );
+}
+
+type CurrentRowLayout = { weekNumber: number; y: number; height: number };
+
+/** Centres the "current" session in the ScrollView viewport the first time
+ * its layout becomes known, so the athlete doesn't have to scroll to find
+ * where they left off.
+ *
+ * Deliberately avoids `measureLayout`/`measure` — with NativeWind's
+ * `className` interop, `View` refs aren't guaranteed to resolve to a native
+ * host component, and those APIs throw ("ref.measureLayout must be called
+ * with a ref to a native component") when they don't. `onLayout` works
+ * regardless, and since each week group renders as a direct child of the
+ * ScrollView's content, its reported `y` is already the group's absolute
+ * offset within scroll content — no ref measurement needed. */
+function useScrollToCurrentSession(
+  currentSession: AthleteSessionListItem | null,
+) {
+  const scrollViewRef = useRef<ScrollView>(null);
+  const viewportHeightRef = useRef(0);
+  const weekOffsetsRef = useRef(new Map<number, number>());
+  const currentRowRef = useRef<CurrentRowLayout | null>(null);
+  const hasScrolledRef = useRef(false);
+
+  const tryScroll = useCallback(() => {
+    if (hasScrolledRef.current || !currentSession || !currentRowRef.current)
+      return;
+    const weekY = weekOffsetsRef.current.get(currentRowRef.current.weekNumber);
+    if (weekY === undefined) return;
+    const rowY = weekY + currentRowRef.current.y;
+    hasScrolledRef.current = true;
+    scrollViewRef.current?.scrollTo({
+      y: Math.max(
+        0,
+        rowY + currentRowRef.current.height / 2 - viewportHeightRef.current / 2,
+      ),
+      animated: true,
+    });
+  }, [currentSession]);
+
+  const onScrollViewLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      viewportHeightRef.current = e.nativeEvent.layout.height;
+      tryScroll();
+    },
+    [tryScroll],
+  );
+
+  const onWeekLayout = useCallback(
+    (weekNumber: number, e: LayoutChangeEvent) => {
+      weekOffsetsRef.current.set(weekNumber, e.nativeEvent.layout.y);
+      tryScroll();
+    },
+    [tryScroll],
+  );
+
+  const onCurrentRowLayout = useCallback(
+    (weekNumber: number, e: LayoutChangeEvent) => {
+      currentRowRef.current = {
+        weekNumber,
+        y: e.nativeEvent.layout.y,
+        height: e.nativeEvent.layout.height,
+      };
+      tryScroll();
+    },
+    [tryScroll],
+  );
+
+  return {
+    scrollViewRef,
+    onScrollViewLayout,
+    onWeekLayout,
+    onCurrentRowLayout,
+  };
 }
 
 function SessionWeekList({
   sessions,
   startingSessionId,
+  onWeekLayout,
+  onCurrentRowLayout,
   onSessionPress,
 }: {
   sessions: AthleteSessionListItem[];
   startingSessionId: string | null;
+  onWeekLayout: (weekNumber: number, e: LayoutChangeEvent) => void;
+  onCurrentRowLayout: (weekNumber: number, e: LayoutChangeEvent) => void;
   onSessionPress: (session: AthleteSessionListItem) => void;
 }) {
   if (sessions.length === 0)
@@ -127,15 +213,25 @@ function SessionWeekList({
   return (
     <>
       {groupByWeek(sessions).map(([weekNumber, weekSessions]) => (
-        <View key={weekNumber} className="mb-5">
+        <View
+          key={weekNumber}
+          className="mb-5"
+          onLayout={(e) => onWeekLayout(weekNumber, e)}>
           <Overline className="mb-2.5">Week {weekNumber}</Overline>
           {weekSessions.map((session) => (
-            <SessionRow
+            <View
               key={session.id}
-              session={session}
-              isStarting={startingSessionId === session.id}
-              onPress={() => onSessionPress(session)}
-            />
+              onLayout={
+                session.current
+                  ? (e) => onCurrentRowLayout(weekNumber, e)
+                  : undefined
+              }>
+              <SessionRow
+                session={session}
+                isStarting={startingSessionId === session.id}
+                onPress={() => onSessionPress(session)}
+              />
+            </View>
           ))}
         </View>
       ))}
@@ -154,7 +250,6 @@ export default function ProgramDetailScreen() {
   const [startingSessionId, setStartingSessionId] = useState<string | null>(
     null,
   );
-
   const load = useCallback(async () => {
     if (!profile || !programId) return;
     const [programRow, sessionRows] = await Promise.all([
@@ -171,6 +266,12 @@ export default function ProgramDetailScreen() {
 
   const currentSession = sessions?.find((s) => s.current) ?? null;
   const completedCount = sessions?.filter((s) => s.done).length ?? 0;
+  const {
+    scrollViewRef,
+    onScrollViewLayout,
+    onWeekLayout,
+    onCurrentRowLayout,
+  } = useScrollToCurrentSession(currentSession);
 
   async function handleSessionPress(session: AthleteSessionListItem) {
     if (!profile || !program || startingSessionId) return;
@@ -182,12 +283,9 @@ export default function ProgramDetailScreen() {
     }
   }
 
-  const isStartingCurrent =
-    !!currentSession && startingSessionId === currentSession.id;
-
   return (
     <View className="bg-surface flex-1">
-      <View className="px-5 pt-[58px] pb-3">
+      <View className="px-5 pt-[58px] pb-4">
         <BackButton
           label="Programs"
           onPress={() => router.back()}
@@ -205,35 +303,21 @@ export default function ProgramDetailScreen() {
             program={program}
             completedCount={completedCount}
             totalCount={sessions.length}
-            perWeek={sessionsPerWeekLabel(sessions)}
           />
           <ScrollView
+            ref={scrollViewRef}
+            onLayout={onScrollViewLayout}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 24 }}
+            contentContainerStyle={{ paddingBottom: 32 }}
             className="px-5">
             <SessionWeekList
               sessions={sessions}
               startingSessionId={startingSessionId}
+              onWeekLayout={onWeekLayout}
+              onCurrentRowLayout={onCurrentRowLayout}
               onSessionPress={handleSessionPress}
             />
           </ScrollView>
-          <View className="border-border-subtle border-t px-5 pt-3 pb-8">
-            <Button
-              variant="primary"
-              size="lg"
-              disabled={!currentSession || !!startingSessionId}
-              onPress={() =>
-                currentSession && handleSessionPress(currentSession)
-              }>
-              {isStartingCurrent ? (
-                <ActivityIndicator color="#fff" />
-              ) : currentSession ? (
-                `Start session ${currentSession.position + 1}`
-              ) : (
-                "All sessions complete"
-              )}
-            </Button>
-          </View>
         </>
       )}
     </View>

@@ -198,7 +198,7 @@ export default function SecurityScreen() {
           <BackButton
             label="Profile"
             onPress={() => router.back()}
-            className="mb-5"
+            className="mb-6"
           />
           <Hero>Security</Hero>
         </View>

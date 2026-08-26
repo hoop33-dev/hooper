@@ -60,7 +60,9 @@ function makeUpdateSingleBuilder(resolveValue: unknown) {
 describe("startOrResumeSession", () => {
   it("returns the existing in-progress row without inserting", async () => {
     const existing = { id: "sc1", status: "in_progress" };
-    mockFrom.mockReturnValue(makeInProgressLookupBuilder({ data: existing, error: null }));
+    mockFrom.mockReturnValue(
+      makeInProgressLookupBuilder({ data: existing, error: null }),
+    );
 
     const result = await startOrResumeSession("s1", "p1");
 
@@ -71,16 +73,25 @@ describe("startOrResumeSession", () => {
   it("creates a new row with today's local date when none is in progress", async () => {
     jest.useFakeTimers().setSystemTime(new Date(2026, 6, 29, 10, 0, 0));
     const created = { id: "sc2", status: "in_progress" };
-    const insertBuilder = makeInsertSingleBuilder({ data: created, error: null });
+    const insertBuilder = makeInsertSingleBuilder({
+      data: created,
+      error: null,
+    });
     mockFrom
-      .mockReturnValueOnce(makeInProgressLookupBuilder({ data: null, error: null }))
+      .mockReturnValueOnce(
+        makeInProgressLookupBuilder({ data: null, error: null }),
+      )
       .mockReturnValueOnce(insertBuilder);
 
     const result = await startOrResumeSession("s1", "p1");
 
     expect(result).toBe(created);
     expect(insertBuilder.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ session_id: "s1", athlete_profile_id: "p1", session_date: "2026-07-29" }),
+      expect.objectContaining({
+        session_id: "s1",
+        athlete_profile_id: "p1",
+        session_date: "2026-07-29",
+      }),
     );
   });
 });
@@ -93,37 +104,21 @@ describe("resumeSession", () => {
     jest.useFakeTimers().setSystemTime(now);
     const pausedAt = new Date(now.getTime() - 30_000).toISOString(); // paused 30s ago
 
-    const lookupBuilder = makeSingleEqBuilder({
-      data: { paused_at: pausedAt, paused_duration_seconds: 60 },
-      error: null,
-    });
     const updateBuilder = makeUpdateSingleBuilder({
       data: { id: "sc1", paused_at: null, paused_duration_seconds: 90 },
       error: null,
     });
-    mockFrom.mockReturnValueOnce(lookupBuilder).mockReturnValueOnce(updateBuilder);
+    mockFrom.mockReturnValue(updateBuilder);
 
-    const result = await resumeSession("sc1");
+    const result = await resumeSession("sc1", pausedAt, 60);
 
     expect(updateBuilder.update).toHaveBeenCalledWith({
       paused_at: null,
       paused_duration_seconds: 90, // 60 + 30
     });
     expect(result.paused_duration_seconds).toBe(90);
-  });
-
-  it("is a no-op when the session isn't actually paused", async () => {
-    const lookupBuilder = makeSingleEqBuilder({
-      data: { paused_at: null, paused_duration_seconds: 60 },
-      error: null,
-    });
-    const rereadBuilder = makeSingleEqBuilder({ data: { id: "sc1" }, error: null });
-    mockFrom.mockReturnValueOnce(lookupBuilder).mockReturnValueOnce(rereadBuilder);
-
-    await resumeSession("sc1");
-
-    // Only the two selects — no update call.
-    expect(mockFrom).toHaveBeenCalledTimes(2);
+    // Single round trip — no lookup select before the update.
+    expect(mockFrom).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -131,7 +126,10 @@ describe("resumeSession", () => {
 
 describe("pauseSession", () => {
   it("stamps paused_at on the row", async () => {
-    const updateBuilder = makeUpdateSingleBuilder({ data: { id: "sc1" }, error: null });
+    const updateBuilder = makeUpdateSingleBuilder({
+      data: { id: "sc1" },
+      error: null,
+    });
     mockFrom.mockReturnValue(updateBuilder);
 
     await pauseSession("sc1");
@@ -151,11 +149,20 @@ describe("completeSession", () => {
     jest.useFakeTimers().setSystemTime(now);
 
     const lookupBuilder = makeSingleEqBuilder({
-      data: { started_at: started.toISOString(), paused_at: null, paused_duration_seconds: 120 },
+      data: {
+        started_at: started.toISOString(),
+        paused_at: null,
+        paused_duration_seconds: 120,
+      },
       error: null,
     });
-    const updateBuilder = makeUpdateSingleBuilder({ data: { id: "sc1" }, error: null });
-    mockFrom.mockReturnValueOnce(lookupBuilder).mockReturnValueOnce(updateBuilder);
+    const updateBuilder = makeUpdateSingleBuilder({
+      data: { id: "sc1" },
+      error: null,
+    });
+    mockFrom
+      .mockReturnValueOnce(lookupBuilder)
+      .mockReturnValueOnce(updateBuilder);
 
     await completeSession("sc1", 7);
 
@@ -177,17 +184,29 @@ describe("completeSession", () => {
     const pausedAt = new Date(now.getTime() - 60_000).toISOString(); // paused 60s ago, never resumed
 
     const lookupBuilder = makeSingleEqBuilder({
-      data: { started_at: started.toISOString(), paused_at: pausedAt, paused_duration_seconds: 0 },
+      data: {
+        started_at: started.toISOString(),
+        paused_at: pausedAt,
+        paused_duration_seconds: 0,
+      },
       error: null,
     });
-    const updateBuilder = makeUpdateSingleBuilder({ data: { id: "sc1" }, error: null });
-    mockFrom.mockReturnValueOnce(lookupBuilder).mockReturnValueOnce(updateBuilder);
+    const updateBuilder = makeUpdateSingleBuilder({
+      data: { id: "sc1" },
+      error: null,
+    });
+    mockFrom
+      .mockReturnValueOnce(lookupBuilder)
+      .mockReturnValueOnce(updateBuilder);
 
     await completeSession("sc1", 5);
 
     // 600s elapsed - 60s trailing pause = 540s active.
     expect(updateBuilder.update).toHaveBeenCalledWith(
-      expect.objectContaining({ paused_duration_seconds: 60, active_duration_seconds: 540 }),
+      expect.objectContaining({
+        paused_duration_seconds: 60,
+        active_duration_seconds: 540,
+      }),
     );
   });
 });

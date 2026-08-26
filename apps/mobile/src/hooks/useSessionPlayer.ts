@@ -258,10 +258,34 @@ async function performSetDoneToggle(params: {
 }
 
 async function performPauseToggle(
-  completionId: string,
-  paused: boolean,
+  completion: SessionCompletionRow,
 ): Promise<SessionCompletionRow> {
-  return paused ? resumeSession(completionId) : pauseSession(completionId);
+  return completion.paused_at
+    ? resumeSession(
+        completion.id,
+        completion.paused_at,
+        completion.paused_duration_seconds,
+      )
+    : pauseSession(completion.id);
+}
+
+/** Locally mirrors what pause/resume will do server-side, so the UI can flip
+ * immediately instead of waiting on the round trip. */
+function computeOptimisticPauseFlip(
+  completion: SessionCompletionRow,
+): SessionCompletionRow {
+  if (!completion.paused_at) {
+    return { ...completion, paused_at: new Date().toISOString() };
+  }
+  const pausedSeconds = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(completion.paused_at).getTime()) / 1000),
+  );
+  return {
+    ...completion,
+    paused_at: null,
+    paused_duration_seconds: completion.paused_duration_seconds + pausedSeconds,
+  };
 }
 
 function useInitialSessionLoad(
@@ -351,13 +375,21 @@ export function useSessionPlayer(
     });
   }
 
+  /** Optimistic: flips the paused state immediately so the button/overlay
+   * respond without waiting on the network, then reconciles with (or
+   * reverts to) the server response in the background. */
   async function togglePause() {
     if (!completion || pausing) return;
+    const prevCompletion = completion;
+    const wasPaused = !!completion.paused_at;
+    setCompletion(computeOptimisticPauseFlip(completion));
+    setPaused(!wasPaused);
     setPausing(true);
     try {
-      const updated = await performPauseToggle(completion.id, paused);
-      setCompletion(updated);
-      setPaused((p) => !p);
+      setCompletion(await performPauseToggle(prevCompletion));
+    } catch {
+      setCompletion(prevCompletion);
+      setPaused(wasPaused);
     } finally {
       setPausing(false);
     }

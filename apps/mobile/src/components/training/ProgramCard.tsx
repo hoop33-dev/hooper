@@ -1,6 +1,6 @@
-import { Button, Caption, H3 } from "@/src/components/ui";
+import { Button, Caption, GradientCard, H3 } from "@/src/components/ui";
 import type { AthleteProgramCard as AthleteProgramCardData } from "@hooper/api";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 import { ClockIcon } from "./icons";
 
@@ -12,11 +12,10 @@ function formatDuration(seconds: number | null): string | null {
 
 type ProgramCardProps = {
   card: AthleteProgramCardData;
-  variant: "hero" | "compact";
   onPress: () => void;
 };
 
-export function ProgramCard({ card, variant, onPress }: ProgramCardProps) {
+export function ProgramCard({ card, onPress }: ProgramCardProps) {
   const {
     program,
     totalSessions,
@@ -31,39 +30,16 @@ export function ProgramCard({ card, variant, onPress }: ProgramCardProps) {
   const started = completedSessions > 0;
   const lastDur = formatDuration(lastSessionDurationSeconds);
 
-  // if (variant === "compact") {
-  //   return (
-  //     <Pressable
-  //       onPress={onPress}
-  //       className="bg-surface-2 border-border-subtle mb-2.5 flex-row items-center gap-3.5 rounded-2xl border px-4 py-3.5">
-  //       <View className="bg-brand-navy h-12 w-12 items-center justify-center rounded-xl">
-  //         <Meta className="text-white">{program.weeks}w</Meta>
-  //       </View>
-  //       <View className="flex-1">
-  //         <RowTitle numberOfLines={1}>{program.name}</RowTitle>
-  //         <Caption className="mt-0.5">
-  //           {program.weeks} wk · {totalSessions} session
-  //           {totalSessions === 1 ? "" : "s"}
-  //         </Caption>
-  //       </View>
-  //       <View className="bg-brand-blue/10 rounded-full px-2.5 py-1">
-  //         <Caption className="text-brand-blue uppercase">
-  //           {started ? "In progress" : "Upcoming"}
-  //         </Caption>
-  //       </View>
-  //     </Pressable>
-  //   );
-  // }
-
   return (
-    <Pressable
+    <GradientCard
       onPress={onPress}
-      className="bg-brand-light-orange/25 mb-6 overflow-hidden rounded-[20px] border px-5 pt-4 pb-5">
+      className="mb-3 rounded-[20px]"
+      contentClassName="px-5 pt-4 pb-5">
       <H3 className="mb-3">{program.name}</H3>
 
       <View className="mb-4">
         <View className="mb-1.5 flex-row justify-between">
-          <Caption>
+          <Caption className="text-white/70">
             {completedSessions}/{totalSessions} sessions
           </Caption>
           <Caption className="text-white">{pct}%</Caption>
@@ -81,19 +57,23 @@ export function ProgramCard({ card, variant, onPress }: ProgramCardProps) {
           {lastDur ? (
             <View className="flex-row items-center gap-1.5">
               <ClockIcon size={12} color="rgba(255,255,255,0.5)" />
-              <Caption>{lastDur} last session</Caption>
+              <Caption className="text-white/70">
+                {lastDur} last session
+              </Caption>
             </View>
           ) : (
             <View />
           )}
           {nextSessionName ? (
-            <Caption className="mt-0.5">{nextSessionName} next</Caption>
+            <Caption className="mt-0.5 text-white/70">
+              {nextSessionName} next
+            </Caption>
           ) : null}
         </View>
         <Button variant="secondary" size="sm" onPress={onPress}>
           {started ? "Continue" : "Start"}
         </Button>
       </View>
-    </Pressable>
+    </GradientCard>
   );
 }

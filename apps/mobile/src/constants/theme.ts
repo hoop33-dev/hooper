@@ -44,6 +44,11 @@ export const colors = {
   transparent: "transparent",
 } as const;
 
+export const gradients = {
+  /** Diagonal muted rust → dark brown gradient used behind program hero cards. */
+  programCard: ["#9C512F", "#452414"] as const,
+} as const;
+
 export const radii = {
   sm: 6,
   md: 12,

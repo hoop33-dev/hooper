@@ -11,6 +11,7 @@ import { View, type LayoutRectangle } from "react-native";
 import {
   FieldBox,
   SetDoneButton,
+  SetFieldRow,
   VideoThumbnail,
   type SetRowState,
 } from "./ExerciseSetsCard";
@@ -76,10 +77,11 @@ function RoundExerciseRow({
           {style ? <Meta className="mt-0.5">{style.name}</Meta> : null}
         </View>
       </View>
-      <View className="flex-row items-center gap-2">
-        {measurements.map((m) => (
+      <SetFieldRow done={done}>
+        {measurements.map((m, i) => (
           <FieldBox
             key={m.position}
+            index={i}
             unitType={m.unit_type}
             value={set?.values[m.position]}
             done={done}
@@ -87,7 +89,7 @@ function RoundExerciseRow({
           />
         ))}
         <SetDoneButton done={done} onPress={onSetDone} />
-      </View>
+      </SetFieldRow>
     </View>
   );
 }

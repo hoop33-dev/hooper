@@ -33,10 +33,6 @@ export default function AppLayout() {
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen
-        name="training/index"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
         name="training/program"
         options={{ animation: "slide_from_right" }}
       />

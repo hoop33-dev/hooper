@@ -11,7 +11,7 @@ type BackButtonProps = {
 export function BackButton({
   label = "Back",
   onPress,
-  className = "mb-6",
+  className = "mb-7",
 }: BackButtonProps) {
   return (
     <Pressable

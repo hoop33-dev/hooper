@@ -1,5 +1,5 @@
-import { getClient } from "../client";
 import type { SessionCompletionRow } from "@hooper/db";
+import { getClient } from "../client";
 
 /** Local calendar day (not UTC) — the DB's CURRENT_DATE default would use
  * the server's timezone, which is the wrong axis for "which day did the
@@ -92,37 +92,26 @@ export async function pauseSession(
   return data;
 }
 
+/** Takes the caller's already-known `paused_at`/`paused_duration_seconds`
+ * (the client has these in local state from when it paused) rather than
+ * re-fetching them first, so resuming is a single round trip instead of a
+ * select-then-update. */
 export async function resumeSession(
   sessionCompletionId: string,
+  pausedAt: string,
+  pausedDurationSeconds: number,
 ): Promise<SessionCompletionRow> {
   const client = getClient();
-  const { data: current, error: currentError } = await client
-    .from("session_completions")
-    .select("paused_at, paused_duration_seconds")
-    .eq("id", sessionCompletionId)
-    .single();
-  if (currentError) throw new Error(currentError.message);
-  if (!current.paused_at) {
-    // Not actually paused (e.g. a duplicate tap) — nothing to fold in.
-    const { data, error } = await client
-      .from("session_completions")
-      .select("*")
-      .eq("id", sessionCompletionId)
-      .single();
-    if (error) throw new Error(error.message);
-    return data;
-  }
-
   const pausedSeconds = Math.max(
     0,
-    Math.floor((Date.now() - new Date(current.paused_at).getTime()) / 1000),
+    Math.floor((Date.now() - new Date(pausedAt).getTime()) / 1000),
   );
 
   const { data, error } = await client
     .from("session_completions")
     .update({
       paused_at: null,
-      paused_duration_seconds: current.paused_duration_seconds + pausedSeconds,
+      paused_duration_seconds: pausedDurationSeconds + pausedSeconds,
     })
     .eq("id", sessionCompletionId)
     .select()
@@ -148,14 +137,22 @@ export async function completeSession(
   // player resumes before allowing "Complete session" — but this keeps the
   // duration honest even if it does).
   const trailingPause = current.paused_at
-    ? Math.max(0, Math.floor((now.getTime() - new Date(current.paused_at).getTime()) / 1000))
+    ? Math.max(
+        0,
+        Math.floor(
+          (now.getTime() - new Date(current.paused_at).getTime()) / 1000,
+        ),
+      )
     : 0;
   const totalPausedSeconds = current.paused_duration_seconds + trailingPause;
   const totalElapsedSeconds = Math.max(
     0,
     Math.floor((now.getTime() - new Date(current.started_at).getTime()) / 1000),
   );
-  const activeDurationSeconds = Math.max(0, totalElapsedSeconds - totalPausedSeconds);
+  const activeDurationSeconds = Math.max(
+    0,
+    totalElapsedSeconds - totalPausedSeconds,
+  );
 
   const { data, error } = await client
     .from("session_completions")

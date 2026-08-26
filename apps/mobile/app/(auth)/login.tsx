@@ -100,7 +100,7 @@ export default function LoginScreen() {
           <BackButton
             label="Back"
             onPress={() => router.back()}
-            className="mb-8"
+            className="mb-9"
           />
 
           <Hero className="mb-1">Welcome back</Hero>

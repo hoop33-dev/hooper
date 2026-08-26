@@ -66,6 +66,7 @@ function RoundExerciseRow({
             videoOrientation={exercise.video_orientation}
             videoThumbnailUrl={exercise.video_thumbnail_url}
             title={exercise.name}
+            faded={done}
           />
         ) : null}
         <View className="flex-1">
@@ -119,18 +120,15 @@ function RoundCard({
   return (
     <View
       onLayout={(e) => onLayout(e.nativeEvent.layout)}
-      className={`mb-3 overflow-hidden rounded-2xl border ${
-        allDone ? "border-success/20" : "border-border-subtle"
-      }`}>
-      <View
-        className={`flex-row items-center justify-between border-b px-4 py-3 ${
-          allDone
-            ? "border-success/20 bg-success/[0.07]"
-            : "bg-surface-2 border-border-subtle"
-        }`}>
+      className="border-border-subtle mb-3 overflow-hidden rounded-2xl border"
+      style={{ opacity: allDone ? 0.8 : 1 }}>
+      <View className="bg-surface-2 border-border-subtle flex-row items-center justify-between border-b px-4 py-3">
         <Overline>Round {roundIndex + 1}</Overline>
         <View className="flex-row items-baseline">
-          <H4 style={{ color: allDone ? colors.success : colors.brandOrange }}>
+          <H4
+            style={{
+              color: allDone ? colors.textSecondary : colors.brandOrange,
+            }}>
             {doneCount}
           </H4>
           <Caption>/{total}</Caption>

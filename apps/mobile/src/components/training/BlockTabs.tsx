@@ -1,3 +1,4 @@
+import { CheckIcon } from "@/src/components/dashboard/icons";
 import { Caption } from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
 import { useBlockTabsIndicator } from "@/src/hooks/useBlockTabsIndicator";
@@ -71,6 +72,7 @@ function BlockTab({
       onLayout={onLayout}
       className="flex-row items-center gap-1.5 px-3.5"
       style={{ height: TAB_BAR_HEIGHT }}>
+      {done ? <CheckIcon size={11} color={colors.success} /> : null}
       <AnimatedCaption
         numberOfLines={1}
         className={done ? "" : "text-text-tertiary"}

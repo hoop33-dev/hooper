@@ -86,5 +86,5 @@ export function useBlockAutoScroll(blockKey: string, items: AutoScrollItem[]) {
     setViewportHeight(e.nativeEvent.layout.height);
   }
 
-  return { scrollRef, onViewportLayout, registerCardLayout };
+  return { scrollRef, viewportHeight, onViewportLayout, registerCardLayout };
 }

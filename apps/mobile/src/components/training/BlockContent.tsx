@@ -1,3 +1,4 @@
+import { useBlockAutoAdvance } from "@/src/hooks/useBlockAutoAdvance";
 import type { AthleteBlock } from "@hooper/api";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -79,6 +80,8 @@ export function BlockContent({
     pendingScrollTarget.current = blockIdx;
     scrollRef.current?.scrollTo({ x: blockIdx * pageWidth, animated: true });
   }, [blockIdx, pageWidth]);
+
+  useBlockAutoAdvance(blocks, blockIdx, setsByBlockExercise, onBlockIdxChange);
 
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollX.value = e.contentOffset.x;

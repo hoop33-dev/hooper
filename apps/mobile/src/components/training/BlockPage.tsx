@@ -88,15 +88,20 @@ export function BlockPage({
   onSetDone,
 }: BlockPageProps) {
   const rounds = block.sets ?? block.exercises[0]?.sets ?? 0;
-  const { scrollRef, onViewportLayout, registerCardLayout } =
+  const { scrollRef, viewportHeight, onViewportLayout, registerCardLayout } =
     useBlockPageAutoScroll(block, setsByBlockExercise, rounds);
+
+  // Half the viewport height, so even the last card in the list has enough
+  // room below it to be scrolled to a vertically-centered position instead
+  // of the scroll clamping at the bottom of the content.
+  const paddingBottom = Math.max(100, viewportHeight / 2);
 
   return (
     <ScrollView
       ref={scrollRef}
       onLayout={onViewportLayout}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+      contentContainerStyle={{ padding: 20, paddingBottom }}
       className="flex-1">
       <BlockHeader block={block} rounds={rounds} />
 

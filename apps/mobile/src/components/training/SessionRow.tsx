@@ -13,18 +13,22 @@ type SessionRowProps = {
 };
 
 function TrailingAffordance({
-  current,
+  highlighted,
+  active,
   isStarting,
 }: {
-  current: boolean;
+  highlighted: boolean;
+  active: boolean;
   isStarting: boolean;
 }) {
   if (isStarting)
     return <ActivityIndicator size="small" color={colors.brandOrange} />;
-  if (current) {
+  if (highlighted) {
     return (
       <View className="bg-brand-orange rounded px-2 py-1">
-        <MicroLabel className="text-white">Next</MicroLabel>
+        <MicroLabel className="text-white">
+          {active ? "Continue" : "Next"}
+        </MicroLabel>
       </View>
     );
   }
@@ -37,24 +41,39 @@ function formatDuration(seconds: number | null): string | null {
   return `${minutes < 1 ? "<1" : minutes} min`;
 }
 
-function cardStyle(current: boolean, done: boolean) {
+/** "started x ago" phrasing for an in-progress session row. */
+function formatElapsed(startedAt: string): string {
+  const minutes = Math.max(
+    1,
+    Math.round((Date.now() - new Date(startedAt).getTime()) / 60_000),
+  );
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"}`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days} day${days === 1 ? "" : "s"}`;
+  const weeks = Math.round(days / 7);
+  return `${weeks} week${weeks === 1 ? "" : "s"}`;
+}
+
+function cardStyle(highlighted: boolean, done: boolean) {
   return {
-    backgroundColor: current ? "rgba(241,88,37,0.07)" : colors.surface2,
-    borderColor: current ? "rgba(241,88,37,0.2)" : colors.borderSubtle,
+    backgroundColor: highlighted ? "rgba(241,88,37,0.07)" : colors.surface2,
+    borderColor: highlighted ? "rgba(241,88,37,0.2)" : colors.borderSubtle,
     opacity: done ? 0.8 : 1,
   };
 }
 
 function StatusBadge({
   done,
-  current,
+  highlighted,
   position,
 }: {
   done: boolean;
-  current: boolean;
+  highlighted: boolean;
   position: number;
 }) {
-  const tone = done ? colors.success : current ? colors.brandOrange : null;
+  const tone = done ? colors.success : highlighted ? colors.brandOrange : null;
   return (
     <View
       className="h-9 w-9 items-center justify-center rounded-full border-2"
@@ -64,7 +83,7 @@ function StatusBadge({
       }}>
       {done ? (
         <CheckIcon size={15} color="#fff" />
-      ) : current ? (
+      ) : highlighted ? (
         <PlayIcon size={12} color="#fff" />
       ) : (
         <Title style={{ fontSize: 14 }}>{position + 1}</Title>
@@ -77,10 +96,14 @@ function SessionMeta({
   blockCount,
   dur,
   done,
+  active,
+  activeStartedAt,
 }: {
   blockCount: number;
   dur: string | null;
   done: boolean;
+  active: boolean;
+  activeStartedAt: string | null;
 }) {
   const blocksLabel = `${blockCount} block${blockCount === 1 ? "" : "s"}`;
 
@@ -90,6 +113,14 @@ function SessionMeta({
         <Meta>{blocksLabel}</Meta>
         <ClockIcon size={10} color={colors.textTertiary} />
         <Meta>{dur}</Meta>
+      </View>
+    );
+  }
+  if (active && activeStartedAt) {
+    return (
+      <View className="mt-1 flex-row items-center">
+        <Meta className="pr-2">{blocksLabel}</Meta>
+        <Meta>started {formatElapsed(activeStartedAt)} ago</Meta>
       </View>
     );
   }
@@ -106,26 +137,45 @@ export function SessionRow({
   isStarting = false,
   onPress,
 }: SessionRowProps) {
-  const { name, blockCount, done, current, durationSeconds, position } =
-    session;
+  const {
+    name,
+    blockCount,
+    done,
+    current,
+    active,
+    activeStartedAt,
+    durationSeconds,
+    position,
+  } = session;
   const dur = formatDuration(durationSeconds);
+  const highlighted = current || active;
 
   return (
     <Pressable
       onPress={onPress}
       disabled={isStarting}
       className="mb-3 flex-row items-center gap-3.5 rounded-2xl border px-4 py-4"
-      style={cardStyle(current, done)}>
-      <StatusBadge done={done} current={current} position={position} />
+      style={cardStyle(highlighted, done)}>
+      <StatusBadge done={done} highlighted={highlighted} position={position} />
 
       <View className="flex-1">
         <Title className={done ? "text-text-secondary" : "text-text-primary"}>
           {name}
         </Title>
-        <SessionMeta blockCount={blockCount} dur={dur} done={done} />
+        <SessionMeta
+          blockCount={blockCount}
+          dur={dur}
+          done={done}
+          active={active}
+          activeStartedAt={activeStartedAt}
+        />
       </View>
 
-      <TrailingAffordance current={current} isStarting={isStarting} />
+      <TrailingAffordance
+        highlighted={highlighted}
+        active={active}
+        isStarting={isStarting}
+      />
     </Pressable>
   );
 }

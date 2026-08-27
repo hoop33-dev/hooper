@@ -91,3 +91,7 @@ export { ErrorMessage } from "./ErrorMessage";
 export { PasswordInput } from "./PasswordInput";
 
 export { PasswordStrengthBar } from "./PasswordStrengthBar";
+
+export { PopupSheet } from "./PopupSheet";
+
+export { ExitGuardSheet } from "./ExitGuardSheet";

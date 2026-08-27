@@ -22,12 +22,13 @@ export function ProgramCard({ card, onPress }: ProgramCardProps) {
     completedSessions,
     lastSessionDurationSeconds,
     nextSessionName,
+    activeSessionCount,
   } = card;
   const pct =
     totalSessions > 0
       ? Math.round((completedSessions / totalSessions) * 100)
       : 0;
-  const started = completedSessions > 0;
+  const started = completedSessions > 0 || activeSessionCount > 0;
   const lastDur = formatDuration(lastSessionDurationSeconds);
 
   return (
@@ -64,7 +65,12 @@ export function ProgramCard({ card, onPress }: ProgramCardProps) {
           ) : (
             <View />
           )}
-          {nextSessionName ? (
+          {activeSessionCount > 0 ? (
+            <Caption className="mt-0.5 text-white/70">
+              {activeSessionCount} session{activeSessionCount === 1 ? "" : "s"}{" "}
+              in progress
+            </Caption>
+          ) : nextSessionName ? (
             <Caption className="mt-0.5 text-white/70">
               {nextSessionName} next
             </Caption>

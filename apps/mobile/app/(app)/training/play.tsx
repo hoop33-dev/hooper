@@ -4,7 +4,9 @@ import { BlockTabs } from "@/src/components/training/BlockTabs";
 import { PauseOverlay } from "@/src/components/training/PauseOverlay";
 import { SessionFooterNav } from "@/src/components/training/SessionFooterNav";
 import { SessionProgressBar } from "@/src/components/training/SessionProgressBar";
+import { ExitGuardSheet } from "@/src/components/ui/ExitGuardSheet";
 import { colors } from "@/src/constants/theme";
+import { useExitGuard } from "@/src/hooks/useExitGuard";
 import {
   isBlockDone,
   useSessionPlayer,
@@ -13,7 +15,7 @@ import {
 import { useAuthStore } from "@/src/stores/auth.store";
 import type { AthleteSessionDetail } from "@hooper/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ActivityIndicator, Alert, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 
 function countSets(
@@ -31,22 +33,12 @@ function countSets(
   return { doneSets, totalSets };
 }
 
-function confirmExit(onExit: () => void) {
-  Alert.alert(
-    "Exit workout?",
-    "Your progress is saved — you can pick up where you left off.",
-    [
-      { text: "Keep going", style: "cancel" },
-      { text: "Exit", style: "destructive", onPress: onExit },
-    ],
-  );
-}
-
 export default function SessionPlayerScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
   const player = useSessionPlayer(sessionId, profile?.id);
+  const exitGuard = useExitGuard();
 
   const { session, completion, blockIdx, setsState } = player;
   const curBlock = session?.blocks[blockIdx] ?? null;
@@ -80,7 +72,7 @@ export default function SessionPlayerScreen() {
         paused={player.paused}
         pausing={player.pausing}
         onTogglePause={player.togglePause}
-        onExit={() => confirmExit(() => router.back())}
+        onExit={exitGuard.requestExit}
       />
       <SessionProgressBar doneSets={doneSets} totalSets={totalSets} />
       <BlockTabs
@@ -106,6 +98,16 @@ export default function SessionPlayerScreen() {
         onComplete={handleComplete}
       />
       {player.paused ? <PauseOverlay onResume={player.togglePause} /> : null}
+      <ExitGuardSheet
+        visible={exitGuard.visible}
+        title="EXIT SESSION?"
+        message={`You've logged ${doneSets} of ${totalSets} sets. Your progress is saved, but the session stays unfinished.`}
+        confirmLabel="Exit session"
+        cancelLabel="Keep training"
+        confirmAccent={colors.brandOrange}
+        onConfirm={exitGuard.confirmExit}
+        onCancel={exitGuard.cancelExit}
+      />
     </View>
   );
 }

@@ -92,6 +92,10 @@ export type AthleteProgramCard = {
   lastSessionDurationSeconds: number | null;
   nextSessionId: string | null;
   nextSessionName: string | null;
+  /** Count of sessions with an in-progress completion for this athlete —
+   * can be >1 if they started one session, left without finishing it, then
+   * started a different one. */
+  activeSessionCount: number;
 };
 
 export type AthleteSessionListItem = {
@@ -102,6 +106,9 @@ export type AthleteSessionListItem = {
   blockCount: number;
   done: boolean;
   current: boolean;
+  active: boolean;
+  /** When `active`, the timestamp the in-progress attempt was started. */
+  activeStartedAt: string | null;
   durationSeconds: number | null;
 };
 
@@ -160,20 +167,32 @@ async function buildProgramCard(
       lastSessionDurationSeconds: null,
       nextSessionId: null,
       nextSessionName: null,
+      activeSessionCount: 0,
     };
   }
 
-  const { data: completions, error: completionsError } = await client
-    .from("session_completions")
-    .select("session_id, active_duration_seconds, completed_at")
-    .eq("athlete_profile_id", athleteProfileId)
-    .eq("status", "completed")
-    .in(
-      "session_id",
-      sessions.map((s) => s.id),
-    )
-    .order("completed_at", { ascending: false });
+  const sessionIds = sessions.map((s) => s.id);
+
+  const [
+    { data: completions, error: completionsError },
+    { data: activeRows, error: activeError },
+  ] = await Promise.all([
+    client
+      .from("session_completions")
+      .select("session_id, active_duration_seconds, completed_at")
+      .eq("athlete_profile_id", athleteProfileId)
+      .eq("status", "completed")
+      .in("session_id", sessionIds)
+      .order("completed_at", { ascending: false }),
+    client
+      .from("session_completions")
+      .select("session_id")
+      .eq("athlete_profile_id", athleteProfileId)
+      .eq("status", "in_progress")
+      .in("session_id", sessionIds),
+  ]);
   if (completionsError) throw new Error(completionsError.message);
+  if (activeError) throw new Error(activeError.message);
 
   const completedIds = new Set((completions ?? []).map((c) => c.session_id));
   const nextSession = sessions.find((s) => !completedIds.has(s.id)) ?? null;
@@ -188,6 +207,7 @@ async function buildProgramCard(
       completions?.[0]?.active_duration_seconds ?? null,
     nextSessionId: nextSession?.id ?? null,
     nextSessionName: nextSession?.name ?? null,
+    activeSessionCount: activeRows?.length ?? 0,
   };
 }
 
@@ -228,10 +248,14 @@ export async function listAssignedPrograms(
 }
 
 /** A program's full session list (every week), each flagged done/current for
- * the ProgramDetail screen. "current" is the first not-yet-completed session
- * in (week_number, position) order — the same rule buildProgramCard uses for
- * nextSessionId, just applied across the whole list instead of stopping at
- * the first match. */
+ * the ProgramDetail screen. "current" is normally the first not-yet-completed
+ * session in (week_number, position) order — the same rule buildProgramCard
+ * uses for nextSessionId, just applied across the whole list instead of
+ * stopping at the first match. Any session the athlete has actually started
+ * ("active", status "in_progress") is flagged regardless of position — there
+ * can be more than one (e.g. they started a session, left, then started a
+ * different one) — and the most recently started of those, if any, takes
+ * over "current" instead of the positional pick. */
 export async function listProgramSessions(
   programId: string,
   athleteProfileId: string,
@@ -246,25 +270,44 @@ export async function listProgramSessions(
   if (sessionsError) throw new Error(sessionsError.message);
   if (!sessions || sessions.length === 0) return [];
 
-  const { data: completions, error: completionsError } = await client
-    .from("session_completions")
-    .select("session_id, active_duration_seconds")
-    .eq("athlete_profile_id", athleteProfileId)
-    .eq("status", "completed")
-    .in(
-      "session_id",
-      sessions.map((s) => s.id),
-    );
+  const sessionIds = sessions.map((s) => s.id);
+
+  const [
+    { data: completions, error: completionsError },
+    { data: activeRows, error: activeError },
+  ] = await Promise.all([
+    client
+      .from("session_completions")
+      .select("session_id, active_duration_seconds")
+      .eq("athlete_profile_id", athleteProfileId)
+      .eq("status", "completed")
+      .in("session_id", sessionIds),
+    client
+      .from("session_completions")
+      .select("session_id, started_at")
+      .eq("athlete_profile_id", athleteProfileId)
+      .eq("status", "in_progress")
+      .in("session_id", sessionIds)
+      .order("started_at", { ascending: false }),
+  ]);
   if (completionsError) throw new Error(completionsError.message);
+  if (activeError) throw new Error(activeError.message);
 
   const byId = new Map((completions ?? []).map((c) => [c.session_id, c]));
+  const activeById = new Map(
+    (activeRows ?? []).map((r) => [r.session_id, r.started_at]),
+  );
+  const primaryActiveId = activeRows?.[0]?.session_id ?? null;
   let markedCurrent = false;
   const items: AthleteSessionListItem[] = [];
   for (const s of sessions) {
     const completion = byId.get(s.id);
     const done = !!completion;
-    const current = !done && !markedCurrent;
-    if (current) markedCurrent = true;
+    const active = activeById.has(s.id);
+    const current = primaryActiveId
+      ? s.id === primaryActiveId
+      : !done && !markedCurrent;
+    if (!primaryActiveId && current) markedCurrent = true;
     items.push({
       id: s.id,
       weekNumber: s.week_number,
@@ -273,6 +316,8 @@ export async function listProgramSessions(
       blockCount: Array.isArray(s.blocks) ? s.blocks.length : 0,
       done,
       current,
+      active,
+      activeStartedAt: activeById.get(s.id) ?? null,
       durationSeconds: completion?.active_duration_seconds ?? null,
     });
   }

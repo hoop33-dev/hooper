@@ -35,19 +35,24 @@ export function AvatarEditor({
   return (
     <View className="items-center">
       <View className="relative mb-3">
-        {displayUri ? (
-          <View
-            className="overflow-hidden"
-            style={{ width: size, height: size, borderRadius: size / 2 }}>
-            <Image
-              source={{ uri: displayUri }}
-              style={{ width: size, height: size }}
-              resizeMode="cover"
-            />
-          </View>
-        ) : (
-          <Avatar role={role} size={size} initials={initials} />
-        )}
+        <Pressable
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel="Change photo">
+          {displayUri ? (
+            <View
+              className="overflow-hidden"
+              style={{ width: size, height: size, borderRadius: size / 2 }}>
+              <Image
+                source={{ uri: displayUri }}
+                style={{ width: size, height: size }}
+                resizeMode="cover"
+              />
+            </View>
+          ) : (
+            <Avatar role={role} size={size} initials={initials} />
+          )}
+        </Pressable>
         <Pressable
           onPress={onPress}
           accessibilityRole="button"

@@ -1,10 +1,11 @@
 import { Modal, Pressable, Text, View } from "react-native";
 
 import { Title } from "@/src/components/ui/Typography";
+import { roleConfig } from "@/src/constants/roles";
 import { bodyFont, colors } from "@/src/constants/theme";
 import { LockIcon } from "./icons";
 
-const PARENT_ACCENT = "#F68D68";
+const PARENT_ACCENT = roleConfig("parent").accent;
 
 type LockKind = "profile" | "billing";
 

@@ -18,11 +18,12 @@ import {
 import { AvatarEditor } from "@/src/components/profile/AvatarEditor";
 import { PhotoSourceSheet } from "@/src/components/profile/PhotoSourceSheet";
 import {
-  AccentButton,
+  Button,
   Caption,
   ExitGuardSheet,
   Field,
   Label,
+  Lead,
   Overline,
   ScreenHeader,
   SelectInput,
@@ -434,17 +435,26 @@ export default function ProfileSettingsScreen() {
       {/* Sticky save button */}
       <StickySaveBar error={saveError}>
         {locked ? (
-          <AccentButton
-            variant="muted"
-            accent={r.accent}
-            icon={<LockIcon size={15} color={colors.textSecondary} />}
+          <Button
+            variant="primary"
+            size="lg"
+            className="border-border-subtle border"
+            style={{ backgroundColor: colors.surface2 }}
             onPress={() => setShowLock(true)}>
-            Locked by guardian
-          </AccentButton>
+            <View className="flex-row items-center gap-2">
+              <LockIcon size={15} color={colors.textSecondary} />
+              <Lead className="text-text-secondary">Locked by guardian</Lead>
+            </View>
+          </Button>
         ) : (
-          <AccentButton accent={r.accent} loading={saving} onPress={handleSave}>
+          <Button
+            variant="primary"
+            size="lg"
+            disabled={saving}
+            onPress={handleSave}
+            style={{ backgroundColor: saving ? `${r.accent}80` : r.accent }}>
             {saving ? <ActivityIndicator color="#fff" /> : "Save changes"}
-          </AccentButton>
+          </Button>
         )}
       </StickySaveBar>
 

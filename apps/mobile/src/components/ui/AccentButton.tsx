@@ -72,7 +72,7 @@ export function AccentButton({
       onPressOut={() => setPressed(false)}
       disabled={disabled || loading}
       accessibilityRole="button"
-      className={`h-[52px] flex-row items-center justify-center gap-2 rounded-full ${
+      className={`h-[52px] flex-row items-center justify-center gap-2 rounded-2xl ${
         muted ? "border-border-subtle border" : ""
       } ${className}`}
       style={accentButtonStyle({ accent, muted, loading, active })}>

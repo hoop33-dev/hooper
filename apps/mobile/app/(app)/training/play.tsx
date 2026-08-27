@@ -14,7 +14,9 @@ import {
 } from "@/src/hooks/useSessionPlayer";
 import { useAuthStore } from "@/src/stores/auth.store";
 import type { AthleteSessionDetail } from "@hooper/api";
+import type { SessionCompletionRow } from "@hooper/db";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 
@@ -33,24 +35,65 @@ function countSets(
   return { doneSets, totalSets };
 }
 
-export default function SessionPlayerScreen() {
-  const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
+/** Drives the "Complete session" footer button: completing early (with
+ * unlogged sets remaining) confirms first, completing with everything
+ * logged skips straight through. Either way, navigation goes through
+ * `exitGuard.allowLeave()` first — otherwise the exit guard's
+ * `beforeRemove` listener intercepts this navigation the same as a
+ * back/exit and shows the exit-session sheet instead. */
+function useCompleteSessionFlow(
+  player: {
+    session: AthleteSessionDetail | null;
+    completion: SessionCompletionRow | null;
+    setsState: SetsByBlockExercise;
+  },
+  exitGuard: ReturnType<typeof useExitGuard>,
+) {
+  const { session, completion, setsState } = player;
   const router = useRouter();
-  const profile = useAuthStore((s) => s.profile);
-  const player = useSessionPlayer(sessionId, profile?.id);
-  const exitGuard = useExitGuard();
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const { session, completion, blockIdx, setsState } = player;
-  const curBlock = session?.blocks[blockIdx] ?? null;
-  const blockScrollX = useSharedValue(0);
-
-  function handleComplete() {
+  function goToCompleteScreen() {
     if (!completion || !session) return;
+    exitGuard.allowLeave();
     router.replace({
       pathname: "/(app)/training/complete",
       params: { sessionCompletionId: completion.id, sessionId: session.id },
     });
   }
+
+  function handleComplete() {
+    if (!completion || !session) return;
+    const { doneSets, totalSets } = countSets(session, setsState);
+    if (doneSets < totalSets) {
+      setShowConfirm(true);
+      return;
+    }
+    goToCompleteScreen();
+  }
+
+  function confirmComplete() {
+    setShowConfirm(false);
+    goToCompleteScreen();
+  }
+
+  return {
+    showConfirm,
+    handleComplete,
+    confirmComplete,
+    cancelComplete: () => setShowConfirm(false),
+  };
+}
+
+export default function SessionPlayerScreen() {
+  const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
+  const profile = useAuthStore((s) => s.profile);
+  const player = useSessionPlayer(sessionId, profile?.id);
+  const exitGuard = useExitGuard();
+  const completeFlow = useCompleteSessionFlow(player, exitGuard);
+  const { session, completion, blockIdx, setsState } = player;
+  const curBlock = session?.blocks[blockIdx] ?? null;
+  const blockScrollX = useSharedValue(0);
 
   if (!session || !curBlock || !completion) {
     return (
@@ -95,7 +138,7 @@ export default function SessionPlayerScreen() {
         isLastBlock={blockIdx === session.blocks.length - 1}
         onPrev={() => player.goBlock(-1)}
         onNext={() => player.goBlock(1)}
-        onComplete={handleComplete}
+        onComplete={completeFlow.handleComplete}
       />
       {player.paused ? <PauseOverlay onResume={player.togglePause} /> : null}
       <ExitGuardSheet
@@ -107,6 +150,16 @@ export default function SessionPlayerScreen() {
         confirmAccent={colors.brandOrange}
         onConfirm={exitGuard.confirmExit}
         onCancel={exitGuard.cancelExit}
+      />
+      <ExitGuardSheet
+        visible={completeFlow.showConfirm}
+        title="Complete session?"
+        message={`You've logged ${doneSets} of ${totalSets} sets. Doing this will complete the session.`}
+        confirmLabel="Complete session"
+        cancelLabel="Keep training"
+        confirmAccent={colors.success}
+        onConfirm={completeFlow.confirmComplete}
+        onCancel={completeFlow.cancelComplete}
       />
     </View>
   );

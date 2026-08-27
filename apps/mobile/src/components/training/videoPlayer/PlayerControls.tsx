@@ -181,11 +181,15 @@ function FullControls({
         </Pressable>
       </View>
 
-      {/* Big centered play button — hidden once playback starts */}
+      {/* Big centered play button — hidden once playback starts. Absolutely
+       * positioned over the full container (rather than a flex-item sharing
+       * space with the top bar and bottom transport block below) so it
+       * centers on the actual video area instead of on whatever space is
+       * left over between those two unevenly-sized bars. */}
       {!isPlaying ? (
         <View
           pointerEvents="box-none"
-          className="flex-1 items-center justify-center">
+          className="absolute inset-0 items-center justify-center">
           <Pressable
             onPress={onPlayPause}
             className="h-20 w-20 items-center justify-center rounded-full border-2"
@@ -193,9 +197,7 @@ function FullControls({
             <PlayIcon size={26} color={colors.brandOrange} />
           </Pressable>
         </View>
-      ) : (
-        <View pointerEvents="none" className="flex-1" />
-      )}
+      ) : null}
 
       {/* Bottom transport */}
       <View pointerEvents="box-none" className="gap-3 px-4 pb-4">

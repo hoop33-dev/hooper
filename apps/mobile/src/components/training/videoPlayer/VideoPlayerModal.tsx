@@ -1,10 +1,10 @@
 import { colors } from "@/src/constants/theme";
 import type { ExerciseVideoOrientation, ExerciseVideoSource } from "@hooper/db";
-import { LinearGradient } from "expo-linear-gradient";
 import { useMemo, useState } from "react";
-import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { Modal, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { DoubleTapSeekOverlay } from "./DoubleTapSeekOverlay";
 import { PlayerControls } from "./PlayerControls";
 import { usePlayerControls } from "./usePlayerControls";
 import { VideoSurface } from "./VideoSurface";
@@ -50,9 +50,8 @@ function PlayerBody({
           height: e.nativeEvent.layout.height,
         })
       }>
-      <LinearGradient
-        colors={["#16261F", "#0E1512", colors.surface]}
-        style={StyleSheet.absoluteFill}
+      <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface }]}
       />
       <VideoSurface
         ref={engineRef}
@@ -63,16 +62,20 @@ function PlayerBody({
         onStateChange={setEngineState}
       />
       {videoSource === "upload" ? (
-        // Tap-anywhere-to-pause only for uploaded videos — YouTube's own
-        // iframe page already owns touch handling inside its WebView. This
-        // sits *above* VideoSurface rather than wrapping around it: expo-video's
-        // VideoView is a native view with its own internal touch handling,
-        // which swallowed taps before they ever reached a JS-side Pressable
-        // wrapped around it. A plain RN view layered on top intercepts the
-        // tap directly instead of relying on it bubbling up through the
-        // native video surface. It still sits below PlayerControls (next),
-        // so those buttons keep first claim on their own taps.
-        <Pressable onPress={handlePlayPause} style={StyleSheet.absoluteFill} />
+        // Tap-to-pause and double-tap-to-seek only for uploaded videos —
+        // YouTube's own iframe page already owns touch handling inside its
+        // WebView. This sits *above* VideoSurface rather than wrapping
+        // around it: expo-video's VideoView is a native view with its own
+        // internal touch handling, which swallowed taps before they ever
+        // reached a JS-side Pressable wrapped around it. A plain RN view
+        // layered on top intercepts the tap directly instead of relying on
+        // it bubbling up through the native video surface. It still sits
+        // below PlayerControls (next), so those buttons keep first claim on
+        // their own taps.
+        <DoubleTapSeekOverlay
+          onSkip={handleSkip}
+          onSingleTap={handlePlayPause}
+        />
       ) : null}
       <PlayerControls
         title={title}

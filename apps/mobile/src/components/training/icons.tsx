@@ -57,18 +57,43 @@ export function NoteIcon({ size = 14, color }: IconProps) {
 
 /** Ring + arrowhead shared by SkipBack10Icon/SkipForward10Icon — a real
  * circle (not a hand-drawn arc) with an exact gap cut via strokeDasharray,
- * rotated to put the gap at the top-right, and an arrowhead triangle
- * anchored with the same trig used to place the gap so its tip sits
- * exactly on the ring rather than floating near it. The "forward" variant
- * mirrors this whole group horizontally; the "10" text is drawn separately
- * (never mirrored, so the glyph itself always reads correctly). */
+ * rotated to put the gap at the top-right, and an arrowhead triangle whose
+ * points are computed from the same angle so its tip always sits exactly
+ * on the ring (rather than a hand-placed shape that can drift out of sync
+ * with the ring's radius/rotation, as it previously did). The "forward"
+ * variant mirrors this whole group horizontally; the "10" text is drawn
+ * separately (never mirrored, so the glyph itself always reads correctly). */
 const SKIP_RING_RADIUS = 7.5;
 const SKIP_RING_ROTATION_DEG = -55;
+const SKIP_RING_GAP_DEG = 70;
+const SKIP_ARROW_LENGTH = 3.6;
+const SKIP_ARROW_WIDTH = 3.6;
 function SkipRing({ color, mirrored }: { color: string; mirrored?: boolean }) {
   const circumference = 2 * Math.PI * SKIP_RING_RADIUS;
-  const gapDeg = 70;
-  const arcLen = ((360 - gapDeg) / 360) * circumference;
+  const arcLen = ((360 - SKIP_RING_GAP_DEG) / 360) * circumference;
   const gapLen = circumference - arcLen;
+
+  // The dash (visible arc) starts at the circle's implicit 0° point, so
+  // after the ring's own rotation the arc's leading tip sits at angle
+  // SKIP_RING_ROTATION_DEG. The arrowhead is a triangle whose tip is that
+  // point and whose base trails behind it along the ring's clockwise
+  // tangent there, so it reads as a continuation of the arc.
+  const tipAngleRad = (SKIP_RING_ROTATION_DEG * Math.PI) / 180;
+  const tipX = 12 + SKIP_RING_RADIUS * Math.cos(tipAngleRad);
+  const tipY = 12 + SKIP_RING_RADIUS * Math.sin(tipAngleRad);
+  const tangentX = -Math.sin(tipAngleRad);
+  const tangentY = Math.cos(tipAngleRad);
+  const perpX = -tangentY;
+  const perpY = tangentX;
+  const baseX = tipX - SKIP_ARROW_LENGTH * tangentX;
+  const baseY = tipY - SKIP_ARROW_LENGTH * tangentY;
+  const halfWidth = SKIP_ARROW_WIDTH / 2;
+  const corner1X = baseX + halfWidth * perpX;
+  const corner1Y = baseY + halfWidth * perpY;
+  const corner2X = baseX - halfWidth * perpX;
+  const corner2Y = baseY - halfWidth * perpY;
+  const arrowPath = `M${tipX.toFixed(2)} ${tipY.toFixed(2)} L${corner1X.toFixed(2)} ${corner1Y.toFixed(2)} L${corner2X.toFixed(2)} ${corner2Y.toFixed(2)} Z`;
+
   return (
     <G transform={mirrored ? "scale(-1,1) translate(-24,0)" : undefined}>
       <Circle
@@ -82,10 +107,7 @@ function SkipRing({ color, mirrored }: { color: string; mirrored?: boolean }) {
         strokeDasharray={`${arcLen} ${gapLen}`}
         transform={`rotate(${SKIP_RING_ROTATION_DEG} 12 12)`}
       />
-      {/* Arrowhead tip anchored at (16.30, 5.86) — the ring's arc-start
-       * point after the rotation above — pointing along the ring's
-       * clockwise tangent there, so it reads as a continuation of the arc. */}
-      <Path d="M18.3 7.2L15.7 6.8 16.9 5.0Z" fill={color} />
+      <Path d={arrowPath} fill={color} />
     </G>
   );
 }

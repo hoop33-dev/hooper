@@ -530,20 +530,21 @@ export function SetDoneButton({
       className="items-center justify-center px-2"
       style={{ alignSelf: "stretch" }}>
       <View
-        style={[
-          {
-            width: DONE_SIZE,
-            height: DONE_SIZE,
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: radii.full,
-          },
-          !done && {
-            borderWidth: 1.5,
-            backgroundColor: "rgba(241,88,37,0.1)",
-            borderColor: "rgba(241,88,37,0.28)",
-          },
-        ]}>
+        style={{
+          width: DONE_SIZE,
+          height: DONE_SIZE,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: radii.full,
+          // Toggle the border/fill values rather than adding/removing these
+          // style keys entirely — swapping the whole object in and out (as
+          // opposed to changing values on stable keys) is what caused the
+          // native view to occasionally lose its corner radius and render
+          // square after a done → undone → done cycle.
+          borderWidth: done ? 0 : 1.5,
+          backgroundColor: done ? "transparent" : "rgba(241,88,37,0.1)",
+          borderColor: done ? "transparent" : "rgba(241,88,37,0.28)",
+        }}>
         <DoneDisc done={done} />
         <AnimatedCheckTick
           done={done}

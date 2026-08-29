@@ -10,10 +10,15 @@
     "check:db": "node scripts/check-db-migrations.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "node -e \"if(!process.env.CI){require('child_process').execSync('husky',{stdio:'inherit'})}\""
+    "prepare": "node -e \"if(!process.env.CI){require('child_process').execSync('husky',{stdio:'inherit'})}\"",
+    "reset:exercises": "node scripts/reset-exercises.mjs",
+    "seed:exercises": "node scripts/seed-exercises.mjs"
   },
   "overrides": {
     "lightningcss": "1.30.1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
   },
   "devDependencies": {
     "husky": "^9.1.7",

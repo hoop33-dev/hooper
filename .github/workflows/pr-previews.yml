@@ -158,7 +158,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -167,7 +167,8 @@ jobs:
       - name: Setup Expo
         uses: expo/expo-github-action@v8
         with:
-          expo-version: latest
+          # Only `eas update` is run below — the legacy global expo-cli isn't
+          # needed and its (unmaintained) dep tree just adds noise + install time.
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 

@@ -41,6 +41,7 @@ export interface ExerciseModalProps {
     id: string,
     videoUrl: string,
     videoSource: ExerciseVideoSource,
+    thumbnailUrl?: string | null,
   ) => Promise<ActionResult>;
   /** Powers the category combobox's inline "+ Add category" affordance.
    * Optional so callers that haven't wired it yet just don't get the

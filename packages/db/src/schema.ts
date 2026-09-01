@@ -103,6 +103,7 @@ export type ExerciseCategoryRow = {
 };
 
 export type ExerciseVideoSource = "upload" | "link";
+export type ExerciseVideoOrientation = "landscape" | "portrait";
 
 export type ExerciseRow = {
   id: string;
@@ -111,6 +112,18 @@ export type ExerciseRow = {
   video_url: string | null;
   /** Whether video_url points at an uploaded file or an external link. Null iff video_url is null. */
   video_source: ExerciseVideoSource | null;
+  /** Landscape vs portrait framing for the in-app player, so it can rotate a
+   * landscape video to fill its always-portrait frame. Computed once
+   * server-side from YouTube's oEmbed thumbnail dimensions when video_source
+   * is "link"; always null for "upload" (the player reads orientation live
+   * from the decoded video instead) and when there's no video. */
+  video_orientation: ExerciseVideoOrientation | null;
+  /** Captured client-side at upload time (see
+   * apps/web/src/lib/videoThumbnailCapture.ts) — uploads have no
+   * ID-derived thumbnail the way YouTube links do. Null for "link" videos
+   * (mobile derives their thumbnail from the URL) and when there's no
+   * video. */
+  video_thumbnail_url: string | null;
   /** The base exercise this is a variant of — null for a base exercise.
    * Single-level only (a variant's own parent_id is never itself set),
    * enforced at the app layer, not the DB. */
@@ -364,6 +377,57 @@ export type FormQuestionOptionRow = {
   label: string;
 };
 
+export type SessionCompletionStatus = "in_progress" | "completed" | "abandoned";
+
+export type SessionCompletionRow = {
+  id: string;
+  session_id: string;
+  athlete_profile_id: string;
+  status: SessionCompletionStatus;
+  started_at: string;
+  completed_at: string | null;
+  /** Local calendar day, set by the client — avoids UTC day-boundary skew. */
+  session_date: string;
+  paused_at: string | null;
+  paused_duration_seconds: number;
+  /** Computed once at completion; null until then. */
+  active_duration_seconds: number | null;
+  effort_rpe: number | null;
+  pre_form_response_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MeasurementLogStatus = "pending" | "completed" | "skipped";
+
+export type AthleteMeasurementLogRow = {
+  session_completion_id: string;
+  block_exercise_id: string;
+  /** Which unit-type slot, matches block_exercise_measurements.position. */
+  position: number;
+  set_index: number;
+  athlete_profile_id: string;
+  exercise_id: string;
+  unit_type: string;
+  /** Snapshot of the coach's planned value at logging time. */
+  planned_value: number | null;
+  actual_value: number | null;
+  status: MeasurementLogStatus;
+  logged_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FormResponseRow = {
+  id: string;
+  form_id: string;
+  athlete_profile_id: string;
+  session_completion_id: string | null;
+  /** question_id -> answer value. */
+  answers: Json;
+  submitted_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -558,6 +622,36 @@ export type Database = {
         Row: FormQuestionOptionRow;
         Insert: FormQuestionOptionRow;
         Update: Partial<FormQuestionOptionRow>;
+        Relationships: [];
+      };
+      session_completions: {
+        Row: SessionCompletionRow;
+        Insert: Partial<SessionCompletionRow> &
+          Pick<SessionCompletionRow, "session_id" | "athlete_profile_id">;
+        Update: Partial<SessionCompletionRow>;
+        Relationships: [];
+      };
+      athlete_measurement_logs: {
+        Row: AthleteMeasurementLogRow;
+        Insert: Partial<AthleteMeasurementLogRow> &
+          Pick<
+            AthleteMeasurementLogRow,
+            | "session_completion_id"
+            | "block_exercise_id"
+            | "position"
+            | "set_index"
+            | "athlete_profile_id"
+            | "exercise_id"
+            | "unit_type"
+          >;
+        Update: Partial<AthleteMeasurementLogRow>;
+        Relationships: [];
+      };
+      form_responses: {
+        Row: FormResponseRow;
+        Insert: Partial<FormResponseRow> &
+          Pick<FormResponseRow, "form_id" | "athlete_profile_id">;
+        Update: Partial<FormResponseRow>;
         Relationships: [];
       };
     };

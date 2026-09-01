@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   cancel: {
     height: 50,
     marginTop: 14,
-    borderRadius: 999,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.surface2,

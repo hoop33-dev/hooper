@@ -55,6 +55,12 @@ const BODY = {
  */
 export const BODY_FONT = BODY.regular;
 
+/**
+ * Bold heading family (Barlow Condensed Bold). Exported for the same reason
+ * as `BODY_FONT` — e.g. a `TextInput` styled to look like an `H3`.
+ */
+export const HEADING_FONT = HEADING.bold;
+
 type Spec = {
   fontFamily: string;
   fontSize: number;

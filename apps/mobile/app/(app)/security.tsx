@@ -6,24 +6,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path, Rect } from "react-native-svg";
 
 import {
-  AccentButton,
   BackButton,
   BodySm,
+  Button,
   Caption,
   Hero,
   IconTile,
+  Lead,
   MicroLabel,
   Overline,
   Pill,
   RowTitle,
 } from "@/src/components/ui";
+import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
+import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 import { sendSecurityCode } from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
-function LockIcon() {
+function LockIcon({ color }: { color: string }) {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
       <Rect
@@ -32,21 +35,16 @@ function LockIcon() {
         width={18}
         height={11}
         rx={3}
-        stroke={colors.brandOrange}
+        stroke={color}
         strokeWidth={1.8}
       />
       <Path
         d="M7 11V7a5 5 0 0110 0v4"
-        stroke={colors.brandOrange}
+        stroke={color}
         strokeWidth={1.8}
         strokeLinecap="round"
       />
-      <Path
-        d="M12 16v1"
-        stroke={colors.brandOrange}
-        strokeWidth={2}
-        strokeLinecap="round"
-      />
+      <Path d="M12 16v1" stroke={color} strokeWidth={2} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -97,6 +95,7 @@ function MailIcon() {
 }
 
 type PasswordCardProps = {
+  accent: string;
   maskedEmail: string;
   isSending: boolean;
   sendError: string;
@@ -104,6 +103,7 @@ type PasswordCardProps = {
 };
 
 function PasswordCard({
+  accent,
   maskedEmail,
   isSending,
   sendError,
@@ -113,12 +113,12 @@ function PasswordCard({
     <View className="bg-surface-2 border-border-subtle gap-4 rounded-[18px] border p-5">
       <View className="flex-row items-start gap-3.5">
         <IconTile
-          color={colors.brandOrange}
+          color={accent}
           size={44}
           radius={12}
           bgAlpha="1a"
           borderAlpha="33">
-          <LockIcon />
+          <LockIcon color={accent} />
         </IconTile>
         <View className="flex-1">
           <RowTitle className="mb-1">Change your password</RowTitle>
@@ -136,13 +136,17 @@ function PasswordCard({
       {sendError ? (
         <Caption className="text-danger">{sendError}</Caption>
       ) : null}
-      <AccentButton
-        accent={colors.brandOrange}
-        loading={isSending}
-        icon={<MailIcon />}
-        onPress={onPress}>
-        Send reset email
-      </AccentButton>
+      <Button
+        variant="primary"
+        size="lg"
+        disabled={isSending}
+        onPress={onPress}
+        style={{ backgroundColor: isSending ? `${accent}80` : accent }}>
+        <View className="flex-row items-center gap-2">
+          <MailIcon />
+          <Lead className="text-white">Send reset email</Lead>
+        </View>
+      </Button>
     </View>
   );
 }
@@ -167,6 +171,8 @@ function TwoFactorSection() {
 export default function SecurityScreen() {
   const router = useRouter();
   const { session } = useAuthStore();
+  const user = useDashboardUser();
+  const accent = roleConfig(user?.role ?? "player").accent;
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState("");
 
@@ -198,13 +204,14 @@ export default function SecurityScreen() {
           <BackButton
             label="Profile"
             onPress={() => router.back()}
-            className="mb-5"
+            className="mb-6"
           />
           <Hero>Security</Hero>
         </View>
         <View className="mb-7 px-6">
           <Overline className="mb-2.5">Password</Overline>
           <PasswordCard
+            accent={accent}
             maskedEmail={maskedEmail}
             isSending={isSending}
             sendError={sendError}

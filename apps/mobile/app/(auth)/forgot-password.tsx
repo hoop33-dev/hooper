@@ -65,7 +65,7 @@ export default function ForgotPasswordScreen() {
           <BackButton
             label="Sign in"
             onPress={() => router.back()}
-            className="mb-8"
+            className="mb-9"
           />
 
           <Hero className="mb-1">Forgot password?</Hero>

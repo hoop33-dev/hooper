@@ -36,8 +36,11 @@ function resolveBorderColor(
 }
 
 function containerLayout(multiline?: boolean): ViewStyle {
+  // `paddingVertical` here is tuned to match the gap a single-line input gets
+  // from centring its text in the 48px min-height box, so the first line of a
+  // multiline field lines up with the one-line fields above it.
   return multiline
-    ? { alignItems: "flex-start", paddingVertical: 14 }
+    ? { alignItems: "flex-start", paddingVertical: 12 }
     : { alignItems: "center", minHeight: 48 };
 }
 
@@ -132,7 +135,10 @@ export function Field({
           placeholder={placeholder}
           placeholderTextColor={colors.textDisabled}
           multiline={multiline}
-          numberOfLines={numberOfLines}
+          // `numberOfLines` sizes the box via `inputLayout`'s minHeight — it is
+          // deliberately not forwarded to the native input. On Android it calls
+          // EditText.setLines(), which fights `textAlignVertical: "top"` and
+          // drops the first line below where the single-line fields sit.
           autoCapitalize={autoCapitalize}
           autoCorrect={false}
           onFocus={() => setFocused(true)}

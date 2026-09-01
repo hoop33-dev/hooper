@@ -20,6 +20,7 @@ const SHARED_ROUTES = new Set([
   "security",
   "security-verify",
   "security-new-password",
+  "training",
 ]);
 
 // One registered family per weight — React Native can't reliably vary a single

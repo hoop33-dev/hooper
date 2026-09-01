@@ -15,7 +15,6 @@ import {
   HelpIcon,
   LockIcon,
   LogoutIcon,
-  PinIcon,
   SettingsIcon as SettingsGearIcon,
   ShieldIcon,
 } from "@/src/components/dashboard/icons";
@@ -26,7 +25,6 @@ import {
   MenuRow,
   Meta,
   MicroLabel,
-  Pill,
   ScreenTitle,
   SectionLabel,
   Title,
@@ -99,22 +97,6 @@ export default function SettingsScreen() {
               {user.username ? (
                 <Meta style={{ color: r.accent }}>@{user.username}</Meta>
               ) : null}
-
-              <View className="mt-3.5 flex-row items-center gap-2">
-                {user.regionName ? (
-                  <Pill
-                    icon={<PinIcon size={10} color={colors.textTertiary} />}>
-                    <Meta className="text-text-secondary">
-                      {user.regionName}
-                    </Meta>
-                  </Pill>
-                ) : null}
-                <Pill color={r.accent}>
-                  <MicroLabel style={{ color: r.accent }}>
-                    {r.shortLabel}
-                  </MicroLabel>
-                </Pill>
-              </View>
             </View>
 
             {/* Subscription card */}

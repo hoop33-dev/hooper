@@ -1,0 +1,186 @@
+import { BlockContent } from "@/src/components/training/BlockContent";
+import { BlockProgressHeader } from "@/src/components/training/BlockProgressHeader";
+import { BlockTabs } from "@/src/components/training/BlockTabs";
+import { PauseOverlay } from "@/src/components/training/PauseOverlay";
+import { SessionFooterNav } from "@/src/components/training/SessionFooterNav";
+import { SessionProgressBar } from "@/src/components/training/SessionProgressBar";
+import { Button, Caption } from "@/src/components/ui";
+import { ExitGuardSheet } from "@/src/components/ui/ExitGuardSheet";
+import { colors } from "@/src/constants/theme";
+import { useExitGuard } from "@/src/hooks/useExitGuard";
+import {
+  isBlockDone,
+  useSessionPlayer,
+  type SetsByBlockExercise,
+} from "@/src/hooks/useSessionPlayer";
+import { useAuthStore } from "@/src/stores/auth.store";
+import type { AthleteSessionDetail } from "@hooper/api";
+import type { SessionCompletionRow } from "@hooper/db";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { useSharedValue } from "react-native-reanimated";
+
+function countSets(
+  session: AthleteSessionDetail,
+  setsState: SetsByBlockExercise,
+) {
+  let doneSets = 0;
+  let totalSets = 0;
+  for (const block of session.blocks) {
+    for (const be of block.exercises) {
+      totalSets += be.sets;
+      doneSets += (setsState[be.id] ?? []).filter((s) => s.done).length;
+    }
+  }
+  return { doneSets, totalSets };
+}
+
+/** Drives the "Complete session" footer button: completing early (with
+ * unlogged sets remaining) confirms first, completing with everything
+ * logged skips straight through. Either way, navigation goes through
+ * `exitGuard.allowLeave()` first — otherwise the exit guard's
+ * `beforeRemove` listener intercepts this navigation the same as a
+ * back/exit and shows the exit-session sheet instead. */
+function useCompleteSessionFlow(
+  player: {
+    session: AthleteSessionDetail | null;
+    completion: SessionCompletionRow | null;
+    setsState: SetsByBlockExercise;
+  },
+  exitGuard: ReturnType<typeof useExitGuard>,
+) {
+  const { session, completion, setsState } = player;
+  const router = useRouter();
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  function goToCompleteScreen() {
+    if (!completion || !session) return;
+    exitGuard.allowLeave();
+    router.replace({
+      pathname: "/(app)/training/complete",
+      params: { sessionCompletionId: completion.id, sessionId: session.id },
+    });
+  }
+
+  function handleComplete() {
+    if (!completion || !session) return;
+    const { doneSets, totalSets } = countSets(session, setsState);
+    if (doneSets < totalSets) {
+      setShowConfirm(true);
+      return;
+    }
+    goToCompleteScreen();
+  }
+
+  function confirmComplete() {
+    setShowConfirm(false);
+    goToCompleteScreen();
+  }
+
+  return {
+    showConfirm,
+    handleComplete,
+    confirmComplete,
+    cancelComplete: () => setShowConfirm(false),
+  };
+}
+
+function PlayerLoadError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View className="bg-surface flex-1 items-center justify-center px-8">
+      <Caption className="mb-4 text-center">
+        Couldn&apos;t load this session.
+      </Caption>
+      <Button variant="primary" size="md" onPress={onRetry}>
+        Try again
+      </Button>
+    </View>
+  );
+}
+
+export default function SessionPlayerScreen() {
+  const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
+  const profile = useAuthStore((s) => s.profile);
+  const player = useSessionPlayer(sessionId, profile?.id);
+  // Only guard the exit once the session has loaded — the spinner/error
+  // branches render no ExitGuardSheet, so a guard there blocks Back silently.
+  const exitGuard = useExitGuard(!!player.session && !player.loadError);
+  const completeFlow = useCompleteSessionFlow(player, exitGuard);
+  const { session, completion, blockIdx, setsState } = player;
+  const curBlock = session?.blocks[blockIdx] ?? null;
+  const blockScrollX = useSharedValue(0);
+
+  if (player.loadError) {
+    return <PlayerLoadError onRetry={player.retryLoad} />;
+  }
+
+  if (!session || !curBlock || !completion) {
+    return (
+      <View className="bg-surface flex-1 items-center justify-center">
+        <ActivityIndicator color={colors.textTertiary} />
+      </View>
+    );
+  }
+
+  const doneFlags = session.blocks.map((b) => isBlockDone(b, setsState));
+  const { doneSets, totalSets } = countSets(session, setsState);
+
+  return (
+    <View className="bg-surface flex-1">
+      <BlockProgressHeader
+        blockCount={session.blocks.length}
+        blockIdx={blockIdx}
+        doneFlags={doneFlags}
+        paused={player.paused}
+        pausing={player.pausing}
+        onTogglePause={player.togglePause}
+        onExit={exitGuard.requestExit}
+      />
+      <SessionProgressBar doneSets={doneSets} totalSets={totalSets} />
+      <BlockTabs
+        blocks={session.blocks}
+        doneFlags={doneFlags}
+        onSelect={player.setBlockIdx}
+        scrollX={blockScrollX}
+      />
+      <BlockContent
+        blocks={session.blocks}
+        blockIdx={blockIdx}
+        setsByBlockExercise={setsState}
+        onValueChange={player.setFieldValue}
+        onSetDone={player.markSetDone}
+        onBlockIdxChange={player.setBlockIdx}
+        scrollX={blockScrollX}
+      />
+      <SessionFooterNav
+        canGoPrev={blockIdx > 0}
+        isLastBlock={blockIdx === session.blocks.length - 1}
+        onPrev={() => player.goBlock(-1)}
+        onNext={() => player.goBlock(1)}
+        onComplete={completeFlow.handleComplete}
+      />
+      {player.paused ? <PauseOverlay onResume={player.togglePause} /> : null}
+      <ExitGuardSheet
+        visible={exitGuard.visible}
+        title="EXIT SESSION?"
+        message={`You've logged ${doneSets} of ${totalSets} sets. Your progress is saved, but the session stays unfinished.`}
+        confirmLabel="Exit session"
+        cancelLabel="Keep training"
+        confirmAccent={colors.brandOrange}
+        onConfirm={exitGuard.confirmExit}
+        onCancel={exitGuard.cancelExit}
+      />
+      <ExitGuardSheet
+        visible={completeFlow.showConfirm}
+        title="Complete session?"
+        message={`You've logged ${doneSets} of ${totalSets} sets. Doing this will complete the session.`}
+        confirmLabel="Complete session"
+        cancelLabel="Keep training"
+        confirmAccent={colors.success}
+        onConfirm={completeFlow.confirmComplete}
+        onCancel={completeFlow.cancelComplete}
+      />
+    </View>
+  );
+}

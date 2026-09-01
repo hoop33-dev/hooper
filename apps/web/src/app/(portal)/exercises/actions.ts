@@ -61,8 +61,14 @@ export async function updateExerciseVideoUrlAction(
   id: string,
   videoUrl: string,
   videoSource: ExerciseVideoSource,
+  thumbnailUrl?: string | null,
 ): Promise<ActionResult> {
-  const result = await updateExerciseVideoUrl(id, videoUrl, videoSource);
+  const result = await updateExerciseVideoUrl(
+    id,
+    videoUrl,
+    videoSource,
+    thumbnailUrl,
+  );
   if (result.ok) revalidatePath("/exercises");
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

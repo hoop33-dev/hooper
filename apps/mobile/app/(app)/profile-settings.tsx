@@ -16,13 +16,14 @@ import {
   UserIcon,
 } from "@/src/components/dashboard/icons";
 import { AvatarEditor } from "@/src/components/profile/AvatarEditor";
-import { DiscardChangesModal } from "@/src/components/profile/DiscardChangesModal";
 import { PhotoSourceSheet } from "@/src/components/profile/PhotoSourceSheet";
 import {
-  AccentButton,
+  Button,
   Caption,
+  ExitGuardSheet,
   Field,
   Label,
+  Lead,
   Overline,
   ScreenHeader,
   SelectInput,
@@ -32,6 +33,7 @@ import {
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
+import { useExitGuard } from "@/src/hooks/useExitGuard";
 import { useGuardianControls } from "@/src/hooks/useGuardianControls";
 import { useRegionOptions } from "@/src/hooks/useRegionOptions";
 import { checkUsernameAvailable } from "@/src/services/auth.service";
@@ -51,14 +53,6 @@ export default function ProfileSettingsScreen() {
   const locked = guardian.isManaged && guardian.profileSettingsLocked;
   const [showLock, setShowLock] = useState(false);
 
-  // Set true to bypass the unsaved-changes guard for an intentional leave
-  // (after saving, or after the user confirms "Discard changes").
-  const allowLeaveRef = useRef(false);
-  // The navigation action that was blocked, so we can replay it on discard.
-  const pendingActionRef = useRef<
-    Parameters<typeof navigation.dispatch>[0] | null
-  >(null);
-
   // Form state initialised from current profile data
   const [firstName, setFirstName] = useState(user?.firstName ?? "");
   const [lastName, setLastName] = useState(user?.lastName ?? "");
@@ -75,9 +69,8 @@ export default function ProfileSettingsScreen() {
   );
   const [pendingMimeType, setPendingMimeType] = useState<string>("image/jpeg");
 
-  // Photo-source sheet + unsaved-changes guard
+  // Photo-source sheet
   const [photoSheetVisible, setPhotoSheetVisible] = useState(false);
-  const [discardVisible, setDiscardVisible] = useState(false);
 
   // Username async validation
   const [usernameStatus, setUsernameStatus] = useState<
@@ -241,7 +234,7 @@ export default function ProfileSettingsScreen() {
       }
 
       await refreshProfile();
-      allowLeaveRef.current = true;
+      exitGuard.allowLeave();
       router.back();
     } catch (err: unknown) {
       const message =
@@ -270,17 +263,10 @@ export default function ProfileSettingsScreen() {
     navigation.setOptions({ gestureEnabled: !isDirty });
   }, [navigation, isDirty]);
 
-  // Guard every way off this screen — the custom back button, the Android
-  // hardware back button, and iOS edge-swipe all surface as `beforeRemove`.
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
-      if (allowLeaveRef.current || !isDirty || saving) return;
-      e.preventDefault();
-      pendingActionRef.current = e.data.action;
-      setDiscardVisible(true);
-    });
-    return unsubscribe;
-  }, [navigation, isDirty, saving]);
+  // Guard every way off this screen while there are unsaved changes — the
+  // custom back button, the Android hardware back button, and iOS edge-swipe
+  // all surface as `beforeRemove`.
+  const exitGuard = useExitGuard(isDirty && !saving);
 
   // Username suffix indicator
   const usernameSuffix =
@@ -449,17 +435,26 @@ export default function ProfileSettingsScreen() {
       {/* Sticky save button */}
       <StickySaveBar error={saveError}>
         {locked ? (
-          <AccentButton
-            variant="muted"
-            accent={r.accent}
-            icon={<LockIcon size={15} color={colors.textSecondary} />}
+          <Button
+            variant="primary"
+            size="lg"
+            className="border-border-subtle border"
+            style={{ backgroundColor: colors.surface2 }}
             onPress={() => setShowLock(true)}>
-            Locked by guardian
-          </AccentButton>
+            <View className="flex-row items-center gap-2">
+              <LockIcon size={15} color={colors.textSecondary} />
+              <Lead className="text-text-secondary">Locked by guardian</Lead>
+            </View>
+          </Button>
         ) : (
-          <AccentButton accent={r.accent} loading={saving} onPress={handleSave}>
+          <Button
+            variant="primary"
+            size="lg"
+            disabled={saving}
+            onPress={handleSave}
+            style={{ backgroundColor: saving ? `${r.accent}80` : r.accent }}>
             {saving ? <ActivityIndicator color="#fff" /> : "Save changes"}
-          </AccentButton>
+          </Button>
         )}
       </StickySaveBar>
 
@@ -471,23 +466,15 @@ export default function ProfileSettingsScreen() {
         onCancel={() => setPhotoSheetVisible(false)}
       />
 
-      <DiscardChangesModal
-        visible={discardVisible}
-        accent={r.accent}
-        onKeepEditing={() => {
-          pendingActionRef.current = null;
-          setDiscardVisible(false);
-        }}
-        onDiscard={() => {
-          setDiscardVisible(false);
-          allowLeaveRef.current = true;
-          // Replay the navigation we blocked (swipe/back/programmatic).
-          if (pendingActionRef.current) {
-            navigation.dispatch(pendingActionRef.current);
-          } else {
-            router.back();
-          }
-        }}
+      <ExitGuardSheet
+        visible={exitGuard.visible}
+        title="Discard changes?"
+        message="You have unsaved changes. If you leave now, they'll be lost."
+        confirmLabel="Discard changes"
+        cancelLabel="Keep editing"
+        confirmAccent={colors.danger}
+        onConfirm={exitGuard.confirmExit}
+        onCancel={exitGuard.cancelExit}
       />
 
       <GuardianLockPopup

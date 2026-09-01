@@ -1,6 +1,7 @@
 import type { Result } from "@/src/lib/result";
 import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
+import { computeVideoOrientation } from "@/src/lib/videoOrientation";
 import type {
   ExerciseCategoryRow,
   ExerciseRow,
@@ -179,6 +180,10 @@ export async function createExercise(
   try {
     const supabase = await createClient();
 
+    const video_orientation = input.videoUrl
+      ? await computeVideoOrientation(input.videoUrl, input.videoSource ?? null)
+      : null;
+
     const { data, error } = await supabase
       .from("exercises")
       .insert({
@@ -186,6 +191,7 @@ export async function createExercise(
         description: input.description ?? null,
         video_url: input.videoUrl ?? null,
         video_source: input.videoSource ?? null,
+        video_orientation,
         parent_id: input.parentId ?? null,
         default_style_id: input.defaultStyleId ?? null,
         created_by: input.created_by,
@@ -211,6 +217,27 @@ export async function createExercise(
   }
 }
 
+async function videoUpdateFields(
+  input: UpdateExerciseInput,
+): Promise<
+  Pick<
+    ExerciseRow,
+    "video_url" | "video_source" | "video_orientation" | "video_thumbnail_url"
+  >
+> {
+  return {
+    video_url: input.videoUrl ?? null,
+    video_source: input.videoSource ?? null,
+    video_orientation: input.videoUrl
+      ? await computeVideoOrientation(input.videoUrl, input.videoSource ?? null)
+      : null,
+    // Only ever set by updateExerciseVideoUrl (the upload-specific write
+    // path) — this function only runs for the clear/set-link cases, both
+    // of which make any previously-uploaded thumbnail stale.
+    video_thumbnail_url: null,
+  };
+}
+
 export async function updateExercise(
   id: string,
   input: UpdateExerciseInput,
@@ -223,8 +250,7 @@ export async function updateExercise(
     if (input.description !== undefined)
       updatePayload.description = input.description;
     if ("videoUrl" in input) {
-      updatePayload.video_url = input.videoUrl ?? null;
-      updatePayload.video_source = input.videoSource ?? null;
+      Object.assign(updatePayload, await videoUpdateFields(input));
     }
     if ("parentId" in input) updatePayload.parent_id = input.parentId ?? null;
     if ("defaultStyleId" in input)
@@ -272,12 +298,22 @@ export async function updateExerciseVideoUrl(
   id: string,
   videoUrl: string,
   videoSource: ExerciseVideoSource,
+  thumbnailUrl?: string | null,
 ): Promise<Result<void>> {
   try {
     const supabase = await createClient();
+    const video_orientation = await computeVideoOrientation(
+      videoUrl,
+      videoSource,
+    );
     const { error } = await supabase
       .from("exercises")
-      .update({ video_url: videoUrl, video_source: videoSource })
+      .update({
+        video_url: videoUrl,
+        video_source: videoSource,
+        video_orientation,
+        video_thumbnail_url: thumbnailUrl ?? null,
+      })
       .eq("id", id);
     if (error) return err(error.message);
     return ok(undefined);

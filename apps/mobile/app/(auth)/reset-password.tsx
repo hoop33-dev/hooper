@@ -105,7 +105,7 @@ export default function ResetPasswordScreen() {
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 pt-2 pb-4">
-          <BackButton onPress={() => router.back()} className="mb-8" />
+          <BackButton onPress={() => router.back()} className="mb-9" />
 
           <Hero className="mb-1">Reset password</Hero>
           <BodySm>

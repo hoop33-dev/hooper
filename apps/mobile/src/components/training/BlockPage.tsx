@@ -13,6 +13,9 @@ import { SupersetBlock } from "./SupersetBlock";
 
 type BlockPageProps = {
   block: AthleteBlock;
+  /** True when this is the block currently on screen in the pager — drives
+   * the "jump to first incomplete card" auto-scroll on block switch. */
+  isActive: boolean;
   setsByBlockExercise: Record<string, SetRowState[]>;
   onValueChange: (
     blockExerciseId: string,
@@ -31,6 +34,7 @@ function isExerciseFullyDone(sets: SetRowState[] | undefined): boolean {
  * a superset block (since the athlete completes a whole round at a time). */
 function useBlockPageAutoScroll(
   block: AthleteBlock,
+  isActive: boolean,
   setsByBlockExercise: Record<string, SetRowState[]>,
   rounds: number,
 ) {
@@ -49,7 +53,7 @@ function useBlockPageAutoScroll(
     }));
   }, [block, setsByBlockExercise, rounds]);
 
-  return useBlockAutoScroll(block.id, items);
+  return useBlockAutoScroll(isActive, items);
 }
 
 function BlockHeader({
@@ -83,13 +87,19 @@ function BlockHeader({
  * horizontal block pager in BlockContent. */
 export function BlockPage({
   block,
+  isActive,
   setsByBlockExercise,
   onValueChange,
   onSetDone,
 }: BlockPageProps) {
   const rounds = block.sets ?? block.exercises[0]?.sets ?? 0;
-  const { scrollRef, viewportHeight, onViewportLayout, registerCardLayout } =
-    useBlockPageAutoScroll(block, setsByBlockExercise, rounds);
+  const {
+    scrollRef,
+    viewportHeight,
+    onViewportLayout,
+    onScroll,
+    registerCardLayout,
+  } = useBlockPageAutoScroll(block, isActive, setsByBlockExercise, rounds);
 
   // Half the viewport height, so even the last card in the list has enough
   // room below it to be scrolled to a vertically-centered position instead
@@ -100,6 +110,8 @@ export function BlockPage({
     <ScrollView
       ref={scrollRef}
       onLayout={onViewportLayout}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ padding: 20, paddingBottom }}
       className="flex-1">

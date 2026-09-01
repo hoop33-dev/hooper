@@ -118,10 +118,11 @@ export function BlockContent({
       contentOffset={initialContentOffset}
       contentContainerStyle={{ height: "100%" }}
       className="flex-1">
-      {blocks.map((block) => (
+      {blocks.map((block, i) => (
         <View key={block.id} style={{ width: pageWidth, height: "100%" }}>
           <BlockPage
             block={block}
+            isActive={i === blockIdx}
             setsByBlockExercise={setsByBlockExercise}
             onValueChange={onValueChange}
             onSetDone={onSetDone}

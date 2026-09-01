@@ -4,6 +4,7 @@ import { BlockTabs } from "@/src/components/training/BlockTabs";
 import { PauseOverlay } from "@/src/components/training/PauseOverlay";
 import { SessionFooterNav } from "@/src/components/training/SessionFooterNav";
 import { SessionProgressBar } from "@/src/components/training/SessionProgressBar";
+import { Button, Caption } from "@/src/components/ui";
 import { ExitGuardSheet } from "@/src/components/ui/ExitGuardSheet";
 import { colors } from "@/src/constants/theme";
 import { useExitGuard } from "@/src/hooks/useExitGuard";
@@ -85,15 +86,34 @@ function useCompleteSessionFlow(
   };
 }
 
+function PlayerLoadError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View className="bg-surface flex-1 items-center justify-center px-8">
+      <Caption className="mb-4 text-center">
+        Couldn&apos;t load this session.
+      </Caption>
+      <Button variant="primary" size="md" onPress={onRetry}>
+        Try again
+      </Button>
+    </View>
+  );
+}
+
 export default function SessionPlayerScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const profile = useAuthStore((s) => s.profile);
   const player = useSessionPlayer(sessionId, profile?.id);
-  const exitGuard = useExitGuard();
+  // Only guard the exit once the session has loaded — the spinner/error
+  // branches render no ExitGuardSheet, so a guard there blocks Back silently.
+  const exitGuard = useExitGuard(!!player.session && !player.loadError);
   const completeFlow = useCompleteSessionFlow(player, exitGuard);
   const { session, completion, blockIdx, setsState } = player;
   const curBlock = session?.blocks[blockIdx] ?? null;
   const blockScrollX = useSharedValue(0);
+
+  if (player.loadError) {
+    return <PlayerLoadError onRetry={player.retryLoad} />;
+  }
 
   if (!session || !curBlock || !completion) {
     return (

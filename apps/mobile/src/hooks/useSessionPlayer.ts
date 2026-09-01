@@ -22,17 +22,34 @@ import type {
   AthleteMeasurementLogRow,
   SessionCompletionRow,
 } from "@hooper/db";
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react";
 
 export type SetsByBlockExercise = Record<string, SetRowState[]>;
 
-/** A ref that always holds the latest render's value — lets an async callback
- * read state the render closure captured stale (e.g. a field edit whose
- * setState is still queued when a set-done tap fires in the same gesture). */
-function useSyncedRef<T>(value: T): MutableRefObject<T> {
-  const ref = useRef(value);
-  ref.current = value;
-  return ref;
+type SetsStateUpdater =
+  | SetsByBlockExercise
+  | ((prev: SetsByBlockExercise) => SetsByBlockExercise);
+
+/** State whose latest value is also readable synchronously via the returned
+ * ref. `commit` writes the ref first, then the React state — so an async
+ * callback (a set-done tap) can see a change another handler made in the same
+ * gesture (a field edit committed on that tap's blur) without depending on
+ * when React flushes. */
+function useRefBackedSetsState() {
+  const [state, setState] = useState<SetsByBlockExercise>({});
+  const ref = useRef<SetsByBlockExercise>(state);
+  const commit = useCallback((next: SetsStateUpdater) => {
+    const resolved = typeof next === "function" ? next(ref.current) : next;
+    ref.current = resolved;
+    setState(resolved);
+  }, []);
+  return [state, ref, commit] as const;
 }
 
 function buildExerciseSets(
@@ -42,11 +59,25 @@ function buildExerciseSets(
 ): SetRowState[] {
   const rows: SetRowState[] = [];
   for (let setIndex = 0; setIndex < be.sets; setIndex++) {
-    const done = beLogs.some(
-      (l) => l.set_index === setIndex && l.status === "completed",
+    const setMeasurements = be.measurements.filter(
+      (m) => m.set_index === setIndex,
     );
+    // Done only if EVERY measurement position for this set has a completed
+    // log row. A partially-persisted set (one position's upsert succeeded,
+    // another failed on a flaky connection) must not reload as "done" with
+    // the missing field silently defaulted to a prefill value.
+    const done =
+      setMeasurements.length > 0 &&
+      setMeasurements.every((m) =>
+        beLogs.some(
+          (l) =>
+            l.set_index === setIndex &&
+            l.position === m.position &&
+            l.status === "completed",
+        ),
+      );
     const values: Record<number, number> = {};
-    for (const m of be.measurements.filter((m) => m.set_index === setIndex)) {
+    for (const m of setMeasurements) {
       const existing = beLogs.find(
         (l) => l.set_index === setIndex && l.position === m.position,
       );
@@ -230,9 +261,7 @@ async function performSetDoneToggle(params: {
   setsStateRef: MutableRefObject<SetsByBlockExercise>;
   blockExerciseId: string;
   setIndex: number;
-  setSetsState: (
-    updater: (prev: SetsByBlockExercise) => SetsByBlockExercise,
-  ) => void;
+  commitSetsState: (next: SetsStateUpdater) => void;
 }) {
   const {
     session,
@@ -241,30 +270,20 @@ async function performSetDoneToggle(params: {
     setsStateRef,
     blockExerciseId,
     setIndex,
-    setSetsState,
+    commitSetsState,
   } = params;
   const be = findBlockExercise(session, blockExerciseId);
-  if (!be) return;
-
-  let nextDone: boolean | null = null;
-  setSetsState((prev) => {
-    const row = prev[blockExerciseId]?.[setIndex];
-    if (!row) return prev;
-    nextDone = !row.done;
-    return markRowDone(prev, blockExerciseId, setIndex, nextDone);
-  });
-
-  // Let React flush the toggle above along with any field-commit update still
-  // queued from the same tap — tapping the done button blurs a focused
-  // FieldBox, and its onBlur `commit()` runs just before this handler. Read
-  // the row back from the committed state so we persist the value the athlete
-  // just typed, not the stale pre-edit one from a render closure.
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  if (nextDone === null) return;
-
+  // setsStateRef already reflects a field edit committed by this same tap's
+  // blur (setFieldValue writes the ref synchronously), so this row carries
+  // the value the athlete just typed — not a stale render closure.
   const row = setsStateRef.current[blockExerciseId]?.[setIndex];
-  if (!row) return;
-  const toggledTo = nextDone;
+  if (!be || !row) return;
+
+  const nextDone = !row.done;
+  commitSetsState((prev) =>
+    markRowDone(prev, blockExerciseId, setIndex, nextDone),
+  );
+
   try {
     await persistDoneToggle({
       completion,
@@ -272,12 +291,22 @@ async function performSetDoneToggle(params: {
       be,
       setIndex,
       row,
-      nextDone: toggledTo,
+      nextDone,
     });
   } catch {
-    setSetsState((prev) =>
-      markRowDone(prev, blockExerciseId, setIndex, !toggledTo),
+    commitSetsState((prev) =>
+      markRowDone(prev, blockExerciseId, setIndex, !nextDone),
     );
+    // Roll back any measurement rows that DID get written before the failure,
+    // so a half-persisted set doesn't linger server-side. Best effort — the
+    // all-positions-done check in buildExerciseSets is the backstop.
+    if (nextDone) {
+      try {
+        await persistSetPending({ completion, be, setIndex });
+      } catch {
+        /* nothing more we can do here */
+      }
+    }
   }
 }
 
@@ -312,27 +341,45 @@ function computeOptimisticPauseFlip(
   };
 }
 
-function useInitialSessionLoad(
-  sessionId: string,
-  athleteProfileId: string | undefined,
-  setCompletion: (c: SessionCompletionRow) => void,
-  setSession: (s: AthleteSessionDetail) => void,
-  setSetsState: (s: SetsByBlockExercise) => void,
-  setBlockIdx: (i: number) => void,
-  setPaused: (p: boolean) => void,
-) {
+function useInitialSessionLoad(params: {
+  sessionId: string;
+  athleteProfileId: string | undefined;
+  setCompletion: (c: SessionCompletionRow) => void;
+  setSession: (s: AthleteSessionDetail) => void;
+  commitSetsState: (next: SetsStateUpdater) => void;
+  setBlockIdx: (i: number) => void;
+}) {
+  const {
+    sessionId,
+    athleteProfileId,
+    setCompletion,
+    setSession,
+    commitSetsState,
+    setBlockIdx,
+  } = params;
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
     if (!athleteProfileId || !sessionId) return;
     let cancelled = false;
     async function load() {
-      const data = await loadSessionPlayerData(sessionId, athleteProfileId!);
-      if (cancelled) return;
-      setCompletion(data.completion);
-      setSession(data.session);
-      setSetsState(data.setsState);
-      setBlockIdx(data.blockIdx);
-      setPaused(!!data.completion.paused_at);
+      try {
+        const data = await loadSessionPlayerData(sessionId, athleteProfileId!);
+        if (cancelled) return;
+        setCompletion(data.completion);
+        setSession(data.session);
+        commitSetsState(data.setsState);
+        setBlockIdx(data.blockIdx);
+      } catch (e) {
+        if (cancelled) return;
+        // Without this the screen sits on a bare spinner forever with no way
+        // out — the athlete has to force-kill the app.
+        console.warn("Failed to load the session player", e);
+        setLoadError(true);
+      }
     }
+    setLoadError(false);
     load();
     return () => {
       cancelled = true;
@@ -342,10 +389,12 @@ function useInitialSessionLoad(
     sessionId,
     setCompletion,
     setSession,
-    setSetsState,
+    commitSetsState,
     setBlockIdx,
-    setPaused,
+    reloadKey,
   ]);
+
+  return { loadError, retryLoad: () => setReloadKey((k) => k + 1) };
 }
 
 /** Owns every piece of state and every persistence call for the session
@@ -360,21 +409,21 @@ export function useSessionPlayer(
   const [completion, setCompletion] = useState<SessionCompletionRow | null>(
     null,
   );
-  const [setsState, setSetsState] = useState<SetsByBlockExercise>({});
-  const setsStateRef = useSyncedRef(setsState);
+  const [setsState, setsStateRef, commitSetsState] = useRefBackedSetsState();
   const [blockIdx, setBlockIdx] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [pausing, setPausing] = useState(false);
+  // Derived, not separate state — it's always exactly `!!completion.paused_at`,
+  // and the optimistic pause flip already updates that on `completion`.
+  const paused = !!completion?.paused_at;
 
-  useInitialSessionLoad(
+  const { loadError, retryLoad } = useInitialSessionLoad({
     sessionId,
     athleteProfileId,
     setCompletion,
     setSession,
-    setSetsState,
+    commitSetsState,
     setBlockIdx,
-    setPaused,
-  );
+  });
 
   function setFieldValue(
     blockExerciseId: string,
@@ -382,7 +431,7 @@ export function useSessionPlayer(
     position: number,
     value: number,
   ) {
-    setSetsState((prev) =>
+    commitSetsState((prev) =>
       applyFieldValue(prev, blockExerciseId, setIndex, position, value),
     );
   }
@@ -396,25 +445,21 @@ export function useSessionPlayer(
       setsStateRef,
       blockExerciseId,
       setIndex,
-      setSetsState,
+      commitSetsState,
     });
   }
 
-  /** Optimistic: flips the paused state immediately so the button/overlay
-   * respond without waiting on the network, then reconciles with (or
-   * reverts to) the server response in the background. */
+  /** Optimistic: flip paused immediately, then reconcile with (or revert to)
+   * the server response in the background. */
   async function togglePause() {
     if (!completion || pausing) return;
     const prevCompletion = completion;
-    const wasPaused = !!completion.paused_at;
     setCompletion(computeOptimisticPauseFlip(completion));
-    setPaused(!wasPaused);
     setPausing(true);
     try {
       setCompletion(await performPauseToggle(prevCompletion));
     } catch {
       setCompletion(prevCompletion);
-      setPaused(wasPaused);
     } finally {
       setPausing(false);
     }
@@ -435,6 +480,8 @@ export function useSessionPlayer(
     setBlockIdx,
     paused,
     pausing,
+    loadError,
+    retryLoad,
     setFieldValue,
     markSetDone,
     togglePause,

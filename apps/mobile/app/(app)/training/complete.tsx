@@ -63,18 +63,19 @@ function SuccessBadge() {
 }
 
 function StatsRow({
-  elapsedSeconds,
+  durationSeconds,
   sets,
   exercises,
 }: {
-  elapsedSeconds: number;
-  sets: number;
-  exercises: number;
+  durationSeconds: number;
+  /** Null while the (non-blocking) summary load is pending or failed. */
+  sets: number | null;
+  exercises: number | null;
 }) {
   const stats: [string, string][] = [
-    ["Duration", formatDuration(elapsedSeconds)],
-    ["Sets", String(sets)],
-    ["Exercises", String(exercises)],
+    ["Duration", formatDuration(durationSeconds)],
+    ["Sets", sets == null ? "—" : String(sets)],
+    ["Exercises", exercises == null ? "—" : String(exercises)],
   ];
   return (
     <View className="bg-surface-2 mb-5 w-full flex-row overflow-hidden rounded-2xl">
@@ -111,16 +112,13 @@ function RpeCard({
   );
 }
 
-async function loadCompletionSummary(
+type SessionStats = { sets: number; exercises: number };
+
+async function loadSummaryStats(
   sessionCompletionId: string,
   sessionId: string,
 ) {
-  // Freeze the attempt as completed the moment this screen opens, so backing
-  // out before rating it (Android back / iOS swipe) can't leave a session
-  // stuck in_progress after the UI has already announced "Session done."
-  // effort_rpe stays null until setSessionEffortRpe fills it in on Done.
-  const [completion, session, logs] = await Promise.all([
-    completeSession(sessionCompletionId, null),
+  const [session, logs] = await Promise.all([
     getSessionDetail(sessionId),
     getLogsForCompletion(sessionCompletionId),
   ]);
@@ -132,7 +130,6 @@ async function loadCompletionSummary(
   );
   const exerciseIds = new Set(completedLogs.map((l) => l.block_exercise_id));
   return {
-    completion,
     sessionName: session.name,
     stats: { sets: completedSets.size, exercises: exerciseIds.size },
   };
@@ -146,34 +143,50 @@ function useCompletionSummary(
     null,
   );
   const [sessionName, setSessionName] = useState("");
-  const [stats, setStats] = useState<{
-    sets: number;
-    exercises: number;
-  } | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  const [stats, setStats] = useState<SessionStats | null>(null);
+  const [finalizeError, setFinalizeError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!sessionCompletionId || !sessionId) return;
     let cancelled = false;
-    async function load() {
+
+    async function run() {
+      // Critical: freeze the attempt as completed the moment this screen
+      // opens, so backing out before rating it (Android back / iOS swipe)
+      // can't leave a session stuck in_progress after the UI has announced
+      // "Session done." effort_rpe stays null until Done fills it in.
+      let finalized: SessionCompletionRow;
       try {
-        const summary = await loadCompletionSummary(
+        finalized = await completeSession(sessionCompletionId!, null);
+      } catch (e) {
+        if (!cancelled) {
+          console.warn("Failed to finalise the session", e);
+          setFinalizeError(true);
+        }
+        return;
+      }
+      if (cancelled) return;
+      setCompletion(finalized);
+
+      // Cosmetic: the name + set/exercise counts. A failure here (session
+      // renamed/deleted, flaky network) must not block the athlete from
+      // rating the session and leaving — just show the stats as unknown.
+      try {
+        const summary = await loadSummaryStats(
           sessionCompletionId!,
           sessionId!,
         );
         if (cancelled) return;
-        setCompletion(summary.completion);
         setSessionName(summary.sessionName);
         setStats(summary.stats);
       } catch (e) {
-        if (cancelled) return;
-        console.warn("Failed to finalise session completion", e);
-        setLoadError(true);
+        if (!cancelled) console.warn("Couldn't load the session summary", e);
       }
     }
-    setLoadError(false);
-    load();
+
+    setFinalizeError(false);
+    run();
     return () => {
       cancelled = true;
     };
@@ -183,31 +196,9 @@ function useCompletionSummary(
     completion,
     sessionName,
     stats,
-    loadError,
+    finalizeError,
     retry: () => setReloadKey((k) => k + 1),
   };
-}
-
-function useElapsedSeconds(completion: SessionCompletionRow | null) {
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  useEffect(() => {
-    if (!completion) return;
-    function tick() {
-      const elapsedMs = Date.now() - new Date(completion!.started_at).getTime();
-      setElapsedSeconds(
-        Math.max(
-          0,
-          Math.round(elapsedMs / 1000) - completion!.paused_duration_seconds,
-        ),
-      );
-    }
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [completion]);
-
-  return elapsedSeconds;
 }
 
 export default function SessionCompleteScreen() {
@@ -216,9 +207,8 @@ export default function SessionCompleteScreen() {
     sessionId: string;
   }>();
   const router = useRouter();
-  const { completion, sessionName, stats, loadError, retry } =
+  const { completion, sessionName, stats, finalizeError, retry } =
     useCompletionSummary(sessionCompletionId, sessionId);
-  const elapsedSeconds = useElapsedSeconds(completion);
   // Null until the athlete actually sets it — RPE feeds coach load
   // monitoring, so a fabricated mid-range default would be worse than
   // making them take the extra second to rate it.
@@ -236,7 +226,7 @@ export default function SessionCompleteScreen() {
     }
   }
 
-  if (loadError) {
+  if (finalizeError) {
     return (
       <View className="bg-surface flex-1 items-center justify-center px-8">
         <Caption className="mb-4 text-center">
@@ -249,7 +239,7 @@ export default function SessionCompleteScreen() {
     );
   }
 
-  if (!completion || !stats) {
+  if (!completion) {
     return (
       <View className="bg-surface flex-1 items-center justify-center">
         <ActivityIndicator color={colors.textTertiary} />
@@ -262,11 +252,11 @@ export default function SessionCompleteScreen() {
       <View className="flex-1 items-center justify-center">
         <SuccessBadge />
         <H2 className="mb-1">Session done.</H2>
-        <Caption className="mb-7">{sessionName}</Caption>
+        <Caption className="mb-7">{sessionName || " "}</Caption>
         <StatsRow
-          elapsedSeconds={elapsedSeconds}
-          sets={stats.sets}
-          exercises={stats.exercises}
+          durationSeconds={completion.active_duration_seconds ?? 0}
+          sets={stats?.sets ?? null}
+          exercises={stats?.exercises ?? null}
         />
         <RpeCard rpe={rpe} onChange={setRpe} />
       </View>

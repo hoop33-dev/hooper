@@ -45,6 +45,13 @@ export function useBlockAutoScroll(blockKey: string, items: AutoScrollItem[]) {
     [viewportHeight],
   );
 
+  // Read by the block-switch effect without being a dependency of it — its
+  // identity changes whenever `viewportHeight` does (the soft keyboard
+  // resizing the ScrollView on Android is enough), and that must not re-fire
+  // the "jump to first incomplete" jump mid-edit.
+  const scrollItemIntoViewRef = useRef(scrollItemIntoView);
+  scrollItemIntoViewRef.current = scrollItemIntoView;
+
   const registerCardLayout = useCallback(
     (id: string, layout: LayoutRectangle) => {
       cardLayouts.current.set(id, layout);
@@ -62,13 +69,12 @@ export function useBlockAutoScroll(blockKey: string, items: AutoScrollItem[]) {
   // "entering a block with some items already done" for "just finished one".
   useEffect(() => {
     const current = latestItems.current;
-    const target = items.find((it) => !it.done) ?? items[0];
+    const target = current.find((it) => !it.done) ?? current[0];
     prevDoneIds.current = new Set(
       current.filter((it) => it.done).map((it) => it.id),
     );
-    if (target) scrollItemIntoView(target.id, false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blockKey, scrollItemIntoView]);
+    if (target) scrollItemIntoViewRef.current(target.id, false);
+  }, [blockKey]);
 
   useEffect(() => {
     const doneNow = new Set(items.filter((it) => it.done).map((it) => it.id));

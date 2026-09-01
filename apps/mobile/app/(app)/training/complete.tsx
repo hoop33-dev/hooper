@@ -11,7 +11,7 @@ import { getLogsForCompletion } from "@/src/services/measurementLog.service";
 import { getSessionDetail } from "@/src/services/program.service";
 import {
   completeSession,
-  getCompletion,
+  setSessionEffortRpe,
 } from "@/src/services/sessionCompletion.service";
 import type { SessionCompletionRow } from "@hooper/db";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -95,14 +95,18 @@ function RpeCard({
   rpe,
   onChange,
 }: {
-  rpe: number;
+  rpe: number | null;
   onChange: (n: number) => void;
 }) {
   return (
     <View className="bg-surface-2 border-border-subtle w-full rounded-2xl border px-4.5 py-4">
       <RowTitle className="mb-0.5">How hard was it?</RowTitle>
-      <Meta className="mb-3">Rate perceived exertion · 1–10</Meta>
-      <Slider value={rpe} min={1} max={10} onChange={onChange} />
+      <Meta className="mb-3">
+        {rpe === null
+          ? "Rate perceived exertion · drag to set"
+          : "Rate perceived exertion · 1–10"}
+      </Meta>
+      <Slider value={rpe ?? 6} min={1} max={10} onChange={onChange} />
     </View>
   );
 }
@@ -111,17 +115,26 @@ async function loadCompletionSummary(
   sessionCompletionId: string,
   sessionId: string,
 ) {
+  // Freeze the attempt as completed the moment this screen opens, so backing
+  // out before rating it (Android back / iOS swipe) can't leave a session
+  // stuck in_progress after the UI has already announced "Session done."
+  // effort_rpe stays null until setSessionEffortRpe fills it in on Done.
   const [completion, session, logs] = await Promise.all([
-    getCompletion(sessionCompletionId),
+    completeSession(sessionCompletionId, null),
     getSessionDetail(sessionId),
     getLogsForCompletion(sessionCompletionId),
   ]);
   const completedLogs = logs.filter((l) => l.status === "completed");
+  // Logs are one row per measurement position, so a set tracking e.g. reps +
+  // weight is two rows — count distinct (block_exercise_id, set_index) pairs.
+  const completedSets = new Set(
+    completedLogs.map((l) => `${l.block_exercise_id}:${l.set_index}`),
+  );
   const exerciseIds = new Set(completedLogs.map((l) => l.block_exercise_id));
   return {
     completion,
     sessionName: session.name,
-    stats: { sets: completedLogs.length, exercises: exerciseIds.size },
+    stats: { sets: completedSets.size, exercises: exerciseIds.size },
   };
 }
 
@@ -137,27 +150,42 @@ function useCompletionSummary(
     sets: number;
     exercises: number;
   } | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!sessionCompletionId || !sessionId) return;
     let cancelled = false;
     async function load() {
-      const summary = await loadCompletionSummary(
-        sessionCompletionId!,
-        sessionId!,
-      );
-      if (cancelled) return;
-      setCompletion(summary.completion);
-      setSessionName(summary.sessionName);
-      setStats(summary.stats);
+      try {
+        const summary = await loadCompletionSummary(
+          sessionCompletionId!,
+          sessionId!,
+        );
+        if (cancelled) return;
+        setCompletion(summary.completion);
+        setSessionName(summary.sessionName);
+        setStats(summary.stats);
+      } catch (e) {
+        if (cancelled) return;
+        console.warn("Failed to finalise session completion", e);
+        setLoadError(true);
+      }
     }
+    setLoadError(false);
     load();
     return () => {
       cancelled = true;
     };
-  }, [sessionCompletionId, sessionId]);
+  }, [sessionCompletionId, sessionId, reloadKey]);
 
-  return { completion, sessionName, stats };
+  return {
+    completion,
+    sessionName,
+    stats,
+    loadError,
+    retry: () => setReloadKey((k) => k + 1),
+  };
 }
 
 function useElapsedSeconds(completion: SessionCompletionRow | null) {
@@ -188,23 +216,37 @@ export default function SessionCompleteScreen() {
     sessionId: string;
   }>();
   const router = useRouter();
-  const { completion, sessionName, stats } = useCompletionSummary(
-    sessionCompletionId,
-    sessionId,
-  );
+  const { completion, sessionName, stats, loadError, retry } =
+    useCompletionSummary(sessionCompletionId, sessionId);
   const elapsedSeconds = useElapsedSeconds(completion);
-  const [rpe, setRpe] = useState(6);
+  // Null until the athlete actually sets it — RPE feeds coach load
+  // monitoring, so a fabricated mid-range default would be worse than
+  // making them take the extra second to rate it.
+  const [rpe, setRpe] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleDone() {
-    if (!completion || submitting) return;
+    if (!completion || submitting || rpe === null) return;
     setSubmitting(true);
     try {
-      await completeSession(completion.id, rpe);
+      await setSessionEffortRpe(completion.id, rpe);
       router.replace("/(app)/player");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (loadError) {
+    return (
+      <View className="bg-surface flex-1 items-center justify-center px-8">
+        <Caption className="mb-4 text-center">
+          Couldn&apos;t save your session. Your logged sets are safe.
+        </Caption>
+        <Button variant="primary" size="md" onPress={retry}>
+          Try again
+        </Button>
+      </View>
+    );
   }
 
   if (!completion || !stats) {
@@ -232,7 +274,7 @@ export default function SessionCompleteScreen() {
         <Button
           variant="primary"
           size="lg"
-          disabled={submitting}
+          disabled={submitting || rpe === null}
           onPress={handleDone}>
           {submitting ? <ActivityIndicator color="#fff" /> : "Done"}
         </Button>

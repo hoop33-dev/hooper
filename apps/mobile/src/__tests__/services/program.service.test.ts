@@ -331,6 +331,48 @@ describe("listProgramSessions", () => {
     });
   });
 
+  it("ignores a stale in-progress row on a session that is already completed", async () => {
+    mockFrom
+      .mockReturnValueOnce(
+        makeSessionsBuilder({
+          data: [
+            { id: "sess1", week_number: 1, position: 0, name: "A", blocks: [] },
+            { id: "sess2", week_number: 1, position: 1, name: "B", blocks: [] },
+          ],
+          error: null,
+        }),
+      )
+      .mockReturnValueOnce(
+        makeCompletionsNoOrderBuilder({
+          data: [{ session_id: "sess2", active_duration_seconds: 1800 }],
+          error: null,
+        }),
+      )
+      .mockReturnValueOnce(
+        makeActiveOrderedBuilder({
+          data: [{ session_id: "sess2", started_at: "2026-08-27T00:00:00Z" }],
+          error: null,
+        }),
+      );
+
+    const result = await listProgramSessions("prog1", "athlete1");
+
+    // The completed session isn't re-flagged active/current by its abandoned
+    // in-progress attempt...
+    expect(result[1]).toMatchObject({
+      id: "sess2",
+      done: true,
+      active: false,
+      current: false,
+    });
+    // ...and current falls back to the first genuinely incomplete session.
+    expect(result[0]).toMatchObject({
+      id: "sess1",
+      done: false,
+      current: true,
+    });
+  });
+
   it("flags every in-progress session as active, but only the most recently started as current", async () => {
     mockFrom
       .mockReturnValueOnce(

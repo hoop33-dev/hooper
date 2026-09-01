@@ -13,8 +13,14 @@ export async function computeVideoOrientation(
   if (videoSource !== "link") return null;
 
   try {
+    // Hard cap the round trip — Node's fetch has no default timeout, and a
+    // slow / rate-limited / unreachable oembed endpoint would otherwise
+    // block the coach's save until the socket eventually gives up. The
+    // AbortError lands in the catch below and resolves to null like any
+    // other failure.
     const res = await fetch(
       `https://www.youtube.com/oembed?url=${encodeURIComponent(videoUrl)}&format=json`,
+      { signal: AbortSignal.timeout(3000) },
     );
     if (!res.ok) return null;
 

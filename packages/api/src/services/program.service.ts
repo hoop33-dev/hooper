@@ -294,10 +294,17 @@ export async function listProgramSessions(
   if (activeError) throw new Error(activeError.message);
 
   const byId = new Map((completions ?? []).map((c) => [c.session_id, c]));
-  const activeById = new Map(
-    (activeRows ?? []).map((r) => [r.session_id, r.started_at]),
+  const completedIds = new Set((completions ?? []).map((c) => c.session_id));
+  // An in-progress row for a session that also has a completed row is a stale
+  // or abandoned attempt (or a re-open of a finished session) — drop it so
+  // the session doesn't render as active/current stacked on top of done.
+  const liveActiveRows = (activeRows ?? []).filter(
+    (r) => !completedIds.has(r.session_id),
   );
-  const primaryActiveId = activeRows?.[0]?.session_id ?? null;
+  const activeById = new Map(
+    liveActiveRows.map((r) => [r.session_id, r.started_at]),
+  );
+  const primaryActiveId = liveActiveRows[0]?.session_id ?? null;
   let markedCurrent = false;
   const items: AthleteSessionListItem[] = [];
   for (const s of sessions) {

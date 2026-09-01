@@ -74,8 +74,29 @@ export async function startOrResumeSession(
     })
     .select()
     .single();
-  if (error) throw new Error(error.message);
-  return data;
+  if (!error) return data;
+
+  // Lost the select-then-insert race (rapid double-tap, or a crash-relaunch
+  // landing at the same moment as another client): the partial unique index
+  // rejected our insert because an in_progress row now exists. Treat that as
+  // "resume the existing one" rather than surfacing a 23505 to the athlete.
+  if (isUniqueViolation(error)) {
+    const { data: raced, error: racedError } = await client
+      .from("session_completions")
+      .select("*")
+      .eq("session_id", sessionId)
+      .eq("athlete_profile_id", athleteProfileId)
+      .eq("status", "in_progress")
+      .maybeSingle();
+    if (racedError) throw new Error(racedError.message);
+    if (raced) return raced;
+  }
+  throw new Error(error.message);
+}
+
+/** Postgres unique_violation — Supabase surfaces the SQLSTATE on `.code`. */
+function isUniqueViolation(error: { code?: string }): boolean {
+  return error.code === "23505";
 }
 
 export async function pauseSession(
@@ -107,6 +128,12 @@ export async function resumeSession(
     Math.floor((Date.now() - new Date(pausedAt).getTime()) / 1000),
   );
 
+  // Only fold the pause interval in if the row is still actually paused.
+  // togglePause is optimistic and re-tappable, and a stale in-progress row
+  // (resumed on another device, or loaded from a previous app launch) can
+  // reach here with paused_at already cleared — without this `not(...)` guard
+  // a retried resume would add the interval a second time and understate
+  // active_duration_seconds on completion.
   const { data, error } = await client
     .from("session_completions")
     .update({
@@ -114,23 +141,34 @@ export async function resumeSession(
       paused_duration_seconds: pausedDurationSeconds + pausedSeconds,
     })
     .eq("id", sessionCompletionId)
+    .not("paused_at", "is", null)
     .select()
-    .single();
+    .maybeSingle();
   if (error) throw new Error(error.message);
-  return data;
+  if (data) return data;
+
+  // Already resumed — return the row unchanged rather than double-counting.
+  return getCompletion(sessionCompletionId);
 }
 
+/** Marks the attempt completed and freezes its active duration. Called once
+ * as soon as the athlete reaches the summary screen (so backing out of it
+ * can't leave a "done" session stuck in_progress) — `effortRpe` is null at
+ * that point and filled in afterwards by setSessionEffortRpe when they rate
+ * it. A no-op re-call on an already-completed row just returns it unchanged
+ * so the duration isn't recomputed later/larger. */
 export async function completeSession(
   sessionCompletionId: string,
-  effortRpe: number,
+  effortRpe: number | null,
 ): Promise<SessionCompletionRow> {
   const client = getClient();
   const { data: current, error: currentError } = await client
     .from("session_completions")
-    .select("started_at, paused_at, paused_duration_seconds")
+    .select("status, started_at, paused_at, paused_duration_seconds")
     .eq("id", sessionCompletionId)
     .single();
   if (currentError) throw new Error(currentError.message);
+  if (current.status === "completed") return getCompletion(sessionCompletionId);
 
   const now = new Date();
   // Defensive: fold in a still-open pause (shouldn't normally happen — the
@@ -164,6 +202,24 @@ export async function completeSession(
       active_duration_seconds: activeDurationSeconds,
       effort_rpe: effortRpe,
     })
+    .eq("id", sessionCompletionId)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/** Records the athlete's post-session effort rating without re-touching
+ * status/duration — completeSession has already run by the time they pick
+ * this on the summary screen. */
+export async function setSessionEffortRpe(
+  sessionCompletionId: string,
+  effortRpe: number,
+): Promise<SessionCompletionRow> {
+  const client = getClient();
+  const { data, error } = await client
+    .from("session_completions")
+    .update({ effort_rpe: effortRpe })
     .eq("id", sessionCompletionId)
     .select()
     .single();

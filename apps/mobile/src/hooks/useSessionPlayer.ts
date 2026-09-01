@@ -22,9 +22,18 @@ import type {
   AthleteMeasurementLogRow,
   SessionCompletionRow,
 } from "@hooper/db";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 
 export type SetsByBlockExercise = Record<string, SetRowState[]>;
+
+/** A ref that always holds the latest render's value — lets an async callback
+ * read state the render closure captured stale (e.g. a field edit whose
+ * setState is still queued when a set-done tap fires in the same gesture). */
+function useSyncedRef<T>(value: T): MutableRefObject<T> {
+  const ref = useRef(value);
+  ref.current = value;
+  return ref;
+}
 
 function buildExerciseSets(
   be: AthleteBlockExercise,
@@ -218,7 +227,7 @@ async function performSetDoneToggle(params: {
   session: AthleteSessionDetail;
   completion: SessionCompletionRow;
   athleteProfileId: string;
-  setsState: SetsByBlockExercise;
+  setsStateRef: MutableRefObject<SetsByBlockExercise>;
   blockExerciseId: string;
   setIndex: number;
   setSetsState: (
@@ -229,18 +238,33 @@ async function performSetDoneToggle(params: {
     session,
     completion,
     athleteProfileId,
-    setsState,
+    setsStateRef,
     blockExerciseId,
     setIndex,
     setSetsState,
   } = params;
   const be = findBlockExercise(session, blockExerciseId);
-  const row = setsState[blockExerciseId]?.[setIndex];
-  if (!be || !row) return;
-  const nextDone = !row.done;
-  setSetsState((prev) =>
-    markRowDone(prev, blockExerciseId, setIndex, nextDone),
-  );
+  if (!be) return;
+
+  let nextDone: boolean | null = null;
+  setSetsState((prev) => {
+    const row = prev[blockExerciseId]?.[setIndex];
+    if (!row) return prev;
+    nextDone = !row.done;
+    return markRowDone(prev, blockExerciseId, setIndex, nextDone);
+  });
+
+  // Let React flush the toggle above along with any field-commit update still
+  // queued from the same tap — tapping the done button blurs a focused
+  // FieldBox, and its onBlur `commit()` runs just before this handler. Read
+  // the row back from the committed state so we persist the value the athlete
+  // just typed, not the stale pre-edit one from a render closure.
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  if (nextDone === null) return;
+
+  const row = setsStateRef.current[blockExerciseId]?.[setIndex];
+  if (!row) return;
+  const toggledTo = nextDone;
   try {
     await persistDoneToggle({
       completion,
@@ -248,11 +272,11 @@ async function performSetDoneToggle(params: {
       be,
       setIndex,
       row,
-      nextDone,
+      nextDone: toggledTo,
     });
   } catch {
     setSetsState((prev) =>
-      markRowDone(prev, blockExerciseId, setIndex, !nextDone),
+      markRowDone(prev, blockExerciseId, setIndex, !toggledTo),
     );
   }
 }
@@ -337,6 +361,7 @@ export function useSessionPlayer(
     null,
   );
   const [setsState, setSetsState] = useState<SetsByBlockExercise>({});
+  const setsStateRef = useSyncedRef(setsState);
   const [blockIdx, setBlockIdx] = useState(0);
   const [paused, setPaused] = useState(false);
   const [pausing, setPausing] = useState(false);
@@ -368,7 +393,7 @@ export function useSessionPlayer(
       session,
       completion,
       athleteProfileId,
-      setsState,
+      setsStateRef,
       blockExerciseId,
       setIndex,
       setSetsState,

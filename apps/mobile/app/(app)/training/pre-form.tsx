@@ -50,17 +50,23 @@ function priorAnswerValue(
   }
 }
 
-/** Seeds the answer state so a question counts as already answered — and
- * gets submitted as-is if the athlete never touches it — whenever it has
- * something sensible to start from: their own last response (all types but
- * short_text) falling back to the field's cosmetic default (number/slider
- * only; dropdown/yes_no/short_text have no meaningful unselected default). */
+/** Seeds the answer state for *optional* questions only, so one counts as
+ * already answered — and gets submitted as-is if the athlete never touches
+ * it — whenever it has something sensible to start from: their own last
+ * response (all types but short_text) falling back to the field's cosmetic
+ * default (number/slider only; dropdown/yes_no/short_text have no meaningful
+ * unselected default).
+ *
+ * Required questions are deliberately never seeded: submit stays blocked
+ * until the athlete actually answers each one, so e.g. an injury check-in
+ * can't be skipped past on a prefilled "no" the athlete never read. */
 function buildInitialAnswers(
   form: FormWithQuestions,
   lastResponse: Record<string, unknown> | null,
 ): Answers {
   const answers: Answers = {};
   for (const question of form.questions) {
+    if (question.required) continue;
     const prior = priorAnswerValue(question, lastResponse?.[question.id]);
     const seeded =
       prior !== undefined ? prior : defaultAnswerForQuestion(question);
@@ -108,9 +114,13 @@ function PreSessionFormBody({
   submitting: boolean;
   onSubmit: () => void;
 }) {
-  const requiredMissing = form.questions.some(
-    (q) => q.required && answers[q.id] === undefined,
-  );
+  const requiredMissing = form.questions.some((q) => {
+    if (!q.required) return false;
+    const a = answers[q.id];
+    // Empty or whitespace-only text (typed then cleared) must still count as
+    // unanswered, not just a literal undefined.
+    return a == null || (typeof a === "string" && a.trim() === "");
+  });
 
   return (
     <>
@@ -149,6 +159,72 @@ function PreSessionFormBody({
   );
 }
 
+/** Loads the program's check-in form plus the athlete's last response, or
+ * redirects straight into the player when there's no form. Any failure
+ * (offline, 5xx on either query) surfaces as `loadError` with a `retry` —
+ * an unhandled rejection here would otherwise strand the athlete on the
+ * spinner, unable to start the session. */
+function usePreSessionForm(
+  programId: string,
+  sessionId: string,
+  athleteProfileId: string | undefined,
+) {
+  const router = useRouter();
+  const [form, setForm] = useState<FormWithQuestions | null | undefined>(
+    undefined,
+  );
+  const [answers, setAnswers] = useState<Answers>({});
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    if (!athleteProfileId || !sessionId || !programId) return;
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const programForm = await getProgramForm(programId);
+        if (cancelled) return;
+        if (!programForm) {
+          // No check-in form attached — start the session directly.
+          await startOrResumeSession(sessionId, athleteProfileId!);
+          if (cancelled) return;
+          router.replace({
+            pathname: "/(app)/training/play",
+            params: { sessionId },
+          });
+          return;
+        }
+        const lastResponse = await getLastFormResponse(
+          athleteProfileId!,
+          programForm.id,
+        );
+        if (cancelled) return;
+        setAnswers(buildInitialAnswers(programForm, lastResponse));
+        setForm(programForm);
+      } catch (e) {
+        if (cancelled) return;
+        console.warn("Failed to load pre-session form", e);
+        setLoadError(true);
+      }
+    }
+
+    setLoadError(false);
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [athleteProfileId, sessionId, programId, router, reloadKey]);
+
+  return {
+    form,
+    answers,
+    setAnswers,
+    loadError,
+    retry: () => setReloadKey((k) => k + 1),
+  };
+}
+
 export default function PreSessionFormScreen() {
   const { sessionId, programId } = useLocalSearchParams<{
     sessionId: string;
@@ -156,41 +232,12 @@ export default function PreSessionFormScreen() {
   }>();
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
-  const [form, setForm] = useState<FormWithQuestions | null | undefined>(
-    undefined,
+  const { form, answers, setAnswers, loadError, retry } = usePreSessionForm(
+    programId,
+    sessionId,
+    profile?.id,
   );
-  const [answers, setAnswers] = useState<Answers>({});
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!profile || !sessionId || !programId) return;
-    let cancelled = false;
-
-    async function go() {
-      const programForm = await getProgramForm(programId);
-      if (cancelled) return;
-      if (!programForm) {
-        // No check-in form attached — start the session directly.
-        await startOrResumeSession(sessionId, profile!.id);
-        router.replace({
-          pathname: "/(app)/training/play",
-          params: { sessionId },
-        });
-        return;
-      }
-      const lastResponse = await getLastFormResponse(
-        profile!.id,
-        programForm.id,
-      );
-      if (cancelled) return;
-      setAnswers(buildInitialAnswers(programForm, lastResponse));
-      setForm(programForm);
-    }
-    go();
-    return () => {
-      cancelled = true;
-    };
-  }, [profile, sessionId, programId, router]);
 
   async function handleSubmit() {
     if (!profile || !form || submitting) return;
@@ -213,7 +260,16 @@ export default function PreSessionFormScreen() {
         backLabel="Session overview"
         onBack={() => router.back()}
       />
-      {form === undefined ? (
+      {loadError ? (
+        <View className="flex-1 items-center justify-center px-8">
+          <Lead className="mb-4 text-center">
+            Couldn&apos;t load your check-in.
+          </Lead>
+          <Button variant="primary" size="md" onPress={retry}>
+            Try again
+          </Button>
+        </View>
+      ) : form === undefined ? (
         <ActivityIndicator
           color={colors.textTertiary}
           style={{ marginTop: 48 }}

@@ -2,6 +2,7 @@ import {
   completeSession,
   pauseSession,
   resumeSession,
+  setSessionEffortRpe,
   startOrResumeSession,
 } from "@/src/services/sessionCompletion.service";
 import { initClient } from "@hooper/api";
@@ -55,6 +56,16 @@ function makeUpdateSingleBuilder(resolveValue: unknown) {
   return { update };
 }
 
+/** `.update(...).eq(...).not(...).select().maybeSingle()` (guarded resume) */
+function makeGuardedUpdateBuilder(resolveValue: unknown) {
+  const maybeSingle = jest.fn().mockResolvedValue(resolveValue);
+  const select = jest.fn().mockReturnValue({ maybeSingle });
+  const not = jest.fn().mockReturnValue({ select });
+  const eq = jest.fn().mockReturnValue({ not });
+  const update = jest.fn().mockReturnValue({ eq });
+  return { update, not };
+}
+
 // ─── startOrResumeSession ─────────────────────────────────────────────────
 
 describe("startOrResumeSession", () => {
@@ -68,6 +79,27 @@ describe("startOrResumeSession", () => {
 
     expect(result).toBe(existing);
     expect(mockFrom).toHaveBeenCalledTimes(1);
+  });
+
+  it("resumes the existing row when a concurrent insert wins the unique-index race", async () => {
+    const raced = { id: "sc-raced", status: "in_progress" };
+    mockFrom
+      .mockReturnValueOnce(
+        makeInProgressLookupBuilder({ data: null, error: null }),
+      )
+      .mockReturnValueOnce(
+        makeInsertSingleBuilder({
+          data: null,
+          error: { code: "23505", message: "duplicate key value" },
+        }),
+      )
+      .mockReturnValueOnce(
+        makeInProgressLookupBuilder({ data: raced, error: null }),
+      );
+
+    const result = await startOrResumeSession("s1", "p1");
+
+    expect(result).toBe(raced);
   });
 
   it("creates a new row with today's local date when none is in progress", async () => {
@@ -104,7 +136,7 @@ describe("resumeSession", () => {
     jest.useFakeTimers().setSystemTime(now);
     const pausedAt = new Date(now.getTime() - 30_000).toISOString(); // paused 30s ago
 
-    const updateBuilder = makeUpdateSingleBuilder({
+    const updateBuilder = makeGuardedUpdateBuilder({
       data: { id: "sc1", paused_at: null, paused_duration_seconds: 90 },
       error: null,
     });
@@ -116,9 +148,32 @@ describe("resumeSession", () => {
       paused_at: null,
       paused_duration_seconds: 90, // 60 + 30
     });
+    // Guarded so a retry can't double-count: only touches a still-paused row.
+    expect(updateBuilder.not).toHaveBeenCalledWith("paused_at", "is", null);
     expect(result.paused_duration_seconds).toBe(90);
     // Single round trip — no lookup select before the update.
     expect(mockFrom).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not add the pause interval again when the row is already resumed", async () => {
+    const now = new Date(2026, 6, 29, 10, 5, 0);
+    jest.useFakeTimers().setSystemTime(now);
+    const pausedAt = new Date(now.getTime() - 30_000).toISOString();
+
+    // Guarded update matches no row (paused_at already null).
+    const updateBuilder = makeGuardedUpdateBuilder({ data: null, error: null });
+    const lookupBuilder = makeSingleEqBuilder({
+      data: { id: "sc1", paused_at: null, paused_duration_seconds: 60 },
+      error: null,
+    });
+    mockFrom
+      .mockReturnValueOnce(updateBuilder)
+      .mockReturnValueOnce(lookupBuilder);
+
+    const result = await resumeSession("sc1", pausedAt, 60);
+
+    // Falls back to the current row unchanged — no second fold-in.
+    expect(result.paused_duration_seconds).toBe(60);
   });
 });
 
@@ -208,5 +263,44 @@ describe("completeSession", () => {
         active_duration_seconds: 540,
       }),
     );
+  });
+
+  it("is a no-op that returns the row unchanged when already completed", async () => {
+    const lookupBuilder = makeSingleEqBuilder({
+      data: {
+        status: "completed",
+        started_at: new Date().toISOString(),
+        paused_at: null,
+        paused_duration_seconds: 0,
+      },
+      error: null,
+    });
+    const getBuilder = makeSingleEqBuilder({
+      data: { id: "sc1", status: "completed", active_duration_seconds: 480 },
+      error: null,
+    });
+    mockFrom.mockReturnValueOnce(lookupBuilder).mockReturnValueOnce(getBuilder);
+
+    const result = await completeSession("sc1", null);
+
+    expect(result.active_duration_seconds).toBe(480);
+    // Only the status lookup + the plain get — never a second write.
+    expect(mockFrom).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ─── setSessionEffortRpe ───────────────────────────────────────────────────
+
+describe("setSessionEffortRpe", () => {
+  it("writes only effort_rpe, leaving status/duration untouched", async () => {
+    const updateBuilder = makeUpdateSingleBuilder({
+      data: { id: "sc1", effort_rpe: 8 },
+      error: null,
+    });
+    mockFrom.mockReturnValue(updateBuilder);
+
+    await setSessionEffortRpe("sc1", 8);
+
+    expect(updateBuilder.update).toHaveBeenCalledWith({ effort_rpe: 8 });
   });
 });

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { useModalDismiss } from "../ui/useModalDismiss";
+import { WeekSelectGrid } from "./WeekSelectGrid";
 
 export type DuplicatePattern =
   | "every"
@@ -101,46 +102,6 @@ function PatternButton({
   );
 }
 
-function WeekGrid({
-  totalWeeks,
-  sourceWeek,
-  selected,
-  onToggle,
-}: {
-  totalWeeks: number;
-  sourceWeek: number;
-  selected: number[];
-  onToggle: (w: number) => void;
-}) {
-  const weeks = Array.from({ length: totalWeeks }, (_, i) => i + 1);
-  return (
-    <div className="grid grid-cols-6 gap-1.5">
-      {weeks.map((w) => {
-        const isSelected = selected.includes(w);
-        const isSource = w === sourceWeek;
-        return (
-          <button
-            key={w}
-            type="button"
-            onClick={() => onToggle(w)}
-            disabled={isSource}
-            title={isSource ? "This session's own week" : undefined}
-            className={`relative h-11 rounded-lg border text-xs font-bold ${
-              isSelected
-                ? "border-portal-orange bg-portal-orange-soft text-portal-orange"
-                : "border-portal-border text-portal-text2"
-            } ${isSource ? "cursor-default" : ""}`}>
-            {isSource && (
-              <span className="bg-portal-orange absolute top-1 right-1 h-1 w-1 rounded-full" />
-            )}
-            Wk {w}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function ModalHeader({
   sessionName,
   sourceWeek,
@@ -203,9 +164,10 @@ function ModalBody({
             {selected.length} of {totalWeeks} selected
           </span>
         </div>
-        <WeekGrid
+        <WeekSelectGrid
           totalWeeks={totalWeeks}
-          sourceWeek={sourceWeek}
+          lockedWeek={sourceWeek}
+          lockedTitle="This session's own week"
           selected={selected}
           onToggle={onToggleWeek}
         />

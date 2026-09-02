@@ -95,6 +95,11 @@ async function loadProgramCanvasPageData(id: string) {
     styles: stylesResult.ok ? stylesResult.data : [],
     unitTypes: unitTypesResult.ok ? unitTypesResult.data : [],
     profileId: profileResult.ok ? profileResult.data.id : "",
+    coachName: profileResult.ok
+      ? [profileResult.data.first_name, profileResult.data.last_name]
+          .filter(Boolean)
+          .join(" ")
+      : "",
     sessionTemplates: sessionTemplatesResult.ok
       ? sessionTemplatesResult.data
       : [],
@@ -115,6 +120,7 @@ export default async function ProgramCanvasPage({
     styles,
     unitTypes,
     profileId,
+    coachName,
     sessionTemplates,
     forms,
   } = await loadProgramCanvasPageData(id);
@@ -144,6 +150,7 @@ export default async function ProgramCanvasPage({
         action={
           <ProgramDetailActions
             program={programResult.data}
+            coachName={coachName}
             forms={forms}
             updateAction={updateProgramAction}
             deleteAction={deleteProgramAction}

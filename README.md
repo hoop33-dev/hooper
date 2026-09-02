@@ -19,7 +19,7 @@ layout and layering rules.
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 24+
 - [Expo Go](https://expo.dev/go) on your phone, or Xcode for iOS Simulator (macOS only) — for mobile
 - A [Supabase](https://supabase.com) account
 

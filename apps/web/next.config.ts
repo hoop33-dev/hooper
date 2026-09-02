@@ -9,6 +9,14 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
   // Workspace packages ship TypeScript source; let Next transpile them.
   transpilePackages: ["@hooper/db"],
+  // The program-PDF route (src/app/api/programs/[id]/export) drives headless
+  // Chromium. These carry native binaries / are require()d conditionally at
+  // runtime — never bundle them.
+  serverExternalPackages: [
+    "puppeteer-core",
+    "puppeteer",
+    "@sparticuz/chromium",
+  ],
 };
 
 export default nextConfig;

@@ -88,7 +88,10 @@ export function SessionCanvasRow({
           <button
             type="button"
             onClick={onAddSession}
-            className="border-portal-border-mid text-portal-text3 flex h-24 w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed text-xs font-semibold">
+            // h-[74px] mirrors the rendered height of a session's header card
+            // (ColumnHeader: p-2.5 + border + its three text lines) so the
+            // "+ Add session" tile lines up flush with the session cards.
+            className="border-portal-border-mid text-portal-text3 flex h-[74px] w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed text-xs font-semibold">
             <span className="text-lg leading-none">+</span>
             Add session
           </button>

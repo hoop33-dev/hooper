@@ -148,10 +148,10 @@ export function ExerciseLibraryShelfBody({
           createStyleAction={createStyleAction}
           createUnitTypeAction={createUnitTypeAction}
           onPendingChange={setCreating}
-          className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex h-[52px] w-[136px] flex-shrink-0 items-center justify-center rounded-lg border border-dashed px-2.5 text-center text-[11px] font-bold"
+          className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex min-h-[116px] w-[136px] flex-shrink-0 items-center justify-center self-stretch rounded-lg border border-dashed px-2.5 text-center text-[11px] font-bold"
         />
         {creating && (
-          <div className="border-portal-border text-portal-text3 flex h-[52px] w-[136px] flex-shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-bold">
+          <div className="border-portal-border text-portal-text3 flex min-h-[116px] w-[136px] flex-shrink-0 items-center justify-center gap-1.5 self-stretch rounded-lg border px-2.5 text-[11px] font-bold">
             <span className="border-portal-text3 h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2 border-t-transparent" />
             Adding…
           </div>

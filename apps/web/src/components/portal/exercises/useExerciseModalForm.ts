@@ -1,5 +1,6 @@
 "use client";
 
+import { isYoutubeUrl } from "@/src/lib/videoEmbed";
 import { captureVideoThumbnail } from "@/src/lib/videoThumbnailCapture";
 import {
   deleteExerciseVideo,
@@ -179,11 +180,19 @@ async function runSave(
     setNameError("Exercise name is required");
     return;
   }
+  const existingSource = exercise?.video_source ?? null;
+  const videoDecision = computeVideoDecision(videoState, existingSource);
+  if (videoDecision.action === "set-link" && !isYoutubeUrl(videoDecision.url)) {
+    setError(
+      "Enter a YouTube link (youtube.com or youtu.be) for the demo video.",
+    );
+    return;
+  }
+
   setNameError(undefined);
   setSaving(true);
   setError(null);
 
-  const existingSource = exercise?.video_source ?? null;
   const formData = buildFormData(
     name,
     description,
@@ -206,12 +215,11 @@ async function runSave(
   }
 
   const exerciseId = mode === "create" ? result.id : exercise!.id;
-  const decision = computeVideoDecision(videoState, existingSource);
   const videoError = exerciseId
     ? await syncExerciseVideo(
         exerciseId,
         existingSource,
-        decision,
+        videoDecision,
         videoState,
         profileId,
         updateVideoUrlAction,

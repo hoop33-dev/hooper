@@ -1,6 +1,7 @@
 import type { Result } from "@/src/lib/result";
 import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
+import { isYoutubeUrl } from "@/src/lib/videoEmbed";
 import { computeVideoOrientation } from "@/src/lib/videoOrientation";
 import type {
   ExerciseCategoryRow,
@@ -174,10 +175,24 @@ async function insertUnitTypes(
   return error?.message ?? null;
 }
 
+/** Linked demo videos are YouTube-only — uploads and clears are unaffected. */
+function videoLinkError(
+  videoUrl: string | null | undefined,
+  videoSource: ExerciseVideoSource | null | undefined,
+): string | null {
+  if (videoSource === "link" && videoUrl && !isYoutubeUrl(videoUrl)) {
+    return "Video link must be a YouTube URL.";
+  }
+  return null;
+}
+
 export async function createExercise(
   input: CreateExerciseInput,
 ): Promise<Result<ExerciseRow>> {
   try {
+    const linkError = videoLinkError(input.videoUrl, input.videoSource);
+    if (linkError) return err(linkError);
+
     const supabase = await createClient();
 
     const video_orientation = input.videoUrl
@@ -243,6 +258,11 @@ export async function updateExercise(
   input: UpdateExerciseInput,
 ): Promise<Result<ExerciseRow>> {
   try {
+    if ("videoUrl" in input) {
+      const linkError = videoLinkError(input.videoUrl, input.videoSource);
+      if (linkError) return err(linkError);
+    }
+
     const supabase = await createClient();
 
     const updatePayload: Partial<ExerciseRow> = {};

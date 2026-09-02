@@ -61,12 +61,38 @@ export function getThumbnailUrl(url: string): string | null {
   return null;
 }
 
-/** A video link only needs to be a well-formed http(s) URL — not every host is embeddable. */
-export function isValidVideoUrl(url: string): boolean {
+/** A real YouTube video id is exactly 11 URL-safe characters. */
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+
+/**
+ * Extracts the video id from a youtube.com / m.youtube.com / youtu.be link
+ * (watch, youtu.be, or /shorts/ form), or null if the URL isn't a well-formed
+ * YouTube link. Used to enforce YouTube-only exercise demo videos.
+ */
+export function getYoutubeVideoId(url: string): string | null {
+  let parsed: URL;
   try {
-    const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
+    parsed = new URL(url);
   } catch {
-    return false;
+    return null;
   }
+
+  const host = parsed.hostname.replace(/^www\./, "");
+  let id: string | null = null;
+
+  if (host === "youtube.com" || host === "m.youtube.com") {
+    id =
+      parsed.searchParams.get("v") ??
+      parsed.pathname.match(/^\/shorts\/([^/]+)/)?.[1] ??
+      null;
+  } else if (host === "youtu.be") {
+    id = parsed.pathname.slice(1) || null;
+  }
+
+  return id && YOUTUBE_ID.test(id) ? id : null;
+}
+
+/** Only YouTube links are accepted as an exercise's demo video. */
+export function isYoutubeUrl(url: string): boolean {
+  return getYoutubeVideoId(url) !== null;
 }

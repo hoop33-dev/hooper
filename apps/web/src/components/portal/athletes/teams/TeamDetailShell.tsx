@@ -1,26 +1,29 @@
 "use client";
 
 import type {
+  AssignedProgramRef,
   AthleteSummary,
   ProgramSummary,
   TeamDetail,
+  TeamMember,
   TeamRow,
 } from "@hooper/db";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "../../ui/PageHeader";
 import { PortalButton } from "../../ui/PortalButton";
 import { AssignedProgramsTable } from "../AssignedProgramsTable";
 import { AssignProgramsModal } from "../AssignProgramsModal";
-import { TeamEditDrawer } from "./TeamEditDrawer";
+import { useProgramAssignments } from "../useProgramAssignments";
+import { TeamEditSection } from "./TeamEditSection";
 import { TeamMembersPanel } from "./TeamMembersPanel";
-import { useTeamDetailForm } from "./useTeamDetailForm";
+import { useTeamMembers } from "./useTeamMembers";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
 interface TeamMembersSectionProps {
-  team: TeamDetail;
+  programs: AssignedProgramRef[];
+  members: TeamMember[];
   athletes: AthleteSummary[];
   onAddMembers: (profileIds: string[]) => Promise<ActionResult>;
   onRemoveMember: (profileId: string) => Promise<void>;
@@ -29,7 +32,8 @@ interface TeamMembersSectionProps {
 }
 
 function TeamMembersSection({
-  team,
+  programs,
+  members,
   athletes,
   onAddMembers,
   onRemoveMember,
@@ -39,7 +43,7 @@ function TeamMembersSection({
   return (
     <>
       <AssignedProgramsTable
-        programs={team.programs}
+        programs={programs}
         variant="team"
         onAssignClick={onAssignClick}
         onUnassign={onUnassignProgram}
@@ -47,7 +51,7 @@ function TeamMembersSection({
 
       <div className="mt-6">
         <TeamMembersPanel
-          members={team.members}
+          members={members}
           candidates={athletes}
           onAdd={onAddMembers}
           onRemove={onRemoveMember}
@@ -122,95 +126,71 @@ export function TeamDetailShell({
   assignProgramAction,
   unassignProgramAction,
 }: TeamDetailShellProps) {
-  const router = useRouter();
   const [assignOpen, setAssignOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const {
-    name,
-    setName,
-    description,
-    setDescription,
-    saving,
-    uploadingAvatar,
-    error,
-    dirty,
-    handleSave,
-    handleAvatarSelected,
-    handleDelete,
-    resetForm,
-  } = useTeamDetailForm({ team, updateTeamAction, deleteTeamAction });
+  const [header, setHeader] = useState({
+    name: team.name,
+    description: team.description,
+  });
+  useEffect(() => {
+    setHeader({ name: team.name, description: team.description });
+  }, [team.name, team.description]);
 
-  async function handleSaveAndClose() {
-    if (await handleSave()) setEditOpen(false);
-  }
+  const { assignedPrograms, assignProgram, unassignProgram } =
+    useProgramAssignments(
+      team.programs,
+      programs,
+      (programId) => assignProgramAction(team.id, programId),
+      (programId) => unassignProgramAction(team.id, programId),
+    );
+  const { members, handleAddMembers, handleRemoveMember } = useTeamMembers(
+    team.members,
+    athletes,
+    (profileIds) => addTeamMembers(team.id, profileIds, addTeamMemberAction),
+    (profileId) => removeTeamMemberAction(team.id, profileId),
+  );
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <PageHeader
-        title={team.name}
-        subtitle={team.description ?? undefined}
+        title={header.name}
+        subtitle={header.description ?? undefined}
         action={<TeamDetailHeaderActions onEdit={() => setEditOpen(true)} />}
       />
 
       <div className="flex-1 overflow-y-auto px-7 py-6">
         <TeamMembersSection
-          team={team}
+          programs={assignedPrograms}
+          members={members}
           athletes={athletes}
-          onAddMembers={async (profileIds) => {
-            const result = await addTeamMembers(
-              team.id,
-              profileIds,
-              addTeamMemberAction,
-            );
-            router.refresh();
-            return result;
-          }}
-          onRemoveMember={async (profileId) => {
-            await removeTeamMemberAction(team.id, profileId);
-            router.refresh();
-          }}
+          onAddMembers={handleAddMembers}
+          onRemoveMember={handleRemoveMember}
           onAssignClick={() => setAssignOpen(true)}
           onUnassignProgram={async (programId) => {
-            await unassignProgramAction(team.id, programId);
-            router.refresh();
+            await unassignProgram(programId);
           }}
         />
       </div>
 
       {assignOpen && (
         <AssignProgramsModal
-          entityName={team.name}
-          assignedProgramIds={team.programs.map((p) => p.id)}
+          entityName={header.name}
+          assignedProgramIds={assignedPrograms.map((p) => p.id)}
           allPrograms={programs}
-          onAssign={(programId) => assignProgramAction(team.id, programId)}
-          onUnassign={(programId) => unassignProgramAction(team.id, programId)}
-          onClose={() => {
-            setAssignOpen(false);
-            router.refresh();
-          }}
+          onAssign={assignProgram}
+          onUnassign={unassignProgram}
+          onClose={() => setAssignOpen(false)}
         />
       )}
 
-      {editOpen && (
-        <TeamEditDrawer
-          team={team}
-          name={name}
-          onName={setName}
-          description={description}
-          onDescription={setDescription}
-          saving={saving}
-          uploadingAvatar={uploadingAvatar}
-          error={error}
-          dirty={dirty}
-          onSave={handleSaveAndClose}
-          onAvatarSelected={handleAvatarSelected}
-          onDelete={handleDelete}
-          onClose={() => {
-            resetForm();
-            setEditOpen(false);
-          }}
-        />
-      )}
+      <TeamEditSection
+        team={team}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onOptimisticSave={setHeader}
+        updateTeamAction={updateTeamAction}
+        deleteTeamAction={deleteTeamAction}
+      />
     </div>
   );
 }

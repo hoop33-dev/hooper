@@ -1,12 +1,14 @@
 import type {
   BlockExerciseWithDetails,
   BlockWithExercises,
+  ProgramWithSessions,
   SessionWithBlocks,
 } from "@hooper/db";
 import { describe, expect, it } from "vitest";
 import {
   linkedWeeksOfExercise,
   linkedWeeksOfSession,
+  optimisticSession,
   selectWeekAfterDelete,
 } from "./useProgramCanvasState";
 
@@ -133,6 +135,71 @@ describe("linkedWeeksOfExercise", () => {
     const linked = exercise("e1", "ex-group-a");
     const week1 = session("s1", 1, null, [block("b1", [linked])]);
     expect(linkedWeeksOfExercise(linked, [week1])).toBeUndefined();
+  });
+});
+
+describe("optimisticSession", () => {
+  const program = { id: "p1", weeks: 4 } as ProgramWithSessions;
+
+  it("uses the typed name for a blank session and lands it after its siblings", () => {
+    const existing = [session("s1", 2, null), session("s2", 2, null)];
+    existing[0].position = 0;
+    existing[1].position = 1;
+    const ghost = optimisticSession(
+      { mode: "blank", name: "Upper Body", week_number: 2 },
+      program,
+      existing,
+    );
+    expect(ghost.name).toBe("Upper Body");
+    expect(ghost.week_number).toBe(2);
+    expect(ghost.position).toBe(2);
+    expect(ghost.blocks).toEqual([]);
+  });
+
+  it("starts at position 0 when the week has no sessions yet", () => {
+    const ghost = optimisticSession(
+      { mode: "blank", name: "Day 1", week_number: 3 },
+      program,
+      [session("s1", 1, null)],
+    );
+    expect(ghost.position).toBe(0);
+  });
+
+  it("shows a placeholder name for copy/template modes", () => {
+    const ghost = optimisticSession(
+      { mode: "copy", sourceSessionId: "s9", week_number: 1 },
+      program,
+      [],
+    );
+    expect(ghost.name).toBe("New session…");
+  });
+
+  it("seeds a pending block holding the dragged exercise", () => {
+    const seed = exercise("e1", null).exercise;
+    const ghost = optimisticSession(
+      { mode: "blank", name: "Upper Body", week_number: 1 },
+      program,
+      [],
+      seed,
+    );
+    expect(ghost.blocks).toHaveLength(1);
+    expect(ghost.blocks[0]).toMatchObject({ pending: true });
+    expect(ghost.blocks[0].exercises).toHaveLength(1);
+    expect(ghost.blocks[0].exercises[0]).toMatchObject({
+      exercise_id: "ex1",
+      pending: true,
+    });
+  });
+
+  it("ignores the seed exercise for copy/template modes", () => {
+    const seed = exercise("e1", null).exercise;
+    const ghost = optimisticSession(
+      { mode: "template", sessionTemplateId: "t1", week_number: 1 },
+      program,
+      [],
+      seed,
+    );
+    expect(ghost.blocks).toEqual([]);
   });
 });
 

@@ -29,13 +29,13 @@ import type {
   SessionWithBlocks,
 } from "@hooper/db";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { useToast } from "../ui/Toast";
 import type {
   BlockExercisePositionUpdate,
   BlockPositionUpdate,
 } from "./dnd/dropComputation";
-import { isPending } from "./dnd/pendingRows";
+import { createPendingBlock, isPending } from "./dnd/pendingRows";
 import {
   useBlockExerciseDnd,
   type SessionPositionUpdate,
@@ -105,6 +105,10 @@ export interface ProgramCanvasActions {
   ) => Promise<ActionResult<ProgramWithSessions>>;
   copyProgramWeeksAction: (
     input: CopyProgramWeeksInput,
+  ) => Promise<ActionResult<ProgramRow>>;
+  duplicateProgramWeeksAction: (
+    programId: string,
+    weekNumbers: number[],
   ) => Promise<ActionResult<ProgramRow>>;
   /** Only needed to power the block header's "Save as template" button. */
   saveBlockAsTemplateAction?: (
@@ -262,11 +266,51 @@ async function runSaveSessionAsTemplate(
   }
 }
 
+/** A stand-in session row shown the instant "+ Add session" is submitted, so
+ * the new column is on screen while the create round-trips instead of the
+ * canvas looking unchanged until the refresh lands (see
+ * router-refresh-modal-gap). `useSyncSessionsFromProgram` swaps it for the
+ * real row once the refresh arrives; for copy/template modes the real name
+ * isn't known client-side, so it shows a placeholder for that ~1s. When the
+ * modal was opened by dropping a library exercise on the "+ Add session"
+ * zone, `seedExercise` seeds a pending block so that exercise shows (dimmed,
+ * with a spinner) right away rather than a beat after the empty column. */
+export function optimisticSession(
+  data: SessionCreateData,
+  program: ProgramWithSessions,
+  sessions: SessionWithBlocks[],
+  seedExercise?: ExerciseWithDetails,
+): SessionWithBlocks {
+  const now = new Date().toISOString();
+  const siblings = sessions.filter((s) => s.week_number === data.week_number);
+  const id = `optimistic-${Date.now()}`;
+  return {
+    id,
+    program_id: program.id,
+    week_number: data.week_number,
+    name: data.mode === "blank" ? data.name : "New session…",
+    position:
+      siblings.length === 0
+        ? 0
+        : Math.max(...siblings.map((s) => s.position)) + 1,
+    link_group_id: null,
+    created_at: now,
+    updated_at: now,
+    blocks:
+      seedExercise && data.mode === "blank"
+        ? [createPendingBlock(id, seedExercise)]
+        : [],
+  };
+}
+
 function useSessionModalHandlers(
   program: ProgramWithSessions,
   actions: ProgramCanvasActions,
   sessionModal: SessionModalState,
   setSessionModal: (state: SessionModalState) => void,
+  sessions: SessionWithBlocks[],
+  setSessions: Dispatch<SetStateAction<SessionWithBlocks[]>>,
+  exercisesById: Map<string, ExerciseWithDetails>,
 ) {
   const router = useRouter();
   const { showError, showSuccess } = useToast();
@@ -280,20 +324,47 @@ function useSessionModalHandlers(
     }
   }
 
+  /** Runs an optimistic session mutation: apply it locally, close the modal,
+   * then either let the refresh reconcile or roll back and surface the
+   * error. */
+  async function optimistically(
+    apply: (prev: SessionWithBlocks[]) => SessionWithBlocks[],
+    action: () => Promise<{ ok: boolean; error?: string }>,
+  ) {
+    const rollback = sessions;
+    setSessions(apply);
+    setSessionModal(null);
+    const result = await action();
+    if (result.ok) {
+      router.refresh();
+    } else {
+      setSessions(rollback);
+      showError(result.error ?? "Something went wrong.");
+    }
+  }
+
   async function handleCreateSession(data: SessionCreateData) {
     const seedExerciseId =
       sessionModal?.type === "create" ? sessionModal.seedExerciseId : undefined;
-    if (data.mode === "blank" && seedExerciseId) {
-      finish(await createSeededSession(data, seedExerciseId, program, actions));
-      return;
-    }
-    finish(await resolveCreateSession(data, program, actions));
+    const seedExercise = seedExerciseId
+      ? exercisesById.get(seedExerciseId)
+      : undefined;
+    const ghost = optimisticSession(data, program, sessions, seedExercise);
+    await optimistically(
+      (prev) => [...prev, ghost],
+      () =>
+        data.mode === "blank" && seedExerciseId
+          ? createSeededSession(data, seedExerciseId, program, actions)
+          : resolveCreateSession(data, program, actions),
+    );
   }
 
   async function handleRenameSession(name: string) {
     if (sessionModal?.type !== "rename") return;
-    finish(
-      await actions.updateSessionNameAction(sessionModal.session.id, name),
+    const id = sessionModal.session.id;
+    await optimistically(
+      (prev) => prev.map((s) => (s.id === id ? { ...s, name } : s)),
+      () => actions.updateSessionNameAction(id, name),
     );
   }
 
@@ -308,9 +379,14 @@ function useSessionModalHandlers(
   }
 
   async function handleDeleteSession(id: string) {
+    const rollback = sessions;
+    setSessions((prev) => prev.filter((s) => s.id !== id));
     const result = await actions.deleteSessionAction(id);
     if (result.ok) router.refresh();
-    else showError(result.error ?? "Something went wrong.");
+    else {
+      setSessions(rollback);
+      showError(result.error ?? "Something went wrong.");
+    }
   }
 
   async function handleSaveSessionAsTemplate(name: string) {
@@ -589,6 +665,103 @@ function useWeekHandlers(
   return { deleteWeek };
 }
 
+/** Keeps the "+ Week" modal on its "Adding…" state after a successful submit
+ * until router.refresh() brings the new week(s) into props, then fires
+ * `onArrived` with the first new week number. Without this the modal closes on
+ * the near side of the server round-trip, briefly showing the old week strip
+ * as if nothing was added. `onTimeout` is a safety net so the modal can never
+ * get stuck if the count somehow never updates. */
+function useWeekAddCompletion(
+  currentWeeks: number,
+  onArrived: (firstNewWeek: number) => void,
+  onTimeout: () => void,
+) {
+  const [weeksAtSubmit, setWeeksAtSubmit] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (weeksAtSubmit === null) return;
+    if (currentWeeks > weeksAtSubmit) {
+      const firstNewWeek = weeksAtSubmit + 1;
+      setWeeksAtSubmit(null);
+      onArrived(firstNewWeek);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setWeeksAtSubmit(null);
+      onTimeout();
+    }, 8000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWeeks, weeksAtSubmit]);
+
+  return {
+    awaitingWeekAdd: weeksAtSubmit !== null,
+    beginAwaitWeekAdd: () => setWeeksAtSubmit(currentWeeks),
+  };
+}
+
+/** Loads the "import from another program" options — the eligible source
+ * programs (once the modal opens) and the full program behind the current
+ * selection. `reset` clears both, called when the modal closes. */
+function useImportSourceSelection(
+  open: boolean,
+  programId: string,
+  actions: ProgramCanvasActions,
+) {
+  const [eligibleSources, setEligibleSources] = useState<
+    ProgramSummary[] | null
+  >(null);
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [selectedSourceProgram, setSelectedSourceProgram] =
+    useState<ProgramWithSessions | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    async function load() {
+      const result = await actions.listEligibleImportSourcesAction(programId);
+      if (!cancelled) setEligibleSources(result.ok ? (result.data ?? []) : []);
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, programId]);
+
+  useEffect(() => {
+    if (!selectedSourceId) {
+      setSelectedSourceProgram(null);
+      return;
+    }
+    const id = selectedSourceId;
+    let cancelled = false;
+    async function load() {
+      const r = await actions.getImportSourceProgramAction(id);
+      if (!cancelled) setSelectedSourceProgram(r.ok ? (r.data ?? null) : null);
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSourceId]);
+
+  function reset() {
+    setEligibleSources(null);
+    setSelectedSourceId(null);
+    setSelectedSourceProgram(null);
+  }
+
+  return {
+    eligibleSources,
+    selectedSourceId,
+    setSelectedSourceId,
+    selectedSourceProgram,
+    reset,
+  };
+}
+
 /** Backs the "+ Week" modal — either adding N blank weeks or importing
  * another program's weeks. Kept separate from `SessionModalState` since
  * it's week-scoped, not session-scoped. */
@@ -600,47 +773,14 @@ function useWeekAddModalState(
   showError: (message: string) => void,
 ) {
   const [open, setOpen] = useState(false);
-  const [eligibleSources, setEligibleSources] = useState<
-    ProgramSummary[] | null
-  >(null);
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
-  const [selectedSourceProgram, setSelectedSourceProgram] =
-    useState<ProgramWithSessions | null>(null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    async function load() {
-      const result = await actions.listEligibleImportSourcesAction(program.id);
-      if (cancelled) return;
-      setEligibleSources(result.ok ? (result.data ?? []) : []);
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, program.id]);
-
-  useEffect(() => {
-    if (!selectedSourceId) {
-      setSelectedSourceProgram(null);
-      return;
-    }
-    const id = selectedSourceId;
-    let cancelled = false;
-    async function load() {
-      const result = await actions.getImportSourceProgramAction(id);
-      if (cancelled) return;
-      setSelectedSourceProgram(result.ok ? (result.data ?? null) : null);
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSourceId]);
+  const {
+    eligibleSources,
+    selectedSourceId,
+    setSelectedSourceId,
+    selectedSourceProgram,
+    reset: resetImportSources,
+  } = useImportSourceSelection(open, program.id, actions);
 
   function openWeekAddModal() {
     setOpen(true);
@@ -648,18 +788,33 @@ function useWeekAddModalState(
 
   function closeWeekAddModal() {
     setOpen(false);
-    setEligibleSources(null);
-    setSelectedSourceId(null);
-    setSelectedSourceProgram(null);
+    resetImportSources();
   }
+
+  // The modal is held open on "Adding…" between a successful submit and the
+  // refreshed props landing (see useWeekAddCompletion), so it never looks
+  // like nothing happened.
+  const { awaitingWeekAdd, beginAwaitWeekAdd } = useWeekAddCompletion(
+    program.weeks,
+    (firstNewWeek) => {
+      setSaving(false);
+      closeWeekAddModal();
+      selectWeek(firstNewWeek);
+    },
+    () => {
+      setSaving(false);
+      closeWeekAddModal();
+      router.refresh();
+    },
+  );
 
   function finish(result: { ok: boolean; error?: string }) {
     if (result.ok) {
-      closeWeekAddModal();
+      beginAwaitWeekAdd();
       router.refresh();
-      selectWeek(program.weeks + 1);
     } else {
       showError(result.error ?? "Something went wrong.");
+      setSaving(false);
     }
   }
 
@@ -667,7 +822,6 @@ function useWeekAddModalState(
     if (saving) return;
     setSaving(true);
     finish(await actions.addBlankProgramWeeksAction(program.id, count));
-    setSaving(false);
   }
 
   async function submitImportProgramWeeks(weekNumbers: number[]) {
@@ -680,7 +834,12 @@ function useWeekAddModalState(
         sourceWeekNumbers: weekNumbers,
       }),
     );
-    setSaving(false);
+  }
+
+  async function submitDuplicateWeeks(weekNumbers: number[]) {
+    if (saving || weekNumbers.length === 0) return;
+    setSaving(true);
+    finish(await actions.duplicateProgramWeeksAction(program.id, weekNumbers));
   }
 
   return {
@@ -693,7 +852,8 @@ function useWeekAddModalState(
     selectedImportSourceProgram: selectedSourceProgram,
     submitAddBlankWeeks,
     submitImportProgramWeeks,
-    savingWeekAdd: saving,
+    submitDuplicateWeeks,
+    savingWeekAdd: saving || awaitingWeekAdd,
   };
 }
 
@@ -706,6 +866,32 @@ function buildTemplateLookups(sessionTemplates: SessionTemplateSummary[]) {
       sessionTemplates.flatMap((t) => t.blocks).map((b) => [b.id, b.name]),
     ),
     sessionTemplatesById: new Map(sessionTemplates.map((t) => [t.id, t])),
+  };
+}
+
+/** The dnd/block-action layer works off one flat array spanning every
+ * visible session's blocks (see useCanvasBlockState); these push an updated
+ * flat array — or a session reorder — back onto the per-session `sessions`
+ * state. Recreated each render, same as the inline closures they replaced. */
+function makeWeekScopedSetters(
+  weekSessions: SessionWithBlocks[],
+  setSessions: Dispatch<SetStateAction<SessionWithBlocks[]>>,
+) {
+  return {
+    setWeekBlocks(blocks: BlockWithExercises[]) {
+      const weekSessionIds = new Set(weekSessions.map((s) => s.id));
+      setSessions((prev) => patchWeekBlocks(prev, weekSessionIds, blocks));
+    },
+    setWeekSessionOrder(reordered: SessionWithBlocks[]) {
+      const positionById = new Map(reordered.map((s, index) => [s.id, index]));
+      setSessions((prev) =>
+        prev.map((s) =>
+          positionById.has(s.id)
+            ? { ...s, position: positionById.get(s.id)! }
+            : s,
+        ),
+      );
+    },
   };
 }
 
@@ -733,21 +919,10 @@ export function useProgramCanvasState(
   const { blockTemplateNamesById, sessionTemplatesById } =
     buildTemplateLookups(sessionTemplates);
 
-  function setWeekBlocks(blocks: BlockWithExercises[]) {
-    const weekSessionIds = new Set(weekSessions.map((s) => s.id));
-    setSessions((prev) => patchWeekBlocks(prev, weekSessionIds, blocks));
-  }
-
-  function setWeekSessionOrder(reordered: SessionWithBlocks[]) {
-    const positionById = new Map(reordered.map((s, index) => [s.id, index]));
-    setSessions((prev) =>
-      prev.map((s) =>
-        positionById.has(s.id)
-          ? { ...s, position: positionById.get(s.id)! }
-          : s,
-      ),
-    );
-  }
+  const { setWeekBlocks, setWeekSessionOrder } = makeWeekScopedSetters(
+    weekSessions,
+    setSessions,
+  );
 
   const { dnd, blockActions } = useCanvasBlockState(
     weekSessions,
@@ -788,6 +963,9 @@ export function useProgramCanvasState(
     actions,
     sessionModal,
     setSessionModal,
+    sessions,
+    setSessions,
+    exercisesById,
   );
 
   const linkedWeeksForSessionModal =

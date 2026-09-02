@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { FormEditFormData } from "./FormEditDrawer";
 import { useProgramAttachments } from "./useProgramAttachments";
+import { useQuestionMutations } from "./useQuestionMutations";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
@@ -66,37 +67,16 @@ export function useFormEditorState(
     setQuestions(form.questions);
   }, [form.questions]);
 
-  async function handleAddQuestion() {
-    const nextPosition =
-      questions.length === 0
-        ? 0
-        : Math.max(...questions.map((q) => q.position)) + 1;
-    const result = await actions.createQuestionAction({
-      form_id: form.id,
-      position: nextPosition,
-      prompt: "",
-      type: "short_text",
+  const { handleAddQuestion, handleSaveQuestion, handleDeleteQuestion } =
+    useQuestionMutations({
+      formId: form.id,
+      questions,
+      setQuestions,
+      editingQuestion,
+      setEditingQuestion,
+      actions,
+      router,
     });
-    if (result.ok && result.data) {
-      router.refresh();
-      setEditingQuestion({ ...result.data, options: [] });
-    }
-  }
-
-  async function handleSaveQuestion(data: UpdateFormQuestionInput) {
-    if (!editingQuestion) return;
-    const result = await actions.updateQuestionAction(editingQuestion.id, data);
-    if (result.ok) {
-      router.refresh();
-      setEditingQuestion(null);
-    }
-  }
-
-  async function handleDeleteQuestion(id: string) {
-    await actions.deleteQuestionAction(id);
-    if (editingQuestion?.id === id) setEditingQuestion(null);
-    router.refresh();
-  }
 
   /** Applies the new order immediately (before the server call resolves) so
    * the drop feels instant, then snaps back to the pre-drag order only if

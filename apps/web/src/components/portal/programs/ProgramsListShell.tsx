@@ -1,9 +1,10 @@
 "use client";
 
 import type { FormSummary, ProgramRow, ProgramSummary } from "@hooper/db";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PortalButton } from "../ui/PortalButton";
+import { useToast } from "../ui/Toast";
+import { useOptimisticList } from "../ui/useOptimisticList";
 import {
   ProgramCreateModal,
   type ProgramCreateFormData,
@@ -78,6 +79,118 @@ function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
   );
 }
 
+type ProgramListMutations = Pick<
+  ProgramsListShellProps,
+  | "createAction"
+  | "updateAction"
+  | "deleteAction"
+  | "publishAction"
+  | "attachFormAction"
+>;
+
+/** Owns the optimistic program list plus the create-modal / edit-drawer
+ * state, so every mutation patches the table immediately and only closes its
+ * modal once the action resolves (see router-refresh-modal-gap). */
+function useProgramListActions(
+  programs: ProgramSummary[],
+  actions: ProgramListMutations,
+) {
+  const { showError } = useToast();
+  const { items, mutate } = useOptimisticList(programs);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<ProgramSummary | null>(null);
+
+  const patchRow = (prev: ProgramSummary[], row: ProgramRow) =>
+    prev.map((p) => (p.id === row.id ? { ...p, ...row } : p));
+
+  async function handleCreate(data: ProgramCreateFormData) {
+    const result = await mutate<ProgramRow>(
+      (prev) => prev,
+      () => actions.createAction(data),
+      (prev, row) => [
+        { ...row, sessionCount: 0, sessionsPerWeek: null },
+        ...prev,
+      ],
+    );
+    if (result.ok) setCreateOpen(false);
+    else showError(result.error ?? "Failed to create program.");
+  }
+
+  async function handleSave(data: ProgramEditFormData) {
+    if (!editing) return;
+    const id = editing.id;
+    const result = await mutate<ProgramRow>(
+      (prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                name: data.name,
+                description: data.description ?? null,
+                notes: data.notes ?? null,
+              }
+            : p,
+        ),
+      () => actions.updateAction(id, data),
+      patchRow,
+    );
+    if (result.ok) setEditing(null);
+    else showError(result.error ?? "Failed to save changes.");
+  }
+
+  async function handlePublish() {
+    if (!editing) return;
+    const id = editing.id;
+    setEditing(null);
+    const result = await mutate<ProgramRow>(
+      (prev) => prev.map((p) => (p.id === id ? { ...p, status: "active" } : p)),
+      () => actions.publishAction(id),
+      patchRow,
+    );
+    if (!result.ok) showError(result.error ?? "Failed to publish program.");
+  }
+
+  async function handleDelete() {
+    if (!editing) return;
+    const id = editing.id;
+    setEditing(null);
+    const result = await mutate(
+      (prev) => prev.filter((p) => p.id !== id),
+      () => actions.deleteAction(id),
+    );
+    if (!result.ok) showError(result.error ?? "Failed to delete program.");
+  }
+
+  async function handleAttachForm(formId: string | null) {
+    if (!editing) return;
+    const id = editing.id;
+    const result = await mutate<ProgramRow>(
+      (prev) => prev.map((p) => (p.id === id ? { ...p, form_id: formId } : p)),
+      () => actions.attachFormAction(id, formId),
+      patchRow,
+    );
+    if (result.ok && result.data) {
+      const row = result.data;
+      setEditing((cur) => (cur ? { ...cur, form_id: row.form_id } : cur));
+    } else if (!result.ok) {
+      showError(result.error ?? "Failed to update form.");
+    }
+  }
+
+  return {
+    programs: items,
+    createOpen,
+    setCreateOpen,
+    editing,
+    setEditing,
+    handleCreate,
+    handleSave,
+    handlePublish,
+    handleDelete,
+    handleAttachForm,
+  };
+}
+
 export function ProgramsListShell({
   programs,
   forms,
@@ -87,54 +200,29 @@ export function ProgramsListShell({
   publishAction,
   attachFormAction,
 }: ProgramsListShellProps) {
-  const router = useRouter();
+  const {
+    programs: localPrograms,
+    createOpen,
+    setCreateOpen,
+    editing,
+    setEditing,
+    handleCreate,
+    handleSave,
+    handlePublish,
+    handleDelete,
+    handleAttachForm,
+  } = useProgramListActions(programs, {
+    createAction,
+    updateAction,
+    deleteAction,
+    publishAction,
+    attachFormAction,
+  });
   const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>("All");
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editing, setEditing] = useState<ProgramSummary | null>(null);
 
-  const filtered = programs.filter(
+  const filtered = localPrograms.filter(
     (p) => filter === "All" || p.status === filter.toLowerCase(),
   );
-
-  async function handleCreate(data: ProgramCreateFormData) {
-    const result = await createAction(data);
-    if (result.ok) {
-      setCreateOpen(false);
-      router.refresh();
-    }
-  }
-
-  async function handleSave(data: ProgramEditFormData) {
-    if (!editing) return;
-    const result = await updateAction(editing.id, data);
-    if (result.ok) {
-      setEditing(null);
-      router.refresh();
-    }
-  }
-
-  async function handlePublish() {
-    if (!editing) return;
-    await publishAction(editing.id);
-    setEditing(null);
-    router.refresh();
-  }
-
-  async function handleDelete() {
-    if (!editing) return;
-    await deleteAction(editing.id);
-    setEditing(null);
-    router.refresh();
-  }
-
-  async function handleAttachForm(formId: string | null) {
-    if (!editing) return;
-    const result = await attachFormAction(editing.id, formId);
-    if (result.ok && result.data) {
-      setEditing({ ...editing, form_id: result.data.form_id });
-    }
-    router.refresh();
-  }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">

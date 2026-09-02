@@ -2,11 +2,11 @@
 
 import type { AthleteDetail, ProgramSummary } from "@hooper/db";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PageHeader } from "../ui/PageHeader";
 import { AssignedProgramsTable } from "./AssignedProgramsTable";
 import { AssignProgramsModal } from "./AssignProgramsModal";
+import { useProgramAssignments } from "./useProgramAssignments";
 
 type ActionResult = { ok: boolean; error?: string };
 
@@ -49,8 +49,14 @@ export function AthleteDetailShell({
   assignProgramAction,
   unassignProgramAction,
 }: AthleteDetailShellProps) {
-  const router = useRouter();
   const [assignOpen, setAssignOpen] = useState(false);
+  const { assignedPrograms, assignProgram, unassignProgram } =
+    useProgramAssignments(
+      athlete.programs,
+      programs,
+      (programId) => assignProgramAction(athlete.id, programId),
+      (programId) => unassignProgramAction(athlete.id, programId),
+    );
 
   const name =
     [athlete.first_name, athlete.last_name].filter(Boolean).join(" ") ||
@@ -113,12 +119,11 @@ export function AthleteDetailShell({
 
         <div className="mt-6">
           <AssignedProgramsTable
-            programs={athlete.programs}
+            programs={assignedPrograms}
             variant="athlete"
             onAssignClick={() => setAssignOpen(true)}
             onUnassign={async (programId) => {
-              await unassignProgramAction(athlete.id, programId);
-              router.refresh();
+              await unassignProgram(programId);
             }}
           />
         </div>
@@ -127,16 +132,11 @@ export function AthleteDetailShell({
       {assignOpen && (
         <AssignProgramsModal
           entityName={name}
-          assignedProgramIds={athlete.programs.map((p) => p.id)}
+          assignedProgramIds={assignedPrograms.map((p) => p.id)}
           allPrograms={programs}
-          onAssign={(programId) => assignProgramAction(athlete.id, programId)}
-          onUnassign={(programId) =>
-            unassignProgramAction(athlete.id, programId)
-          }
-          onClose={() => {
-            setAssignOpen(false);
-            router.refresh();
-          }}
+          onAssign={assignProgram}
+          onUnassign={unassignProgram}
+          onClose={() => setAssignOpen(false)}
         />
       )}
     </div>

@@ -1,23 +1,32 @@
 "use client";
 
 import type { ProgramSummary, ProgramWithSessions } from "@hooper/db";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput } from "../ui/PortalInput";
 import { useModalDismiss } from "../ui/useModalDismiss";
+
+/** The minimum a week picker needs — satisfied by both an import source
+ * program and the current program's own (weeks, sessions). */
+type WeekSource = Pick<ProgramWithSessions, "weeks" | "sessions">;
 
 interface WeekAddModalProps {
   eligibleSources: ProgramSummary[] | null;
   selectedSourceId: string | null;
   onSelectSource: (id: string | null) => void;
   selectedSourceProgram: ProgramWithSessions | null;
+  /** This program's own weeks — the source for the "duplicate weeks" mode. */
+  currentProgram: WeekSource;
+  /** Pre-ticked in the "duplicate weeks" picker (the week the coach is on). */
+  defaultDuplicateWeek: number;
   saving: boolean;
   onClose: () => void;
   onSubmitBlank: (count: number) => Promise<void>;
   onSubmitImport: (weekNumbers: number[]) => Promise<void>;
+  onSubmitDuplicate: (weekNumbers: number[]) => Promise<void>;
 }
 
-type Mode = "blank" | "import";
+type Mode = "blank" | "duplicate" | "import";
 
 function StartModeOption({
   label,
@@ -102,9 +111,7 @@ function SourceProgramList({
   );
 }
 
-function sessionNamesByWeek(
-  program: ProgramWithSessions,
-): Map<number, string[]> {
+function sessionNamesByWeek(program: WeekSource): Map<number, string[]> {
   const map = new Map<number, string[]>();
   for (const session of program.sessions) {
     const names = map.get(session.week_number) ?? [];
@@ -142,28 +149,32 @@ function WeekCheckbox({ checked }: { checked: boolean }) {
   );
 }
 
-/** Only weeks that actually have sessions are worth importing — an empty
- * week wouldn't bring anything over, so it's left out of the picker
- * entirely rather than shown disabled. */
+/** The weeks of `source` that actually have sessions — the only ones worth
+ * copying or duplicating, so the picker leaves empty weeks out entirely
+ * rather than showing them disabled. */
+function weeksWithSessions(source: WeekSource): number[] {
+  const namesByWeek = sessionNamesByWeek(source);
+  return Array.from({ length: source.weeks }, (_, i) => i + 1).filter(
+    (w) => (namesByWeek.get(w)?.length ?? 0) > 0,
+  );
+}
+
 function WeekImportPicker({
   sourceProgram,
   selected,
   onToggle,
 }: {
-  sourceProgram: ProgramWithSessions;
+  sourceProgram: WeekSource;
   selected: number[];
   onToggle: (week: number) => void;
 }) {
   const namesByWeek = sessionNamesByWeek(sourceProgram);
-  const weeks = Array.from(
-    { length: sourceProgram.weeks },
-    (_, i) => i + 1,
-  ).filter((w) => (namesByWeek.get(w)?.length ?? 0) > 0);
+  const weeks = weeksWithSessions(sourceProgram);
 
   if (weeks.length === 0) {
     return (
       <div className="border-portal-border text-portal-text3 rounded-lg border p-3 text-center text-xs">
-        This program has no sessions to import
+        This program has no sessions to copy
       </div>
     );
   }
@@ -223,6 +234,73 @@ interface ModalBodyProps {
   selectedSourceProgram: ProgramWithSessions | null;
   selectedWeeks: number[];
   onToggleWeek: (week: number) => void;
+  currentProgram: WeekSource;
+  duplicateWeeks: number[];
+  onToggleDuplicateWeek: (week: number) => void;
+}
+
+const MODE_OPTIONS: { mode: Mode; label: string; description: string }[] = [
+  { mode: "blank", label: "Add blank weeks", description: "Empty weeks" },
+  {
+    mode: "duplicate",
+    label: "Duplicate weeks",
+    description: "From this program",
+  },
+  {
+    mode: "import",
+    label: "Import weeks",
+    description: "From another program",
+  },
+];
+
+function ModeSelector({
+  mode,
+  onMode,
+}: {
+  mode: Mode;
+  onMode: (m: Mode) => void;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {MODE_OPTIONS.map((opt) => (
+        <StartModeOption
+          key={opt.mode}
+          label={opt.label}
+          description={opt.description}
+          active={mode === opt.mode}
+          onClick={() => onMode(opt.mode)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function DuplicateWeekSelector({
+  currentProgram,
+  selected,
+  onToggle,
+}: {
+  currentProgram: WeekSource;
+  selected: number[];
+  onToggle: (week: number) => void;
+}) {
+  return (
+    <>
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-portal-text2 text-xs font-bold">
+          Weeks to duplicate
+        </span>
+        <span className="text-portal-text3 text-xs">
+          {selected.length} selected
+        </span>
+      </div>
+      <WeekImportPicker
+        sourceProgram={currentProgram}
+        selected={selected}
+        onToggle={onToggle}
+      />
+    </>
+  );
 }
 
 function ImportSourcePicker({
@@ -312,23 +390,13 @@ function ModalBody({
   selectedSourceProgram,
   selectedWeeks,
   onToggleWeek,
+  currentProgram,
+  duplicateWeeks,
+  onToggleDuplicateWeek,
 }: ModalBodyProps) {
   return (
     <div className="flex flex-col gap-3.5 px-5 py-4">
-      <div className="grid grid-cols-2 gap-2">
-        <StartModeOption
-          label="Add blank weeks"
-          description="Start with empty weeks"
-          active={mode === "blank"}
-          onClick={() => onMode("blank")}
-        />
-        <StartModeOption
-          label="Import from another program"
-          description="Copy weeks from a saved program"
-          active={mode === "import"}
-          onClick={() => onMode("import")}
-        />
-      </div>
+      <ModeSelector mode={mode} onMode={onMode} />
 
       {mode === "blank" && (
         <PortalInput
@@ -340,6 +408,14 @@ function ModalBody({
             onBlankCount(Math.max(1, Number(e.target.value) || 1))
           }
           autoFocus
+        />
+      )}
+
+      {mode === "duplicate" && (
+        <DuplicateWeekSelector
+          currentProgram={currentProgram}
+          selected={duplicateWeeks}
+          onToggle={onToggleDuplicateWeek}
         />
       )}
 
@@ -364,18 +440,18 @@ function ModalBody({
   );
 }
 
+function pluralWeeks(n: number): string {
+  return `${n} week${n !== 1 ? "s" : ""}`;
+}
+
 function ModalFooter({
-  mode,
-  blankCount,
-  selectedWeekCount,
+  submitLabel,
   canSubmit,
   saving,
   onClose,
   onSubmit,
 }: {
-  mode: Mode;
-  blankCount: number;
-  selectedWeekCount: number;
+  submitLabel: string;
   canSubmit: boolean;
   saving: boolean;
   onClose: () => void;
@@ -390,14 +466,32 @@ function ModalFooter({
         variant="primary"
         onClick={onSubmit}
         disabled={!canSubmit || saving}>
-        {saving
-          ? "Adding…"
-          : mode === "blank"
-            ? `Add ${blankCount} week${blankCount !== 1 ? "s" : ""}`
-            : `Import ${selectedWeekCount} week${selectedWeekCount !== 1 ? "s" : ""}`}
+        {saving ? "Adding…" : submitLabel}
       </PortalButton>
     </div>
   );
+}
+
+function toggleWeekIn(
+  setWeeks: Dispatch<SetStateAction<number[]>>,
+  week: number,
+) {
+  setWeeks((weeks) =>
+    weeks.includes(week)
+      ? weeks.filter((w) => w !== week)
+      : [...weeks, week].sort((a, b) => a - b),
+  );
+}
+
+function submitLabelFor(
+  mode: Mode,
+  blankCount: number,
+  duplicateCount: number,
+  importCount: number,
+): string {
+  if (mode === "blank") return `Add ${pluralWeeks(blankCount)}`;
+  if (mode === "duplicate") return `Duplicate ${pluralWeeks(duplicateCount)}`;
+  return `Import ${pluralWeeks(importCount)}`;
 }
 
 export function WeekAddModal({
@@ -405,46 +499,43 @@ export function WeekAddModal({
   selectedSourceId,
   onSelectSource,
   selectedSourceProgram,
+  currentProgram,
+  defaultDuplicateWeek,
   saving,
   onClose,
   onSubmitBlank,
   onSubmitImport,
+  onSubmitDuplicate,
 }: WeekAddModalProps) {
   const [mode, setMode] = useState<Mode>("blank");
   const [blankCount, setBlankCount] = useState(1);
   const [sourceSearch, setSourceSearch] = useState("");
   const [selectedWeeks, setSelectedWeeks] = useState<number[]>([]);
+  const [duplicateWeeks, setDuplicateWeeks] = useState<number[]>(() =>
+    weeksWithSessions(currentProgram).includes(defaultDuplicateWeek)
+      ? [defaultDuplicateWeek]
+      : [],
+  );
   const onBackdropClick = useModalDismiss(onClose);
 
   useEffect(() => {
     if (selectedSourceProgram) {
-      const weeksWithSessions = [
-        ...new Set(selectedSourceProgram.sessions.map((s) => s.week_number)),
-      ].sort((a, b) => a - b);
-      setSelectedWeeks(weeksWithSessions);
+      setSelectedWeeks(weeksWithSessions(selectedSourceProgram));
     }
   }, [selectedSourceProgram]);
-
-  function toggleWeek(week: number) {
-    setSelectedWeeks((weeks) =>
-      weeks.includes(week)
-        ? weeks.filter((w) => w !== week)
-        : [...weeks, week].sort((a, b) => a - b),
-    );
-  }
 
   const canSubmit =
     mode === "blank"
       ? blankCount >= 1
-      : selectedSourceId !== null && selectedWeeks.length > 0;
+      : mode === "duplicate"
+        ? duplicateWeeks.length > 0
+        : selectedSourceId !== null && selectedWeeks.length > 0;
 
   async function handleSubmit() {
     if (!canSubmit || saving) return;
-    if (mode === "blank") {
-      await onSubmitBlank(blankCount);
-    } else {
-      await onSubmitImport(selectedWeeks);
-    }
+    if (mode === "blank") await onSubmitBlank(blankCount);
+    else if (mode === "duplicate") await onSubmitDuplicate(duplicateWeeks);
+    else await onSubmitImport(selectedWeeks);
   }
 
   return (
@@ -465,12 +556,18 @@ export function WeekAddModal({
           onSelectSource={onSelectSource}
           selectedSourceProgram={selectedSourceProgram}
           selectedWeeks={selectedWeeks}
-          onToggleWeek={toggleWeek}
+          onToggleWeek={(w) => toggleWeekIn(setSelectedWeeks, w)}
+          currentProgram={currentProgram}
+          duplicateWeeks={duplicateWeeks}
+          onToggleDuplicateWeek={(w) => toggleWeekIn(setDuplicateWeeks, w)}
         />
         <ModalFooter
-          mode={mode}
-          blankCount={blankCount}
-          selectedWeekCount={selectedWeeks.length}
+          submitLabel={submitLabelFor(
+            mode,
+            blankCount,
+            duplicateWeeks.length,
+            selectedWeeks.length,
+          )}
           canSubmit={canSubmit}
           saving={saving}
           onClose={onClose}

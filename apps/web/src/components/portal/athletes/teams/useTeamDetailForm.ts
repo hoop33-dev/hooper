@@ -17,12 +17,19 @@ interface UseTeamDetailFormArgs {
     data: { name?: string; description?: string | null; avatar_url?: string },
   ) => Promise<ActionResult<TeamRow>>;
   deleteTeamAction: (id: string) => Promise<ActionResult>;
+  /** Applied to the page header the instant a name/description save is
+   * submitted, so it doesn't stay stale until the refresh lands. */
+  onOptimisticSave?: (data: {
+    name: string;
+    description: string | null;
+  }) => void;
 }
 
 export function useTeamDetailForm({
   team,
   updateTeamAction,
   deleteTeamAction,
+  onOptimisticSave,
 }: UseTeamDetailFormArgs) {
   const router = useRouter();
   const [name, setName] = useState(team.name);
@@ -39,15 +46,18 @@ export function useTeamDetailForm({
     if (!name.trim() || saving) return false;
     setSaving(true);
     setError(null);
-    const result = await updateTeamAction(team.id, {
+    const payload = {
       name: name.trim(),
       description: description.trim() === "" ? null : description.trim(),
-    });
+    };
+    onOptimisticSave?.(payload);
+    const result = await updateTeamAction(team.id, payload);
     setSaving(false);
     if (result.ok) {
       router.refresh();
       return true;
     }
+    onOptimisticSave?.({ name: team.name, description: team.description });
     setError(result.error ?? "Failed to save changes.");
     return false;
   }

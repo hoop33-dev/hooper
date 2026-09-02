@@ -321,10 +321,13 @@ function ProgramCanvasModals({
           selectedSourceId={state.selectedImportSourceId}
           onSelectSource={state.selectImportSource}
           selectedSourceProgram={state.selectedImportSourceProgram}
+          currentProgram={{ weeks: totalWeeks, sessions: state.sessions }}
+          defaultDuplicateWeek={state.selectedWeek}
           saving={state.savingWeekAdd}
           onClose={state.closeWeekAddModal}
           onSubmitBlank={state.submitAddBlankWeeks}
           onSubmitImport={state.submitImportProgramWeeks}
+          onSubmitDuplicate={state.submitDuplicateWeeks}
         />
       )}
     </>

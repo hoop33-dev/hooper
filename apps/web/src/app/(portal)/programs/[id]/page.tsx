@@ -43,6 +43,7 @@ import {
   deleteBlockAction,
   deleteProgramWeekAction,
   deleteSessionAction,
+  duplicateProgramWeeksAction,
   duplicateSessionAction,
   listEligibleImportSourcesAction,
   removeExerciseFromBlockAction,
@@ -182,6 +183,7 @@ export default async function ProgramCanvasPage({
         listEligibleImportSourcesAction={listEligibleImportSourcesAction}
         getImportSourceProgramAction={getImportSourceProgramAction}
         copyProgramWeeksAction={copyProgramWeeksAction}
+        duplicateProgramWeeksAction={duplicateProgramWeeksAction}
         saveBlockAsTemplateAction={wrappedSaveBlockAsTemplate}
         saveSessionAsTemplateAction={wrappedSaveSessionAsTemplate}
         createBlockFromTemplateAction={createBlockFromTemplateAction}

@@ -27,6 +27,7 @@ import {
 } from "@/src/services/program.service";
 import {
   copyProgramWeeks,
+  duplicateProgramWeeks,
   listEligibleImportSources,
   type CopyProgramWeeksInput,
 } from "@/src/services/programImport.service";
@@ -137,6 +138,17 @@ export async function copyProgramWeeksAction(
   input: CopyProgramWeeksInput,
 ): Promise<ActionResult<ProgramRow>> {
   const result = await copyProgramWeeks(input);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function duplicateProgramWeeksAction(
+  programId: string,
+  weekNumbers: number[],
+): Promise<ActionResult<ProgramRow>> {
+  const result = await duplicateProgramWeeks(programId, weekNumbers);
   if (result.ok) revalidateProgramRoutes();
   return result.ok
     ? { ok: true, data: result.data }

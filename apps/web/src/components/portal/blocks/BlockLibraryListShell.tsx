@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SessionRenamePopover } from "../programs/SessionRenamePopover";
 import { PortalButton } from "../ui/PortalButton";
+import { useToast } from "../ui/Toast";
+import { useOptimisticList } from "../ui/useOptimisticList";
 import { BlockLibraryCreateModal } from "./BlockLibraryCreateModal";
 import { BlockLibraryTable } from "./BlockLibraryTable";
 
@@ -40,6 +42,8 @@ export function BlockLibraryListShell({
   deleteAction,
 }: BlockLibraryListShellProps) {
   const router = useRouter();
+  const { showError } = useToast();
+  const { items: localTemplates, mutate } = useOptimisticList(templates);
   const [createOpen, setCreateOpen] = useState(false);
   const [renaming, setRenaming] = useState<SessionTemplateSummary | null>(null);
 
@@ -48,19 +52,28 @@ export function BlockLibraryListShell({
     if (result.ok && result.data) {
       setCreateOpen(false);
       router.push(`/blocks/${result.data.id}`);
+    } else {
+      showError(result.error ?? "Failed to create template.");
     }
   }
 
   async function handleRename(name: string) {
     if (!renaming) return;
-    await renameAction(renaming.id, name);
+    const id = renaming.id;
     setRenaming(null);
-    router.refresh();
+    const result = await mutate(
+      (prev) => prev.map((t) => (t.id === id ? { ...t, name } : t)),
+      () => renameAction(id, name),
+    );
+    if (!result.ok) showError(result.error ?? "Failed to rename template.");
   }
 
   async function handleDelete(template: SessionTemplateSummary) {
-    await deleteAction(template.id);
-    router.refresh();
+    const result = await mutate(
+      (prev) => prev.filter((t) => t.id !== template.id),
+      () => deleteAction(template.id),
+    );
+    if (!result.ok) showError(result.error ?? "Failed to delete template.");
   }
 
   return (
@@ -72,11 +85,11 @@ export function BlockLibraryListShell({
       </div>
 
       <div className="flex-1 overflow-y-auto px-7 py-2">
-        {templates.length === 0 ? (
+        {localTemplates.length === 0 ? (
           <EmptyState onCreateClick={() => setCreateOpen(true)} />
         ) : (
           <BlockLibraryTable
-            templates={templates}
+            templates={localTemplates}
             onRename={setRenaming}
             onDelete={handleDelete}
           />

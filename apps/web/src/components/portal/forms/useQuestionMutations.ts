@@ -2,6 +2,7 @@ import type { UpdateFormQuestionInput } from "@/src/services/form.service";
 import type { FormQuestionWithOptions } from "@hooper/db";
 import type { useRouter } from "next/navigation";
 import type { Dispatch, SetStateAction } from "react";
+import { useToast } from "../ui/Toast";
 import type { FormEditorActions } from "./useFormEditorState";
 
 interface QuestionMutationsArgs {
@@ -16,8 +17,9 @@ interface QuestionMutationsArgs {
 
 /** Add / save / delete for form questions, each patching the local
  * `questions` list before the server round-trip so the row list never lags
- * the editor by a refresh (see router-refresh-modal-gap), rolling back on
- * failure. Reorder + attach stay in useFormEditorState with the rest. */
+ * the editor by a refresh (see router-refresh-modal-gap), rolling back the
+ * list *and* the open editor on failure and surfacing the error as a toast.
+ * Reorder + attach stay in useFormEditorState with the rest. */
 export function useQuestionMutations({
   formId,
   questions,
@@ -27,6 +29,8 @@ export function useQuestionMutations({
   actions,
   router,
 }: QuestionMutationsArgs) {
+  const { showError } = useToast();
+
   async function handleAddQuestion() {
     const nextPosition =
       questions.length === 0
@@ -43,6 +47,8 @@ export function useQuestionMutations({
       setQuestions((prev) => [...prev, created]);
       setEditingQuestion(created);
       router.refresh();
+    } else {
+      showError(result.error ?? "Couldn't add the question.");
     }
   }
 
@@ -66,26 +72,34 @@ export function useQuestionMutations({
           : q,
       ),
     );
-    setEditingQuestion(null);
     const result = await actions.updateQuestionAction(id, data);
     if (result.ok && result.data) {
       const row = result.data;
       setQuestions((prev) =>
         prev.map((q) => (q.id === row.id ? { ...q, ...row } : q)),
       );
+      setEditingQuestion(null);
       router.refresh();
     } else {
+      // Leave the editor open with the user's changes intact.
       setQuestions(rollback);
+      showError(result.error ?? "Couldn't save your changes.");
     }
   }
 
   async function handleDeleteQuestion(id: string) {
     const rollback = questions;
+    const rollbackEditing = editingQuestion;
     setQuestions((prev) => prev.filter((q) => q.id !== id));
     if (editingQuestion?.id === id) setEditingQuestion(null);
     const result = await actions.deleteQuestionAction(id);
-    if (result.ok) router.refresh();
-    else setQuestions(rollback);
+    if (result.ok) {
+      router.refresh();
+    } else {
+      setQuestions(rollback);
+      if (rollbackEditing?.id === id) setEditingQuestion(rollbackEditing);
+      showError(result.error ?? "Couldn't delete the question.");
+    }
   }
 
   return { handleAddQuestion, handleSaveQuestion, handleDeleteQuestion };

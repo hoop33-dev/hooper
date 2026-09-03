@@ -15,7 +15,6 @@ import {
 } from "@/src/services/sessionTemplate.service";
 import { listUnitTypes } from "@/src/services/unitType.service";
 import type { SessionWithBlocks } from "@hooper/db";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   createExerciseAction,
@@ -76,16 +75,6 @@ async function createBlocksFromSessionTemplateAction(input: {
     session_template_id: input.session_id,
     source_session_template_id: input.session_template_id,
   });
-}
-
-function BackToBlockLibraryLink() {
-  return (
-    <Link
-      href="/blocks"
-      className="text-portal-text2 text-xs font-semibold hover:underline">
-      ← Back to Block Library
-    </Link>
-  );
 }
 
 async function loadBlockTemplatePageData(templateId: string) {
@@ -170,7 +159,11 @@ export default async function BlockTemplateEditorPage({
       <PageHeader
         title={template.name}
         subtitle="Block Library template"
-        action={<BackToBlockLibraryLink />}
+        backHref="/blocks"
+        breadcrumbs={[
+          { label: "Block Library", href: "/blocks" },
+          { label: template.name },
+        ]}
       />
       <SessionViewShell
         session={sessionShape}

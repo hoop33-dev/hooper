@@ -1,7 +1,6 @@
 "use client";
 
 import type { AthleteDetail, ProgramSummary } from "@hooper/db";
-import Link from "next/link";
 import { useState } from "react";
 import { PageHeader } from "../ui/PageHeader";
 import { AssignedProgramsTable } from "./AssignedProgramsTable";
@@ -68,13 +67,11 @@ export function AthleteDetailShell({
       <PageHeader
         title={name}
         subtitle={athlete.username ? `@${athlete.username}` : undefined}
-        action={
-          <Link
-            href="/athletes"
-            className="text-portal-text2 text-xs font-semibold hover:underline">
-            ← Back to athletes
-          </Link>
-        }
+        backHref="/athletes"
+        breadcrumbs={[
+          { label: "Athletes", href: "/athletes" },
+          { label: name },
+        ]}
       />
 
       <div className="flex-1 overflow-y-auto px-7 py-6">

@@ -79,6 +79,11 @@ export function DraggableLibraryRow({
         isDragging && "opacity-30",
         isSelected && "bg-portal-orange-soft border-portal-orange",
       )}>
+      <ExerciseVideoThumbnail
+        exercise={exercise}
+        className="h-9 w-16 flex-shrink-0 rounded-md"
+        fallbackClassName="text-[10px]"
+      />
       <div className="min-w-0 flex-1">
         <div className="text-portal-text1 truncate text-[12px] font-semibold">
           {exercise.name}

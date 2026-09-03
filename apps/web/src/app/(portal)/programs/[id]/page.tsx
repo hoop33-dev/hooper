@@ -142,6 +142,11 @@ export default async function ProgramCanvasPage({
       <PageHeader
         title={programResult.data.name}
         subtitle={`${programResult.data.weeks} weeks · ${formatSessionsPerWeek(programResult.data.sessions)}`}
+        backHref="/programs"
+        breadcrumbs={[
+          { label: "Programs", href: "/programs" },
+          { label: programResult.data.name },
+        ]}
         action={
           <ProgramDetailActions
             program={programResult.data}

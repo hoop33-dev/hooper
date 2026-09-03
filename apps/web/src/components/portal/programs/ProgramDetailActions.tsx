@@ -1,7 +1,6 @@
 "use client";
 
 import type { FormSummary, ProgramRow } from "@hooper/db";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -87,18 +86,11 @@ export function ProgramDetailActions({
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
-      <Link
-        href="/programs"
-        className="text-portal-text2 text-xs font-semibold hover:underline">
-        ← Back to programs
-      </Link>
-      <div className="flex items-center gap-2">
-        {shortcutsButton}
-        <PortalButton variant="secondary" onClick={() => setEditing(true)}>
-          Edit program
-        </PortalButton>
-      </div>
+    <div className="flex items-center gap-2">
+      {shortcutsButton}
+      <PortalButton variant="secondary" onClick={() => setEditing(true)}>
+        Edit program
+      </PortalButton>
       {editing && (
         <ProgramEditDrawer
           program={current}

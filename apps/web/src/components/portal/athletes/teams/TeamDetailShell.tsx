@@ -8,7 +8,6 @@ import type {
   TeamMember,
   TeamRow,
 } from "@hooper/db";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PageHeader } from "../../ui/PageHeader";
 import { PortalButton } from "../../ui/PortalButton";
@@ -75,16 +74,9 @@ async function addTeamMembers(
 
 function TeamDetailHeaderActions({ onEdit }: { onEdit: () => void }) {
   return (
-    <div className="flex flex-col items-end gap-2">
-      <Link
-        href="/athletes/teams"
-        className="text-portal-text2 text-xs font-semibold hover:underline">
-        ← Back to teams
-      </Link>
-      <PortalButton variant="secondary" onClick={onEdit}>
-        Edit team
-      </PortalButton>
-    </div>
+    <PortalButton variant="secondary" onClick={onEdit}>
+      Edit team
+    </PortalButton>
   );
 }
 
@@ -155,6 +147,11 @@ export function TeamDetailShell({
       <PageHeader
         title={header.name}
         subtitle={header.description ?? undefined}
+        backHref="/athletes/teams"
+        breadcrumbs={[
+          { label: "Teams", href: "/athletes/teams" },
+          { label: header.name },
+        ]}
         action={<TeamDetailHeaderActions onEdit={() => setEditOpen(true)} />}
       />
 

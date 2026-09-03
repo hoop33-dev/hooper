@@ -3,12 +3,12 @@ import { SaveSessionAsTemplateButton } from "@/src/components/portal/programs/Sa
 import { SessionNavArrows } from "@/src/components/portal/programs/SessionNavArrows";
 import { SessionViewShell } from "@/src/components/portal/programs/SessionViewShell";
 import { ShortcutsButton } from "@/src/components/portal/programs/ShortcutsButton";
-import { ArrowLeftIcon } from "@/src/components/portal/ui/icons";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { getCoachProfile } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
 import { listStyles } from "@/src/services/exerciseStyle.service";
+import { getProgramById } from "@/src/services/program.service";
 import {
   getSessionById,
   listSessionsForProgram,
@@ -16,7 +16,6 @@ import {
 import { listSessionTemplates } from "@/src/services/sessionTemplate.service";
 import { listUnitTypes } from "@/src/services/unitType.service";
 import type { SessionRow } from "@hooper/db";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   createBlockFromTemplateAction,
@@ -60,25 +59,17 @@ function SessionPageActions({
   ) => Promise<{ ok: boolean; error?: string }>;
 }) {
   return (
-    <div className="flex flex-col items-end gap-1.5">
-      <Link
-        href={`/programs/${programId}`}
-        className="text-portal-text2 flex items-center gap-1 text-xs font-semibold hover:underline">
-        <ArrowLeftIcon size={11} />
-        Back to program
-      </Link>
-      <div className="mt-2 flex items-center gap-2">
-        <ShortcutsButton variant="session" />
-        <SessionNavArrows
-          programId={programId}
-          sessions={programSessions}
-          currentSessionId={sessionId}
-        />
-        <SaveSessionAsTemplateButton
-          sessionName={sessionName}
-          saveAction={saveSessionAsTemplate}
-        />
-      </div>
+    <div className="flex items-center gap-2">
+      <ShortcutsButton variant="session" />
+      <SessionNavArrows
+        programId={programId}
+        sessions={programSessions}
+        currentSessionId={sessionId}
+      />
+      <SaveSessionAsTemplateButton
+        sessionName={sessionName}
+        saveAction={saveSessionAsTemplate}
+      />
     </div>
   );
 }
@@ -93,6 +84,7 @@ async function loadSessionPageData(programId: string, sessionId: string) {
     profileResult,
     sessionTemplatesResult,
     programSessionsResult,
+    programResult,
   ] = await Promise.all([
     getSessionById(sessionId),
     listExercises(),
@@ -102,6 +94,7 @@ async function loadSessionPageData(programId: string, sessionId: string) {
     getCoachProfile(),
     listSessionTemplates(),
     listSessionsForProgram(programId),
+    getProgramById(programId),
   ]);
 
   return {
@@ -115,6 +108,7 @@ async function loadSessionPageData(programId: string, sessionId: string) {
       ? sessionTemplatesResult.data
       : [],
     programSessions: programSessionsResult.ok ? programSessionsResult.data : [],
+    programName: programResult.ok ? programResult.data.name : "Program",
   };
 }
 
@@ -133,6 +127,7 @@ export default async function SessionViewPage({
     profileId,
     sessionTemplates,
     programSessions,
+    programName,
   } = await loadSessionPageData(id, sessionId);
 
   if (!sessionResult.ok) notFound();
@@ -157,6 +152,12 @@ export default async function SessionViewPage({
       <PageHeader
         title={sessionResult.data.name}
         subtitle={`Week ${sessionResult.data.week_number} · Session ${sessionResult.data.position + 1}`}
+        backHref={`/programs/${id}`}
+        breadcrumbs={[
+          { label: "Programs", href: "/programs" },
+          { label: programName, href: `/programs/${id}` },
+          { label: sessionResult.data.name },
+        ]}
         action={
           <SessionPageActions
             programId={id}

@@ -1,14 +1,17 @@
-import { notFound } from "next/navigation";
-import { listCategories, getCategoryById } from "@/src/services/exerciseCategory.service";
-import { listExercises } from "@/src/services/exercise.service";
-import { getCoachProfile } from "@/src/services/auth.service";
 import { CategoryManagerShell } from "@/src/components/portal/exercises/CategoryManagerShell";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
+import { getCoachProfile } from "@/src/services/auth.service";
+import { listExercises } from "@/src/services/exercise.service";
+import {
+  getCategoryById,
+  listCategories,
+} from "@/src/services/exerciseCategory.service";
+import { notFound } from "next/navigation";
 import {
   createCategoryAction,
-  updateCategoryAction,
   deleteCategoryAction,
   reorderCategoriesAction,
+  updateCategoryAction,
 } from "../actions";
 
 interface Props {
@@ -17,12 +20,13 @@ interface Props {
 
 export default async function CategoryDetailPage({ params }: Props) {
   const { id } = await params;
-  const [categoryResult, categoriesResult, exercisesResult, profileResult] = await Promise.all([
-    getCategoryById(id),
-    listCategories(),
-    listExercises(),
-    getCoachProfile(),
-  ]);
+  const [categoryResult, categoriesResult, exercisesResult, profileResult] =
+    await Promise.all([
+      getCategoryById(id),
+      listCategories(),
+      listExercises(),
+      getCoachProfile(),
+    ]);
 
   if (!categoryResult.ok) notFound();
 
@@ -35,6 +39,12 @@ export default async function CategoryDetailPage({ params }: Props) {
       <PageHeader
         title="Exercise Library"
         subtitle="Manage categories to organise your exercises"
+        backHref="/exercises/categories"
+        breadcrumbs={[
+          { label: "Exercises", href: "/exercises" },
+          { label: "Categories", href: "/exercises/categories" },
+          { label: categoryResult.data.name },
+        ]}
       />
       <CategoryManagerShell
         initialCategories={categories}

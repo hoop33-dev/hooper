@@ -1,7 +1,6 @@
 "use client";
 
 import type { FormWithQuestions, ProgramSummary } from "@hooper/db";
-import Link from "next/link";
 import { PageHeader } from "../ui/PageHeader";
 import { PortalButton } from "../ui/PortalButton";
 import { AttachedProgramsPanel } from "./AttachedProgramsPanel";
@@ -20,16 +19,9 @@ interface FormEditorShellProps extends FormEditorActions {
 
 function HeaderActions({ onEdit }: { onEdit: () => void }) {
   return (
-    <div className="flex flex-col items-end gap-2">
-      <Link
-        href="/forms"
-        className="text-portal-text2 text-xs font-semibold hover:underline">
-        ← Back to forms
-      </Link>
-      <PortalButton variant="secondary" onClick={onEdit}>
-        Edit form
-      </PortalButton>
-    </div>
+    <PortalButton variant="secondary" onClick={onEdit}>
+      Edit form
+    </PortalButton>
   );
 }
 
@@ -46,6 +38,8 @@ export function FormEditorShell({
       <PageHeader
         title={form.name}
         subtitle={`${questionCount} question${questionCount === 1 ? "" : "s"}`}
+        backHref="/forms"
+        breadcrumbs={[{ label: "Forms", href: "/forms" }, { label: form.name }]}
         action={<HeaderActions onEdit={() => state.setEditingForm(true)} />}
       />
       <div className="flex-1 overflow-y-auto px-7 py-5">

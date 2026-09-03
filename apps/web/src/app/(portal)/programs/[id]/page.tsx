@@ -58,18 +58,6 @@ import {
   updateSessionNameAction,
 } from "./actions";
 
-function formatSessionsPerWeek(sessions: { week_number: number }[]): string {
-  if (sessions.length === 0) return "no sessions yet";
-  const counts = new Map<number, number>();
-  for (const { week_number } of sessions) {
-    counts.set(week_number, (counts.get(week_number) ?? 0) + 1);
-  }
-  const values = [...counts.values()];
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  return min === max ? `${min} sessions/week` : `${min}-${max} sessions/week`;
-}
-
 async function loadProgramCanvasPageData(id: string) {
   const [
     programResult,
@@ -115,7 +103,6 @@ function ProgramCanvasPageHeader({
   return (
     <ProgramCanvasHeader
       title={program.name}
-      subtitle={`${program.weeks} weeks · ${formatSessionsPerWeek(program.sessions)}`}
       backHref="/programs"
       breadcrumbs={[
         { label: "Programs", href: "/programs" },

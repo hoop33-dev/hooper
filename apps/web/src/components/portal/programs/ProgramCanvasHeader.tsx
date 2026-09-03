@@ -17,5 +17,5 @@ interface ProgramCanvasHeaderProps {
  * <ProgramHeaderCollapseProvider> (toggled from the WeekTabStrip / Shift+E). */
 export function ProgramCanvasHeader(props: ProgramCanvasHeaderProps) {
   const { headerCollapsed } = useProgramHeaderCollapse();
-  return <PageHeader {...props} hideMiddle={headerCollapsed} />;
+  return <PageHeader {...props} inlineSubtitle hideMiddle={headerCollapsed} />;
 }

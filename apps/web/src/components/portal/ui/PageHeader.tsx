@@ -23,6 +23,9 @@ interface PageHeaderProps {
    * back/breadcrumb rail — driven by the program-week editor's collapse
    * toggle. */
   hideMiddle?: boolean;
+  /** Sits the subtitle on the title's baseline instead of stacked beneath
+   * it — for short, stat-style subtitles ("1 week · 2 sessions/week"). */
+  inlineSubtitle?: boolean;
   className?: string;
 }
 
@@ -62,6 +65,7 @@ export function PageHeader({
   backHref,
   breadcrumbs,
   hideMiddle,
+  inlineSubtitle,
   className,
 }: PageHeaderProps) {
   const hasRail = Boolean(backHref || breadcrumbs?.length);
@@ -94,12 +98,21 @@ export function PageHeader({
 
       {!hideMiddle && (
         <div className="flex items-start justify-between px-7 py-4">
-          <div>
+          <div
+            className={cn(
+              inlineSubtitle && "flex flex-wrap items-baseline gap-x-2.5",
+            )}>
             <h1 className="font-title text-portal-text1 text-[22px] font-extrabold tracking-wide">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-portal-text2 mt-0.5 text-sm">{subtitle}</p>
+              <p
+                className={cn(
+                  "text-portal-text2 text-sm",
+                  !inlineSubtitle && "mt-0.5",
+                )}>
+                {subtitle}
+              </p>
             )}
           </div>
           {action && <div className="flex items-center gap-2">{action}</div>}

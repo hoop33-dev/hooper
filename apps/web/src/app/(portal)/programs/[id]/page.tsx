@@ -1,8 +1,9 @@
 import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
+import { ProgramCanvasHeader } from "@/src/components/portal/programs/ProgramCanvasHeader";
 import { ProgramCanvasShell } from "@/src/components/portal/programs/ProgramCanvasShell";
 import { ProgramDetailActions } from "@/src/components/portal/programs/ProgramDetailActions";
+import { ProgramHeaderCollapseProvider } from "@/src/components/portal/programs/ProgramHeaderCollapseContext";
 import { ShortcutsButton } from "@/src/components/portal/programs/ShortcutsButton";
-import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { getCoachProfile } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
@@ -11,6 +12,7 @@ import { listForms } from "@/src/services/form.service";
 import { getProgramById } from "@/src/services/program.service";
 import { listSessionTemplates } from "@/src/services/sessionTemplate.service";
 import { listUnitTypes } from "@/src/services/unitType.service";
+import type { FormSummary, ProgramWithSessions } from "@hooper/db";
 import { notFound } from "next/navigation";
 import {
   createBlockFromTemplateAction,
@@ -103,6 +105,39 @@ async function loadProgramCanvasPageData(id: string) {
   };
 }
 
+function ProgramCanvasPageHeader({
+  program,
+  forms,
+}: {
+  program: ProgramWithSessions;
+  forms: FormSummary[];
+}) {
+  return (
+    <ProgramCanvasHeader
+      title={program.name}
+      subtitle={`${program.weeks} weeks · ${formatSessionsPerWeek(program.sessions)}`}
+      backHref="/programs"
+      breadcrumbs={[
+        { label: "Programs", href: "/programs" },
+        { label: program.name },
+      ]}
+      action={
+        <ProgramDetailActions
+          program={program}
+          forms={forms}
+          updateAction={updateProgramAction}
+          deleteAction={deleteProgramAction}
+          publishAction={publishProgramAction}
+          attachFormAction={attachFormToProgramAction}
+          shortcutsButton={
+            <ShortcutsButton key="shortcuts" variant="program" />
+          }
+        />
+      }
+    />
+  );
+}
+
 export default async function ProgramCanvasPage({
   params,
 }: {
@@ -138,72 +173,53 @@ export default async function ProgramCanvasPage({
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <PageHeader
-        title={programResult.data.name}
-        subtitle={`${programResult.data.weeks} weeks · ${formatSessionsPerWeek(programResult.data.sessions)}`}
-        backHref="/programs"
-        breadcrumbs={[
-          { label: "Programs", href: "/programs" },
-          { label: programResult.data.name },
-        ]}
-        action={
-          <ProgramDetailActions
-            program={programResult.data}
-            forms={forms}
-            updateAction={updateProgramAction}
-            deleteAction={deleteProgramAction}
-            publishAction={publishProgramAction}
-            attachFormAction={attachFormToProgramAction}
-            shortcutsButton={
-              <ShortcutsButton key="shortcuts" variant="program" />
-            }
-          />
-        }
-      />
-      <ProgramCanvasShell
-        program={programResult.data}
-        exercises={exercises}
-        categories={categories}
-        styles={styles}
-        unitTypes={unitTypes}
-        sessionTemplates={sessionTemplates}
-        createSessionAction={createSessionAction}
-        updateSessionNameAction={updateSessionNameAction}
-        deleteSessionAction={deleteSessionAction}
-        duplicateSessionAction={duplicateSessionAction}
-        setLinkedWeeksAction={setLinkedWeeksAction}
-        reorderSessionsAction={reorderSessionsAction}
-        createBlockAction={createBlockAction}
-        updateBlockAction={updateBlockAction}
-        deleteBlockAction={deleteBlockAction}
-        reorderBlocksAction={reorderBlocksAction}
-        addExerciseToBlockAction={addExerciseToBlockAction}
-        updateBlockExerciseAction={updateBlockExerciseAction}
-        removeExerciseFromBlockAction={removeExerciseFromBlockAction}
-        reorderBlockExercisesAction={reorderBlockExercisesAction}
-        updateProgramAction={updateProgramAction}
-        deleteProgramWeekAction={deleteProgramWeekAction}
-        addBlankProgramWeeksAction={addBlankProgramWeeksAction}
-        listEligibleImportSourcesAction={listEligibleImportSourcesAction}
-        getImportSourceProgramAction={getImportSourceProgramAction}
-        copyProgramWeeksAction={copyProgramWeeksAction}
-        duplicateProgramWeeksAction={duplicateProgramWeeksAction}
-        saveBlockAsTemplateAction={wrappedSaveBlockAsTemplate}
-        saveSessionAsTemplateAction={wrappedSaveSessionAsTemplate}
-        createBlockFromTemplateAction={createBlockFromTemplateAction}
-        createBlocksFromSessionTemplateAction={
-          createBlocksFromSessionTemplateAction
-        }
-        createSessionFromTemplateAction={createSessionFromTemplateAction}
-        profileId={profileId}
-        createExerciseAction={wrappedCreateExercise}
-        updateExerciseAction={updateExerciseAction}
-        updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
-        createCategoryAction={createCategoryAction}
-        createStyleAction={createStyleAction}
-        createUnitTypeAction={createUnitTypeAction}
-      />
-    </div>
+    <ProgramHeaderCollapseProvider>
+      <div className="flex h-full flex-col overflow-hidden">
+        <ProgramCanvasPageHeader program={programResult.data} forms={forms} />
+        <ProgramCanvasShell
+          program={programResult.data}
+          exercises={exercises}
+          categories={categories}
+          styles={styles}
+          unitTypes={unitTypes}
+          sessionTemplates={sessionTemplates}
+          createSessionAction={createSessionAction}
+          updateSessionNameAction={updateSessionNameAction}
+          deleteSessionAction={deleteSessionAction}
+          duplicateSessionAction={duplicateSessionAction}
+          setLinkedWeeksAction={setLinkedWeeksAction}
+          reorderSessionsAction={reorderSessionsAction}
+          createBlockAction={createBlockAction}
+          updateBlockAction={updateBlockAction}
+          deleteBlockAction={deleteBlockAction}
+          reorderBlocksAction={reorderBlocksAction}
+          addExerciseToBlockAction={addExerciseToBlockAction}
+          updateBlockExerciseAction={updateBlockExerciseAction}
+          removeExerciseFromBlockAction={removeExerciseFromBlockAction}
+          reorderBlockExercisesAction={reorderBlockExercisesAction}
+          updateProgramAction={updateProgramAction}
+          deleteProgramWeekAction={deleteProgramWeekAction}
+          addBlankProgramWeeksAction={addBlankProgramWeeksAction}
+          listEligibleImportSourcesAction={listEligibleImportSourcesAction}
+          getImportSourceProgramAction={getImportSourceProgramAction}
+          copyProgramWeeksAction={copyProgramWeeksAction}
+          duplicateProgramWeeksAction={duplicateProgramWeeksAction}
+          saveBlockAsTemplateAction={wrappedSaveBlockAsTemplate}
+          saveSessionAsTemplateAction={wrappedSaveSessionAsTemplate}
+          createBlockFromTemplateAction={createBlockFromTemplateAction}
+          createBlocksFromSessionTemplateAction={
+            createBlocksFromSessionTemplateAction
+          }
+          createSessionFromTemplateAction={createSessionFromTemplateAction}
+          profileId={profileId}
+          createExerciseAction={wrappedCreateExercise}
+          updateExerciseAction={updateExerciseAction}
+          updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+          createCategoryAction={createCategoryAction}
+          createStyleAction={createStyleAction}
+          createUnitTypeAction={createUnitTypeAction}
+        />
+      </div>
+    </ProgramHeaderCollapseProvider>
   );
 }

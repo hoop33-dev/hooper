@@ -108,7 +108,7 @@ export function ExerciseLibraryShelfBody({
   const baseExercises = exercises.filter((ex) => !ex.parent_id);
 
   return (
-    <div className="flex h-[190px]">
+    <div className="flex h-[170px]">
       <ShelfSidebar
         search={search}
         onSearch={onSearchChange}

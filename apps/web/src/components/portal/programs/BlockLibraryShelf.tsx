@@ -63,7 +63,7 @@ export function BlockLibraryShelfBody({
   onQuickAdd,
 }: BlockLibraryShelfProps) {
   return (
-    <div className="flex h-[190px]">
+    <div className="flex h-[170px]">
       <ShelfSidebar
         search={search}
         onSearch={onSearchChange}

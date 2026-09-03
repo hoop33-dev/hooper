@@ -19,6 +19,10 @@ interface PageHeaderProps {
   /** Right-aligned breadcrumb trail in the same rail. The last entry is the
    * current page and renders un-linked. */
   breadcrumbs?: Breadcrumb[];
+  /** Hides the middle band (title, subtitle, action) while keeping the
+   * back/breadcrumb rail — driven by the program-week editor's collapse
+   * toggle. */
+  hideMiddle?: boolean;
   className?: string;
 }
 
@@ -57,6 +61,7 @@ export function PageHeader({
   action,
   backHref,
   breadcrumbs,
+  hideMiddle,
   className,
 }: PageHeaderProps) {
   const hasRail = Boolean(backHref || breadcrumbs?.length);
@@ -68,7 +73,11 @@ export function PageHeader({
         className,
       )}>
       {hasRail && (
-        <div className="border-portal-border flex items-center justify-between gap-4 border-b px-7 py-2.5">
+        <div
+          className={cn(
+            "border-portal-border flex items-center justify-between gap-4 px-7 py-2.5",
+            !hideMiddle && "border-b",
+          )}>
           {backHref ? (
             <Link
               href={backHref}
@@ -83,17 +92,19 @@ export function PageHeader({
         </div>
       )}
 
-      <div className="flex items-start justify-between px-7 py-4">
-        <div>
-          <h1 className="font-title text-portal-text1 text-[22px] font-extrabold tracking-wide">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="text-portal-text2 mt-0.5 text-sm">{subtitle}</p>
-          )}
+      {!hideMiddle && (
+        <div className="flex items-start justify-between px-7 py-4">
+          <div>
+            <h1 className="font-title text-portal-text1 text-[22px] font-extrabold tracking-wide">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="text-portal-text2 mt-0.5 text-sm">{subtitle}</p>
+            )}
+          </div>
+          {action && <div className="flex items-center gap-2">{action}</div>}
         </div>
-        {action && <div className="flex items-center gap-2">{action}</div>}
-      </div>
+      )}
     </div>
   );
 }

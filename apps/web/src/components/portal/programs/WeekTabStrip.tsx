@@ -9,6 +9,9 @@ interface WeekTabStripProps {
   onDeleteWeek: (week: number) => void;
   updatedAt: string;
   updatedByName: string | null;
+  /** True while <PageHeader>'s middle band is hidden. */
+  headerCollapsed: boolean;
+  onToggleHeaderCollapsed: () => void;
 }
 
 function formatEditedAt(iso: string): string {
@@ -100,6 +103,8 @@ export function WeekTabStrip({
   onDeleteWeek,
   updatedAt,
   updatedByName,
+  headerCollapsed,
+  onToggleHeaderCollapsed,
 }: WeekTabStripProps) {
   const weeks = Array.from({ length: totalWeeks }, (_, i) => i + 1);
   return (
@@ -127,6 +132,14 @@ export function WeekTabStrip({
         Last edited{updatedByName ? ` by ${updatedByName}` : ""} at{" "}
         {formatEditedAt(updatedAt)}
       </span>
+      <button
+        type="button"
+        onClick={onToggleHeaderCollapsed}
+        title="Collapse/expand the header (Shift+E)"
+        aria-pressed={headerCollapsed}
+        className="text-portal-text3 hover:text-portal-text1 flex-shrink-0 text-[10px] font-semibold">
+        {headerCollapsed ? "Expand" : "Collapse"}
+      </button>
     </div>
   );
 }

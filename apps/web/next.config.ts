@@ -10,12 +10,16 @@ const nextConfig: NextConfig = {
   // Workspace packages ship TypeScript source; let Next transpile them.
   transpilePackages: ["@hooper/db"],
   // The program-PDF route (src/app/api/programs/[id]/export) drives headless
-  // Chromium. These carry native binaries / are require()d conditionally at
-  // runtime — never bundle them.
+  // Chromium, then post-processes the PDF to stamp fillable form fields.
+  // puppeteer/chromium carry native binaries or are require()d conditionally at
+  // runtime; unpdf/pdf-lib pull in a serverless pdf.js build that trips the
+  // bundler's tracing — keep them all external.
   serverExternalPackages: [
     "puppeteer-core",
     "puppeteer",
     "@sparticuz/chromium",
+    "unpdf",
+    "pdf-lib",
   ],
 };
 

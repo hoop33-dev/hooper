@@ -222,6 +222,37 @@ describe("ProgramExportDocument", () => {
   });
 });
 
+describe("ProgramExportDocument — fillable-field markers", () => {
+  const html = renderToStaticMarkup(
+    <ProgramExportDocument
+      program={program}
+      styles={[working]}
+      coach="Marcus Davis"
+      athlete="Jordan Lee"
+      notes=""
+      weeks={[1, 2]}
+    />,
+  );
+
+  it("emits one Date marker per session, scoped to week + position", () => {
+    // sessions: week 1 / position 0, and week 2 / position 0
+    expect(html).toContain("HFF__date_w01_s00__X");
+    expect(html).toContain("HFF__date_w02_s00__X");
+    expect((html.match(/HFF__date_/g) ?? []).length).toBe(2);
+  });
+
+  it("brackets every Logged cell with an L and an R marker", () => {
+    // be-1 has 2 sets in week-1 session-0 block-0 exercise-0
+    expect(html).toContain("HFF__log_w01_s00_b00_e00_set00__L");
+    expect(html).toContain("HFF__log_w01_s00_b00_e00_set00__R");
+    expect(html).toContain("HFF__log_w01_s00_b00_e00_set01__R");
+    const ls = (html.match(/HFF__log_[a-z0-9_]+__L/g) ?? []).length;
+    const rs = (html.match(/HFF__log_[a-z0-9_]+__R/g) ?? []).length;
+    expect(ls).toBeGreaterThan(0);
+    expect(ls).toBe(rs);
+  });
+});
+
 describe("ProgramExportDocument — per-set exercise variants", () => {
   const withVariant: ProgramWithSessions = {
     ...program,

@@ -2,6 +2,9 @@
  * Dev-only: renders ProgramExportDocument with a synthetic program to a
  * standalone HTML file so the print layout can be eyeballed without auth.
  *   npx tsx scripts/preview-program-export.tsx > /tmp/preview.html
+ *
+ * `program` and `styles` are also exported so other dev scripts can reuse the
+ * fixture (e.g. the fillable-form-field pipeline check).
  */
 import type {
   ExerciseStyleRow,
@@ -37,7 +40,7 @@ function ex(
   };
 }
 
-const styles: ExerciseStyleRow[] = [
+export const styles: ExerciseStyleRow[] = [
   ["st-wu", "Warmup"],
   ["st-wo", "Working"],
   ["st-top", "Top set"],
@@ -73,7 +76,7 @@ function m(
   };
 }
 
-const program: ProgramWithSessions = {
+export const program: ProgramWithSessions = {
   id: "prog-1",
   name: "Off-Season Athletic Base",
   description: null,
@@ -260,13 +263,15 @@ const program: ProgramWithSessions = {
   ],
 };
 
-process.stdout.write(
-  renderProgramExportHtml({
-    program,
-    styles,
-    coach: "Marcus Davis",
-    athlete: "Jordan Lee",
-    notes: program.notes ?? "",
-    weeks: Array.from({ length: program.weeks }, (_, i) => i + 1),
-  }),
-);
+if (import.meta.url === `file://${process.argv[1]}`) {
+  process.stdout.write(
+    renderProgramExportHtml({
+      program,
+      styles,
+      coach: "Marcus Davis",
+      athlete: "Jordan Lee",
+      notes: program.notes ?? "",
+      weeks: Array.from({ length: program.weeks }, (_, i) => i + 1),
+    }),
+  );
+}

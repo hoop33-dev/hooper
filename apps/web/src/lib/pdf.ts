@@ -1,3 +1,4 @@
+import { stampFormFields } from "@/src/lib/pdf/stampFormFields";
 import chromium from "@sparticuz/chromium";
 import puppeteer, { type Browser } from "puppeteer-core";
 
@@ -24,11 +25,16 @@ async function launchBrowser(): Promise<Browser> {
 
 /** Loads `url` in headless Chromium (forwarding the caller's cookies so the
  * page authenticates as the same coach) and returns it as a PDF, using the
- * same print path the browser's "Save as PDF" would. */
+ * same print path the browser's "Save as PDF" would.
+ *
+ * The print page seeds invisible marker tokens at every fillable-field spot;
+ * `stampFormFields` turns those into interactive AcroForm fields on the way
+ * out. It's a no-op (returns the bytes untouched) for any page without markers. */
 export async function renderUrlToPdf(
   url: string,
   cookieHeader: string | null,
 ): Promise<Uint8Array> {
+  let bytes: Uint8Array;
   const browser = await launchBrowser();
   try {
     const page = await browser.newPage();
@@ -41,7 +47,7 @@ export async function renderUrlToPdf(
     // spacers (mirrors AutoPrint's settle delay).
     await sleep(400);
     await page.emulateMediaType("print");
-    return await page.pdf({
+    bytes = await page.pdf({
       printBackground: true,
       preferCSSPageSize: true,
       format: "letter",
@@ -50,4 +56,5 @@ export async function renderUrlToPdf(
   } finally {
     await browser.close();
   }
+  return stampFormFields(bytes);
 }

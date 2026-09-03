@@ -1,5 +1,10 @@
 import { resolveDisplayName } from "@/src/lib/blockExerciseDisplay";
 import { cn } from "@/src/lib/cn";
+import {
+  dateFieldName,
+  logFieldName,
+  markerToken,
+} from "@/src/lib/print/fillableFields";
 import { LOGO_PRINT_DATA_URI } from "@/src/lib/print/logoPrintDataUri";
 import {
   blockMetaLine,
@@ -115,6 +120,20 @@ a{color:#000}
   .rh{margin:0 0.6in!important;padding:0.28in 0 8px!important}
   .rf{margin:0 0.6in!important;padding:6px 0 0.28in!important}
 }
+/* Fillable-field anchors. Chromium can't emit AcroForm fields, so the export
+ * route stamps them onto the finished PDF at the coordinates of these markers
+ * (see lib/print/fillableFields.ts). Each is opaque text coloured to match its
+ * background — invisible on the page, but kept in the PDF text layer where the
+ * stamper can find it — and position:absolute so it costs zero layout. */
+.sessdate .rule{position:relative}
+.c-log{position:relative}
+/* letter-spacing / text-transform are inherited on the session band and would
+ * make pdf.js read the token back a character at a time — force them off. */
+.ff-marker{position:absolute;top:0;font-size:5px;line-height:1;font-family:'Outfit',sans-serif;pointer-events:none;user-select:none;white-space:nowrap;letter-spacing:normal;word-spacing:normal;text-transform:none}
+.ff-marker.l{left:0}
+.ff-marker.r{right:0}
+.ff-marker.log{color:var(--fill)}
+.ff-marker.date{color:#000}
 `;
 
 export type ProgramExportDocumentProps = {
@@ -198,12 +217,21 @@ function WeekSchedule({
   );
 }
 
+type FieldPos = {
+  weekNumber: number;
+  sessionPosition: number;
+  blockPosition: number;
+  exercisePosition: number;
+};
+
 function SetTable({
   be,
   styles,
+  pos,
 }: {
   be: BlockExerciseWithDetails;
   styles: ExerciseStyleRow[];
+  pos: FieldPos;
 }) {
   const model = buildSetTableModel(be, styles);
   return (
@@ -220,23 +248,39 @@ function SetTable({
         </tr>
       </thead>
       <tbody>
-        {model.rows.map((row) => (
-          <tr key={row.setLabel}>
-            <td className="c-set">{row.setLabel}</td>
-            {model.showExerciseColumn && (
-              <td className="c-ex">{row.exerciseName}</td>
-            )}
-            {model.showStyleColumn && (
-              <td className="c-style">{row.styleName ?? "—"}</td>
-            )}
-            {model.unitColumns.map((u) => (
-              <td key={u} className="num">
-                {row.values[u]}
+        {model.rows.map((row, setIndex) => {
+          const logField = logFieldName(
+            pos.weekNumber,
+            pos.sessionPosition,
+            pos.blockPosition,
+            pos.exercisePosition,
+            setIndex,
+          );
+          return (
+            <tr key={row.setLabel}>
+              <td className="c-set">{row.setLabel}</td>
+              {model.showExerciseColumn && (
+                <td className="c-ex">{row.exerciseName}</td>
+              )}
+              {model.showStyleColumn && (
+                <td className="c-style">{row.styleName ?? "—"}</td>
+              )}
+              {model.unitColumns.map((u) => (
+                <td key={u} className="num">
+                  {row.values[u]}
+                </td>
+              ))}
+              <td className="c-log">
+                <span className="ff-marker log l">
+                  {markerToken(logField, "L")}
+                </span>
+                <span className="ff-marker log r">
+                  {markerToken(logField, "R")}
+                </span>
               </td>
-            ))}
-            <td className="c-log" />
-          </tr>
-        ))}
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
@@ -246,10 +290,12 @@ function ExerciseRow({
   be,
   letter,
   styles,
+  pos,
 }: {
   be: BlockExerciseWithDetails;
   letter: string | null;
   styles: ExerciseStyleRow[];
+  pos: FieldPos;
 }) {
   const name = resolveDisplayName(be);
   const styleTag = resolveStyleName(be, styles);
@@ -278,7 +324,7 @@ function ExerciseRow({
           </span>
           {styleTag && <span className="tag">{styleTag}</span>}
         </div>
-        <SetTable be={be} styles={styles} />
+        <SetTable be={be} styles={styles} pos={pos} />
         {be.notes && <div className="note">{be.notes}</div>}
       </div>
     </div>
@@ -287,10 +333,16 @@ function ExerciseRow({
 
 function BlockSection({
   block,
+  blockIndex,
   styles,
+  weekNumber,
+  sessionPosition,
 }: {
   block: BlockWithExercises;
+  blockIndex: number;
   styles: ExerciseStyleRow[];
+  weekNumber: number;
+  sessionPosition: number;
 }) {
   return (
     <section className={cn("block", block.is_superset && "superset")}>
@@ -307,6 +359,12 @@ function BlockSection({
             be={be}
             letter={block.is_superset ? supersetLetter(i) : null}
             styles={styles}
+            pos={{
+              weekNumber,
+              sessionPosition,
+              blockPosition: blockIndex,
+              exercisePosition: i,
+            }}
           />
         ))}
       </div>
@@ -339,11 +397,24 @@ function SessionArticle({
         </div>
         <div className="sessdate">
           <span>Date</span>
-          <span className="rule" />
+          <span className="rule">
+            <span className="ff-marker date l">
+              {markerToken(
+                dateFieldName(session.week_number, session.position),
+              )}
+            </span>
+          </span>
         </div>
       </div>
-      {session.blocks.map((block) => (
-        <BlockSection key={block.id} block={block} styles={styles} />
+      {session.blocks.map((block, i) => (
+        <BlockSection
+          key={block.id}
+          block={block}
+          blockIndex={i}
+          styles={styles}
+          weekNumber={session.week_number}
+          sessionPosition={session.position}
+        />
       ))}
     </article>
   );

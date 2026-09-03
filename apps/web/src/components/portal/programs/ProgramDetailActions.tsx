@@ -85,8 +85,17 @@ export function ProgramDetailActions({
   const [current, setCurrent] = useState(program);
 
   function handleExport(queryString: string) {
+    // A fresh nonce per export so the browser never serves a stale PDF from
+    // its HTTP cache after the coach edits the program and re-exports with
+    // the same options. The route ignores unknown params; its short-lived
+    // cache entry still bridges the fetch below to the new-tab navigation
+    // (both hit this exact URL), it just can't be reused by a later export.
+    const nonce =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : String(Date.now());
     void runPdfExport(
-      `/api/programs/${current.id}/export?${queryString}`,
+      `/api/programs/${current.id}/export?${queryString}&_=${nonce}`,
       showSticky("Generating your PDF…"),
       showError,
     );

@@ -60,8 +60,10 @@ export async function GET(
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${filename}"`,
         // Private, short-lived: the client fetches this to generate it, then
-        // navigates a new tab to the same URL — this cache entry serves that
-        // second request instantly (and with the filename above).
+        // navigates a new tab to the same URL (nonce and all) — this cache
+        // entry serves that second request instantly (and with the filename
+        // above). A later export uses a fresh nonce, so it never reuses a
+        // stale PDF from here after the program has been edited.
         "Cache-Control": "private, max-age=300",
       },
     });

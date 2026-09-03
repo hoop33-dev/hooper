@@ -77,6 +77,9 @@ export function resolveStyleName(
 export type SetTableRow = {
   setLabel: string;
   styleName: string | null;
+  /** The exercise this set actually prescribes — its per-set variant
+   * override when it has one, else the placement's base exercise. */
+  exerciseName: string;
   /** unit_type -> printed cell text ("65 kg", "8", "—"). */
   values: Record<string, string>;
 };
@@ -86,6 +89,9 @@ export type SetTableModel = {
   unitColumns: string[];
   /** True when the sets don't all share one style — render a STYLE column. */
   showStyleColumn: boolean;
+  /** True when the sets don't all prescribe the same exercise — render an
+   * EXERCISE column so per-set variant overrides aren't lost. */
+  showExerciseColumn: boolean;
   rows: SetTableRow[];
 };
 
@@ -114,6 +120,7 @@ export function buildSetTableModel(
     return {
       setLabel: `${setIndex + 1}`,
       styleName: setStyleName(be, allStyles, setIndex),
+      exerciseName: (be.setVariants[setIndex] ?? be.exercise).name,
       values: Object.fromEntries(
         unitColumns.map((unitType) => {
           const row = forSet?.get(unitType);
@@ -127,7 +134,13 @@ export function buildSetTableModel(
   });
 
   const distinctStyles = new Set(rows.map((r) => r.styleName ?? ""));
-  return { unitColumns, showStyleColumn: distinctStyles.size > 1, rows };
+  const distinctExercises = new Set(rows.map((r) => r.exerciseName));
+  return {
+    unitColumns,
+    showStyleColumn: distinctStyles.size > 1,
+    showExerciseColumn: distinctExercises.size > 1,
+    rows,
+  };
 }
 
 /** A/B/C… label for a superset exercise, by its position in the block. */

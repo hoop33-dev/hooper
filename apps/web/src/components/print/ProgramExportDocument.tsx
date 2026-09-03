@@ -98,6 +98,7 @@ table.sets th{text-align:left;font-size:8.5px;font-weight:600;letter-spacing:0.1
 table.sets td{padding:5px 6px 5px 0;border-bottom:1px solid var(--hair);font-variant-numeric:tabular-nums}
 table.sets .c-set{width:34px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700}
 table.sets .c-style{width:88px;font-size:10.5px;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink2)}
+table.sets .c-ex{font-size:11px;font-weight:600}
 table.sets .c-log{width:30%;background:var(--fill)}
 .note{font-size:11px;color:var(--ink2);margin-top:5px;padding-left:9px;border-left:2px solid var(--hair)}
 a{color:#000}
@@ -210,6 +211,7 @@ function SetTable({
       <thead>
         <tr>
           <th className="c-set">Set</th>
+          {model.showExerciseColumn && <th className="c-ex">Exercise</th>}
           {model.showStyleColumn && <th className="c-style">Style</th>}
           {model.unitColumns.map((u) => (
             <th key={u}>{u.toUpperCase()}</th>
@@ -221,6 +223,9 @@ function SetTable({
         {model.rows.map((row) => (
           <tr key={row.setLabel}>
             <td className="c-set">{row.setLabel}</td>
+            {model.showExerciseColumn && (
+              <td className="c-ex">{row.exerciseName}</td>
+            )}
             {model.showStyleColumn && (
               <td className="c-style">{row.styleName ?? "—"}</td>
             )}
@@ -357,6 +362,10 @@ function Legend() {
         <b>Styles</b> appear as an outlined tag next to the exercise, or per-set
         in a STYLE column when they vary.
         <br />
+        <b>Exercise variants</b> that change from set to set are spelled out in
+        an EXERCISE column, with the heading naming the exercise used for the
+        most sets.
+        <br />
         <b>Supersets</b> are lettered A / B / C. Complete one round of every
         lettered exercise back to back, then repeat for the prescribed rounds.
         <br />
@@ -475,7 +484,7 @@ export function ProgramExportDocument({
             <div className="rht">{program.name}</div>
             <div className="rhs">{headerSub}</div>
           </div>
-          <div className="rhs">Athlete</div>
+          <div className="rhs">{athlete.trim() || "Athlete"}</div>
         </div>
         <div slot="footer" className="rf">
           <span>Hooper</span>

@@ -190,6 +190,10 @@ describe("ProgramExportDocument", () => {
     expect(html).toContain("Week 1 is a ramp-up.");
   });
 
+  it("puts the athlete name in the running header", () => {
+    expect(html).toContain('class="rhs">Jordan Lee<');
+  });
+
   it("renders a schedule table per week", () => {
     expect(html).toContain("Week 1 schedule");
     expect(html).toContain("Week 2 schedule");
@@ -215,6 +219,46 @@ describe("ProgramExportDocument", () => {
   it("full-program export shows no week-coverage label", () => {
     expect(html).toContain("2 weeks · 2 sessions");
     expect(html).not.toContain(" of 2");
+  });
+});
+
+describe("ProgramExportDocument — per-set exercise variants", () => {
+  const withVariant: ProgramWithSessions = {
+    ...program,
+    sessions: [
+      {
+        ...program.sessions[0]!,
+        blocks: [
+          {
+            ...program.sessions[0]!.blocks[0]!,
+            exercises: [
+              {
+                ...program.sessions[0]!.blocks[0]!.exercises[0]!,
+                sets: 2,
+                setVariants: { 1: exercise("ex-tempo", "Tempo Back Squat") },
+              },
+            ],
+          },
+        ],
+      },
+      program.sessions[1]!,
+    ],
+  };
+
+  const html = renderToStaticMarkup(
+    <ProgramExportDocument
+      program={withVariant}
+      styles={[working]}
+      coach="Marcus Davis"
+      athlete="Jordan Lee"
+      notes=""
+      weeks={[1, 2]}
+    />,
+  );
+
+  it("adds an EXERCISE column naming each set's effective variant", () => {
+    expect(html).toContain(">Exercise<");
+    expect(html).toContain("Tempo Back Squat");
   });
 });
 

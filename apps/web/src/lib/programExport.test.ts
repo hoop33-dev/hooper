@@ -181,6 +181,43 @@ describe("buildSetTableModel", () => {
     const model = buildSetTableModel(be, [working]);
     expect(model.showStyleColumn).toBe(false);
   });
+
+  it("no exercise column when every set uses the placement's own exercise", () => {
+    const be = blockExercise({
+      sets: 2,
+      measurements: [
+        measurement(0, 0, "Reps", 5),
+        measurement(1, 0, "Reps", 5),
+      ],
+    });
+    const model = buildSetTableModel(be, []);
+    expect(model.showExerciseColumn).toBe(false);
+    expect(model.rows.map((r) => r.exerciseName)).toEqual([
+      "Bench Press",
+      "Bench Press",
+    ]);
+  });
+
+  it("shows an exercise column with each set's effective variant name", () => {
+    const base = blockExercise();
+    const tempo = { ...base.exercise, id: "ex-2", name: "Tempo Bench Press" };
+    const be = blockExercise({
+      sets: 3,
+      setVariants: { 2: tempo },
+      measurements: [
+        measurement(0, 0, "Reps", 5),
+        measurement(1, 0, "Reps", 5),
+        measurement(2, 0, "Reps", 5),
+      ],
+    });
+    const model = buildSetTableModel(be, []);
+    expect(model.showExerciseColumn).toBe(true);
+    expect(model.rows.map((r) => r.exerciseName)).toEqual([
+      "Bench Press",
+      "Bench Press",
+      "Tempo Bench Press",
+    ]);
+  });
 });
 
 describe("resolveStyleName", () => {

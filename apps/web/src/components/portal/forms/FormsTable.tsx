@@ -1,7 +1,7 @@
 "use client";
 
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { FormSummary } from "@hooper/db";
-import { useRouter } from "next/navigation";
 
 function formatUpdatedAt(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -37,7 +37,6 @@ interface FormsTableProps {
 }
 
 export function FormsTable({ forms, onEdit }: FormsTableProps) {
-  const router = useRouter();
   const columns = ["Form", "Questions", "Programs", "Updated"];
   return (
     <table className="w-full border-collapse">
@@ -57,10 +56,14 @@ export function FormsTable({ forms, onEdit }: FormsTableProps) {
         {forms.map((form) => (
           <tr
             key={form.id}
-            onClick={() => router.push(`/forms/${form.id}`)}
-            className="border-portal-border hover:bg-portal-bg cursor-pointer border-b">
+            className="border-portal-border hover:bg-portal-bg relative cursor-pointer border-b">
             <td className="py-3.5 pr-4">
-              <FormNameCell form={form} />
+              <AppLink
+                href={`/forms/${form.id}`}
+                aria-label={`Open form ${form.name}`}
+                className="after:absolute after:inset-0 after:z-0">
+                <FormNameCell form={form} />
+              </AppLink>
             </td>
             <td className="text-portal-text2 py-3.5 pr-4 text-[13px]">
               {form.questionCount}
@@ -74,11 +77,8 @@ export function FormsTable({ forms, onEdit }: FormsTableProps) {
             <td className="py-3.5 text-right">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(form);
-                }}
-                className="border-portal-border text-portal-text2 hover:bg-portal-card rounded-lg border px-3 py-1 text-xs font-semibold">
+                onClick={() => onEdit(form)}
+                className="border-portal-border text-portal-text2 hover:bg-portal-card relative z-10 rounded-lg border px-3 py-1 text-xs font-semibold">
                 Edit
               </button>
             </td>

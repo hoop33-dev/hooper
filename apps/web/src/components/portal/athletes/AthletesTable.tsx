@@ -1,7 +1,7 @@
 "use client";
 
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { AthleteSummary } from "@hooper/db";
-import { useRouter } from "next/navigation";
 import { ProgramBadge } from "./ProgramBadge";
 
 function formatLastLogin(iso: string | null): string {
@@ -51,7 +51,6 @@ interface AthletesTableProps {
 }
 
 export function AthletesTable({ athletes }: AthletesTableProps) {
-  const router = useRouter();
   const columns = ["Athlete", "Program", "Last login"];
 
   return (
@@ -71,10 +70,13 @@ export function AthletesTable({ athletes }: AthletesTableProps) {
         {athletes.map((athlete) => (
           <tr
             key={athlete.id}
-            onClick={() => router.push(`/athletes/${athlete.id}`)}
-            className="border-portal-border hover:bg-portal-bg cursor-pointer border-b">
+            className="border-portal-border hover:bg-portal-bg relative cursor-pointer border-b">
             <td className="py-3.5 pr-4">
-              <AthleteNameCell athlete={athlete} />
+              <AppLink
+                href={`/athletes/${athlete.id}`}
+                className="after:absolute after:inset-0 after:z-0">
+                <AthleteNameCell athlete={athlete} />
+              </AppLink>
             </td>
             <td className="py-3.5 pr-4">
               <ProgramBadge programs={athlete.programs} />

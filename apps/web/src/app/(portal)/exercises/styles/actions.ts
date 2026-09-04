@@ -3,6 +3,7 @@
 import {
   createStyle,
   deleteStyle,
+  invalidateExerciseStyles,
   updateStyle,
 } from "@/src/services/exerciseStyle.service";
 import type { ExerciseStyleRow } from "@hooper/db";
@@ -17,6 +18,7 @@ export async function createStyleAction(data: {
 }): Promise<ActionResult> {
   const result = await createStyle(data);
   if (result.ok) {
+    invalidateExerciseStyles();
     revalidatePath("/exercises/styles");
     revalidatePath("/exercises");
   }
@@ -31,6 +33,7 @@ export async function updateStyleAction(
 ): Promise<ActionResult> {
   const result = await updateStyle(id, data);
   if (result.ok) {
+    invalidateExerciseStyles();
     revalidatePath("/exercises/styles");
     revalidatePath("/exercises");
   }
@@ -42,6 +45,7 @@ export async function updateStyleAction(
 export async function deleteStyleAction(id: string): Promise<ActionResult> {
   const result = await deleteStyle(id);
   if (result.ok) {
+    invalidateExerciseStyles();
     revalidatePath("/exercises/styles");
     revalidatePath("/exercises");
   }

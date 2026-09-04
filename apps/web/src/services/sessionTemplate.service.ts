@@ -3,20 +3,21 @@ import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type {
   EnteredBy,
-  ExerciseCategoryRow,
-  ExerciseStyleRow,
   SessionRow,
   SessionTemplateRow,
   SessionTemplateSummary,
   SessionTemplateWithBlocks,
-  UnitTypeRow,
 } from "@hooper/db";
+import { cache } from "react";
 import type { SupabaseClient } from "./block.service";
+import { getExerciseCategoriesRaw } from "./exerciseCategory.service";
+import { getExerciseStylesRaw } from "./exerciseStyle.service";
 import {
   SESSION_TEMPLATE_SELECT,
   shapeSessionTemplate,
   type RawSessionTemplate,
 } from "./templateShaping";
+import { getUnitTypesRaw } from "./unitType.service";
 
 export type CreateSessionTemplateInput = { name: string; created_by: string };
 
@@ -26,37 +27,39 @@ export type CreateSessionFromTemplateInput = {
   week_number: number;
 };
 
-export async function listSessionTemplates(): Promise<
-  Result<SessionTemplateSummary[]>
-> {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("session_templates")
-      .select("*, block_templates(id, name, block_template_exercises(count))")
-      .order("updated_at", { ascending: false });
-    if (error) return err(error.message);
+/** Request-scoped dedup: the Blocks library page and every program / session
+ * canvas page read the template list. Does not persist across navigations. */
+export const listSessionTemplates = cache(
+  async (): Promise<Result<SessionTemplateSummary[]>> => {
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("session_templates")
+        .select("*, block_templates(id, name, block_template_exercises(count))")
+        .order("updated_at", { ascending: false });
+      if (error) return err(error.message);
 
-    type RawSummaryBlock = {
-      id: string;
-      name: string;
-      block_template_exercises: { count: number }[] | { count: number };
-    };
-    const templates = (data ?? []).map(({ block_templates, ...t }) => ({
-      ...t,
-      blocks: (block_templates as unknown as RawSummaryBlock[]).map((b) => ({
-        id: b.id,
-        name: b.name,
-        exerciseCount: Array.isArray(b.block_template_exercises)
-          ? (b.block_template_exercises[0]?.count ?? 0)
-          : (b.block_template_exercises?.count ?? 0),
-      })),
-    }));
-    return ok(templates as SessionTemplateSummary[]);
-  } catch (e) {
-    return err(toErrorMessage(e));
-  }
-}
+      type RawSummaryBlock = {
+        id: string;
+        name: string;
+        block_template_exercises: { count: number }[] | { count: number };
+      };
+      const templates = (data ?? []).map(({ block_templates, ...t }) => ({
+        ...t,
+        blocks: (block_templates as unknown as RawSummaryBlock[]).map((b) => ({
+          id: b.id,
+          name: b.name,
+          exerciseCount: Array.isArray(b.block_template_exercises)
+            ? (b.block_template_exercises[0]?.count ?? 0)
+            : (b.block_template_exercises?.count ?? 0),
+        })),
+      }));
+      return ok(templates as SessionTemplateSummary[]);
+    } catch (e) {
+      return err(toErrorMessage(e));
+    }
+  },
+);
 
 export async function getSessionTemplateById(
   id: string,
@@ -70,15 +73,11 @@ export async function getSessionTemplateById(
       .single();
     if (error) return err(error.message);
 
-    const [{ data: cats }, { data: styles }, { data: unitTypes }] =
-      await Promise.all([
-        supabase.from("exercise_categories").select("*"),
-        supabase.from("exercise_styles").select("*"),
-        supabase.from("unit_types").select("*"),
-      ]);
-    const allCategories = (cats ?? []) as ExerciseCategoryRow[];
-    const allStyles = (styles ?? []) as ExerciseStyleRow[];
-    const allUnitTypes = (unitTypes ?? []) as UnitTypeRow[];
+    const [allCategories, allStyles, allUnitTypes] = await Promise.all([
+      getExerciseCategoriesRaw(),
+      getExerciseStylesRaw(),
+      getUnitTypesRaw(),
+    ]);
 
     return ok(
       shapeSessionTemplate(

@@ -1,6 +1,8 @@
+import { DashboardOverviewSkeleton } from "@/src/components/portal/dashboard/DashboardOverviewSkeleton";
 import { QuickLinkCard } from "@/src/components/portal/dashboard/QuickLinkCard";
 import { RecentPrograms } from "@/src/components/portal/dashboard/RecentPrograms";
 import { StatCard } from "@/src/components/portal/dashboard/StatCard";
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import {
   DumbbellIcon,
@@ -8,24 +10,19 @@ import {
   StackIcon,
   UsersIcon,
 } from "@/src/components/portal/ui/icons";
-import { listAthletes } from "@/src/services/athlete.service";
+import { countAthletes } from "@/src/services/athlete.service";
 import { getCoachProfile } from "@/src/services/auth.service";
-import { listPrograms } from "@/src/services/program.service";
-import Link from "next/link";
+import {
+  countPrograms,
+  listRecentPrograms,
+} from "@/src/services/program.service";
+import { Suspense } from "react";
 
 const RECENT_PROGRAMS_LIMIT = 5;
 
 export default async function DashboardPage() {
-  const [programsResult, athletesResult, profileResult] = await Promise.all([
-    listPrograms(),
-    listAthletes(),
-    getCoachProfile(),
-  ]);
-
-  const programs = programsResult.ok ? programsResult.data : [];
-  const athletes = athletesResult.ok ? athletesResult.data : [];
+  const profileResult = await getCoachProfile();
   const profile = profileResult.ok ? profileResult.data : null;
-  const recentPrograms = programs.slice(0, RECENT_PROGRAMS_LIMIT);
   const greeting = profile?.first_name
     ? `Welcome back, ${profile.first_name}`
     : "Welcome back";
@@ -34,23 +31,12 @@ export default async function DashboardPage() {
     <div className="flex h-full flex-col overflow-hidden">
       <PageHeader
         title="Dashboard"
-        subtitle={`${greeting} — here's what's happening with your programs`}
+        subtitle={`${greeting} - here's what's happening with your programs`}
       />
       <div className="flex-1 overflow-y-auto px-7 py-6">
-        <div className="grid grid-cols-2 gap-4">
-          <StatCard
-            label="Programs"
-            value={programs.length}
-            icon={<LayersIcon size={18} />}
-            href="/programs"
-          />
-          <StatCard
-            label="Athletes"
-            value={athletes.length}
-            icon={<UsersIcon size={18} />}
-            href="/athletes"
-          />
-        </div>
+        <Suspense fallback={<DashboardOverviewSkeleton />}>
+          <DashboardOverview />
+        </Suspense>
 
         <div className="mt-8">
           <h2 className="text-portal-text3 mb-3 text-[11px] font-semibold tracking-widest uppercase">
@@ -71,21 +57,56 @@ export default async function DashboardPage() {
             />
           </div>
         </div>
-
-        <div className="border-portal-border bg-portal-card mt-8 overflow-hidden rounded-xl border">
-          <div className="border-portal-border flex items-center justify-between border-b px-5 py-4">
-            <h2 className="text-portal-text1 text-sm font-bold">
-              Recently Edited Programs
-            </h2>
-            <Link
-              href="/programs"
-              className="text-portal-orange text-xs font-semibold hover:underline">
-              View all programs
-            </Link>
-          </div>
-          <RecentPrograms programs={recentPrograms} />
-        </div>
       </div>
     </div>
+  );
+}
+
+/** Counts + recent list — the only data-dependent part of the dashboard, so it
+ * streams in behind the header rather than blocking first paint. Uses cheap
+ * count reads instead of the full `listPrograms` / `listAthletes` queries. */
+async function DashboardOverview() {
+  const [programCountResult, athleteCountResult, recentResult] =
+    await Promise.all([
+      countPrograms(),
+      countAthletes(),
+      listRecentPrograms(RECENT_PROGRAMS_LIMIT),
+    ]);
+
+  const programCount = programCountResult.ok ? programCountResult.data : 0;
+  const athleteCount = athleteCountResult.ok ? athleteCountResult.data : 0;
+  const recentPrograms = recentResult.ok ? recentResult.data : [];
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-4">
+        <StatCard
+          label="Programs"
+          value={programCount}
+          icon={<LayersIcon size={18} />}
+          href="/programs"
+        />
+        <StatCard
+          label="Athletes"
+          value={athleteCount}
+          icon={<UsersIcon size={18} />}
+          href="/athletes"
+        />
+      </div>
+
+      <div className="border-portal-border bg-portal-card mt-8 overflow-hidden rounded-xl border">
+        <div className="border-portal-border flex items-center justify-between border-b px-5 py-4">
+          <h2 className="text-portal-text1 text-sm font-bold">
+            Recently Edited Programs
+          </h2>
+          <AppLink
+            href="/programs"
+            className="text-portal-orange text-xs font-semibold hover:underline">
+            View all programs
+          </AppLink>
+        </div>
+        <RecentPrograms programs={recentPrograms} />
+      </div>
+    </>
   );
 }

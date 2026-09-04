@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { ReactNode } from "react";
 import type { LibraryTemplate } from "./blockTemplateFilter";
 import { DraggableBlockTemplateRow } from "./dnd/DraggableBlockTemplateRow";
@@ -78,9 +78,9 @@ export function BlockLibraryPanel({
       </div>
       <div className="border-portal-border text-portal-text3 border-t px-3.5 py-2.5 text-[10px] leading-relaxed">
         Drag a template up to add it here.{" "}
-        <Link href="/blocks" className="text-portal-orange hover:underline">
+        <AppLink href="/blocks" className="text-portal-orange hover:underline">
           Manage Block Library →
-        </Link>
+        </AppLink>
       </div>
     </div>
   );

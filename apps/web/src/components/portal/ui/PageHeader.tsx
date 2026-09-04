@@ -1,5 +1,5 @@
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { cn } from "@/src/lib/cn";
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowLeftIcon } from "./icons";
 
@@ -14,10 +14,12 @@ interface PageHeaderProps {
   subtitle?: string;
   action?: ReactNode;
   /** Target of the "← BACK" link in the rail above the title. Set on detail
-   * and nested pages; omit on the top-level nav pages. */
+   * and nested pages; omit on the top-level nav pages (the rail still renders,
+   * just without the link, so the title sits at the same height everywhere). */
   backHref?: string;
   /** Right-aligned breadcrumb trail in the same rail. The last entry is the
-   * current page and renders un-linked. */
+   * current page and renders un-linked. Defaults to a single crumb of `title`
+   * so top-level pages still show the page name in the rail. */
   breadcrumbs?: Breadcrumb[];
   /** Hides the middle band (title, subtitle, action) while keeping the
    * back/breadcrumb rail — driven by the program-week editor's collapse
@@ -40,11 +42,11 @@ function BreadcrumbTrail({ items }: { items: Breadcrumb[] }) {
           <span key={i} className="flex items-center gap-1.5">
             {i > 0 && <span className="text-portal-text3">/</span>}
             {crumb.href && !isLast ? (
-              <Link
+              <AppLink
                 href={crumb.href}
                 className="text-portal-text3 hover:text-portal-text1 transition">
                 {crumb.label}
-              </Link>
+              </AppLink>
             ) : (
               <span
                 className={isLast ? "text-portal-text1" : "text-portal-text3"}>
@@ -68,7 +70,7 @@ export function PageHeader({
   inlineSubtitle,
   className,
 }: PageHeaderProps) {
-  const hasRail = Boolean(backHref || breadcrumbs?.length);
+  const crumbs = breadcrumbs?.length ? breadcrumbs : [{ label: title }];
 
   return (
     <div
@@ -76,25 +78,25 @@ export function PageHeader({
         "border-portal-border bg-portal-card flex flex-shrink-0 flex-col border-b",
         className,
       )}>
-      {hasRail && (
-        <div
-          className={cn(
-            "border-portal-border flex items-center justify-between gap-4 px-7 py-2.5",
-            !hideMiddle && "border-b",
-          )}>
-          {backHref ? (
-            <Link
-              href={backHref}
-              className="text-portal-text3 hover:text-portal-text1 flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase transition">
-              <ArrowLeftIcon size={13} />
-              Back
-            </Link>
-          ) : (
-            <span />
-          )}
-          {breadcrumbs?.length ? <BreadcrumbTrail items={breadcrumbs} /> : null}
-        </div>
-      )}
+      {/* Always rendered — even empty — so the title band sits at the same
+          height on every page and the header doesn't jump between routes. */}
+      <div
+        className={cn(
+          "border-portal-border flex min-h-[38px] items-center justify-between gap-4 px-7 py-2.5",
+          !hideMiddle && "border-b",
+        )}>
+        {backHref ? (
+          <AppLink
+            href={backHref}
+            className="text-portal-text3 hover:text-portal-text1 flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase transition">
+            <ArrowLeftIcon size={13} />
+            Back
+          </AppLink>
+        ) : (
+          <span />
+        )}
+        <BreadcrumbTrail items={crumbs} />
+      </div>
 
       {!hideMiddle && (
         <div className="flex items-center justify-between px-7 py-4">

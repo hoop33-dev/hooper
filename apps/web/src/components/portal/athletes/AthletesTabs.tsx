@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { usePathname } from "next/navigation";
 
 const TABS = [
@@ -23,7 +23,7 @@ export function AthletesTabs() {
             ? pathname === "/athletes"
             : pathname.startsWith(tab.href);
         return (
-          <Link
+          <AppLink
             key={tab.href}
             href={tab.href}
             className={`flex h-7 items-center rounded-md px-4 text-xs font-bold transition ${
@@ -32,7 +32,7 @@ export function AthletesTabs() {
                 : "text-portal-text3 hover:bg-portal-border/50"
             }`}>
             {tab.label}
-          </Link>
+          </AppLink>
         );
       })}
     </div>

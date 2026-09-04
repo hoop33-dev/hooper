@@ -1,6 +1,5 @@
 "use client";
 
-import type { ProgramSummary } from "@hooper/db";
 import { useMemo, useState } from "react";
 import { XIcon } from "../ui/icons";
 import { PortalButton } from "../ui/PortalButton";
@@ -9,10 +8,16 @@ import { useModalDismiss } from "../ui/useModalDismiss";
 
 type ActionResult = { ok: boolean; error?: string };
 
+/** The modal only ever shows/searches program names — the full `ProgramSummary`
+ * isn't needed, so the picker list can be loaded lazily on open. */
+type ProgramOption = { id: string; name: string };
+
 interface AssignProgramsModalProps {
   entityName: string;
   assignedProgramIds: string[];
-  allPrograms: ProgramSummary[];
+  allPrograms: ProgramOption[];
+  /** True while the picker list is still being fetched (lazy load on open). */
+  loading?: boolean;
   onAssign: (programId: string) => Promise<ActionResult>;
   onUnassign: (programId: string) => Promise<ActionResult>;
   onClose: () => void;
@@ -53,7 +58,7 @@ function CandidateRow({
   selected,
   onToggle,
 }: {
-  program: ProgramSummary;
+  program: ProgramOption;
   selected: boolean;
   onToggle: () => void;
 }) {
@@ -80,7 +85,7 @@ function SelectedPill({
   program,
   onRemove,
 }: {
-  program: ProgramSummary;
+  program: ProgramOption;
   onRemove: () => void;
 }) {
   return (
@@ -129,14 +134,16 @@ function ModalBody({
   selected,
   onToggle,
   error,
+  loading,
 }: {
   search: string;
   onSearch: (v: string) => void;
-  filtered: ProgramSummary[];
+  filtered: ProgramOption[];
   selectedIds: string[];
-  selected: ProgramSummary[];
+  selected: ProgramOption[];
   onToggle: (id: string) => void;
   error: string | null;
+  loading?: boolean;
 }) {
   return (
     <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-6 py-5">
@@ -144,9 +151,14 @@ function ModalBody({
         value={search}
         onChange={(e) => onSearch(e.target.value)}
         placeholder="Search programs by name…"
+        disabled={loading}
       />
 
       {error && <p className="text-xs text-red-500">{error}</p>}
+
+      {loading && (
+        <p className="text-portal-text3 px-1 text-xs">Loading programs…</p>
+      )}
 
       {search.trim().length > 0 &&
         (filtered.length > 0 ? (
@@ -211,6 +223,7 @@ export function AssignProgramsModal({
   entityName,
   assignedProgramIds,
   allPrograms,
+  loading,
   onAssign,
   onUnassign,
   onClose,
@@ -268,7 +281,7 @@ export function AssignProgramsModal({
 
   const selected = selectedIds
     .map((id) => programById.get(id))
-    .filter((p): p is ProgramSummary => p !== undefined);
+    .filter((p): p is ProgramOption => p !== undefined);
 
   return (
     <div
@@ -284,6 +297,7 @@ export function AssignProgramsModal({
           selected={selected}
           onToggle={toggle}
           error={error}
+          loading={loading}
         />
         <ModalFooter
           dirty={dirty}

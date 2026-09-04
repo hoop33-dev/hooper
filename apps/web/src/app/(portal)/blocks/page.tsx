@@ -1,6 +1,5 @@
 import { BlockLibraryListShell } from "@/src/components/portal/blocks/BlockLibraryListShell";
-import { PageHeader } from "@/src/components/portal/ui/PageHeader";
-import { getCoachProfile } from "@/src/services/auth.service";
+import { getCoachProfileId } from "@/src/services/auth.service";
 import { listSessionTemplates } from "@/src/services/sessionTemplate.service";
 import {
   createSessionTemplateAction,
@@ -11,11 +10,11 @@ import {
 export default async function BlockLibraryPage() {
   const [templatesResult, profileResult] = await Promise.all([
     listSessionTemplates(),
-    getCoachProfile(),
+    getCoachProfileId(),
   ]);
 
   const templates = templatesResult.ok ? templatesResult.data : [];
-  const profileId = profileResult.ok ? profileResult.data.id : "";
+  const profileId = profileResult.ok ? profileResult.data : "";
 
   async function wrappedCreate(name: string) {
     "use server";
@@ -24,10 +23,6 @@ export default async function BlockLibraryPage() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <PageHeader
-        title="Block Library"
-        subtitle="Save blocks and sessions once, reuse them across every program"
-      />
       <BlockLibraryListShell
         templates={templates}
         createAction={wrappedCreate}

@@ -1,5 +1,5 @@
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { ProgramSummary } from "@hooper/db";
-import Link from "next/link";
 import { ProgramStatusBadge } from "../programs/ProgramStatusBadge";
 
 function formatUpdatedAt(iso: string): string {
@@ -12,7 +12,7 @@ function formatUpdatedAt(iso: string): string {
 function RecentProgramRow({ program }: { program: ProgramSummary }) {
   const initial = program.name.trim().charAt(0).toUpperCase() || "P";
   return (
-    <Link
+    <AppLink
       href={`/programs/${program.id}`}
       className="hover:bg-portal-bg flex items-center gap-3 px-5 py-3.5 transition-colors">
       <div className="bg-portal-orange-soft text-portal-orange flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-sm font-extrabold">
@@ -27,7 +27,7 @@ function RecentProgramRow({ program }: { program: ProgramSummary }) {
         </div>
       </div>
       <ProgramStatusBadge status={program.status} />
-    </Link>
+    </AppLink>
   );
 }
 

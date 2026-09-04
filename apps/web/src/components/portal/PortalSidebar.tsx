@@ -1,10 +1,10 @@
 "use client";
 
 import { signOut } from "@/src/app/(auth)/actions";
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { cn } from "@/src/lib/cn";
 import type { CoachProfile } from "@/src/services/auth.service";
 import Image from "next/image";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactElement } from "react";
 import {
@@ -159,7 +159,7 @@ function SidebarNavItem({
   }
 
   return (
-    <Link
+    <AppLink
       href={item.href}
       className={cn(
         "flex items-center gap-2.5 rounded-lg px-3 py-2.5 transition-colors",
@@ -176,7 +176,7 @@ function SidebarNavItem({
       {isActive && (
         <div className="bg-portal-orange ml-auto h-1 w-1 rounded-full" />
       )}
-    </Link>
+    </AppLink>
   );
 }
 
@@ -207,7 +207,7 @@ function SidebarParentNavItem({
             ? "bg-[rgba(241,88,37,0.13)]"
             : "hover:bg-white/[0.06]",
         )}>
-        <Link
+        <AppLink
           href={item.href ?? "#"}
           className="flex flex-1 items-center gap-2.5 px-3 py-2.5">
           <item.Icon size={15} color={color} />
@@ -220,7 +220,7 @@ function SidebarParentNavItem({
             )}>
             {item.label}
           </span>
-        </Link>
+        </AppLink>
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}

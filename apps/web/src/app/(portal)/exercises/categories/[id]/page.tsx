@@ -1,6 +1,6 @@
 import { CategoryManagerShell } from "@/src/components/portal/exercises/CategoryManagerShell";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
-import { getCoachProfile } from "@/src/services/auth.service";
+import { getCoachProfileId } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
 import {
   getCategoryById,
@@ -25,14 +25,14 @@ export default async function CategoryDetailPage({ params }: Props) {
       getCategoryById(id),
       listCategories(),
       listExercises(),
-      getCoachProfile(),
+      getCoachProfileId(),
     ]);
 
   if (!categoryResult.ok) notFound();
 
   const categories = categoriesResult.ok ? categoriesResult.data : [];
   const exercises = exercisesResult.ok ? exercisesResult.data : [];
-  const profileId = profileResult.ok ? profileResult.data.id : "";
+  const profileId = profileResult.ok ? profileResult.data : "";
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

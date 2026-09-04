@@ -1,17 +1,20 @@
 "use client";
 
-import type { AthleteDetail, ProgramSummary } from "@hooper/db";
-import { useState } from "react";
+import type { AthleteDetail } from "@hooper/db";
 import { PageHeader } from "../ui/PageHeader";
 import { AssignedProgramsTable } from "./AssignedProgramsTable";
 import { AssignProgramsModal } from "./AssignProgramsModal";
+import { useLazyPrograms } from "./useLazyPrograms";
 import { useProgramAssignments } from "./useProgramAssignments";
 
 type ActionResult = { ok: boolean; error?: string };
+type ProgramOption = { id: string; name: string };
 
 interface AthleteDetailShellProps {
   athlete: AthleteDetail;
-  programs: ProgramSummary[];
+  /** Lazily loaded when the assign modal first opens — see
+   * `listAssignableProgramsAction`. */
+  loadPrograms: () => Promise<ProgramOption[]>;
   assignProgramAction: (
     profileId: string,
     programId: string,
@@ -44,15 +47,15 @@ function formatDate(iso: string | null): string {
 
 export function AthleteDetailShell({
   athlete,
-  programs,
+  loadPrograms,
   assignProgramAction,
   unassignProgramAction,
 }: AthleteDetailShellProps) {
-  const [assignOpen, setAssignOpen] = useState(false);
+  const assign = useLazyPrograms(loadPrograms);
   const { assignedPrograms, assignProgram, unassignProgram } =
     useProgramAssignments(
       athlete.programs,
-      programs,
+      assign.programs,
       (programId) => assignProgramAction(athlete.id, programId),
       (programId) => unassignProgramAction(athlete.id, programId),
     );
@@ -118,7 +121,7 @@ export function AthleteDetailShell({
           <AssignedProgramsTable
             programs={assignedPrograms}
             variant="athlete"
-            onAssignClick={() => setAssignOpen(true)}
+            onAssignClick={assign.open}
             onUnassign={async (programId) => {
               await unassignProgram(programId);
             }}
@@ -126,14 +129,15 @@ export function AthleteDetailShell({
         </div>
       </div>
 
-      {assignOpen && (
+      {assign.isOpen && (
         <AssignProgramsModal
           entityName={name}
           assignedProgramIds={assignedPrograms.map((p) => p.id)}
-          allPrograms={programs}
+          allPrograms={assign.programs}
+          loading={assign.loading}
           onAssign={assignProgram}
           onUnassign={unassignProgram}
-          onClose={() => setAssignOpen(false)}
+          onClose={assign.close}
         />
       )}
     </div>

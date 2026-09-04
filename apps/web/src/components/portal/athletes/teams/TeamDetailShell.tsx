@@ -3,7 +3,6 @@
 import type {
   AssignedProgramRef,
   AthleteSummary,
-  ProgramSummary,
   TeamDetail,
   TeamMember,
   TeamRow,
@@ -13,12 +12,14 @@ import { PageHeader } from "../../ui/PageHeader";
 import { PortalButton } from "../../ui/PortalButton";
 import { AssignedProgramsTable } from "../AssignedProgramsTable";
 import { AssignProgramsModal } from "../AssignProgramsModal";
+import { useLazyPrograms } from "../useLazyPrograms";
 import { useProgramAssignments } from "../useProgramAssignments";
 import { TeamEditSection } from "./TeamEditSection";
 import { TeamMembersPanel } from "./TeamMembersPanel";
 import { useTeamMembers } from "./useTeamMembers";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
+type ProgramOption = { id: string; name: string };
 
 interface TeamMembersSectionProps {
   programs: AssignedProgramRef[];
@@ -82,7 +83,8 @@ function TeamDetailHeaderActions({ onEdit }: { onEdit: () => void }) {
 
 interface TeamDetailShellProps {
   team: TeamDetail;
-  programs: ProgramSummary[];
+  /** Lazily loaded when the assign modal first opens. */
+  loadPrograms: () => Promise<ProgramOption[]>;
   athletes: AthleteSummary[];
   updateTeamAction: (
     id: string,
@@ -109,7 +111,7 @@ interface TeamDetailShellProps {
 
 export function TeamDetailShell({
   team,
-  programs,
+  loadPrograms,
   athletes,
   updateTeamAction,
   deleteTeamAction,
@@ -118,7 +120,7 @@ export function TeamDetailShell({
   assignProgramAction,
   unassignProgramAction,
 }: TeamDetailShellProps) {
-  const [assignOpen, setAssignOpen] = useState(false);
+  const assign = useLazyPrograms(loadPrograms);
   const [editOpen, setEditOpen] = useState(false);
   const [header, setHeader] = useState({
     name: team.name,
@@ -131,7 +133,7 @@ export function TeamDetailShell({
   const { assignedPrograms, assignProgram, unassignProgram } =
     useProgramAssignments(
       team.programs,
-      programs,
+      assign.programs,
       (programId) => assignProgramAction(team.id, programId),
       (programId) => unassignProgramAction(team.id, programId),
     );
@@ -162,21 +164,22 @@ export function TeamDetailShell({
           athletes={athletes}
           onAddMembers={handleAddMembers}
           onRemoveMember={handleRemoveMember}
-          onAssignClick={() => setAssignOpen(true)}
+          onAssignClick={assign.open}
           onUnassignProgram={async (programId) => {
             await unassignProgram(programId);
           }}
         />
       </div>
 
-      {assignOpen && (
+      {assign.isOpen && (
         <AssignProgramsModal
           entityName={header.name}
           assignedProgramIds={assignedPrograms.map((p) => p.id)}
-          allPrograms={programs}
+          allPrograms={assign.programs}
+          loading={assign.loading}
           onAssign={assignProgram}
           onUnassign={unassignProgram}
-          onClose={() => setAssignOpen(false)}
+          onClose={assign.close}
         />
       )}
 

@@ -2,19 +2,20 @@ import type { Result } from "@/src/lib/result";
 import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type {
-  ExerciseCategoryRow,
-  ExerciseStyleRow,
   ProgramRow,
   ProgramSummary,
   ProgramWithSessions,
   SessionRow,
-  UnitTypeRow,
 } from "@hooper/db";
+import { cache } from "react";
+import { getExerciseCategoriesRaw } from "./exerciseCategory.service";
+import { getExerciseStylesRaw } from "./exerciseStyle.service";
 import {
   SESSION_SELECT,
   shapeBlocksWithExercises,
   type RawBlock,
 } from "./programShaping";
+import { getUnitTypesRaw } from "./unitType.service";
 
 export type CreateProgramInput = {
   name: string;
@@ -61,28 +62,99 @@ function sessionsPerWeekRange(
   return [Math.min(...values), Math.max(...values)];
 }
 
-export async function listPrograms(): Promise<Result<ProgramSummary[]>> {
+/** Request-scoped: several pages (dashboard, form detail, team detail) read
+ * the program list alongside other data — `cache()` collapses same-render
+ * duplicate calls to one query. Does not persist across navigations. */
+export const listPrograms = cache(
+  async (): Promise<Result<ProgramSummary[]>> => {
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("programs")
+        .select("*, sessions(week_number)")
+        .order("updated_at", { ascending: false });
+
+      if (error) return err(error.message);
+
+      const rows = (data ?? []).map((row) => {
+        const sessions = Array.isArray(row.sessions)
+          ? (row.sessions as { week_number: number }[])
+          : [];
+        return {
+          ...row,
+          sessionCount: sessions.length,
+          sessionsPerWeek: sessionsPerWeekRange(sessions),
+        };
+      });
+
+      return ok(rows as ProgramSummary[]);
+    } catch (e) {
+      return err(toErrorMessage(e));
+    }
+  },
+);
+
+/** Cheap dashboard read — count only, no session aggregation. */
+export const countPrograms = cache(async (): Promise<Result<number>> => {
+  try {
+    const supabase = await createClient();
+    const { count, error } = await supabase
+      .from("programs")
+      .select("*", { count: "exact", head: true });
+    if (error) return err(error.message);
+    return ok(count ?? 0);
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+});
+
+/** The N most recently edited programs — the dashboard's "Recently Edited"
+ * list, without pulling every program + its session rows. */
+export const listRecentPrograms = cache(
+  async (limit = 5): Promise<Result<ProgramSummary[]>> => {
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("programs")
+        .select("*, sessions(week_number)")
+        .order("updated_at", { ascending: false })
+        .limit(limit);
+
+      if (error) return err(error.message);
+
+      const rows = (data ?? []).map((row) => {
+        const sessions = Array.isArray(row.sessions)
+          ? (row.sessions as { week_number: number }[])
+          : [];
+        return {
+          ...row,
+          sessionCount: sessions.length,
+          sessionsPerWeek: sessionsPerWeekRange(sessions),
+        };
+      });
+
+      return ok(rows as ProgramSummary[]);
+    } catch (e) {
+      return err(toErrorMessage(e));
+    }
+  },
+);
+
+/** Just the base program row — the cheap critical-path read for the canvas
+ * page's header, so it can render (and 404) before the full session tree
+ * streams in via {@link getProgramById}. */
+export async function getProgramHeader(
+  id: string,
+): Promise<Result<ProgramRow>> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("programs")
-      .select("*, sessions(week_number)")
-      .order("updated_at", { ascending: false });
-
+      .select("*")
+      .eq("id", id)
+      .single();
     if (error) return err(error.message);
-
-    const rows = (data ?? []).map((row) => {
-      const sessions = Array.isArray(row.sessions)
-        ? (row.sessions as { week_number: number }[])
-        : [];
-      return {
-        ...row,
-        sessionCount: sessions.length,
-        sessionsPerWeek: sessionsPerWeekRange(sessions),
-      };
-    });
-
-    return ok(rows as ProgramSummary[]);
+    return ok(data);
   } catch (e) {
     return err(toErrorMessage(e));
   }
@@ -101,23 +173,22 @@ export async function getProgramById(
 
     if (error) return err(error.message);
 
-    const [{ data: cats }, { data: styles }, { data: unitTypes }] =
-      await Promise.all([
-        supabase.from("exercise_categories").select("*"),
-        supabase.from("exercise_styles").select("*"),
-        supabase.from("unit_types").select("*"),
-      ]);
-    const allCategories = (cats ?? []) as ExerciseCategoryRow[];
-    const allStyles = (styles ?? []) as ExerciseStyleRow[];
-    const allUnitTypes = (unitTypes ?? []) as UnitTypeRow[];
-
     const raw = data as unknown as RawProgram;
 
-    const { data: creator } = await supabase
-      .from("profiles")
-      .select("first_name, last_name")
-      .eq("id", raw.created_by)
-      .single();
+    // The lookup tables are cached per-render (shared with listExercises /
+    // listStyles / listUnitTypes on the same page); the creator lookup runs in
+    // the same round-trip group rather than after it.
+    const [allCategories, allStyles, allUnitTypes, { data: creator }] =
+      await Promise.all([
+        getExerciseCategoriesRaw(),
+        getExerciseStylesRaw(),
+        getUnitTypesRaw(),
+        supabase
+          .from("profiles")
+          .select("first_name, last_name")
+          .eq("id", raw.created_by)
+          .single(),
+      ]);
 
     const sessions = [...raw.sessions]
       .sort((a, b) => a.week_number - b.week_number || a.position - b.position)

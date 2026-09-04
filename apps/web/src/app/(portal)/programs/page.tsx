@@ -1,7 +1,7 @@
 import type { ProgramCreateFormData } from "@/src/components/portal/programs/ProgramCreateModal";
 import { ProgramsListShell } from "@/src/components/portal/programs/ProgramsListShell";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
-import { getCoachProfile } from "@/src/services/auth.service";
+import { getCoachProfileId } from "@/src/services/auth.service";
 import { listForms } from "@/src/services/form.service";
 import { listPrograms } from "@/src/services/program.service";
 import {
@@ -16,12 +16,12 @@ export default async function ProgramsPage() {
   const [programsResult, formsResult, profileResult] = await Promise.all([
     listPrograms(),
     listForms(),
-    getCoachProfile(),
+    getCoachProfileId(),
   ]);
 
   const programs = programsResult.ok ? programsResult.data : [];
   const forms = formsResult.ok ? formsResult.data : [];
-  const profileId = profileResult.ok ? profileResult.data.id : "";
+  const profileId = profileResult.ok ? profileResult.data : "";
 
   async function wrappedCreate(data: ProgramCreateFormData) {
     "use server";

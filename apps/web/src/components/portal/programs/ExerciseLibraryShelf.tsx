@@ -1,7 +1,7 @@
 "use client";
 
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
-import Link from "next/link";
 import { useState } from "react";
 import { ExercisePreviewModal } from "../exercises/ExercisePreviewModal";
 import { CreateExerciseButton } from "./CreateExerciseButton";
@@ -66,11 +66,11 @@ function ShelfSidebar({
       <p className="text-portal-text3 mt-auto text-[10px] leading-relaxed">
         Drag a card up into any block above to add it.
       </p>
-      <Link
+      <AppLink
         href="/exercises"
         className="text-portal-orange text-[10px] font-semibold hover:underline">
         Manage Exercise Library →
-      </Link>
+      </AppLink>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { TeamSummary } from "@hooper/db";
-import { useRouter } from "next/navigation";
 import { ProgramBadge } from "../ProgramBadge";
 
 function TeamNameCell({ team }: { team: TeamSummary }) {
@@ -39,7 +39,6 @@ interface TeamsTableProps {
 }
 
 export function TeamsTable({ teams }: TeamsTableProps) {
-  const router = useRouter();
   const columns = ["Team", "Program", "Members"];
 
   return (
@@ -59,10 +58,13 @@ export function TeamsTable({ teams }: TeamsTableProps) {
         {teams.map((team) => (
           <tr
             key={team.id}
-            onClick={() => router.push(`/athletes/teams/${team.id}`)}
-            className="border-portal-border hover:bg-portal-bg cursor-pointer border-b">
+            className="border-portal-border hover:bg-portal-bg relative cursor-pointer border-b">
             <td className="py-3.5 pr-4">
-              <TeamNameCell team={team} />
+              <AppLink
+                href={`/athletes/teams/${team.id}`}
+                className="after:absolute after:inset-0 after:z-0">
+                <TeamNameCell team={team} />
+              </AppLink>
             </td>
             <td className="py-3.5 pr-4">
               <ProgramBadge programs={team.programs} />

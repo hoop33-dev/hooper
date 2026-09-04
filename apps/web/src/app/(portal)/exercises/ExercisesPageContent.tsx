@@ -1,12 +1,14 @@
 import { ExerciseLibraryShell } from "@/src/components/portal/exercises/ExerciseLibraryShell";
+import { ExerciseLibrarySkeleton } from "@/src/components/portal/exercises/ExerciseLibrarySkeleton";
 import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
-import { getCoachProfile } from "@/src/services/auth.service";
+import { getCoachProfileId } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
 import { listStyles } from "@/src/services/exerciseStyle.service";
 import { listUnitTypes } from "@/src/services/unitType.service";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import {
   createExerciseAction,
   deleteExerciseAction,
@@ -20,7 +22,25 @@ import { createUnitTypeAction } from "./unit-types/actions";
 /** Shared by /exercises and /exercises/[id] — the latter renders the same
  * library with the edit modal for that exercise pre-opened, so the URL
  * stays in sync with whichever exercise's modal is open. */
-export async function ExercisesPageContent({
+export function ExercisesPageContent({
+  editExerciseId,
+}: {
+  editExerciseId?: string;
+}) {
+  return (
+    <div className="flex h-full flex-col overflow-hidden">
+      <PageHeader
+        title="Exercise Library"
+        subtitle="Create and manage exercises for your training programs"
+      />
+      <Suspense fallback={<ExerciseLibrarySkeleton />}>
+        <ExerciseLibraryData editExerciseId={editExerciseId} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function ExerciseLibraryData({
   editExerciseId,
 }: {
   editExerciseId?: string;
@@ -36,14 +56,14 @@ export async function ExercisesPageContent({
     listCategories(),
     listStyles(),
     listUnitTypes(),
-    getCoachProfile(),
+    getCoachProfileId(),
   ]);
 
   const exercises = exercisesResult.ok ? exercisesResult.data : [];
   const categories = categoriesResult.ok ? categoriesResult.data : [];
   const styles = stylesResult.ok ? stylesResult.data : [];
   const unitTypes = unitTypesResult.ok ? unitTypesResult.data : [];
-  const profileId = profileResult.ok ? profileResult.data.id : "";
+  const profileId = profileResult.ok ? profileResult.data : "";
 
   if (editExerciseId && !exercises.some((ex) => ex.id === editExerciseId)) {
     notFound();
@@ -55,28 +75,22 @@ export async function ExercisesPageContent({
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <PageHeader
-        title="Exercise Library"
-        subtitle="Create and manage exercises for your training programs"
-      />
-      <ExerciseLibraryShell
-        exercises={exercises}
-        categories={categories}
-        styles={styles}
-        unitTypes={unitTypes}
-        profileId={profileId}
-        searchQuery=""
-        selectedCategoryId=""
-        initialEditExerciseId={editExerciseId}
-        createAction={wrappedCreate}
-        updateAction={updateExerciseAction}
-        deleteAction={deleteExerciseAction}
-        updateVideoUrlAction={updateExerciseVideoUrlAction}
-        createCategoryAction={createCategoryAction}
-        createStyleAction={createStyleAction}
-        createUnitTypeAction={createUnitTypeAction}
-      />
-    </div>
+    <ExerciseLibraryShell
+      exercises={exercises}
+      categories={categories}
+      styles={styles}
+      unitTypes={unitTypes}
+      profileId={profileId}
+      searchQuery=""
+      selectedCategoryId=""
+      initialEditExerciseId={editExerciseId}
+      createAction={wrappedCreate}
+      updateAction={updateExerciseAction}
+      deleteAction={deleteExerciseAction}
+      updateVideoUrlAction={updateExerciseVideoUrlAction}
+      createCategoryAction={createCategoryAction}
+      createStyleAction={createStyleAction}
+      createUnitTypeAction={createUnitTypeAction}
+    />
   );
 }

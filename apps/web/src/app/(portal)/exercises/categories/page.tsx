@@ -1,6 +1,6 @@
 import { CategoryManagerShell } from "@/src/components/portal/exercises/CategoryManagerShell";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
-import { getCoachProfile } from "@/src/services/auth.service";
+import { getCoachProfileId } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
 import {
@@ -14,12 +14,12 @@ export default async function CategoriesPage() {
   const [categoriesResult, exercisesResult, profileResult] = await Promise.all([
     listCategories(),
     listExercises(),
-    getCoachProfile(),
+    getCoachProfileId(),
   ]);
 
   const categories = categoriesResult.ok ? categoriesResult.data : [];
   const exercises = exercisesResult.ok ? exercisesResult.data : [];
-  const profileId = profileResult.ok ? profileResult.data.id : "";
+  const profileId = profileResult.ok ? profileResult.data : "";
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

@@ -11,6 +11,9 @@ import type {
   ExerciseWithDetails,
   UnitTypeRow,
 } from "@hooper/db";
+import { getExerciseCategoriesRaw } from "./exerciseCategory.service";
+import { getExerciseStylesRaw } from "./exerciseStyle.service";
+import { getUnitTypesRaw } from "./unitType.service";
 
 export type CreateExerciseInput = {
   name: string;
@@ -117,16 +120,11 @@ export async function listExercises(
     const { data, error } = await query;
     if (error) return err(error.message);
 
-    const [{ data: cats }, { data: styles }, { data: unitTypes }] =
-      await Promise.all([
-        supabase.from("exercise_categories").select("*"),
-        supabase.from("exercise_styles").select("*"),
-        supabase.from("unit_types").select("*"),
-      ]);
-
-    const allCategories = (cats ?? []) as ExerciseCategoryRow[];
-    const allStyles = (styles ?? []) as ExerciseStyleRow[];
-    const allUnitTypes = (unitTypes ?? []) as UnitTypeRow[];
+    const [allCategories, allStyles, allUnitTypes] = await Promise.all([
+      getExerciseCategoriesRaw(),
+      getExerciseStylesRaw(),
+      getUnitTypesRaw(),
+    ]);
     const exercises = withVariants(
       (data ?? []).map((raw) =>
         toExerciseWithDetails(

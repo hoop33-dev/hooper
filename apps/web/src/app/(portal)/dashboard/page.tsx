@@ -1,6 +1,7 @@
 import { QuickLinkCard } from "@/src/components/portal/dashboard/QuickLinkCard";
 import { RecentPrograms } from "@/src/components/portal/dashboard/RecentPrograms";
 import { StatCard } from "@/src/components/portal/dashboard/StatCard";
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import {
   DumbbellIcon,
@@ -11,7 +12,6 @@ import {
 import { listAthletes } from "@/src/services/athlete.service";
 import { getCoachProfile } from "@/src/services/auth.service";
 import { listPrograms } from "@/src/services/program.service";
-import Link from "next/link";
 
 const RECENT_PROGRAMS_LIMIT = 5;
 
@@ -34,7 +34,7 @@ export default async function DashboardPage() {
     <div className="flex h-full flex-col overflow-hidden">
       <PageHeader
         title="Dashboard"
-        subtitle={`${greeting} — here's what's happening with your programs`}
+        subtitle={`${greeting} - here's what's happening with your programs`}
       />
       <div className="flex-1 overflow-y-auto px-7 py-6">
         <div className="grid grid-cols-2 gap-4">
@@ -77,11 +77,11 @@ export default async function DashboardPage() {
             <h2 className="text-portal-text1 text-sm font-bold">
               Recently Edited Programs
             </h2>
-            <Link
+            <AppLink
               href="/programs"
               className="text-portal-orange text-xs font-semibold hover:underline">
               View all programs
-            </Link>
+            </AppLink>
           </div>
           <RecentPrograms programs={recentPrograms} />
         </div>

@@ -1,7 +1,7 @@
 import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
 import { SessionViewShell } from "@/src/components/portal/programs/SessionViewShell";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
-import { getCoachProfile } from "@/src/services/auth.service";
+import { getCoachProfileId } from "@/src/services/auth.service";
 import type {
   AddExerciseToBlockInput,
   CreateBlockInput,
@@ -92,7 +92,7 @@ async function loadBlockTemplatePageData(templateId: string) {
     listCategories(),
     listStyles(),
     listUnitTypes(),
-    getCoachProfile(),
+    getCoachProfileId(),
     listSessionTemplates(),
   ]);
 
@@ -102,7 +102,7 @@ async function loadBlockTemplatePageData(templateId: string) {
     categories: categoriesResult.ok ? categoriesResult.data : [],
     styles: stylesResult.ok ? stylesResult.data : [],
     unitTypes: unitTypesResult.ok ? unitTypesResult.data : [],
-    profileId: profileResult.ok ? profileResult.data.id : "",
+    profileId: profileResult.ok ? profileResult.data : "",
     // Excludes itself — dragging a template into its own editor would nest a
     // copy of a template inside itself, which the Block Library has no
     // concept of undoing (there's no "remove a nested template" affordance,

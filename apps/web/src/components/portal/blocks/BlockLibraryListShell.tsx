@@ -4,6 +4,7 @@ import type { SessionTemplateRow, SessionTemplateSummary } from "@hooper/db";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SessionRenamePopover } from "../programs/SessionRenamePopover";
+import { PageHeader } from "../ui/PageHeader";
 import { PortalButton } from "../ui/PortalButton";
 import { useToast } from "../ui/Toast";
 import { useOptimisticList } from "../ui/useOptimisticList";
@@ -78,11 +79,15 @@ export function BlockLibraryListShell({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center justify-end border-b px-7 py-4">
-        <PortalButton variant="primary" onClick={() => setCreateOpen(true)}>
-          Create template
-        </PortalButton>
-      </div>
+      <PageHeader
+        title="Block Library"
+        subtitle="Save blocks and sessions once, reuse them across every program"
+        action={
+          <PortalButton variant="primary" onClick={() => setCreateOpen(true)}>
+            Create template
+          </PortalButton>
+        }
+      />
 
       <div className="flex-1 overflow-y-auto px-7 py-2">
         {localTemplates.length === 0 ? (

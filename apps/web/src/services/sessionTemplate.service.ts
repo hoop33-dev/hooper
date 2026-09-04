@@ -3,20 +3,20 @@ import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type {
   EnteredBy,
-  ExerciseCategoryRow,
-  ExerciseStyleRow,
   SessionRow,
   SessionTemplateRow,
   SessionTemplateSummary,
   SessionTemplateWithBlocks,
-  UnitTypeRow,
 } from "@hooper/db";
 import type { SupabaseClient } from "./block.service";
+import { getExerciseCategoriesRaw } from "./exerciseCategory.service";
+import { getExerciseStylesRaw } from "./exerciseStyle.service";
 import {
   SESSION_TEMPLATE_SELECT,
   shapeSessionTemplate,
   type RawSessionTemplate,
 } from "./templateShaping";
+import { getUnitTypesRaw } from "./unitType.service";
 
 export type CreateSessionTemplateInput = { name: string; created_by: string };
 
@@ -70,15 +70,11 @@ export async function getSessionTemplateById(
       .single();
     if (error) return err(error.message);
 
-    const [{ data: cats }, { data: styles }, { data: unitTypes }] =
-      await Promise.all([
-        supabase.from("exercise_categories").select("*"),
-        supabase.from("exercise_styles").select("*"),
-        supabase.from("unit_types").select("*"),
-      ]);
-    const allCategories = (cats ?? []) as ExerciseCategoryRow[];
-    const allStyles = (styles ?? []) as ExerciseStyleRow[];
-    const allUnitTypes = (unitTypes ?? []) as UnitTypeRow[];
+    const [allCategories, allStyles, allUnitTypes] = await Promise.all([
+      getExerciseCategoriesRaw(),
+      getExerciseStylesRaw(),
+      getUnitTypesRaw(),
+    ]);
 
     return ok(
       shapeSessionTemplate(

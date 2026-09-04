@@ -1,6 +1,6 @@
 import { StyleManagerShell } from "@/src/components/portal/exercises/StyleManagerShell";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
-import { getCoachProfile } from "@/src/services/auth.service";
+import { getCoachProfileId } from "@/src/services/auth.service";
 import { listExercises } from "@/src/services/exercise.service";
 import { listStyles } from "@/src/services/exerciseStyle.service";
 import {
@@ -13,12 +13,12 @@ export default async function StylesPage() {
   const [stylesResult, exercisesResult, profileResult] = await Promise.all([
     listStyles(),
     listExercises(),
-    getCoachProfile(),
+    getCoachProfileId(),
   ]);
 
   const styles = stylesResult.ok ? stylesResult.data : [];
   const exercises = exercisesResult.ok ? exercisesResult.data : [];
-  const profileId = profileResult.ok ? profileResult.data.id : "";
+  const profileId = profileResult.ok ? profileResult.data : "";
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

@@ -1,5 +1,6 @@
 "use client";
 
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type {
   ExerciseCategoryRow,
   ExerciseStyleRow,
@@ -7,7 +8,6 @@ import type {
   ExerciseWithDetails,
   UnitTypeRow,
 } from "@hooper/db";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { filterExercises } from "../programs/exerciseFilter";
@@ -222,7 +222,7 @@ function LibraryToolbar({
         selected={categoryFilter}
         onChange={onCategoryChange}
       />
-      <Link
+      <AppLink
         href="/exercises/categories"
         className="border-portal-border bg-portal-card text-portal-text1 hover:bg-portal-border/50 inline-flex h-9 flex-shrink-0 items-center gap-1.5 rounded-lg border px-4 text-sm font-semibold whitespace-nowrap transition">
         <svg
@@ -238,8 +238,8 @@ function LibraryToolbar({
           />
         </svg>
         Manage categories
-      </Link>
-      <Link
+      </AppLink>
+      <AppLink
         href="/exercises/styles"
         className="border-portal-border bg-portal-card text-portal-text1 hover:bg-portal-border/50 inline-flex h-9 flex-shrink-0 items-center gap-1.5 rounded-lg border px-4 text-sm font-semibold whitespace-nowrap transition">
         <svg
@@ -255,8 +255,8 @@ function LibraryToolbar({
           />
         </svg>
         Manage styles
-      </Link>
-      <Link
+      </AppLink>
+      <AppLink
         href="/exercises/unit-types"
         className="border-portal-border bg-portal-card text-portal-text1 hover:bg-portal-border/50 inline-flex h-9 flex-shrink-0 items-center gap-1.5 rounded-lg border px-4 text-sm font-semibold whitespace-nowrap transition">
         <svg
@@ -272,7 +272,7 @@ function LibraryToolbar({
           />
         </svg>
         Manage unit types
-      </Link>
+      </AppLink>
       <div className="ml-auto flex flex-shrink-0 items-center gap-3">
         <SearchBar value={search} onChange={onSearchChange} />
         <PortalButton variant="primary" onClick={onCreateClick}>

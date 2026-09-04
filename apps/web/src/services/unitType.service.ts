@@ -2,6 +2,22 @@ import type { Result } from "@/src/lib/result";
 import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type { UnitTypeRow } from "@hooper/db";
+import { cache } from "react";
+
+/**
+ * Raw unit-type rows, deduped per render. Global reference data
+ * (`unit_types_select_all` RLS) read from several code paths on the program /
+ * session / exercise pages — `cache()` collapses that to one query per request.
+ */
+export const getUnitTypesRaw = cache(async (): Promise<UnitTypeRow[]> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("unit_types")
+    .select("*")
+    .order("position");
+  if (error) throw new Error(error.message);
+  return data ?? [];
+});
 
 export type CreateUnitTypeInput = {
   name: string;
@@ -16,14 +32,7 @@ export type UpdateUnitTypeInput = {
 
 export async function listUnitTypes(): Promise<Result<UnitTypeRow[]>> {
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("unit_types")
-      .select("*")
-      .order("position");
-
-    if (error) return err(error.message);
-    return ok(data ?? []);
+    return ok(await getUnitTypesRaw());
   } catch (e) {
     return err(toErrorMessage(e));
   }

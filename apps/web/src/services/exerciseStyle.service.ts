@@ -2,6 +2,25 @@ import type { Result } from "@/src/lib/result";
 import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type { ExerciseStyleRow } from "@hooper/db";
+import { cache } from "react";
+
+/**
+ * Raw style rows, deduped per render. Exercise styles are global reference data
+ * (`exercise_styles_select_all` RLS), and the program / session / exercise
+ * pages each read them from several code paths — `cache()` collapses that to one
+ * query per request.
+ */
+export const getExerciseStylesRaw = cache(
+  async (): Promise<ExerciseStyleRow[]> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("exercise_styles")
+      .select("*")
+      .order("position");
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  },
+);
 
 export type CreateStyleInput = {
   name: string;
@@ -16,14 +35,7 @@ export type UpdateStyleInput = {
 
 export async function listStyles(): Promise<Result<ExerciseStyleRow[]>> {
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("exercise_styles")
-      .select("*")
-      .order("position");
-
-    if (error) return err(error.message);
-    return ok(data ?? []);
+    return ok(await getExerciseStylesRaw());
   } catch (e) {
     return err(toErrorMessage(e));
   }

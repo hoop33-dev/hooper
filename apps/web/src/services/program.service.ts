@@ -2,19 +2,19 @@ import type { Result } from "@/src/lib/result";
 import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type {
-  ExerciseCategoryRow,
-  ExerciseStyleRow,
   ProgramRow,
   ProgramSummary,
   ProgramWithSessions,
   SessionRow,
-  UnitTypeRow,
 } from "@hooper/db";
+import { getExerciseCategoriesRaw } from "./exerciseCategory.service";
+import { getExerciseStylesRaw } from "./exerciseStyle.service";
 import {
   SESSION_SELECT,
   shapeBlocksWithExercises,
   type RawBlock,
 } from "./programShaping";
+import { getUnitTypesRaw } from "./unitType.service";
 
 export type CreateProgramInput = {
   name: string;
@@ -88,6 +88,26 @@ export async function listPrograms(): Promise<Result<ProgramSummary[]>> {
   }
 }
 
+/** Just the base program row — the cheap critical-path read for the canvas
+ * page's header, so it can render (and 404) before the full session tree
+ * streams in via {@link getProgramById}. */
+export async function getProgramHeader(
+  id: string,
+): Promise<Result<ProgramRow>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("programs")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error) return err(error.message);
+    return ok(data);
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
 export async function getProgramById(
   id: string,
 ): Promise<Result<ProgramWithSessions>> {
@@ -101,23 +121,22 @@ export async function getProgramById(
 
     if (error) return err(error.message);
 
-    const [{ data: cats }, { data: styles }, { data: unitTypes }] =
-      await Promise.all([
-        supabase.from("exercise_categories").select("*"),
-        supabase.from("exercise_styles").select("*"),
-        supabase.from("unit_types").select("*"),
-      ]);
-    const allCategories = (cats ?? []) as ExerciseCategoryRow[];
-    const allStyles = (styles ?? []) as ExerciseStyleRow[];
-    const allUnitTypes = (unitTypes ?? []) as UnitTypeRow[];
-
     const raw = data as unknown as RawProgram;
 
-    const { data: creator } = await supabase
-      .from("profiles")
-      .select("first_name, last_name")
-      .eq("id", raw.created_by)
-      .single();
+    // The lookup tables are cached per-render (shared with listExercises /
+    // listStyles / listUnitTypes on the same page); the creator lookup runs in
+    // the same round-trip group rather than after it.
+    const [allCategories, allStyles, allUnitTypes, { data: creator }] =
+      await Promise.all([
+        getExerciseCategoriesRaw(),
+        getExerciseStylesRaw(),
+        getUnitTypesRaw(),
+        supabase
+          .from("profiles")
+          .select("first_name, last_name")
+          .eq("id", raw.created_by)
+          .single(),
+      ]);
 
     const sessions = [...raw.sessions]
       .sort((a, b) => a.week_number - b.week_number || a.position - b.position)

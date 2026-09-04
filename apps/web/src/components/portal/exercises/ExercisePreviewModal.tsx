@@ -1,8 +1,8 @@
 "use client";
 
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { getEmbedUrl } from "@/src/lib/videoEmbed";
 import type { ExerciseWithDetails } from "@hooper/db";
-import Link from "next/link";
 import { useModalDismiss } from "../ui/useModalDismiss";
 
 interface ExercisePreviewModalProps {
@@ -60,7 +60,7 @@ export function ExercisePreviewModal({
             {exercise.name}
           </h2>
           <div className="flex flex-shrink-0 items-center gap-1">
-            <Link
+            <AppLink
               href={`/exercises/${exercise.id}`}
               title="Edit exercise"
               className="text-portal-text3 hover:bg-portal-bg hover:text-portal-text1 flex h-8 w-8 items-center justify-center rounded-lg">
@@ -75,7 +75,7 @@ export function ExercisePreviewModal({
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
               </svg>
-            </Link>
+            </AppLink>
             <button
               type="button"
               onClick={onClose}

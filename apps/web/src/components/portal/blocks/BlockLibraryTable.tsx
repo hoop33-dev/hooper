@@ -1,4 +1,5 @@
 import type { SessionTemplateSummary } from "@hooper/db";
+import { AppLink } from "../ui/AppLink";
 import { SpinnerIcon } from "../ui/icons";
 import { useInlineConfirm } from "../ui/useInlineConfirm";
 
@@ -82,11 +83,15 @@ export function BlockLibraryTable({
       </thead>
       <tbody>
         {templates.map((template) => (
-          <tr key={template.id} className="border-portal-border border-b">
+          <tr
+            key={template.id}
+            className="border-portal-border hover:bg-portal-bg relative cursor-pointer border-b">
             <td className="py-3.5 pr-4">
-              <a href={`/blocks/${template.id}`} className="block">
+              <AppLink
+                href={`/blocks/${template.id}`}
+                className="block after:absolute after:inset-0 after:z-0">
                 <TemplateNameCell template={template} />
-              </a>
+              </AppLink>
             </td>
             <td className="text-portal-text2 py-3.5 pr-4 text-[13px]">
               {template.blocks.length === 1
@@ -97,7 +102,7 @@ export function BlockLibraryTable({
               {formatUpdatedAt(template.updated_at)}
             </td>
             <td className="py-3.5 text-right">
-              <div className="flex justify-end gap-1.5">
+              <div className="relative z-10 flex justify-end gap-1.5">
                 <button
                   type="button"
                   onClick={() => onRename(template)}

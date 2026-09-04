@@ -12,6 +12,17 @@ const LOGIN_PATH = "/";
  * Server Component reads it.
  */
 export async function updateSession(request: NextRequest) {
+  // Prefetch requests (Next's speculative RSC fetches for <Link>s) don't need
+  // an auth check — the real navigation that follows does one. Skipping the
+  // Supabase Auth round-trip here keeps aggressive prefetching cheap.
+  const isPrefetch =
+    request.headers.get("next-router-prefetch") === "1" ||
+    request.headers.get("purpose") === "prefetch" ||
+    request.headers.get("x-purpose") === "prefetch";
+  if (isPrefetch) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(

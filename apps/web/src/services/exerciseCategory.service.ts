@@ -1,7 +1,31 @@
-import type { ExerciseCategoryRow, ExerciseCategoryWithCount } from "@hooper/db";
-import { err, ok, toErrorMessage } from "@/src/lib/result";
 import type { Result } from "@/src/lib/result";
+import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
+import type {
+  ExerciseCategoryRow,
+  ExerciseCategoryWithCount,
+} from "@hooper/db";
+import { cache } from "react";
+
+/**
+ * Raw category rows (no per-category exercise count), deduped per render.
+ * Global reference data (`exercise_categories_select_all` RLS) that
+ * `getProgramById` / `listExercises` each re-fetch — `cache()` collapses that to
+ * one query per request. `listCategories` keeps its own count-joined query for
+ * the category-management UI.
+ */
+export const getExerciseCategoriesRaw = cache(
+  async (): Promise<ExerciseCategoryRow[]> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("exercise_categories")
+      .select("*")
+      .order("parent_id", { nullsFirst: true })
+      .order("position");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as ExerciseCategoryRow[];
+  },
+);
 
 export type CreateCategoryInput = {
   name: string;
@@ -23,9 +47,7 @@ export async function listCategories(): Promise<
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("exercise_categories")
-      .select(
-        "*, exercise_category_links(count)",
-      )
+      .select("*, exercise_category_links(count)")
       .order("parent_id", { nullsFirst: true })
       .order("position");
 
@@ -34,8 +56,8 @@ export async function listCategories(): Promise<
     const rows = (data ?? []).map((row) => ({
       ...row,
       exercise_count: Array.isArray(row.exercise_category_links)
-        ? (row.exercise_category_links[0] as { count: number } | undefined)
-            ?.count ?? 0
+        ? ((row.exercise_category_links[0] as { count: number } | undefined)
+            ?.count ?? 0)
         : 0,
     }));
 
@@ -74,11 +96,9 @@ export async function createCategory(
       .select("position")
       .order("position", { ascending: false })
       .limit(1);
-    const { data: siblings } = await (
-      input.parent_id
-        ? siblingsBase.eq("parent_id", input.parent_id)
-        : siblingsBase.is("parent_id", null)
-    );
+    const { data: siblings } = await (input.parent_id
+      ? siblingsBase.eq("parent_id", input.parent_id)
+      : siblingsBase.is("parent_id", null));
 
     const nextPosition =
       siblings && siblings.length > 0 ? siblings[0].position + 1 : 0;
@@ -149,7 +169,10 @@ export async function reorderCategories(
   try {
     const supabase = await createClient();
     const { error } = await supabase.from("exercise_categories").upsert(
-      updates.map(({ id, position }) => ({ id, position })) as unknown as ExerciseCategoryRow[],
+      updates.map(({ id, position }) => ({
+        id,
+        position,
+      })) as unknown as ExerciseCategoryRow[],
       { onConflict: "id" },
     );
 

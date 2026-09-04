@@ -1,5 +1,5 @@
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { cn } from "@/src/lib/cn";
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 interface StatCardProps {
@@ -58,10 +58,10 @@ export function StatCard({
   }
 
   return (
-    <Link
+    <AppLink
       href={href}
       className={cn(base, "hover:bg-portal-bg transition-colors")}>
       <StatCardContent label={label} value={value} icon={icon} />
-    </Link>
+    </AppLink>
   );
 }

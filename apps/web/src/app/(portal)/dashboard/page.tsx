@@ -1,3 +1,4 @@
+import { DashboardOverviewSkeleton } from "@/src/components/portal/dashboard/DashboardOverviewSkeleton";
 import { QuickLinkCard } from "@/src/components/portal/dashboard/QuickLinkCard";
 import { RecentPrograms } from "@/src/components/portal/dashboard/RecentPrograms";
 import { StatCard } from "@/src/components/portal/dashboard/StatCard";
@@ -106,22 +107,6 @@ async function DashboardOverview() {
         </div>
         <RecentPrograms programs={recentPrograms} />
       </div>
-    </>
-  );
-}
-
-function DashboardOverviewSkeleton() {
-  return (
-    <>
-      <div className="grid grid-cols-2 gap-4">
-        {Array.from({ length: 2 }).map((_, i) => (
-          <div
-            key={i}
-            className="border-portal-border bg-portal-card h-[74px] animate-pulse rounded-xl border"
-          />
-        ))}
-      </div>
-      <div className="border-portal-border bg-portal-card mt-8 h-64 animate-pulse rounded-xl border" />
     </>
   );
 }

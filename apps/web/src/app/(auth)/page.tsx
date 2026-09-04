@@ -159,7 +159,14 @@ function LoginForm() {
     }
     setErrors({});
     setLoading(true);
-    const result = await signIn(username, password);
+    let result;
+    try {
+      result = await signIn(username, password);
+    } catch {
+      setLoading(false);
+      setErrors({ form: "Something went wrong. Please try again." });
+      return;
+    }
     if (!result.ok) {
       setLoading(false);
       setErrors({ form: result.error });

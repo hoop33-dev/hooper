@@ -17,14 +17,21 @@ type Entry<T> = { data: T; expiresAt: number };
 export function moduleTtlCache<T>(load: () => Promise<T>, ttlMs = 2 * 60_000) {
   let entry: Entry<T> | null = null;
   let inflight: Promise<T> | null = null;
+  // Bumped on every invalidate(); a load that started before the bump must not
+  // publish its (now stale) result or clear a newer in-flight request.
+  let generation = 0;
 
   async function loadAndStore(): Promise<T> {
+    const startedAt = generation;
     try {
       const data = await load();
-      entry = { data, expiresAt: Date.now() + ttlMs };
+      if (startedAt === generation) {
+        entry = { data, expiresAt: Date.now() + ttlMs };
+      }
       return data;
     } finally {
-      inflight = null;
+      // Only clear the slot if a newer load hasn't already claimed it.
+      if (startedAt === generation) inflight = null;
     }
   }
 
@@ -37,6 +44,7 @@ export function moduleTtlCache<T>(load: () => Promise<T>, ttlMs = 2 * 60_000) {
     invalidate() {
       entry = null;
       inflight = null;
+      generation++;
     },
   };
 }

@@ -10,15 +10,19 @@ type ProgramOption = { id: string; name: string };
 export function useLazyPrograms(load: () => Promise<ProgramOption[]>) {
   const [isOpen, setIsOpen] = useState(false);
   const [programs, setPrograms] = useState<ProgramOption[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "loaded">("idle");
 
   async function open() {
     setIsOpen(true);
-    if (loaded) return;
+    if (status === "loading" || status === "loaded") return;
+    setStatus("loading");
     try {
       setPrograms(await load());
-    } finally {
-      setLoaded(true);
+      setStatus("loaded");
+    } catch {
+      // Stay "idle" so reopening the modal retries rather than leaving the
+      // picker permanently empty.
+      setStatus("idle");
     }
   }
 
@@ -27,6 +31,6 @@ export function useLazyPrograms(load: () => Promise<ProgramOption[]>) {
     close: () => setIsOpen(false),
     open,
     programs,
-    loading: !loaded,
+    loading: status !== "loaded",
   };
 }

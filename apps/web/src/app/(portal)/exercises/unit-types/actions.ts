@@ -3,6 +3,7 @@
 import {
   createUnitType,
   deleteUnitType,
+  invalidateUnitTypes,
   updateUnitType,
 } from "@/src/services/unitType.service";
 import type { UnitTypeRow } from "@hooper/db";
@@ -17,6 +18,7 @@ export async function createUnitTypeAction(data: {
 }): Promise<ActionResult> {
   const result = await createUnitType(data);
   if (result.ok) {
+    invalidateUnitTypes();
     revalidatePath("/exercises/unit-types");
     revalidatePath("/exercises");
   }
@@ -31,6 +33,7 @@ export async function updateUnitTypeAction(
 ): Promise<ActionResult> {
   const result = await updateUnitType(id, data);
   if (result.ok) {
+    invalidateUnitTypes();
     revalidatePath("/exercises/unit-types");
     revalidatePath("/exercises");
   }
@@ -42,6 +45,7 @@ export async function updateUnitTypeAction(
 export async function deleteUnitTypeAction(id: string): Promise<ActionResult> {
   const result = await deleteUnitType(id);
   if (result.ok) {
+    invalidateUnitTypes();
     revalidatePath("/exercises/unit-types");
     revalidatePath("/exercises");
   }

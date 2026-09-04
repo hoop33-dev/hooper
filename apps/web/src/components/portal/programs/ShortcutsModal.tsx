@@ -20,7 +20,7 @@ const SHORTCUTS: ShortcutRow[] = [
   { keys: "Shift B", description: "Focus the block search" },
   {
     keys: "Shift E",
-    description: "Collapse/expand the library panel",
+    description: "Collapse/expand the header and library panel",
     programOnly: true,
   },
   { keys: "Shift Q", description: "Add a new session", programOnly: true },

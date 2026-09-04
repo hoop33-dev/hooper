@@ -2,9 +2,9 @@
 
 import { uploadTeamAvatar } from "@/src/services/teamAvatar.client";
 import type { TeamRow, TeamSummary } from "@hooper/db";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PortalButton } from "../../ui/PortalButton";
+import { useOptimisticList } from "../../ui/useOptimisticList";
 import { TeamCreateModal, type TeamCreateFormData } from "./TeamCreateModal";
 import { TeamsTable } from "./TeamsTable";
 
@@ -43,44 +43,46 @@ export function TeamsListShell({
   createAction,
   updateAvatarAction,
 }: TeamsListShellProps) {
-  const router = useRouter();
+  const { items: localTeams, mutate } = useOptimisticList(teams);
   const [createOpen, setCreateOpen] = useState(false);
 
-  async function handleCreate(data: TeamCreateFormData): Promise<ActionResult> {
-    const result = await createAction({
+  async function createTeamWithAvatar(
+    data: TeamCreateFormData,
+  ): Promise<ActionResult<TeamRow>> {
+    const created = await createAction({
       name: data.name,
       description: data.description,
     });
-    if (!result.ok || !result.data) {
-      return { ok: false, error: result.error };
-    }
+    if (!created.ok || !created.data || !data.avatarFile) return created;
 
-    if (data.avatarFile) {
-      // The team row already exists at this point, so avatar failures are
-      // reported as a warning rather than an overall failure — treating
-      // them as `ok: false` would let the user retry and create a
-      // duplicate team.
-      const uploadResult = await uploadTeamAvatar(
-        result.data.id,
-        data.avatarFile,
-      );
-      if (uploadResult.ok) {
-        const avatarUpdateResult = await updateAvatarAction(result.data.id, {
-          avatar_url: uploadResult.data,
-        });
-        if (!avatarUpdateResult.ok) {
-          console.error(
-            "Failed to save team avatar:",
-            avatarUpdateResult.error,
-          );
-        }
-      } else {
-        console.error("Failed to upload team avatar:", uploadResult.error);
-      }
+    // The team row already exists at this point, so avatar failures are
+    // reported as a warning rather than an overall failure — treating them
+    // as `ok: false` would let the user retry and create a duplicate team.
+    const uploadResult = await uploadTeamAvatar(
+      created.data.id,
+      data.avatarFile,
+    );
+    if (!uploadResult.ok) {
+      console.error("Failed to upload team avatar:", uploadResult.error);
+      return created;
     }
+    const avatarUpdateResult = await updateAvatarAction(created.data.id, {
+      avatar_url: uploadResult.data,
+    });
+    if (!avatarUpdateResult.ok) {
+      console.error("Failed to save team avatar:", avatarUpdateResult.error);
+      return created;
+    }
+    return avatarUpdateResult;
+  }
 
-    router.refresh();
-    return { ok: true };
+  async function handleCreate(data: TeamCreateFormData): Promise<ActionResult> {
+    const result = await mutate<TeamRow>(
+      (prev) => prev,
+      () => createTeamWithAvatar(data),
+      (prev, row) => [{ ...row, memberCount: 0, programs: [] }, ...prev],
+    );
+    return result.ok ? { ok: true } : { ok: false, error: result.error };
   }
 
   return (
@@ -95,10 +97,10 @@ export function TeamsListShell({
       </div>
 
       <div className="flex-1 overflow-y-auto px-7 py-2">
-        {teams.length === 0 ? (
+        {localTeams.length === 0 ? (
           <EmptyState onCreateClick={() => setCreateOpen(true)} />
         ) : (
-          <TeamsTable teams={teams} />
+          <TeamsTable teams={localTeams} />
         )}
       </div>
 

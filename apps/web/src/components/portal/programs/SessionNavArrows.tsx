@@ -1,5 +1,5 @@
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { SessionRow } from "@hooper/db";
-import Link from "next/link";
 import { ChevronLeftIcon, ChevronRightIcon } from "../ui/icons";
 
 interface SessionNavArrowsProps {
@@ -33,14 +33,14 @@ function NavLink({
   direction: "prev" | "next";
 }) {
   return (
-    <Link
+    <AppLink
       href={`/programs/${programId}/sessions/${session.id}`}
       title={session.name}
       className="border-portal-border text-portal-text2 hover:bg-portal-bg flex max-w-[150px] items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold">
       {direction === "prev" && <ChevronLeftIcon size={10} />}
       <span className="truncate">{session.name}</span>
       {direction === "next" && <ChevronRightIcon size={10} />}
-    </Link>
+    </AppLink>
   );
 }
 

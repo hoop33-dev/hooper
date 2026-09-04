@@ -1,8 +1,7 @@
 import { cn } from "@/src/lib/cn";
-import { getThumbnailUrl } from "@/src/lib/videoEmbed";
 import type { ExerciseWithDetails } from "@hooper/db";
-import { useState } from "react";
 import { PortalBadge } from "../ui/PortalBadge";
+import { ExerciseVideoThumbnail } from "./ExerciseVideoThumbnail";
 
 interface ExerciseCardProps {
   exercise: ExerciseWithDetails;
@@ -11,55 +10,6 @@ interface ExerciseCardProps {
   onToggleExpand?: () => void;
   /** True for a variant row nested under its base. */
   indent?: boolean;
-}
-
-function ExerciseInitials({ name }: { name: string }) {
-  const initials = name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-  return (
-    <div className="bg-portal-orange-soft flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
-      <span className="text-portal-orange text-xs font-extrabold">
-        {initials}
-      </span>
-    </div>
-  );
-}
-
-/** Cropped video thumbnail (image for YouTube, first frame otherwise), falling back to initials. */
-function ExerciseThumbnail({ exercise }: { exercise: ExerciseWithDetails }) {
-  const { video_url, video_source, name } = exercise;
-  const [failed, setFailed] = useState(false);
-
-  if (!video_url || failed) return <ExerciseInitials name={name} />;
-
-  const imageUrl = video_source === "link" ? getThumbnailUrl(video_url) : null;
-
-  if (imageUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={imageUrl}
-        alt=""
-        className="h-9 w-9 flex-shrink-0 rounded-lg object-cover"
-        onError={() => setFailed(true)}
-      />
-    );
-  }
-
-  return (
-    <video
-      src={video_url}
-      muted
-      playsInline
-      preload="metadata"
-      className="h-9 w-9 flex-shrink-0 rounded-lg bg-black object-cover"
-      onError={() => setFailed(true)}
-    />
-  );
 }
 
 function ExpandChevron({
@@ -130,7 +80,10 @@ export function ExerciseCard({
           ) : (
             !indent && <span className="w-5 flex-shrink-0" />
           )}
-          <ExerciseThumbnail exercise={exercise} />
+          <ExerciseVideoThumbnail
+            exercise={exercise}
+            className="h-9 w-9 flex-shrink-0 rounded-lg"
+          />
           <span className="text-portal-text1 text-sm font-semibold">
             {exercise.name}
           </span>

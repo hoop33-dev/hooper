@@ -1,7 +1,7 @@
 import type { ExerciseFormData } from "@/src/components/portal/exercises/ExerciseModal";
 import { SessionViewShell } from "@/src/components/portal/programs/SessionViewShell";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
-import { getCoachProfile } from "@/src/services/auth.service";
+import { getCoachProfileId } from "@/src/services/auth.service";
 import type {
   AddExerciseToBlockInput,
   CreateBlockInput,
@@ -15,7 +15,6 @@ import {
 } from "@/src/services/sessionTemplate.service";
 import { listUnitTypes } from "@/src/services/unitType.service";
 import type { SessionWithBlocks } from "@hooper/db";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   createExerciseAction,
@@ -78,16 +77,6 @@ async function createBlocksFromSessionTemplateAction(input: {
   });
 }
 
-function BackToBlockLibraryLink() {
-  return (
-    <Link
-      href="/blocks"
-      className="text-portal-text2 text-xs font-semibold hover:underline">
-      ← Back to Block Library
-    </Link>
-  );
-}
-
 async function loadBlockTemplatePageData(templateId: string) {
   const [
     templateResult,
@@ -103,7 +92,7 @@ async function loadBlockTemplatePageData(templateId: string) {
     listCategories(),
     listStyles(),
     listUnitTypes(),
-    getCoachProfile(),
+    getCoachProfileId(),
     listSessionTemplates(),
   ]);
 
@@ -113,7 +102,7 @@ async function loadBlockTemplatePageData(templateId: string) {
     categories: categoriesResult.ok ? categoriesResult.data : [],
     styles: stylesResult.ok ? stylesResult.data : [],
     unitTypes: unitTypesResult.ok ? unitTypesResult.data : [],
-    profileId: profileResult.ok ? profileResult.data.id : "",
+    profileId: profileResult.ok ? profileResult.data : "",
     // Excludes itself — dragging a template into its own editor would nest a
     // copy of a template inside itself, which the Block Library has no
     // concept of undoing (there's no "remove a nested template" affordance,
@@ -170,7 +159,11 @@ export default async function BlockTemplateEditorPage({
       <PageHeader
         title={template.name}
         subtitle="Block Library template"
-        action={<BackToBlockLibraryLink />}
+        backHref="/blocks"
+        breadcrumbs={[
+          { label: "Block Library", href: "/blocks" },
+          { label: template.name },
+        ]}
       />
       <SessionViewShell
         session={sessionShape}

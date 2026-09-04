@@ -1,7 +1,7 @@
 "use client";
 
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
-import Link from "next/link";
 import { useState } from "react";
 import { ExercisePreviewModal } from "../exercises/ExercisePreviewModal";
 import { CreateExerciseButton } from "./CreateExerciseButton";
@@ -66,11 +66,11 @@ function ShelfSidebar({
       <p className="text-portal-text3 mt-auto text-[10px] leading-relaxed">
         Drag a card up into any block above to add it.
       </p>
-      <Link
+      <AppLink
         href="/exercises"
         className="text-portal-orange text-[10px] font-semibold hover:underline">
         Manage Exercise Library →
-      </Link>
+      </AppLink>
     </div>
   );
 }
@@ -108,7 +108,7 @@ export function ExerciseLibraryShelfBody({
   const baseExercises = exercises.filter((ex) => !ex.parent_id);
 
   return (
-    <div className="flex h-[190px]">
+    <div className="flex h-[170px]">
       <ShelfSidebar
         search={search}
         onSearch={onSearchChange}
@@ -148,10 +148,10 @@ export function ExerciseLibraryShelfBody({
           createStyleAction={createStyleAction}
           createUnitTypeAction={createUnitTypeAction}
           onPendingChange={setCreating}
-          className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex h-[52px] w-[136px] flex-shrink-0 items-center justify-center rounded-lg border border-dashed px-2.5 text-center text-[11px] font-bold"
+          className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex min-h-[116px] w-[136px] flex-shrink-0 items-center justify-center self-stretch rounded-lg border border-dashed px-2.5 text-center text-[11px] font-bold"
         />
         {creating && (
-          <div className="border-portal-border text-portal-text3 flex h-[52px] w-[136px] flex-shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-bold">
+          <div className="border-portal-border text-portal-text3 flex min-h-[116px] w-[136px] flex-shrink-0 items-center justify-center gap-1.5 self-stretch rounded-lg border px-2.5 text-[11px] font-bold">
             <span className="border-portal-text3 h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2 border-t-transparent" />
             Adding…
           </div>

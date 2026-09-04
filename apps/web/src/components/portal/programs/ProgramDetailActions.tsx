@@ -1,7 +1,6 @@
 "use client";
 
 import type { FormSummary, ProgramRow } from "@hooper/db";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -102,10 +101,26 @@ export function ProgramDetailActions({
   }
 
   async function handleSave(data: ProgramEditFormData) {
-    const result = await updateAction(current.id, data);
-    if (result.ok) {
-      setEditing(false);
+    const previous = current;
+    // Close the drawer straight away and patch our local copy, then reconcile
+    // with the row the action returns. The page's <PageHeader> is a server
+    // component so its title still catches up on the refresh, but the drawer
+    // (and any reopen) reflects the edit immediately and rolls back on error.
+    setCurrent((c) => ({
+      ...c,
+      name: data.name,
+      description: data.description ?? null,
+      notes: data.notes ?? null,
+    }));
+    setEditing(false);
+    const result = await updateAction(previous.id, data);
+    if (result.ok && result.data) {
+      setCurrent(result.data);
       router.refresh();
+    } else {
+      setCurrent(previous);
+      setEditing(true);
+      showError(result.error ?? "Failed to save changes.");
     }
   }
 
@@ -127,21 +142,14 @@ export function ProgramDetailActions({
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
-      <Link
-        href="/programs"
-        className="text-portal-text2 text-xs font-semibold hover:underline">
-        ← Back to programs
-      </Link>
-      <div className="flex items-center gap-2">
-        {shortcutsButton}
-        <PortalButton variant="secondary" onClick={() => setExporting(true)}>
-          Export PDF
-        </PortalButton>
-        <PortalButton variant="secondary" onClick={() => setEditing(true)}>
-          Edit program
-        </PortalButton>
-      </div>
+    <div className="flex items-center gap-2">
+      {shortcutsButton}
+      <PortalButton variant="secondary" onClick={() => setExporting(true)}>
+        Export PDF
+      </PortalButton>
+      <PortalButton variant="secondary" onClick={() => setEditing(true)}>
+        Edit program
+      </PortalButton>
       {exporting && (
         <ProgramExportModal
           totalWeeks={current.weeks}

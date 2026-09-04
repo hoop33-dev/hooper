@@ -3,7 +3,7 @@
 import { AuthInput } from "@/src/components/ui/AuthInput";
 import { Spinner } from "@/src/components/ui/Spinner";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { signIn } from "./actions";
 
 interface Errors {
@@ -23,8 +23,7 @@ function PersonIcon() {
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
-      aria-hidden="true"
-    >
+      aria-hidden="true">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
     </svg>
@@ -42,8 +41,7 @@ function LockIcon() {
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
-      aria-hidden="true"
-    >
+      aria-hidden="true">
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
       <path d="M7 11V7a5 5 0 0110 0v4" />
     </svg>
@@ -62,8 +60,7 @@ function EyeToggle({
       type="button"
       onClick={onToggle}
       aria-label={visible ? "Hide password" : "Show password"}
-      className="text-neutral-dark/35 hover:text-neutral-dark/60 transition-colors"
-    >
+      className="text-neutral-dark/35 hover:text-neutral-dark/60 transition-colors">
       <svg
         width="18"
         height="18"
@@ -73,8 +70,7 @@ function EyeToggle({
         strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
-        aria-hidden="true"
-      >
+        aria-hidden="true">
         {visible ? (
           <>
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -124,8 +120,7 @@ function SubmitButton({ loading }: { loading: boolean }) {
     <button
       type="submit"
       disabled={loading}
-      className="bg-primary-orange mt-1 flex h-[52px] w-full items-center justify-center rounded-xl text-[15px] font-bold text-white transition-[opacity,transform] duration-150 hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-    >
+      className="bg-primary-orange mt-1 flex h-[52px] w-full items-center justify-center rounded-xl text-[15px] font-bold text-white transition-[opacity,transform] duration-150 hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50">
       {loading ? (
         <Spinner
           className="size-5 border-white/30 border-t-white"
@@ -144,6 +139,10 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
+  // `loading` covers the sign-in request; `isPending` keeps the button busy
+  // through the navigation + dashboard render so there's no dead gap between
+  // the spinner stopping and the page changing.
+  const [isPending, startTransition] = useTransition();
 
   function clearField(field: keyof Errors) {
     setErrors((p) => ({ ...p, [field]: undefined }));
@@ -160,25 +159,32 @@ function LoginForm() {
     }
     setErrors({});
     setLoading(true);
+    let result;
     try {
-      const result = await signIn(username, password);
-      if (!result.ok) {
-        setErrors({ form: result.error });
-      } else {
-        router.push("/dashboard");
-        router.refresh();
-      }
-    } finally {
+      result = await signIn(username, password);
+    } catch {
       setLoading(false);
+      setErrors({ form: "Something went wrong. Please try again." });
+      return;
     }
+    if (!result.ok) {
+      setLoading(false);
+      setErrors({ form: result.error });
+      return;
+    }
+    // Keep `loading` true — the component unmounts once the dashboard renders,
+    // so the spinner runs straight through the navigation with no gap.
+    startTransition(() => {
+      router.push("/dashboard");
+      router.refresh();
+    });
   }
 
   return (
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="mt-8 flex flex-col gap-5"
-    >
+      className="mt-8 flex flex-col gap-5">
       <AuthInput
         id="username"
         label="Username"
@@ -206,7 +212,7 @@ function LoginForm() {
           {errors.form}
         </p>
       )}
-      <SubmitButton loading={loading} />
+      <SubmitButton loading={loading || isPending} />
     </form>
   );
 }

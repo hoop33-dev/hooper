@@ -11,11 +11,14 @@ import type {
   SessionWithBlocks,
 } from "@hooper/db";
 import { randomUUID } from "node:crypto";
+import { getExerciseCategoriesRaw } from "./exerciseCategory.service";
+import { getExerciseStylesRaw } from "./exerciseStyle.service";
 import {
   SESSION_SELECT,
   shapeBlocksWithExercises,
   type RawBlock,
 } from "./programShaping";
+import { getUnitTypesRaw } from "./unitType.service";
 
 export type CreateSessionInput = {
   program_id: string;
@@ -44,6 +47,26 @@ async function nextSessionPosition(
     .order("position", { ascending: false })
     .limit(1);
   return data && data.length > 0 ? data[0].position + 1 : 0;
+}
+
+/** Just the base session row — the cheap critical-path read for the
+ * single-session page's header, so it can render (and 404) before the block
+ * tree streams in via {@link getSessionById}. */
+export async function getSessionHeader(
+  id: string,
+): Promise<Result<SessionRow>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error) return err(error.message);
+    return ok(data);
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
 }
 
 /** Every session in a program, ordered week-then-position — the same
@@ -81,24 +104,18 @@ export async function getSessionById(
 
     if (error) return err(error.message);
 
-    const [{ data: cats }, { data: styles }, { data: unitTypes }] =
-      await Promise.all([
-        supabase.from("exercise_categories").select("*"),
-        supabase.from("exercise_styles").select("*"),
-        supabase.from("unit_types").select("*"),
-      ]);
+    const [cats, styles, unitTypes] = await Promise.all([
+      getExerciseCategoriesRaw(),
+      getExerciseStylesRaw(),
+      getUnitTypesRaw(),
+    ]);
 
     const { blocks, ...session } = data as unknown as SessionRow & {
       blocks: RawBlock[];
     };
     return ok({
       ...session,
-      blocks: shapeBlocksWithExercises(
-        blocks,
-        cats ?? [],
-        styles ?? [],
-        unitTypes ?? [],
-      ),
+      blocks: shapeBlocksWithExercises(blocks, cats, styles, unitTypes),
     });
   } catch (e) {
     return err(toErrorMessage(e));

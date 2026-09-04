@@ -11,6 +11,7 @@ import {
 } from "@/src/lib/measurementFormat";
 import { useSortable } from "@dnd-kit/sortable";
 import type { BlockExerciseWithDetails, ExerciseStyleRow } from "@hooper/db";
+import { ExerciseVideoThumbnail } from "../../exercises/ExerciseVideoThumbnail";
 import { SpinnerIcon } from "../../ui/icons";
 import { InlineConfirmDelete } from "../../ui/InlineConfirmDelete";
 import { useDragIndicator, type DragIndicator } from "./DragIndicatorContext";
@@ -37,23 +38,6 @@ function GripIcon() {
       <circle cx="6" cy="6" r="1.2" />
       <circle cx="6" cy="10" r="1.2" />
     </svg>
-  );
-}
-
-function ExerciseIcon() {
-  return (
-    <div className="bg-portal-bg border-portal-border text-portal-text3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border">
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round">
-        <path d="M4 8v8M8 6v12M16 6v12M20 8v8M8 12h8" />
-      </svg>
-    </div>
   );
 }
 
@@ -108,7 +92,11 @@ function RowBody({
 
   return (
     <>
-      <ExerciseIcon />
+      <ExerciseVideoThumbnail
+        exercise={blockExercise.exercise}
+        className="h-9 w-16 flex-shrink-0 rounded-md"
+        fallbackClassName="text-[10px]"
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <div className="text-portal-text1 truncate text-[13px] font-bold">

@@ -1,7 +1,7 @@
 "use client";
 
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { ProgramSummary } from "@hooper/db";
-import { useRouter } from "next/navigation";
 import { ProgramStatusBadge } from "./ProgramStatusBadge";
 
 function formatUpdatedAt(iso: string): string {
@@ -46,7 +46,6 @@ interface ProgramsTableProps {
 }
 
 export function ProgramsTable({ programs, onEdit }: ProgramsTableProps) {
-  const router = useRouter();
   const columns = ["Program", "Length", "Sessions", "Status", "Updated"];
   return (
     <table className="w-full border-collapse">
@@ -66,10 +65,13 @@ export function ProgramsTable({ programs, onEdit }: ProgramsTableProps) {
         {programs.map((program) => (
           <tr
             key={program.id}
-            onClick={() => router.push(`/programs/${program.id}`)}
-            className="border-portal-border hover:bg-portal-bg cursor-pointer border-b">
+            className="border-portal-border hover:bg-portal-bg relative cursor-pointer border-b">
             <td className="py-3.5 pr-4">
-              <ProgramNameCell program={program} />
+              <AppLink
+                href={`/programs/${program.id}`}
+                className="after:absolute after:inset-0 after:z-0">
+                <ProgramNameCell program={program} />
+              </AppLink>
             </td>
             <td className="text-portal-text2 py-3.5 pr-4 text-[13px]">
               {program.weeks} wk ·{" "}
@@ -87,11 +89,8 @@ export function ProgramsTable({ programs, onEdit }: ProgramsTableProps) {
             <td className="py-3.5 text-right">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(program);
-                }}
-                className="border-portal-border text-portal-text2 hover:bg-portal-card rounded-lg border px-3 py-1 text-xs font-semibold">
+                onClick={() => onEdit(program)}
+                className="border-portal-border text-portal-text2 hover:bg-portal-card relative z-10 rounded-lg border px-3 py-1 text-xs font-semibold">
                 Edit
               </button>
             </td>

@@ -1,18 +1,20 @@
 "use client";
 
-import type { AthleteDetail, ProgramSummary } from "@hooper/db";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import type { AthleteDetail } from "@hooper/db";
 import { PageHeader } from "../ui/PageHeader";
 import { AssignedProgramsTable } from "./AssignedProgramsTable";
 import { AssignProgramsModal } from "./AssignProgramsModal";
+import { useLazyPrograms } from "./useLazyPrograms";
+import { useProgramAssignments } from "./useProgramAssignments";
 
 type ActionResult = { ok: boolean; error?: string };
+type ProgramOption = { id: string; name: string };
 
 interface AthleteDetailShellProps {
   athlete: AthleteDetail;
-  programs: ProgramSummary[];
+  /** Lazily loaded when the assign modal first opens — see
+   * `listAssignableProgramsAction`. */
+  loadPrograms: () => Promise<ProgramOption[]>;
   assignProgramAction: (
     profileId: string,
     programId: string,
@@ -45,12 +47,18 @@ function formatDate(iso: string | null): string {
 
 export function AthleteDetailShell({
   athlete,
-  programs,
+  loadPrograms,
   assignProgramAction,
   unassignProgramAction,
 }: AthleteDetailShellProps) {
-  const router = useRouter();
-  const [assignOpen, setAssignOpen] = useState(false);
+  const assign = useLazyPrograms(loadPrograms);
+  const { assignedPrograms, assignProgram, unassignProgram } =
+    useProgramAssignments(
+      athlete.programs,
+      assign.programs,
+      (programId) => assignProgramAction(athlete.id, programId),
+      (programId) => unassignProgramAction(athlete.id, programId),
+    );
 
   const name =
     [athlete.first_name, athlete.last_name].filter(Boolean).join(" ") ||
@@ -62,13 +70,11 @@ export function AthleteDetailShell({
       <PageHeader
         title={name}
         subtitle={athlete.username ? `@${athlete.username}` : undefined}
-        action={
-          <Link
-            href="/athletes"
-            className="text-portal-text2 text-xs font-semibold hover:underline">
-            ← Back to athletes
-          </Link>
-        }
+        backHref="/athletes"
+        breadcrumbs={[
+          { label: "Athletes", href: "/athletes" },
+          { label: name },
+        ]}
       />
 
       <div className="flex-1 overflow-y-auto px-7 py-6">
@@ -113,30 +119,25 @@ export function AthleteDetailShell({
 
         <div className="mt-6">
           <AssignedProgramsTable
-            programs={athlete.programs}
+            programs={assignedPrograms}
             variant="athlete"
-            onAssignClick={() => setAssignOpen(true)}
+            onAssignClick={assign.open}
             onUnassign={async (programId) => {
-              await unassignProgramAction(athlete.id, programId);
-              router.refresh();
+              await unassignProgram(programId);
             }}
           />
         </div>
       </div>
 
-      {assignOpen && (
+      {assign.isOpen && (
         <AssignProgramsModal
           entityName={name}
-          assignedProgramIds={athlete.programs.map((p) => p.id)}
-          allPrograms={programs}
-          onAssign={(programId) => assignProgramAction(athlete.id, programId)}
-          onUnassign={(programId) =>
-            unassignProgramAction(athlete.id, programId)
-          }
-          onClose={() => {
-            setAssignOpen(false);
-            router.refresh();
-          }}
+          assignedProgramIds={assignedPrograms.map((p) => p.id)}
+          allPrograms={assign.programs}
+          loading={assign.loading}
+          onAssign={assignProgram}
+          onUnassign={unassignProgram}
+          onClose={assign.close}
         />
       )}
     </div>

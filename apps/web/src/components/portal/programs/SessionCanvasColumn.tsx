@@ -1,5 +1,6 @@
 "use client";
 
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { cn } from "@/src/lib/cn";
 import { useDroppable } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
@@ -8,7 +9,6 @@ import type {
   ExerciseStyleRow,
   SessionWithBlocks,
 } from "@hooper/db";
-import Link from "next/link";
 import { BookmarkIcon, DuplicateIcon, LinkIcon, PencilIcon } from "../ui/icons";
 import { InlineConfirmDelete } from "../ui/InlineConfirmDelete";
 import { BlockCard, type BlockSettingsPatch } from "./BlockCard";
@@ -140,7 +140,7 @@ function ColumnHeader({
           {...dragHandleListeners}>
           <GripIcon />
         </button>
-        <Link
+        <AppLink
           href={`/programs/${programId}/sessions/${session.id}`}
           onClick={stop}
           className="min-w-0 flex-1">
@@ -161,7 +161,7 @@ function ColumnHeader({
               </span>
             )}
           </div>
-        </Link>
+        </AppLink>
         <ColumnHeaderActions
           onRename={onRename}
           onDuplicate={onDuplicate}

@@ -1,9 +1,11 @@
 "use client";
 
 import type { FormRow, FormSummary } from "@hooper/db";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { PageHeader } from "../ui/PageHeader";
 import { PortalButton } from "../ui/PortalButton";
+import { useToast } from "../ui/Toast";
+import { useOptimisticList } from "../ui/useOptimisticList";
 import { FormCreateModal, type FormCreateFormData } from "./FormCreateModal";
 import { FormEditDrawer, type FormEditFormData } from "./FormEditDrawer";
 import { FormsTable } from "./FormsTable";
@@ -42,50 +44,66 @@ export function FormsListShell({
   updateAction,
   deleteAction,
 }: FormsListShellProps) {
-  const router = useRouter();
+  const { showError } = useToast();
+  const { items: localForms, mutate } = useOptimisticList(forms);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<FormSummary | null>(null);
 
   async function handleCreate(data: FormCreateFormData) {
-    const result = await createAction(data);
-    if (result.ok) {
-      setCreateOpen(false);
-      router.refresh();
-    }
+    const result = await mutate<FormRow>(
+      (prev) => prev,
+      () => createAction(data),
+      (prev, row) => [{ ...row, questionCount: 0, programCount: 0 }, ...prev],
+    );
+    if (result.ok) setCreateOpen(false);
+    else showError(result.error ?? "Failed to create form.");
   }
 
   async function handleSave(data: FormEditFormData) {
     if (!editing) return;
-    const result = await updateAction(editing.id, data);
-    if (result.ok) {
-      setEditing(null);
-      router.refresh();
-    }
+    const id = editing.id;
+    const result = await mutate<FormRow>(
+      (prev) =>
+        prev.map((f) =>
+          f.id === id
+            ? { ...f, name: data.name, description: data.description ?? null }
+            : f,
+        ),
+      () => updateAction(id, data),
+      (prev, row) => prev.map((f) => (f.id === row.id ? { ...f, ...row } : f)),
+    );
+    if (result.ok) setEditing(null);
+    else showError(result.error ?? "Failed to save changes.");
   }
 
   async function handleDelete() {
     if (!editing) return;
-    await deleteAction(editing.id);
+    const id = editing.id;
     setEditing(null);
-    router.refresh();
+    const result = await mutate(
+      (prev) => prev.filter((f) => f.id !== id),
+      () => deleteAction(id),
+    );
+    if (!result.ok) showError(result.error ?? "Failed to delete form.");
   }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-3 border-b px-7 py-4">
-        <PortalButton
-          variant="primary"
-          className="ml-auto"
-          onClick={() => setCreateOpen(true)}>
-          Create form
-        </PortalButton>
-      </div>
+      <PageHeader
+        title="Forms"
+        subtitle="Build check-in forms athletes fill out before a workout"
+        action={
+          <PortalButton variant="primary" onClick={() => setCreateOpen(true)}>
+            Create form
+          </PortalButton>
+        }
+      />
 
       <div className="flex-1 overflow-y-auto px-7 py-2">
-        {forms.length === 0 ? (
+        {localForms.length === 0 ? (
           <EmptyState onCreateClick={() => setCreateOpen(true)} />
         ) : (
-          <FormsTable forms={forms} onEdit={setEditing} />
+          <FormsTable forms={localForms} onEdit={setEditing} />
         )}
       </div>
 

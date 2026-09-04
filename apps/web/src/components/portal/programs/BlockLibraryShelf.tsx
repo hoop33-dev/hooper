@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { LibraryTemplate } from "./blockTemplateFilter";
 import { DraggableBlockTemplateRow } from "./dnd/DraggableBlockTemplateRow";
 import { handleLibrarySearchKeyDown } from "./librarySearchKeyboardNav";
@@ -41,11 +41,11 @@ function ShelfSidebar({
       <p className="text-portal-text3 mt-auto text-[10px] leading-relaxed">
         Drag a card up into any session above to add it.
       </p>
-      <Link
+      <AppLink
         href="/blocks"
         className="text-portal-orange text-[10px] font-semibold hover:underline">
         Manage Block Library →
-      </Link>
+      </AppLink>
     </div>
   );
 }
@@ -63,7 +63,7 @@ export function BlockLibraryShelfBody({
   onQuickAdd,
 }: BlockLibraryShelfProps) {
   return (
-    <div className="flex h-[190px]">
+    <div className="flex h-[170px]">
       <ShelfSidebar
         search={search}
         onSearch={onSearchChange}

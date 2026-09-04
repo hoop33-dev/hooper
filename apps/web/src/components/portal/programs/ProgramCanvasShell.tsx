@@ -15,6 +15,7 @@ import { DragIndicatorContext } from "./dnd/DragIndicatorContext";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
 import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { filterExercises } from "./exerciseFilter";
+import { useProgramHeaderCollapse } from "./ProgramHeaderCollapseContext";
 import { ProgramLibraryShelf } from "./ProgramLibraryShelf";
 import { SaveAsTemplatePopover } from "./SaveAsTemplatePopover";
 import { SessionCanvasRow } from "./SessionCanvasRow";
@@ -62,6 +63,8 @@ function ProgramCanvasBody({
   filteredExercises,
   filteredBlockTemplates,
   onQuickAdd,
+  headerCollapsed,
+  onToggleHeaderCollapsed,
 }: {
   program: ProgramWithSessions;
   exercises: ExerciseWithDetails[];
@@ -74,6 +77,8 @@ function ProgramCanvasBody({
   filteredExercises: ExerciseWithDetails[];
   filteredBlockTemplates: LibraryTemplate[];
   onQuickAdd: () => void;
+  headerCollapsed: boolean;
+  onToggleHeaderCollapsed: () => void;
 }) {
   return (
     <>
@@ -85,6 +90,8 @@ function ProgramCanvasBody({
         onDeleteWeek={state.deleteWeek}
         updatedAt={program.updated_at}
         updatedByName={program.updatedByName}
+        headerCollapsed={headerCollapsed}
+        onToggleHeaderCollapsed={onToggleHeaderCollapsed}
       />
       <SessionCanvasRow
         programId={program.id}
@@ -223,6 +230,8 @@ function useProgramLibraryShortcuts(
   exercises: ExerciseWithDetails[],
   categories: ExerciseCategoryRow[],
   sessionTemplates: SessionTemplateSummary[],
+  headerCollapsed: boolean,
+  setHeaderCollapsed: (value: boolean) => void,
 ) {
   const { showError } = useToast();
   const baseExercises = exercises.filter((ex) => !ex.parent_id);
@@ -251,8 +260,15 @@ function useProgramLibraryShortcuts(
       state.setSessionModal({ type: "create", weekNumber: state.selectedWeek }),
     onAddBlock,
     onAddSelected,
-    onToggleLibraryOpen: () =>
-      state.libraryPanel.setOpen(!state.libraryPanel.open),
+    // Shift+E drives the header band and library panel as one. When both
+    // agree it just flips them; when they disagree it collapses both first
+    // (so the next press is guaranteed to expand both), rather than toggling
+    // each independently and never reaching a clean shared state.
+    onToggleCollapseAll: () => {
+      const anyExpanded = state.libraryPanel.open || !headerCollapsed;
+      state.libraryPanel.setOpen(!anyExpanded);
+      setHeaderCollapsed(anyExpanded);
+    },
   });
 
   return { filteredExercises, filteredBlockTemplates, onAddSelected };
@@ -321,10 +337,13 @@ function ProgramCanvasModals({
           selectedSourceId={state.selectedImportSourceId}
           onSelectSource={state.selectImportSource}
           selectedSourceProgram={state.selectedImportSourceProgram}
+          currentProgram={{ weeks: totalWeeks, sessions: state.sessions }}
+          defaultDuplicateWeek={state.selectedWeek}
           saving={state.savingWeekAdd}
           onClose={state.closeWeekAddModal}
           onSubmitBlank={state.submitAddBlankWeeks}
           onSubmitImport={state.submitImportProgramWeeks}
+          onSubmitDuplicate={state.submitDuplicateWeeks}
         />
       )}
     </>
@@ -368,9 +387,18 @@ export function ProgramCanvasShell({
     state,
     !!actions.saveBlockAsTemplateAction,
   );
+  const { headerCollapsed, setHeaderCollapsed, toggleHeaderCollapsed } =
+    useProgramHeaderCollapse();
 
   const { filteredExercises, filteredBlockTemplates, onAddSelected } =
-    useProgramLibraryShortcuts(state, exercises, categories, sessionTemplates);
+    useProgramLibraryShortcuts(
+      state,
+      exercises,
+      categories,
+      sessionTemplates,
+      headerCollapsed,
+      setHeaderCollapsed,
+    );
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -394,6 +422,8 @@ export function ProgramCanvasShell({
             filteredExercises={filteredExercises}
             filteredBlockTemplates={filteredBlockTemplates}
             onQuickAdd={onAddSelected}
+            headerCollapsed={headerCollapsed}
+            onToggleHeaderCollapsed={toggleHeaderCollapsed}
           />
         </DragIndicatorContext.Provider>
       </DndContext>

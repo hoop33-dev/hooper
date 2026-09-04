@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/src/lib/cn";
-import { getEmbedUrl, isValidVideoUrl } from "@/src/lib/videoEmbed";
+import { getEmbedUrl, isYoutubeUrl } from "@/src/lib/videoEmbed";
 import type { ExerciseVideoSource } from "@hooper/db";
 import { useState } from "react";
 import { PortalInput } from "../ui/PortalInput";
@@ -56,9 +56,10 @@ function LinkPanel({
   linkUrl: string;
   onChange: (url: string) => void;
 }) {
-  const embedUrl = linkUrl.trim() ? getEmbedUrl(linkUrl.trim()) : null;
-  const showError =
-    linkUrl.trim().length > 0 && !isValidVideoUrl(linkUrl.trim());
+  const trimmed = linkUrl.trim();
+  const isYoutube = isYoutubeUrl(trimmed);
+  const embedUrl = isYoutube ? getEmbedUrl(trimmed) : null;
+  const showError = trimmed.length > 0 && !isYoutube;
 
   return (
     <div className="flex flex-col gap-2">
@@ -67,7 +68,7 @@ function LinkPanel({
         value={linkUrl}
         onChange={(e) => onChange(e.target.value)}
         placeholder="https://youtube.com/watch?v=…"
-        error={showError ? "Enter a valid video URL" : undefined}
+        error={showError ? "Enter a YouTube link" : undefined}
       />
       {embedUrl ? (
         <iframe
@@ -78,7 +79,7 @@ function LinkPanel({
         />
       ) : (
         <p className="text-portal-text3 text-xs">
-          Paste a YouTube or Vimeo link, or any direct link to the video.
+          Paste a YouTube link (youtube.com or youtu.be).
         </p>
       )}
     </div>

@@ -1,7 +1,6 @@
 import type { FormCreateFormData } from "@/src/components/portal/forms/FormCreateModal";
 import { FormsListShell } from "@/src/components/portal/forms/FormsListShell";
-import { PageHeader } from "@/src/components/portal/ui/PageHeader";
-import { getCoachProfile } from "@/src/services/auth.service";
+import { getCoachProfileId } from "@/src/services/auth.service";
 import { listForms } from "@/src/services/form.service";
 import {
   createFormAction,
@@ -12,11 +11,11 @@ import {
 export default async function FormsPage() {
   const [formsResult, profileResult] = await Promise.all([
     listForms(),
-    getCoachProfile(),
+    getCoachProfileId(),
   ]);
 
   const forms = formsResult.ok ? formsResult.data : [];
-  const profileId = profileResult.ok ? profileResult.data.id : "";
+  const profileId = profileResult.ok ? profileResult.data : "";
 
   async function wrappedCreate(data: FormCreateFormData) {
     "use server";
@@ -25,10 +24,6 @@ export default async function FormsPage() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <PageHeader
-        title="Forms"
-        subtitle="Build check-in forms athletes fill out before a workout"
-      />
       <FormsListShell
         forms={forms}
         createAction={wrappedCreate}

@@ -47,6 +47,68 @@ export async function listEligibleImportSources(
   }
 }
 
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+/** Deep-copies `sortedWeeks` of `sourceProgramId` onto the end of
+ * `destinationProgramId` (the same id for an in-program duplicate) —
+ * sessions/blocks/exercises/measurements and all — and bumps the
+ * destination's `weeks` count. Any cross-program cycle check is the
+ * caller's responsibility. */
+async function appendCopiedWeeks(
+  supabase: SupabaseClient,
+  sourceProgramId: string,
+  destinationProgramId: string,
+  sortedWeeks: number[],
+): Promise<Result<ProgramRow>> {
+  const { data: destProgram, error: destError } = await supabase
+    .from("programs")
+    .select("weeks")
+    .eq("id", destinationProgramId)
+    .single();
+  if (destError) return err(destError.message);
+
+  const { data: sourceProgram, error: sourceError } = await supabase
+    .from("programs")
+    .select("weeks")
+    .eq("id", sourceProgramId)
+    .single();
+  if (sourceError) return err(sourceError.message);
+
+  const invalidWeek = sortedWeeks.find((w) => w < 1 || w > sourceProgram.weeks);
+  if (invalidWeek !== undefined) {
+    return err(`Week ${invalidWeek} no longer exists on that program.`);
+  }
+
+  const weekNumberMap = new Map<number, number>(
+    sortedWeeks.map((sourceWeek, index) => [
+      sourceWeek,
+      destProgram.weeks + index + 1,
+    ]),
+  );
+
+  const sourceSessions = await fetchSourceSessionsForWeeks(
+    supabase,
+    sourceProgramId,
+    sortedWeeks,
+  );
+
+  for (const session of sourceSessions) {
+    const targetWeek = weekNumberMap.get(session.week_number);
+    if (targetWeek === undefined) continue;
+    const result = await copySessionIntoWeek(
+      supabase,
+      session,
+      destinationProgramId,
+      targetWeek,
+    );
+    if (!result.ok) return err(result.error);
+  }
+
+  return updateProgram(destinationProgramId, {
+    weeks: destProgram.weeks + sortedWeeks.length,
+  });
+}
+
 /** Deep-copies the selected source weeks' sessions/blocks/exercises/
  * measurements onto the end of the destination program, bumps its
  * `weeks` count, and records the copy-lineage edge. Re-checks the cycle
@@ -77,59 +139,16 @@ export async function copyProgramWeeks(
       );
     }
 
-    const { data: destProgram, error: destError } = await supabase
-      .from("programs")
-      .select("weeks")
-      .eq("id", destinationProgramId)
-      .single();
-    if (destError) return err(destError.message);
-
-    const { data: sourceProgram, error: sourceError } = await supabase
-      .from("programs")
-      .select("weeks")
-      .eq("id", sourceProgramId)
-      .single();
-    if (sourceError) return err(sourceError.message);
-
     const sortedWeeks = [...new Set(input.sourceWeekNumbers)].sort(
       (a, b) => a - b,
     );
-    const invalidWeek = sortedWeeks.find(
-      (w) => w < 1 || w > sourceProgram.weeks,
-    );
-    if (invalidWeek !== undefined) {
-      return err(`Week ${invalidWeek} no longer exists on that program.`);
-    }
-
-    const weekNumberMap = new Map<number, number>(
-      sortedWeeks.map((sourceWeek, index) => [
-        sourceWeek,
-        destProgram.weeks + index + 1,
-      ]),
-    );
-
-    const sourceSessions = await fetchSourceSessionsForWeeks(
+    const result = await appendCopiedWeeks(
       supabase,
       sourceProgramId,
+      destinationProgramId,
       sortedWeeks,
     );
-
-    for (const session of sourceSessions) {
-      const targetWeek = weekNumberMap.get(session.week_number);
-      if (targetWeek === undefined) continue;
-      const result = await copySessionIntoWeek(
-        supabase,
-        session,
-        destinationProgramId,
-        targetWeek,
-      );
-      if (!result.ok) return err(result.error);
-    }
-
-    const updateResult = await updateProgram(destinationProgramId, {
-      weeks: destProgram.weeks + sortedWeeks.length,
-    });
-    if (!updateResult.ok) return err(updateResult.error);
+    if (!result.ok) return result;
 
     const { error: edgeInsertError } = await supabase
       .from("program_sources")
@@ -139,7 +158,26 @@ export async function copyProgramWeeks(
       });
     if (edgeInsertError) return err(edgeInsertError.message);
 
-    return ok(updateResult.data);
+    return result;
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
+/** Deep-copies the given weeks of a program onto the end of that same
+ * program — the "duplicate week" option in the "+ Week" modal. No lineage
+ * edge or cycle guard: a program duplicating its own weeks can't loop. */
+export async function duplicateProgramWeeks(
+  programId: string,
+  weekNumbers: number[],
+): Promise<Result<ProgramRow>> {
+  try {
+    if (weekNumbers.length === 0) {
+      return err("Select at least one week to duplicate.");
+    }
+    const supabase = await createClient();
+    const sortedWeeks = [...new Set(weekNumbers)].sort((a, b) => a - b);
+    return appendCopiedWeeks(supabase, programId, programId, sortedWeeks);
   } catch (e) {
     return err(toErrorMessage(e));
   }

@@ -36,7 +36,7 @@ export function ProgramLibraryShelf({
 }: ProgramLibraryShelfProps) {
   return (
     <div className="bg-portal-card flex-shrink-0">
-      <div className="border-portal-border flex h-9 w-full flex-shrink-0 items-center gap-3 border-t px-4">
+      <div className="border-portal-border flex h-9 w-full flex-shrink-0 items-center gap-3 border-t px-5">
         <LibraryTabs
           active={libraryPanel.tab}
           onChange={(t) => {

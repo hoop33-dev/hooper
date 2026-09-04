@@ -13,17 +13,18 @@ export interface UseLibraryShortcutsOptions {
   onAddSession?: () => void;
   onAddBlock: () => void;
   onAddSelected: () => void;
-  /** Absent in the session editor, whose library sidebar has no
-   * collapse/expand toggle to begin with — Shift+E simply falls through as
-   * unhandled when this is omitted. */
-  onToggleLibraryOpen?: () => void;
+  /** Shift+E — collapses/expands the program-week editor's header band and
+   * library panel together (see ProgramCanvasShell for the "collapse both
+   * first when their states disagree" rule). Absent in the session editor,
+   * which has neither toggle; Shift+E simply falls through there. */
+  onToggleCollapseAll?: () => void;
 }
 
 /**
  * Program/session editor keyboard shortcuts: Shift+F/B focus the library
  * search, Shift+Q opens the new-session modal, Shift+W adds a block, Shift+A
- * quick-adds the currently selected library item, Shift+E toggles the
- * library panel's collapse/expand. Follows the same
+ * quick-adds the currently selected library item, Shift+E collapses/expands
+ * the header band and library panel together. Follows the same
  * `document.addEventListener("keydown", ...)` + `isTextInput` guard pattern
  * as useModalDismiss.ts — while focus is in the exercise/block search input
  * (a text input), this handler is inert and only that input's own local
@@ -62,9 +63,9 @@ export function useLibraryShortcuts(options: UseLibraryShortcutsOptions): void {
           opts.onAddSelected();
           break;
         case "e":
-          if (!opts.onToggleLibraryOpen) return;
+          if (!opts.onToggleCollapseAll) return;
           e.preventDefault();
-          opts.onToggleLibraryOpen();
+          opts.onToggleCollapseAll();
           break;
       }
     }

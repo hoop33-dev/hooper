@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>You already have a Hooper account</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    body, table, td, a {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table, td {
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+    img {
+      -ms-interpolation-mode: bicubic;
+      border: 0;
+      outline: none;
+      text-decoration: none;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100% !important;
+      min-width: 100%;
+      background-color: #1F1B1C;
+      font-family: 'Inter', 'Helvetica Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+    a { color: #F15825; }
+    .button-link {
+      display: inline-block;
+      background-color: #F15825;
+      color: #ffffff !important;
+      font-family: 'Inter', 'Helvetica Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.075px;
+      line-height: 1;
+      text-decoration: none !important;
+      border-radius: 9999px;
+      padding: 16px 28px;
+    }
+    .button-ghost {
+      display: inline-block;
+      background-color: transparent;
+      color: #231F20 !important;
+      font-family: 'Inter', 'Helvetica Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.075px;
+      line-height: 1;
+      text-decoration: none !important;
+      border-radius: 9999px;
+      border: 1.5px solid #E7E1DA;
+      padding: 14.5px 26.5px;
+    }
+    @media only screen and (max-width: 600px) {
+      .email-container { width: 100% !important; }
+      .button-link, .button-ghost { display: block !important; text-align: center !important; }
+      .button-wrapper { text-align: center !important; }
+    }
+  </style>
+</head>
+<body>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #1F1B1C;">
+    <tr>
+      <td align="center" style="padding: 40px 16px;">
+
+        <!-- Email card -->
+        <table class="email-container" role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="background-color: #FAF7F4; border-radius: 16px; overflow: hidden;">
+
+          <!-- Hero (dark) -->
+          <tr>
+            <td style="background-color: #231F20; padding: 28px 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="left" valign="middle">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td>
+                          <img src="https://raw.githubusercontent.com/hoop33-dev/hooper/main/assets/images/logo.png" alt="Hooper" height="44" style="height: 44px; width: auto; display: block; border: 0;" />
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td align="right" valign="middle" style="font-size: 10px; font-weight: 600; letter-spacing: 1.8px; text-transform: uppercase; color: #F15825;">
+                    Account &middot; Sign up
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding: 40px 36px 0 36px;">
+
+              <!-- Profile mark — visual cue that this account already exists -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 22px;">
+                <tr>
+                  <td style="width: 76px; height: 76px; background-color: rgba(241,88,37,0.08); border: 1.5px solid rgba(241,88,37,0.22); border-radius: 22px; text-align: center; vertical-align: middle;">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="18" cy="13" r="6" stroke="#F15825" stroke-width="2.2"/>
+                      <path d="M7 29C7 23.5 11.9 20 18 20C24.1 20 29 23.5 29 29" stroke="#F15825" stroke-width="2.2" stroke-linecap="round"/>
+                    </svg>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 0 0 12px 0; font-size: 11px; font-weight: 600; letter-spacing: 1.98px; text-transform: uppercase; color: #F15825;">
+                Welcome back
+              </p>
+              <h1 style="margin: 0 0 14px 0; font-size: 28px; font-weight: 800; letter-spacing: -0.56px; line-height: 1.15; color: #231F20;">
+                You're already<br/>on the team.
+              </h1>
+              <p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.6; color: #5A5152;">
+                Someone &mdash; hopefully you &mdash; just tried to sign up with <strong style="color: #231F20; font-weight: 600;">{{ .Email }}</strong>. Because you already have a Hooper account, we didn't create a new one.
+              </p>
+              <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #5A5152;">
+                You can jump straight back in using the link below.
+              </p>
+            </td>
+          </tr>
+
+          <!-- CTAs -->
+          <tr>
+            <td class="button-wrapper" style="padding: 24px 36px 4px 36px;">
+              <a href="hooper://login" class="button-link" target="_blank">Log in to your account</a>
+            </td>
+          </tr>
+          <tr>
+            <td class="button-wrapper" style="padding: 10px 36px 28px 36px;">
+              <a href="hooper://forgot-password" class="button-ghost" target="_blank">Forgot password? Reset it</a>
+            </td>
+          </tr>
+
+          <!-- Info notice -->
+          <tr>
+            <td style="padding: 0 36px 0 36px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: rgba(241,88,37,0.08); border: 1px solid rgba(241,88,37,0.22); border-radius: 12px;">
+                <tr>
+                  <td style="padding: 16px 18px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td valign="top" style="width: 22px; padding-right: 12px;">
+                          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td style="width: 22px; height: 22px; background-color: rgba(241,88,37,0.18); border-radius: 6px; text-align: center; vertical-align: middle;">
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <circle cx="6" cy="6" r="5" stroke="#F15825" stroke-width="1.4"/>
+                                  <path d="M6 5.5V8.5" stroke="#F15825" stroke-width="1.6" stroke-linecap="round"/>
+                                  <circle cx="6" cy="3.5" r="0.7" fill="#F15825"/>
+                                </svg>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                        <td style="font-size: 13px; line-height: 1.55; color: #6F3318;">
+                          <strong style="display: block; margin-bottom: 2px; font-weight: 600;">Didn't try to sign up?</strong>
+                          You can safely ignore this email &mdash; your account remains secure and no changes have been made.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider + signoff -->
+          <tr>
+            <td style="padding: 28px 36px 28px 36px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="border-top: 1px solid #E7E1DA; height: 1px; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                </tr>
+              </table>
+              <p style="margin: 22px 0 0 0; font-size: 13px; line-height: 1.6; color: #5A5152;">
+                See you on the court,<br/>
+                <strong style="color: #231F20; font-weight: 600;">The Hooper team</strong>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #F2EEE8; border-top: 1px solid #E7E1DA; padding: 22px 36px 26px 36px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding-right: 14px;"><a href="#" style="color: #5A5152; text-decoration: none; font-weight: 500; font-size: 12px;">Privacy</a></td>
+                  <td><a href="#" style="color: #5A5152; text-decoration: none; font-weight: 500; font-size: 12px;">Terms</a></td>
+                </tr>
+              </table>
+              <p style="margin: 8px 0 0 0; font-size: 11px; line-height: 1.7; color: #8A8082;">
+                Hooper Performance Ltd &middot; Auckland, New Zealand
+              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 10px;">
+                <tr>
+                  <td style="padding-top: 10px; border-top: 1px dashed #E7E1DA;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td align="left" style="font-size: 11px; font-weight: 700; letter-spacing: 0.44px; color: #5A5152;">
+                          <span style="display: inline-block; width: 8px; height: 8px; background-color: #F15825; border-radius: 50%; margin-right: 8px; vertical-align: middle;">&nbsp;</span>HOOPER
+                        </td>
+                        <td align="right" style="font-size: 11px; line-height: 1.7; color: #8A8082;">
+                          Sent to {{ .Email }} because a sign-up was attempted with this address.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

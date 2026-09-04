@@ -1,0 +1,102 @@
+"use client";
+
+import type {
+  BlockExerciseWithDetails,
+  ExerciseStyleRow,
+  SessionWithBlocks,
+} from "@hooper/db";
+import type { BlockSettingsPatch } from "./BlockCard";
+import { NewSessionDropZone } from "./dnd/NewSessionDropZone";
+import { SessionGapDropZone } from "./dnd/SessionGapDropZone";
+import { sessionGapDropId } from "./dnd/useBlockExerciseDnd";
+import { SessionCanvasColumn } from "./SessionCanvasColumn";
+
+interface SessionCanvasRowProps {
+  programId: string;
+  weekNumber: number;
+  sessions: SessionWithBlocks[];
+  styles: ExerciseStyleRow[];
+  onRenameSession: (session: SessionWithBlocks) => void;
+  onDuplicateSession: (session: SessionWithBlocks) => void;
+  onDeleteSession: (id: string) => void;
+  onSaveSessionAsTemplate?: (session: SessionWithBlocks) => void;
+  onAddSession: () => void;
+  onAddBlock: (sessionId: string) => void;
+  onOpenExercise: (blockExercise: BlockExerciseWithDetails) => void;
+  onRemoveExercise: (blockId: string, exerciseRowId: string) => void;
+  onRenameBlock: (blockId: string, name: string) => void;
+  onDeleteBlock: (blockId: string) => void;
+  onSaveBlockAsTemplate?: (blockId: string) => void;
+  onUpdateBlock: (blockId: string, patch: BlockSettingsPatch) => void;
+}
+
+export function SessionCanvasRow({
+  programId,
+  weekNumber,
+  sessions,
+  styles,
+  onRenameSession,
+  onDuplicateSession,
+  onDeleteSession,
+  onSaveSessionAsTemplate,
+  onAddSession,
+  onAddBlock,
+  onOpenExercise,
+  onRemoveExercise,
+  onRenameBlock,
+  onDeleteBlock,
+  onSaveBlockAsTemplate,
+  onUpdateBlock,
+}: SessionCanvasRowProps) {
+  return (
+    <div className="flex min-h-0 flex-1 items-start overflow-x-auto overflow-y-auto p-4">
+      <SessionGapDropZone
+        id={sessionGapDropId(0)}
+        afterSessionId={sessions[0]?.id ?? null}
+      />
+      {sessions.map((session, i) => (
+        <div key={session.id} className="contents">
+          <SessionCanvasColumn
+            programId={programId}
+            session={session}
+            styles={styles}
+            onRename={() => onRenameSession(session)}
+            onDuplicate={() => onDuplicateSession(session)}
+            onDelete={() => onDeleteSession(session.id)}
+            onSaveAsTemplate={
+              onSaveSessionAsTemplate
+                ? () => onSaveSessionAsTemplate(session)
+                : undefined
+            }
+            onAddBlock={() => onAddBlock(session.id)}
+            onOpenExercise={onOpenExercise}
+            onRemoveExercise={onRemoveExercise}
+            onRenameBlock={onRenameBlock}
+            onDeleteBlock={onDeleteBlock}
+            onSaveBlockAsTemplate={onSaveBlockAsTemplate}
+            onUpdateBlock={onUpdateBlock}
+          />
+          <SessionGapDropZone
+            id={sessionGapDropId(i + 1)}
+            beforeSessionId={session.id}
+            afterSessionId={sessions[i + 1]?.id ?? null}
+          />
+        </div>
+      ))}
+      <div className="w-[100px] flex-shrink-0">
+        <NewSessionDropZone weekNumber={weekNumber} className="rounded-xl">
+          <button
+            type="button"
+            onClick={onAddSession}
+            // h-[74px] mirrors the rendered height of a session's header card
+            // (ColumnHeader: p-2.5 + border + its three text lines) so the
+            // "+ Add session" tile lines up flush with the session cards.
+            className="border-portal-border-mid text-portal-text3 flex h-[74px] w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed text-xs font-semibold">
+            <span className="text-lg leading-none">+</span>
+            Add session
+          </button>
+        </NewSessionDropZone>
+      </div>
+    </div>
+  );
+}

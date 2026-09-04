@@ -1,0 +1,45 @@
+name: Deploy Functions
+
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/**"
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - "supabase/functions/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-functions-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-functions:
+    if: >-
+      !(github.head_ref == 'dev' && github.base_ref == 'main') &&
+      !(github.head_ref == 'main' && github.base_ref == 'dev')
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/dev' && 'development' || 'feature' }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy edge functions
+        run: |
+          for fn in signin-with-username create-child-account update-child-profile send-security-code send-account-exists-email; do
+            echo "Deploying $fn..."
+            extra_flags=""
+            # Public endpoints where callers are unauthenticated.
+            if [ "$fn" = "signin-with-username" ] || [ "$fn" = "send-account-exists-email" ]; then
+              extra_flags="--no-verify-jwt"
+            fi
+            supabase functions deploy "$fn" --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" $extra_flags
+          done

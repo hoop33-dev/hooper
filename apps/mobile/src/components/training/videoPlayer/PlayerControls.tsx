@@ -167,7 +167,7 @@ function FullControls({
   onClose,
 }: Omit<PlayerControlsProps, "minimal">) {
   return (
-    <View pointerEvents="box-none" className="absolute inset-0">
+    <View pointerEvents="box-none" className="absolute inset-0 justify-between">
       {/* Top bar */}
       <View
         pointerEvents="box-none"

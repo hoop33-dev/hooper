@@ -49,17 +49,22 @@ export function BlockContent({
   // this, our own scroll-driven update bounces straight back into another
   // scrollTo, and rapid tab changes can spiral into an oscillating loop.
   const lastReportedIdx = useRef(blockIdx);
-  // Index of the in-flight programmatic scrollTo, if any. Firing several tab
-  // taps in a row interrupts each scrollTo's animation with the next one —
-  // and each interrupted animation still delivers its own (stale)
-  // onMomentumScrollEnd, reporting whatever offset it was cancelled at, not
-  // the eventual target. Trusting every one of those as "the user landed
-  // here" fed each stale intermediate index back into onBlockIdxChange,
-  // visibly bouncing the pager back through the tabs it had already passed.
-  // Only the event whose settled index matches the most recent scrollTo we
-  // actually issued is real; anything else is discarded. A real user drag
-  // (onScrollBeginDrag) clears this so its own settle is trusted normally.
-  const pendingScrollTarget = useRef<number | null>(null);
+  // True only for the span of a real finger drag — set on onScrollBeginDrag,
+  // cleared on its settle (and defensively before every programmatic
+  // scrollTo). A programmatic scroll (tab tap, footer nav, auto-advance)
+  // never sets it, so we ignore its onMomentumScrollEnd entirely: the
+  // parent's `blockIdx` is already the source of truth for those.
+  //
+  // This is what stops rapid tab switching landing on the wrong tab. Firing
+  // several tab taps in a row interrupts each scrollTo's animation with the
+  // next one, and every interrupted animation still delivers its own
+  // onMomentumScrollEnd reporting the offset it was cancelled at. Those
+  // events can also arrive *after* the final animation has settled — at
+  // which point any "is this the target?" guard has already been satisfied
+  // and cleared — so a stale one sails through and reports an old index,
+  // snapping the pager back to a tab the user already passed. Only trusting
+  // settles that follow a real drag sidesteps the whole ordering problem.
+  const isUserDrag = useRef(false);
   // Frozen at mount — `contentOffset` is only a starting position, not a
   // live-controlled prop; recomputing it from `blockIdx` on every render
   // made the ScrollView snap (unanimated) back to that offset on renders
@@ -77,7 +82,7 @@ export function BlockContent({
   useEffect(() => {
     if (blockIdx === lastReportedIdx.current) return;
     lastReportedIdx.current = blockIdx;
-    pendingScrollTarget.current = blockIdx;
+    isUserDrag.current = false;
     scrollRef.current?.scrollTo({ x: blockIdx * pageWidth, animated: true });
   }, [blockIdx, pageWidth]);
 
@@ -88,19 +93,14 @@ export function BlockContent({
   });
 
   function handleScrollBeginDrag() {
-    pendingScrollTarget.current = null;
+    isUserDrag.current = true;
   }
 
   function handleMomentumScrollEnd(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    if (!isUserDrag.current) return;
+    isUserDrag.current = false;
     const raw = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
     const index = Math.max(0, Math.min(blocks.length - 1, raw));
-    if (
-      pendingScrollTarget.current !== null &&
-      index !== pendingScrollTarget.current
-    ) {
-      return;
-    }
-    pendingScrollTarget.current = null;
     lastReportedIdx.current = index;
     if (index !== blockIdx) onBlockIdxChange(index);
   }

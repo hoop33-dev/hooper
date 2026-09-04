@@ -7,6 +7,7 @@ import type {
   AthleteDetail,
   AthleteSummary,
 } from "@hooper/db";
+import { cache } from "react";
 
 type ProgramAthleteJoinRow = {
   profile_id: string;
@@ -55,44 +56,62 @@ async function fetchLastSignIns(
   return ok(byAthlete);
 }
 
-export async function listAthletes(): Promise<Result<AthleteSummary[]>> {
+/** Cheap dashboard read — how many players this coach can see, without the
+ * profiles / assigned-programs / last-sign-in RPC work `listAthletes` does. */
+export const countAthletes = cache(async (): Promise<Result<number>> => {
   try {
     const supabase = await createClient();
-
-    const { data: roleRows, error: roleError } = await supabase
+    const { count, error } = await supabase
       .from("user_roles")
-      .select("profile_id")
+      .select("*", { count: "exact", head: true })
       .eq("role", "player");
-    if (roleError) return err(roleError.message);
-
-    const athleteIds = (roleRows ?? []).map((r) => r.profile_id);
-    if (athleteIds.length === 0) return ok([]);
-
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("*")
-      .in("id", athleteIds)
-      .order("first_name");
-    if (profilesError) return err(profilesError.message);
-
-    const [programsResult, lastSignInsResult] = await Promise.all([
-      fetchAssignedPrograms(athleteIds),
-      fetchLastSignIns(athleteIds),
-    ]);
-    if (!programsResult.ok) return err(programsResult.error);
-    if (!lastSignInsResult.ok) return err(lastSignInsResult.error);
-
-    const rows: AthleteSummary[] = (profiles ?? []).map((profile) => ({
-      ...profile,
-      last_sign_in_at: lastSignInsResult.data.get(profile.id) ?? null,
-      programs: programsResult.data.get(profile.id) ?? [],
-    }));
-
-    return ok(rows);
+    if (error) return err(error.message);
+    return ok(count ?? 0);
   } catch (e) {
     return err(toErrorMessage(e));
   }
-}
+});
+
+export const listAthletes = cache(
+  async (): Promise<Result<AthleteSummary[]>> => {
+    try {
+      const supabase = await createClient();
+
+      const { data: roleRows, error: roleError } = await supabase
+        .from("user_roles")
+        .select("profile_id")
+        .eq("role", "player");
+      if (roleError) return err(roleError.message);
+
+      const athleteIds = (roleRows ?? []).map((r) => r.profile_id);
+      if (athleteIds.length === 0) return ok([]);
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", athleteIds)
+        .order("first_name");
+      if (profilesError) return err(profilesError.message);
+
+      const [programsResult, lastSignInsResult] = await Promise.all([
+        fetchAssignedPrograms(athleteIds),
+        fetchLastSignIns(athleteIds),
+      ]);
+      if (!programsResult.ok) return err(programsResult.error);
+      if (!lastSignInsResult.ok) return err(lastSignInsResult.error);
+
+      const rows: AthleteSummary[] = (profiles ?? []).map((profile) => ({
+        ...profile,
+        last_sign_in_at: lastSignInsResult.data.get(profile.id) ?? null,
+        programs: programsResult.data.get(profile.id) ?? [],
+      }));
+
+      return ok(rows);
+    } catch (e) {
+      return err(toErrorMessage(e));
+    }
+  },
+);
 
 export async function getAthleteById(
   id: string,

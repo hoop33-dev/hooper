@@ -3,13 +3,15 @@ import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type { UnitTypeRow } from "@hooper/db";
 import { cache } from "react";
+import { moduleTtlCache } from "./_catalogCache";
 
 /**
- * Raw unit-type rows, deduped per render. Global reference data
- * (`unit_types_select_all` RLS) read from several code paths on the program /
- * session / exercise pages — `cache()` collapses that to one query per request.
+ * Raw unit-type rows. Global reference data (`unit_types_select_all` RLS) read
+ * from several code paths on the program / session / exercise pages.
+ * `moduleTtlCache` keeps them warm across navigations (invalidated by the
+ * unit-type-management actions); `cache()` on top dedups within a single render.
  */
-export const getUnitTypesRaw = cache(async (): Promise<UnitTypeRow[]> => {
+const unitTypesCache = moduleTtlCache(async (): Promise<UnitTypeRow[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("unit_types")
@@ -18,6 +20,13 @@ export const getUnitTypesRaw = cache(async (): Promise<UnitTypeRow[]> => {
   if (error) throw new Error(error.message);
   return data ?? [];
 });
+
+export const getUnitTypesRaw = cache(() => unitTypesCache.get());
+
+/** Drop the cached catalog after a unit-type create / update / delete. */
+export function invalidateUnitTypes(): void {
+  unitTypesCache.invalidate();
+}
 
 export type CreateUnitTypeInput = {
   name: string;

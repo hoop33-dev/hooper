@@ -21,6 +21,18 @@ const nextConfig: NextConfig = {
     "unpdf",
     "pdf-lib",
   ],
+  experimental: {
+    // Every portal route is dynamically rendered (the Supabase server client
+    // reads cookies()), so the client Router Cache defaults to a 0s stale time
+    // and re-runs every page's Supabase reads on each back/forward or sidebar
+    // re-click. Holding dynamic payloads for 30s makes those return-visits
+    // instant. In-app mutations still call revalidatePath()/router.refresh(),
+    // which expire the cache regardless — a coach always sees their own edits.
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
+  },
 };
 
 export default nextConfig;

@@ -6,15 +6,18 @@ import type {
   ExerciseCategoryWithCount,
 } from "@hooper/db";
 import { cache } from "react";
+import { moduleTtlCache } from "./_catalogCache";
 
 /**
- * Raw category rows (no per-category exercise count), deduped per render.
- * Global reference data (`exercise_categories_select_all` RLS) that
- * `getProgramById` / `listExercises` each re-fetch — `cache()` collapses that to
- * one query per request. `listCategories` keeps its own count-joined query for
- * the category-management UI.
+ * Raw category rows (no per-category exercise count). Global reference data
+ * (`exercise_categories_select_all` RLS) that `getProgramById` / `listExercises`
+ * each re-fetch on every program / session / exercise page.
+ *
+ * `moduleTtlCache` keeps the rows warm across navigations (invalidated by the
+ * category-management actions); `cache()` on top dedups within a single render.
+ * `listCategories` keeps its own count-joined query for the management UI.
  */
-export const getExerciseCategoriesRaw = cache(
+const categoriesCache = moduleTtlCache(
   async (): Promise<ExerciseCategoryRow[]> => {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -26,6 +29,14 @@ export const getExerciseCategoriesRaw = cache(
     return (data ?? []) as ExerciseCategoryRow[];
   },
 );
+
+export const getExerciseCategoriesRaw = cache(() => categoriesCache.get());
+
+/** Drop the cached catalog after a category create / update / delete / reorder
+ * so the next read reflects the change. */
+export function invalidateExerciseCategories(): void {
+  categoriesCache.invalidate();
+}
 
 export type CreateCategoryInput = {
   name: string;

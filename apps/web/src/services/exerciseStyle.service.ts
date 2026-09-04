@@ -3,24 +3,31 @@ import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type { ExerciseStyleRow } from "@hooper/db";
 import { cache } from "react";
+import { moduleTtlCache } from "./_catalogCache";
 
 /**
- * Raw style rows, deduped per render. Exercise styles are global reference data
- * (`exercise_styles_select_all` RLS), and the program / session / exercise
- * pages each read them from several code paths — `cache()` collapses that to one
- * query per request.
+ * Raw style rows. Exercise styles are global reference data
+ * (`exercise_styles_select_all` RLS) read from several code paths on the
+ * program / session / exercise pages. `moduleTtlCache` keeps them warm across
+ * navigations (invalidated by the style-management actions); `cache()` on top
+ * dedups within a single render.
  */
-export const getExerciseStylesRaw = cache(
-  async (): Promise<ExerciseStyleRow[]> => {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("exercise_styles")
-      .select("*")
-      .order("position");
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  },
-);
+const stylesCache = moduleTtlCache(async (): Promise<ExerciseStyleRow[]> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("exercise_styles")
+    .select("*")
+    .order("position");
+  if (error) throw new Error(error.message);
+  return data ?? [];
+});
+
+export const getExerciseStylesRaw = cache(() => stylesCache.get());
+
+/** Drop the cached catalog after a style create / update / delete. */
+export function invalidateExerciseStyles(): void {
+  stylesCache.invalidate();
+}
 
 export type CreateStyleInput = {
   name: string;

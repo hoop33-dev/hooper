@@ -10,6 +10,7 @@ import type {
   FormSummary,
   FormWithQuestions,
 } from "@hooper/db";
+import { cache } from "react";
 
 const QUESTION_SELECT = "*, form_question_options(*)";
 
@@ -57,7 +58,9 @@ export type UpdateFormQuestionInput = {
   options?: string[];
 };
 
-export async function listForms(): Promise<Result<FormSummary[]>> {
+/** Request-scoped dedup: the programs list page and every program canvas page
+ * read forms alongside their main data. Does not persist across navigations. */
+export const listForms = cache(async (): Promise<Result<FormSummary[]>> => {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -81,7 +84,7 @@ export async function listForms(): Promise<Result<FormSummary[]>> {
   } catch (e) {
     return err(toErrorMessage(e));
   }
-}
+});
 
 export async function getFormById(
   id: string,

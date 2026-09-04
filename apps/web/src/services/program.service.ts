@@ -7,6 +7,7 @@ import type {
   ProgramWithSessions,
   SessionRow,
 } from "@hooper/db";
+import { cache } from "react";
 import { getExerciseCategoriesRaw } from "./exerciseCategory.service";
 import { getExerciseStylesRaw } from "./exerciseStyle.service";
 import {
@@ -61,32 +62,83 @@ function sessionsPerWeekRange(
   return [Math.min(...values), Math.max(...values)];
 }
 
-export async function listPrograms(): Promise<Result<ProgramSummary[]>> {
+/** Request-scoped: several pages (dashboard, form detail, team detail) read
+ * the program list alongside other data — `cache()` collapses same-render
+ * duplicate calls to one query. Does not persist across navigations. */
+export const listPrograms = cache(
+  async (): Promise<Result<ProgramSummary[]>> => {
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("programs")
+        .select("*, sessions(week_number)")
+        .order("updated_at", { ascending: false });
+
+      if (error) return err(error.message);
+
+      const rows = (data ?? []).map((row) => {
+        const sessions = Array.isArray(row.sessions)
+          ? (row.sessions as { week_number: number }[])
+          : [];
+        return {
+          ...row,
+          sessionCount: sessions.length,
+          sessionsPerWeek: sessionsPerWeekRange(sessions),
+        };
+      });
+
+      return ok(rows as ProgramSummary[]);
+    } catch (e) {
+      return err(toErrorMessage(e));
+    }
+  },
+);
+
+/** Cheap dashboard read — count only, no session aggregation. */
+export const countPrograms = cache(async (): Promise<Result<number>> => {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    const { count, error } = await supabase
       .from("programs")
-      .select("*, sessions(week_number)")
-      .order("updated_at", { ascending: false });
-
+      .select("*", { count: "exact", head: true });
     if (error) return err(error.message);
-
-    const rows = (data ?? []).map((row) => {
-      const sessions = Array.isArray(row.sessions)
-        ? (row.sessions as { week_number: number }[])
-        : [];
-      return {
-        ...row,
-        sessionCount: sessions.length,
-        sessionsPerWeek: sessionsPerWeekRange(sessions),
-      };
-    });
-
-    return ok(rows as ProgramSummary[]);
+    return ok(count ?? 0);
   } catch (e) {
     return err(toErrorMessage(e));
   }
-}
+});
+
+/** The N most recently edited programs — the dashboard's "Recently Edited"
+ * list, without pulling every program + its session rows. */
+export const listRecentPrograms = cache(
+  async (limit = 5): Promise<Result<ProgramSummary[]>> => {
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("programs")
+        .select("*, sessions(week_number)")
+        .order("updated_at", { ascending: false })
+        .limit(limit);
+
+      if (error) return err(error.message);
+
+      const rows = (data ?? []).map((row) => {
+        const sessions = Array.isArray(row.sessions)
+          ? (row.sessions as { week_number: number }[])
+          : [];
+        return {
+          ...row,
+          sessionCount: sessions.length,
+          sessionsPerWeek: sessionsPerWeekRange(sessions),
+        };
+      });
+
+      return ok(rows as ProgramSummary[]);
+    } catch (e) {
+      return err(toErrorMessage(e));
+    }
+  },
+);
 
 /** Just the base program row — the cheap critical-path read for the canvas
  * page's header, so it can render (and 404) before the full session tree

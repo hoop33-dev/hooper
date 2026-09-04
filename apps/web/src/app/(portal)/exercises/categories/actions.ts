@@ -1,13 +1,14 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import {
   createCategory,
-  updateCategory,
   deleteCategory,
+  invalidateExerciseCategories,
   reorderCategories,
+  updateCategory,
 } from "@/src/services/exerciseCategory.service";
 import type { ExerciseCategoryRow } from "@hooper/db";
+import { revalidatePath } from "next/cache";
 
 type ActionResult = { ok: boolean; error?: string; data?: ExerciseCategoryRow };
 
@@ -19,10 +20,13 @@ export async function createCategoryAction(data: {
 }): Promise<ActionResult> {
   const result = await createCategory(data);
   if (result.ok) {
+    invalidateExerciseCategories();
     revalidatePath("/exercises/categories");
     revalidatePath("/exercises");
   }
-  return result.ok ? { ok: true, data: result.data } : { ok: false, error: result.error };
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
 }
 
 export async function updateCategoryAction(
@@ -31,15 +35,19 @@ export async function updateCategoryAction(
 ): Promise<ActionResult> {
   const result = await updateCategory(id, data);
   if (result.ok) {
+    invalidateExerciseCategories();
     revalidatePath("/exercises/categories");
     revalidatePath("/exercises");
   }
-  return result.ok ? { ok: true, data: result.data } : { ok: false, error: result.error };
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
 }
 
 export async function deleteCategoryAction(id: string): Promise<ActionResult> {
   const result = await deleteCategory(id);
   if (result.ok) {
+    invalidateExerciseCategories();
     revalidatePath("/exercises/categories");
     revalidatePath("/exercises");
   }
@@ -50,6 +58,9 @@ export async function reorderCategoriesAction(
   updates: { id: string; position: number }[],
 ): Promise<ActionResult> {
   const result = await reorderCategories(updates);
-  if (result.ok) revalidatePath("/exercises/categories");
+  if (result.ok) {
+    invalidateExerciseCategories();
+    revalidatePath("/exercises/categories");
+  }
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

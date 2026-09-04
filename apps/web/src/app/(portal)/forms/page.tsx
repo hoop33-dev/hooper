@@ -1,6 +1,5 @@
 import type { FormCreateFormData } from "@/src/components/portal/forms/FormCreateModal";
 import { FormsListShell } from "@/src/components/portal/forms/FormsListShell";
-import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import { getCoachProfile } from "@/src/services/auth.service";
 import { listForms } from "@/src/services/form.service";
 import {
@@ -25,10 +24,6 @@ export default async function FormsPage() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <PageHeader
-        title="Forms"
-        subtitle="Build check-in forms athletes fill out before a workout"
-      />
       <FormsListShell
         forms={forms}
         createAction={wrappedCreate}

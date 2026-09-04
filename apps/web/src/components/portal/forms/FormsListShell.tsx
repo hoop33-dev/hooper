@@ -2,6 +2,7 @@
 
 import type { FormRow, FormSummary } from "@hooper/db";
 import { useState } from "react";
+import { PageHeader } from "../ui/PageHeader";
 import { PortalButton } from "../ui/PortalButton";
 import { useToast } from "../ui/Toast";
 import { useOptimisticList } from "../ui/useOptimisticList";
@@ -88,14 +89,15 @@ export function FormsListShell({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-3 border-b px-7 py-4">
-        <PortalButton
-          variant="primary"
-          className="ml-auto"
-          onClick={() => setCreateOpen(true)}>
-          Create form
-        </PortalButton>
-      </div>
+      <PageHeader
+        title="Forms"
+        subtitle="Build check-in forms athletes fill out before a workout"
+        action={
+          <PortalButton variant="primary" onClick={() => setCreateOpen(true)}>
+            Create form
+          </PortalButton>
+        }
+      />
 
       <div className="flex-1 overflow-y-auto px-7 py-2">
         {localForms.length === 0 ? (

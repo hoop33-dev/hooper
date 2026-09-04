@@ -97,7 +97,7 @@ export function PageHeader({
       )}
 
       {!hideMiddle && (
-        <div className="flex items-start justify-between px-7 py-4">
+        <div className="flex items-center justify-between px-7 py-4">
           <div
             className={cn(
               inlineSubtitle && "flex flex-wrap items-baseline gap-x-2.5",

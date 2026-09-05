@@ -28,6 +28,9 @@ export const UploadVideoSurface = forwardRef<
     // docs means the timeUpdate event "will not be emitted" at all — so
     // currentTime would otherwise freeze at its initial value forever.
     p.timeUpdateEventInterval = 0.25;
+    // Exercise videos are short (~5-10s) demo clips — loop them so the
+    // movement stays on screen without the viewer re-tapping play.
+    p.loop = true;
     p.play();
   });
 

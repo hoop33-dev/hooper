@@ -21,6 +21,21 @@ const nextConfig: NextConfig = {
     "unpdf",
     "pdf-lib",
   ],
+  // `serverExternalPackages` only keeps @sparticuz/chromium out of the JS
+  // bundle — it doesn't tell output-file-tracing to actually copy the
+  // package's compressed Chromium binary (node_modules/@sparticuz/chromium/
+  // bin/**) into the deployed function. Without this, the route builds fine
+  // but fails at runtime with "input directory .../bin does not exist".
+  //
+  // The include glob is resolved relative to *this app's* directory
+  // (apps/web), not outputFileTracingRoot above — npm workspaces hoist
+  // @sparticuz/chromium to the repo-root node_modules, hence "../../".
+  // https://nextjs.org/docs/app/api-reference/config/next-config-js/output#outputfiletracingincludes
+  outputFileTracingIncludes: {
+    "/api/programs/[id]/export": [
+      "../../node_modules/@sparticuz/chromium/bin/**/*",
+    ],
+  },
   experimental: {
     // Every portal route is dynamically rendered (the Supabase server client
     // reads cookies()), so the client Router Cache defaults to a 0s stale time

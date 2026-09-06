@@ -71,7 +71,7 @@ export function AssignedProgramsTable({
                     {h}
                   </th>
                 ))}
-                <th className="w-8" />
+                <th className="w-16" />
               </tr>
             </thead>
             <tbody>
@@ -109,12 +109,14 @@ export function AssignedProgramsTable({
                     <td className="text-portal-text3 py-3.5 pr-4 text-xs">
                       {lastCompleted}
                     </td>
-                    <td className="relative z-10 py-3.5 pr-1">
-                      <InlineConfirmDelete
-                        onDelete={() => onUnassign(program.id)}
-                        idleTitle="Remove program"
-                        idleClassName="text-portal-text3 hover:text-red-500"
-                      />
+                    <td className="relative z-10 w-16 py-3.5 pr-1">
+                      <div className="flex justify-end">
+                        <InlineConfirmDelete
+                          onDelete={() => onUnassign(program.id)}
+                          idleTitle="Remove program"
+                          idleClassName="text-portal-text3 hover:text-red-500"
+                        />
+                      </div>
                     </td>
                   </tr>
                 );

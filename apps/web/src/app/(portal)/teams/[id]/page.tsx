@@ -3,7 +3,7 @@ import { listAthletes } from "@/src/services/athlete.service";
 import { getTeamProgramProgress } from "@/src/services/programProgress.service";
 import { getTeamById } from "@/src/services/team.service";
 import { notFound } from "next/navigation";
-import { listAssignableProgramsAction } from "../../actions";
+import { listAssignableProgramsAction } from "../../athletes/actions";
 import {
   addTeamMemberAction,
   assignProgramToTeamAction,

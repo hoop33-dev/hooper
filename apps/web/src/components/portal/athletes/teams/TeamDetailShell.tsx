@@ -157,9 +157,9 @@ export function TeamDetailShell({
       <PageHeader
         title={header.name}
         subtitle={header.description ?? undefined}
-        backHref="/athletes/teams"
+        backHref="/teams"
         breadcrumbs={[
-          { label: "Teams", href: "/athletes/teams" },
+          { label: "Teams", href: "/teams" },
           { label: header.name },
         ]}
         action={<TeamDetailHeaderActions onEdit={() => setEditOpen(true)} />}

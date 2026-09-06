@@ -61,7 +61,7 @@ export function TeamsTable({ teams }: TeamsTableProps) {
             className="border-portal-border hover:bg-portal-bg relative cursor-pointer border-b">
             <td className="py-3.5 pr-4">
               <AppLink
-                href={`/athletes/teams/${team.id}`}
+                href={`/teams/${team.id}`}
                 className="after:absolute after:inset-0 after:z-0">
                 <TeamNameCell team={team} />
               </AppLink>

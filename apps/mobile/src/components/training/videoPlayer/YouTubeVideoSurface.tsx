@@ -20,6 +20,7 @@ type YouTubeVideoSurfaceProps = {
 };
 
 const YT_PLAYING = 1;
+const YT_ENDED = 0;
 
 /** The `origin` playerVar (below) and the WebView's `baseUrl` (in the
  * component) must agree on some real-looking https origin — YouTube's
@@ -36,7 +37,10 @@ const FAKE_ORIGIN = "https://app.hooper.co";
  * this replaces react-native-youtube-iframe (see the surface's own comment
  * below for why). YouTube's own `autoplay: 1` playerVar drives the
  * "starts playing automatically" behavior natively, rather than a
- * play()-once-ready round trip. */
+ * play()-once-ready round trip. Exercise clips are short (~5-10s), so the
+ * page also loops on the ENDED state — seekTo(0)+playVideo() rather than
+ * the `loop`/`playlist` playerVars, which are unreliable for a single
+ * video and would also make `rel: 0` stop suppressing related videos. */
 function buildPlayerHtml(videoId: string): string {
   return `<!DOCTYPE html>
 <html>
@@ -79,7 +83,13 @@ function buildPlayerHtml(videoId: string): string {
             }
           }, 250);
         },
-        onStateChange: function(e) { post('stateChange', e.data); },
+        onStateChange: function(e) {
+          if (e.data === ${YT_ENDED} && player) {
+            player.seekTo(0, true);
+            player.playVideo();
+          }
+          post('stateChange', e.data);
+        },
         onError: function(e) { post('error', e.data); }
       }
     });

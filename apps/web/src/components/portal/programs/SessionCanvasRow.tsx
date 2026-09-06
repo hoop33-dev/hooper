@@ -27,7 +27,10 @@ interface SessionCanvasRowProps {
   onRenameBlock: (blockId: string, name: string) => void;
   onDeleteBlock: (blockId: string) => void;
   onSaveBlockAsTemplate?: (blockId: string) => void;
-  onUpdateBlock: (blockId: string, patch: BlockSettingsPatch) => void;
+  onUpdateBlock: (
+    blockId: string,
+    patch: BlockSettingsPatch,
+  ) => void | Promise<void>;
 }
 
 export function SessionCanvasRow({

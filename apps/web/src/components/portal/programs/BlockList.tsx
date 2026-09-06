@@ -31,7 +31,10 @@ interface BlockListProps {
   onAddBlock: (name: string) => Promise<void>;
   onAddExerciseToBlock: (blockId: string, exerciseId: string) => void;
   onSaveBlockAsTemplate?: (blockId: string) => void;
-  onUpdateBlock: (blockId: string, patch: BlockSettingsPatch) => void;
+  onUpdateBlock: (
+    blockId: string,
+    patch: BlockSettingsPatch,
+  ) => void | Promise<void>;
 }
 
 function AddBlockForm({

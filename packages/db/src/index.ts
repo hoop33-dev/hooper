@@ -204,6 +204,22 @@ import type { ProfileRow, TeamRow } from "./schema";
 
 export type AssignedProgramRef = { id: string; name: string };
 
+// Athlete-facing progress against an assigned program, derived from
+// session_completions (status = 'completed') joined to the program's
+// sessions. On the team variant these are aggregated across members:
+// sessionsComplete is the team total and week is the rounded average of
+// each member's current week. All fields are 0/null when the athlete (or
+// no team member) has completed a session — the UI renders those as a
+// dash.
+export type ProgramProgressStats = {
+  sessionsComplete: number;
+  /** week_number of the most recently completed session (team: rounded
+   * average of members' current weeks). */
+  week: number | null;
+  /** completed_at of the most recent completion, ISO. */
+  lastCompletedAt: string | null;
+};
+
 // last_sign_in_at comes from the get_athlete_last_sign_ins() SECURITY
 // DEFINER RPC (auth.users isn't grant-accessible to a plain authenticated
 // session — see the migration comment), gated to coach callers only.

@@ -1,6 +1,6 @@
 "use client";
 
-import type { AthleteDetail } from "@hooper/db";
+import type { AthleteDetail, ProgramProgressStats } from "@hooper/db";
 import { PageHeader } from "../ui/PageHeader";
 import { AssignedProgramsTable } from "./AssignedProgramsTable";
 import { AssignProgramsModal } from "./AssignProgramsModal";
@@ -12,6 +12,9 @@ type ProgramOption = { id: string; name: string };
 
 interface AthleteDetailShellProps {
   athlete: AthleteDetail;
+  /** Per-program progress keyed by program id — see
+   * `getAthleteProgramProgress`. */
+  programStats: Record<string, ProgramProgressStats>;
   /** Lazily loaded when the assign modal first opens — see
    * `listAssignableProgramsAction`. */
   loadPrograms: () => Promise<ProgramOption[]>;
@@ -47,6 +50,7 @@ function formatDate(iso: string | null): string {
 
 export function AthleteDetailShell({
   athlete,
+  programStats,
   loadPrograms,
   assignProgramAction,
   unassignProgramAction,
@@ -121,6 +125,7 @@ export function AthleteDetailShell({
           <AssignedProgramsTable
             programs={assignedPrograms}
             variant="athlete"
+            stats={programStats}
             onAssignClick={assign.open}
             onUnassign={async (programId) => {
               await unassignProgram(programId);

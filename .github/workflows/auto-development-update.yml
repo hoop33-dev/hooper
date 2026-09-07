@@ -1,0 +1,84 @@
+name: Auto Development Update
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [dev]
+    types: [completed]
+
+jobs:
+  publish:
+    name: Publish development update
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
+    # Cancel any in-progress run when a newer one starts, preventing
+    # parallel publishes from racing. The SHA tip check below handles
+    # the out-of-order completion case (older CI run finishes after newer).
+    concurrency:
+      group: development-update
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Verify SHA is current dev tip
+        id: tip_check
+        shell: bash
+        run: |
+          git fetch origin dev --depth=1
+          CURRENT_TIP=$(git rev-parse origin/dev)
+          HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
+          if [ "$HEAD_SHA" = "$CURRENT_TIP" ]; then
+            echo "is_tip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_tip=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping publish: $HEAD_SHA is not the current tip of dev (tip is $CURRENT_TIP)"
+          fi
+
+      - name: Build update message
+        id: update_meta
+        if: steps.tip_check.outputs.is_tip == 'true'
+        shell: bash
+        env:
+          COMMIT_MESSAGE: ${{ github.event.workflow_run.head_commit.message }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          FIRST_LINE="${COMMIT_MESSAGE%%$'\n'*}"
+          FIRST_LINE="${FIRST_LINE:0:120}"
+          SHA_SHORT="${HEAD_SHA:0:7}"
+          echo "message=[dev ${SHA_SHORT}] ${FIRST_LINE}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        if: steps.tip_check.outputs.is_tip == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.tip_check.outputs.is_tip == 'true'
+        run: npm ci
+
+      - name: Setup Expo and EAS
+        if: steps.tip_check.outputs.is_tip == 'true'
+        uses: expo/expo-github-action@v8
+        with:
+          # Only `eas update` is run below — the legacy global expo-cli isn't
+          # needed and its (unmaintained) dep tree just adds noise + install time.
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish EAS update (development)
+        if: steps.tip_check.outputs.is_tip == 'true'
+        working-directory: apps/mobile
+        run: |
+          eas update \
+            --branch development \
+            --environment development \
+            --message "${{ steps.update_meta.outputs.message }}" \
+            --non-interactive

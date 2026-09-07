@@ -1,0 +1,168 @@
+"use client";
+
+import { AppLink } from "@/src/components/portal/ui/AppLink";
+import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
+import { useState } from "react";
+import { ExercisePreviewModal } from "../exercises/ExercisePreviewModal";
+import { CreateExerciseButton } from "./CreateExerciseButton";
+import { DraggableLibraryRow } from "./dnd/DraggableLibraryRow";
+import type { CreateExerciseActions } from "./exerciseActionsProps";
+import { handleLibrarySearchKeyDown } from "./librarySearchKeyboardNav";
+
+interface ExerciseLibraryShelfProps extends CreateExerciseActions {
+  exercises: ExerciseWithDetails[];
+  categories: ExerciseCategoryRow[];
+  /** Pre-filtered by the shell (ProgramCanvasShell) from `search`/
+   * `categoryId`, so what's rendered always matches what Shift+A targets. */
+  items: ExerciseWithDetails[];
+  search: string;
+  onSearchChange: (v: string) => void;
+  categoryId: string;
+  onCategoryChange: (v: string) => void;
+  searchInputId: string;
+  selectedIndex: number | null;
+  onSelectedIndexChange: (index: number) => void;
+  onQuickAdd: () => void;
+}
+
+function ShelfSidebar({
+  search,
+  onSearch,
+  onSearchKeyDown,
+  searchInputId,
+  categoryId,
+  onCategory,
+  categories,
+}: {
+  search: string;
+  onSearch: (v: string) => void;
+  onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  searchInputId: string;
+  categoryId: string;
+  onCategory: (v: string) => void;
+  categories: ExerciseCategoryRow[];
+}) {
+  return (
+    <div className="border-portal-border flex w-[180px] flex-shrink-0 flex-col gap-2 border-r p-2.5">
+      <input
+        id={searchInputId}
+        value={search}
+        onChange={(e) => onSearch(e.target.value)}
+        onKeyDown={onSearchKeyDown}
+        placeholder="Search…"
+        className="border-portal-border bg-portal-bg text-portal-text1 h-7 w-full rounded-md border px-2 text-[11px] outline-none"
+      />
+      <select
+        value={categoryId}
+        onChange={(e) => onCategory(e.target.value)}
+        className="border-portal-border bg-portal-bg text-portal-text1 h-7 w-full rounded-md border px-1.5 text-[11px]">
+        <option value="">All categories</option>
+        {categories.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+      <p className="text-portal-text3 mt-auto text-[10px] leading-relaxed">
+        Drag a card up into any block above to add it.
+      </p>
+      <AppLink
+        href="/exercises"
+        className="text-portal-orange text-[10px] font-semibold hover:underline">
+        Manage Exercise Library →
+      </AppLink>
+    </div>
+  );
+}
+
+/** The shelf's expandable content — mounted only while the containing
+ * ProgramLibraryShelf toggle is open (see ProgramLibraryShelf.tsx, which
+ * owns the shared open/collapsed + Exercises/Blocks tab chrome). */
+export function ExerciseLibraryShelfBody({
+  exercises,
+  categories,
+  styles,
+  unitTypes,
+  items,
+  search,
+  onSearchChange,
+  categoryId,
+  onCategoryChange,
+  searchInputId,
+  selectedIndex,
+  onSelectedIndexChange,
+  onQuickAdd,
+  profileId,
+  createExerciseAction,
+  updateExerciseAction,
+  updateExerciseVideoUrlAction,
+  createCategoryAction,
+  createStyleAction,
+  createUnitTypeAction,
+}: ExerciseLibraryShelfProps) {
+  const [previewExercise, setPreviewExercise] =
+    useState<ExerciseWithDetails | null>(null);
+  const [creating, setCreating] = useState(false);
+  // Variants are chosen inside the measurement modal, not dragged/added as
+  // their own picker rows — only base exercises show up here.
+  const baseExercises = exercises.filter((ex) => !ex.parent_id);
+
+  return (
+    <div className="flex h-[170px]">
+      <ShelfSidebar
+        search={search}
+        onSearch={onSearchChange}
+        onSearchKeyDown={(e) =>
+          handleLibrarySearchKeyDown(e, {
+            itemCount: items.length,
+            selectedIndex,
+            onSelectedIndexChange,
+            onQuickAdd,
+          })
+        }
+        searchInputId={searchInputId}
+        categoryId={categoryId}
+        onCategory={onCategoryChange}
+        categories={categories}
+      />
+      <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto p-2.5">
+        {items.map((ex, index) => (
+          <DraggableLibraryRow
+            key={ex.id}
+            exercise={ex}
+            variant="card"
+            onOpen={setPreviewExercise}
+            isSelected={index === selectedIndex}
+          />
+        ))}
+        <CreateExerciseButton
+          categories={categories}
+          styles={styles}
+          unitTypes={unitTypes}
+          baseExercises={baseExercises}
+          profileId={profileId}
+          createExerciseAction={createExerciseAction}
+          updateExerciseAction={updateExerciseAction}
+          updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+          createCategoryAction={createCategoryAction}
+          createStyleAction={createStyleAction}
+          createUnitTypeAction={createUnitTypeAction}
+          onPendingChange={setCreating}
+          className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex min-h-[116px] w-[136px] flex-shrink-0 items-center justify-center self-stretch rounded-lg border border-dashed px-2.5 text-center text-[11px] font-bold"
+        />
+        {creating && (
+          <div className="border-portal-border text-portal-text3 flex min-h-[116px] w-[136px] flex-shrink-0 items-center justify-center gap-1.5 self-stretch rounded-lg border px-2.5 text-[11px] font-bold">
+            <span className="border-portal-text3 h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2 border-t-transparent" />
+            Adding…
+          </div>
+        )}
+      </div>
+      {previewExercise && (
+        <ExercisePreviewModal
+          exercise={previewExercise}
+          onClose={() => setPreviewExercise(null)}
+        />
+      )}
+    </div>
+  );
+}

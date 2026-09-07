@@ -1,0 +1,125 @@
+{
+  "app/(app)/parent/add-child.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "app/(app)/parent/manage-child.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "app/(app)/profile-settings.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "sonarjs/cognitive-complexity": {
+      "count": 1
+    }
+  },
+  "app/(app)/settings.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "sonarjs/cognitive-complexity": {
+      "count": 1
+    }
+  },
+  "app/(auth)/forgot-password.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "app/(auth)/login.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "app/(auth)/reset-password.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "sonarjs/cognitive-complexity": {
+      "count": 1
+    }
+  },
+  "app/(auth)/signup-details.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "app/(auth)/verify-email.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "sonarjs/cognitive-complexity": {
+      "count": 1
+    }
+  },
+  "app/_layout.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "sonarjs/cognitive-complexity": {
+      "count": 1
+    }
+  },
+  "src/components/splash/illustrations.tsx": {
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "src/components/ui/Carousel.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/ui/Checkbox.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/ui/DateInput.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/ui/RadioTile.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/ui/SelectInput.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/hooks/useDashboardUser.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/stores/auth.store.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  }
+}

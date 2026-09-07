@@ -209,6 +209,27 @@ export async function completeSession(
   return data;
 }
 
+/** The athlete's most recent self-rated effort — pre-fills the RPE slider on
+ * the next session's summary screen so a returning athlete isn't starting
+ * from a blank slate every time. The not-null filter naturally excludes the
+ * athlete's own in-flight completion (effort_rpe is still null there until
+ * setSessionEffortRpe runs), so there's nothing else to exclude. */
+export async function getLastEffortRpe(
+  athleteProfileId: string,
+): Promise<number | null> {
+  const client = getClient();
+  const { data, error } = await client
+    .from("session_completions")
+    .select("effort_rpe")
+    .eq("athlete_profile_id", athleteProfileId)
+    .not("effort_rpe", "is", null)
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.effort_rpe ?? null;
+}
+
 /** Records the athlete's post-session effort rating without re-touching
  * status/duration — completeSession has already run by the time they pick
  * this on the summary screen. */

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   useWindowDimensions,
 } from "react-native";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -19,6 +20,11 @@ type PopupSheetProps = {
   visible: boolean;
   onDismiss: () => void;
   children: ReactNode;
+  /** Wraps the card in a KeyboardStickyView so it rides above the on-screen
+   * keyboard instead of being covered by it. Only needed by sheets that
+   * host a TextInput (e.g. FieldBox's set-value editor) — off by default so
+   * non-text-input sheets (ExitGuardSheet) are unaffected. */
+  avoidKeyboard?: boolean;
 };
 
 /**
@@ -26,7 +32,12 @@ type PopupSheetProps = {
  * slides up from (and back down to) the bottom of the screen — the two
  * animate independently, so the darkening never appears to slide.
  */
-export function PopupSheet({ visible, onDismiss, children }: PopupSheetProps) {
+export function PopupSheet({
+  visible,
+  onDismiss,
+  children,
+  avoidKeyboard,
+}: PopupSheetProps) {
   const { height } = useWindowDimensions();
   const [rendered, setRendered] = useState(visible);
   const progress = useSharedValue(visible ? 1 : 0);
@@ -52,6 +63,12 @@ export function PopupSheet({ visible, onDismiss, children }: PopupSheetProps) {
 
   if (!rendered) return null;
 
+  const card = (
+    <SafeAreaView edges={["bottom"]} style={styles.card}>
+      {children}
+    </SafeAreaView>
+  );
+
   return (
     <Modal visible transparent animationType="none" onRequestClose={onDismiss}>
       <Animated.View style={[styles.backdrop, backdropStyle]}>
@@ -59,9 +76,11 @@ export function PopupSheet({ visible, onDismiss, children }: PopupSheetProps) {
         <Animated.View style={cardStyle}>
           {/* Swallow taps inside the card so they don't dismiss it. */}
           <Pressable onPress={() => {}}>
-            <SafeAreaView edges={["bottom"]} style={styles.card}>
-              {children}
-            </SafeAreaView>
+            {avoidKeyboard ? (
+              <KeyboardStickyView>{card}</KeyboardStickyView>
+            ) : (
+              card
+            )}
           </Pressable>
         </Animated.View>
       </Animated.View>

@@ -1,5 +1,13 @@
 import { ChevronIcon } from "@/src/components/dashboard/icons";
-import { BodySm, Caption, H4, Meta, Title } from "@/src/components/ui";
+import {
+  BodySm,
+  Button,
+  Caption,
+  H4,
+  Meta,
+  PopupSheet,
+  Title,
+} from "@/src/components/ui";
 import { colors, radii } from "@/src/constants/theme";
 import { sortByUnitTypePriority } from "@/src/constants/unitTypes";
 import { useReducedMotion } from "@/src/hooks/useReducedMotion";
@@ -412,9 +420,12 @@ function ExerciseHeader({
 }
 
 /** A single measurement's value box — tapping anywhere in it (not just the
- * digits) focuses the embedded TextInput, opening the keyboard right there
- * for direct in-place editing. Replaced a tap-to-open bottom-sheet modal:
- * the value now commits on blur instead of a separate "Done" confirmation. */
+ * digits) opens a bottom sheet with the value editable above the keyboard,
+ * so it can't end up hidden behind it (the box itself can sit anywhere in a
+ * long scrolling set list). Commit semantics are unchanged from the earlier
+ * inline-edit version: the same commit() reverts invalid input and there's
+ * no separate cancel — the sheet's Done button and backdrop/back dismissal
+ * all just call it, same as blur used to. */
 // The value colour cross-fades to its dimmer completed shade over 260ms —
 // always plays, reduced motion or not (see FieldFlash for the effect layer
 // on top of this baseline transition).
@@ -435,6 +446,52 @@ function useFieldTextStyle(done: boolean) {
   }));
 }
 
+/** The sheet's contents, split out from FieldBox purely to keep that
+ * function short — onBlur only commits (so tabbing away mid-edit still
+ * saves), while onDismiss commits *and* closes the sheet (backdrop tap,
+ * Android back, and the Done button all go through it). */
+function FieldEditSheet({
+  visible,
+  unitType,
+  text,
+  onChangeText,
+  onBlur,
+  onDismiss,
+}: {
+  visible: boolean;
+  unitType: string;
+  text: string;
+  onChangeText: (v: string) => void;
+  onBlur: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <PopupSheet visible={visible} onDismiss={onDismiss} avoidKeyboard>
+      <Meta className="mb-2 uppercase">{unitType}</Meta>
+      <AnimatedTextInput
+        value={text}
+        onChangeText={onChangeText}
+        onBlur={onBlur}
+        keyboardType="decimal-pad"
+        placeholder="—"
+        placeholderTextColor={colors.textDisabled}
+        selectTextOnFocus
+        autoFocus
+        style={{
+          fontFamily: "BarlowCondensed-ExtraBold",
+          fontSize: 40,
+          color: colors.textPrimary,
+          padding: 0,
+          marginBottom: 20,
+        }}
+      />
+      <Button variant="primary" size="lg" onPress={onDismiss}>
+        Done
+      </Button>
+    </PopupSheet>
+  );
+}
+
 export function FieldBox({
   unitType,
   value,
@@ -450,8 +507,8 @@ export function FieldBox({
   index: number;
   onChange: (value: number) => void;
 }) {
-  const inputRef = useRef<TextInput>(null);
   const [text, setText] = useState(value !== undefined ? String(value) : "");
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     setText(value !== undefined ? String(value) : "");
@@ -466,47 +523,55 @@ export function FieldBox({
     }
   }
 
+  function handleDismiss() {
+    commit();
+    setSheetOpen(false);
+  }
+
   const textStyle = useFieldTextStyle(done);
 
   return (
-    <Pressable
-      disabled={done}
-      onPress={() => inputRef.current?.focus()}
-      className="flex-1 rounded-lg border px-3 py-2"
-      style={{
-        backgroundColor: "rgba(255,255,255,0.04)",
-        borderColor: colors.borderSubtle,
-      }}>
-      <Meta
-        className="uppercase"
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.7}>
-        {unitType}
-      </Meta>
-      <AnimatedTextInput
-        ref={inputRef}
-        editable={!done}
-        value={text}
+    <>
+      <Pressable
+        disabled={done}
+        onPress={() => setSheetOpen(true)}
+        className="flex-1 rounded-lg border px-3 py-2"
+        style={{
+          backgroundColor: "rgba(255,255,255,0.04)",
+          borderColor: colors.borderSubtle,
+        }}>
+        <Meta
+          className="uppercase"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}>
+          {unitType}
+        </Meta>
+        <Animated.Text
+          style={[
+            {
+              fontFamily: "BarlowCondensed-ExtraBold",
+              fontSize: 20,
+              lineHeight: 20 * 1.15,
+              letterSpacing: 20 * 0.02,
+              color: text ? undefined : colors.textDisabled,
+            },
+            text ? textStyle : undefined,
+          ]}>
+          {text || "—"}
+        </Animated.Text>
+        <FieldFlash done={done} index={index} />
+      </Pressable>
+
+      <FieldEditSheet
+        visible={sheetOpen}
+        unitType={unitType}
+        text={text}
         onChangeText={(v) => setText(v.replace(/[^0-9.]/g, ""))}
         onBlur={commit}
-        keyboardType="decimal-pad"
-        placeholder="—"
-        placeholderTextColor={colors.textDisabled}
-        selectTextOnFocus
-        style={[
-          {
-            fontFamily: "BarlowCondensed-ExtraBold",
-            fontSize: 20,
-            lineHeight: 20 * 1.15,
-            letterSpacing: 20 * 0.02,
-            padding: 0,
-          },
-          textStyle,
-        ]}
+        onDismiss={handleDismiss}
       />
-      <FieldFlash done={done} index={index} />
-    </Pressable>
+    </>
   );
 }
 

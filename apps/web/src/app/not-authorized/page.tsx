@@ -1,3 +1,4 @@
+import { signOut } from "@/src/app/(auth)/actions";
 import { Card } from "@/src/components/ui/Card";
 
 /**
@@ -13,6 +14,13 @@ export default function NotAuthorizedPage() {
           The Hooper portal is for coaches. Athletes and parents should use the
           Hooper mobile app.
         </p>
+        <form action={signOut} className="mt-6">
+          <button
+            type="submit"
+            className="text-primary-orange text-sm font-semibold hover:brightness-110">
+            Back to login
+          </button>
+        </form>
       </Card>
     </main>
   );

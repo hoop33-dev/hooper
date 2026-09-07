@@ -1,8 +1,9 @@
 import { TeamDetailShell } from "@/src/components/portal/athletes/teams/TeamDetailShell";
 import { listAthletes } from "@/src/services/athlete.service";
+import { getTeamProgramProgress } from "@/src/services/programProgress.service";
 import { getTeamById } from "@/src/services/team.service";
 import { notFound } from "next/navigation";
-import { listAssignableProgramsAction } from "../../actions";
+import { listAssignableProgramsAction } from "../../athletes/actions";
 import {
   addTeamMemberAction,
   assignProgramToTeamAction,
@@ -27,9 +28,16 @@ export default async function TeamDetailPage({
 
   const athletes = athletesResult.ok ? athletesResult.data : [];
 
+  const progressResult = await getTeamProgramProgress(
+    teamResult.data.members.map((m) => m.id),
+    teamResult.data.programs.map((p) => p.id),
+  );
+  const programStats = progressResult.ok ? progressResult.data : {};
+
   return (
     <TeamDetailShell
       team={teamResult.data}
+      programStats={programStats}
       loadPrograms={listAssignableProgramsAction}
       athletes={athletes}
       updateTeamAction={updateTeamAction}

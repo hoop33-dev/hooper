@@ -3,6 +3,7 @@
 import type {
   AssignedProgramRef,
   AthleteSummary,
+  ProgramProgressStats,
   TeamDetail,
   TeamMember,
   TeamRow,
@@ -23,6 +24,7 @@ type ProgramOption = { id: string; name: string };
 
 interface TeamMembersSectionProps {
   programs: AssignedProgramRef[];
+  programStats: Record<string, ProgramProgressStats>;
   members: TeamMember[];
   athletes: AthleteSummary[];
   onAddMembers: (profileIds: string[]) => Promise<ActionResult>;
@@ -33,6 +35,7 @@ interface TeamMembersSectionProps {
 
 function TeamMembersSection({
   programs,
+  programStats,
   members,
   athletes,
   onAddMembers,
@@ -45,6 +48,7 @@ function TeamMembersSection({
       <AssignedProgramsTable
         programs={programs}
         variant="team"
+        stats={programStats}
         onAssignClick={onAssignClick}
         onUnassign={onUnassignProgram}
       />
@@ -83,6 +87,9 @@ function TeamDetailHeaderActions({ onEdit }: { onEdit: () => void }) {
 
 interface TeamDetailShellProps {
   team: TeamDetail;
+  /** Per-program progress aggregated across team members, keyed by
+   * program id — see `getTeamProgramProgress`. */
+  programStats: Record<string, ProgramProgressStats>;
   /** Lazily loaded when the assign modal first opens. */
   loadPrograms: () => Promise<ProgramOption[]>;
   athletes: AthleteSummary[];
@@ -111,6 +118,7 @@ interface TeamDetailShellProps {
 
 export function TeamDetailShell({
   team,
+  programStats,
   loadPrograms,
   athletes,
   updateTeamAction,
@@ -149,9 +157,9 @@ export function TeamDetailShell({
       <PageHeader
         title={header.name}
         subtitle={header.description ?? undefined}
-        backHref="/athletes/teams"
+        backHref="/teams"
         breadcrumbs={[
-          { label: "Teams", href: "/athletes/teams" },
+          { label: "Teams", href: "/teams" },
           { label: header.name },
         ]}
         action={<TeamDetailHeaderActions onEdit={() => setEditOpen(true)} />}
@@ -160,6 +168,7 @@ export function TeamDetailShell({
       <div className="flex-1 overflow-y-auto px-7 py-6">
         <TeamMembersSection
           programs={assignedPrograms}
+          programStats={programStats}
           members={members}
           athletes={athletes}
           onAddMembers={handleAddMembers}

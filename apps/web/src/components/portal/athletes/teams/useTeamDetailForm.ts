@@ -90,7 +90,7 @@ export function useTeamDetailForm({
   async function handleDelete() {
     const result = await deleteTeamAction(team.id);
     if (result.ok) {
-      router.push("/athletes/teams");
+      router.push("/teams");
     } else {
       setError(result.error ?? "Failed to delete team.");
     }

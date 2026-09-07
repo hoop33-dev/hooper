@@ -101,7 +101,7 @@ export function TeamMembersPanel({
                     {h}
                   </th>
                 ))}
-                <th className="w-8" />
+                <th className="w-16" />
               </tr>
             </thead>
             <tbody>
@@ -115,12 +115,14 @@ export function TeamMembersPanel({
                   <td className="text-portal-text3 py-3.5 pr-4 text-xs">
                     {formatDate(member.joined_at)}
                   </td>
-                  <td className="py-3.5 pr-1">
-                    <InlineConfirmDelete
-                      onDelete={() => onRemove(member.id)}
-                      idleTitle="Remove from team"
-                      idleClassName="text-portal-text3 hover:text-red-500"
-                    />
+                  <td className="w-16 py-3.5 pr-1">
+                    <div className="flex justify-end">
+                      <InlineConfirmDelete
+                        onDelete={() => onRemove(member.id)}
+                        idleTitle="Remove from team"
+                        idleClassName="text-portal-text3 hover:text-red-500"
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}

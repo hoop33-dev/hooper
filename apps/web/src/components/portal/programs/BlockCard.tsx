@@ -81,7 +81,7 @@ function SupersetControl({
   onUpdateBlock,
 }: {
   block: BlockWithExercises;
-  onUpdateBlock: (patch: BlockSettingsPatch) => void;
+  onUpdateBlock: (patch: BlockSettingsPatch) => void | Promise<void>;
 }) {
   if (!block.is_superset) {
     return (
@@ -135,6 +135,73 @@ function SupersetControl({
   );
 }
 
+function RoundsStepper({
+  sets,
+  disabled,
+  onChange,
+}: {
+  sets: number;
+  disabled: boolean;
+  onChange: (next: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-portal-text2 w-14 flex-shrink-0 text-xs font-bold">
+        Rounds
+      </span>
+      <div className="flex flex-1 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(1, sets - 1))}
+          disabled={disabled}
+          className="border-portal-border bg-portal-bg text-portal-text2 h-7 w-7 flex-shrink-0 rounded-lg border disabled:opacity-50">
+          −
+        </button>
+        <span className="font-title text-portal-text1 flex-1 text-center text-lg font-black">
+          {sets}
+        </span>
+        <button
+          type="button"
+          onClick={() => onChange(sets + 1)}
+          disabled={disabled}
+          className="border-portal-border bg-portal-bg text-portal-text2 h-7 w-7 flex-shrink-0 rounded-lg border disabled:opacity-50">
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BlockSettingsFooter({
+  saving,
+  onClose,
+  onSave,
+}: {
+  saving: boolean;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <div className="border-portal-border bg-portal-bg flex flex-shrink-0 items-center justify-end gap-2 border-t px-4 py-3">
+      <PortalButton
+        variant="ghost"
+        size="sm"
+        onClick={onClose}
+        disabled={saving}>
+        Cancel
+      </PortalButton>
+      <PortalButton
+        variant="primary"
+        size="sm"
+        className="min-w-[5.5rem]"
+        onClick={onSave}
+        disabled={saving}>
+        {saving ? "Saving…" : "Save"}
+      </PortalButton>
+    </div>
+  );
+}
+
 /** Superset settings edited as a modal rather than inline — the dense
  * program-canvas card (~220px wide) has no room for the full-size inline
  * toggle + stepper SupersetControl renders. */
@@ -145,16 +212,28 @@ function BlockSettingsModal({
 }: {
   block: BlockWithExercises;
   onClose: () => void;
-  onSave: (patch: BlockSettingsPatch) => void;
+  /** Awaited before the modal closes, so the coach sees a saving state
+   * rather than an empty gap where the ×N badge will land once the
+   * round-trip (and the sets-cascade refresh) completes. */
+  onSave: (patch: BlockSettingsPatch) => void | Promise<void>;
 }) {
   const [isSuperset, setIsSuperset] = useState(block.is_superset);
   const [sets, setSets] = useState(
     block.sets ?? Math.max(1, ...block.exercises.map((e) => e.sets)),
   );
+  const [saving, setSaving] = useState(false);
   const onBackdropClick = useModalDismiss(onClose);
 
-  function handleSave() {
-    onSave(isSuperset ? { is_superset: true, sets } : { is_superset: false });
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await onSave(
+        isSuperset ? { is_superset: true, sets } : { is_superset: false },
+      );
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -169,7 +248,8 @@ function BlockSettingsModal({
           <button
             type="button"
             onClick={onClose}
-            className="border-portal-border text-portal-text2 flex h-7 w-7 items-center justify-center rounded-full border">
+            disabled={saving}
+            className="border-portal-border text-portal-text2 flex h-7 w-7 items-center justify-center rounded-full border disabled:opacity-50">
             <XIcon />
           </button>
         </div>
@@ -177,6 +257,7 @@ function BlockSettingsModal({
           <button
             type="button"
             onClick={() => setIsSuperset((v) => !v)}
+            disabled={saving}
             className={cn(
               "flex items-center justify-between rounded-lg border px-3 py-2.5 text-left",
               isSuperset
@@ -195,38 +276,14 @@ function BlockSettingsModal({
             </span>
           </button>
           {isSuperset && (
-            <div className="flex items-center gap-3">
-              <span className="text-portal-text2 w-14 flex-shrink-0 text-xs font-bold">
-                Rounds
-              </span>
-              <div className="flex flex-1 items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSets((v) => Math.max(1, v - 1))}
-                  className="border-portal-border bg-portal-bg text-portal-text2 h-7 w-7 flex-shrink-0 rounded-lg border">
-                  −
-                </button>
-                <span className="font-title text-portal-text1 flex-1 text-center text-lg font-black">
-                  {sets}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setSets((v) => v + 1)}
-                  className="border-portal-border bg-portal-bg text-portal-text2 h-7 w-7 flex-shrink-0 rounded-lg border">
-                  +
-                </button>
-              </div>
-            </div>
+            <RoundsStepper sets={sets} disabled={saving} onChange={setSets} />
           )}
         </div>
-        <div className="border-portal-border bg-portal-bg flex flex-shrink-0 items-center justify-end gap-2 border-t px-4 py-3">
-          <PortalButton variant="ghost" size="sm" onClick={onClose}>
-            Cancel
-          </PortalButton>
-          <PortalButton variant="primary" size="sm" onClick={handleSave}>
-            Save
-          </PortalButton>
-        </div>
+        <BlockSettingsFooter
+          saving={saving}
+          onClose={onClose}
+          onSave={handleSave}
+        />
       </div>
     </div>
   );
@@ -241,7 +298,7 @@ function SupersetIndicator({
   onUpdateBlock,
 }: {
   block: BlockWithExercises;
-  onUpdateBlock: (patch: BlockSettingsPatch) => void;
+  onUpdateBlock: (patch: BlockSettingsPatch) => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -273,10 +330,7 @@ function SupersetIndicator({
         <BlockSettingsModal
           block={block}
           onClose={() => setOpen(false)}
-          onSave={(patch) => {
-            onUpdateBlock(patch);
-            setOpen(false);
-          }}
+          onSave={onUpdateBlock}
         />
       )}
     </>
@@ -345,7 +399,7 @@ interface BlockCardHeaderProps {
   onRename: (name: string) => void;
   onDelete: () => void;
   onSaveAsTemplate?: () => void;
-  onUpdateBlock?: (patch: BlockSettingsPatch) => void;
+  onUpdateBlock?: (patch: BlockSettingsPatch) => void | Promise<void>;
   addExercise?: {
     exercises: ExerciseWithDetails[];
     onAdd: (id: string) => void;
@@ -362,7 +416,7 @@ function SupersetSlot({
 }: {
   block: BlockWithExercises;
   dense?: boolean;
-  onUpdateBlock: (patch: BlockSettingsPatch) => void;
+  onUpdateBlock: (patch: BlockSettingsPatch) => void | Promise<void>;
 }) {
   return dense ? (
     <SupersetIndicator block={block} onUpdateBlock={onUpdateBlock} />
@@ -548,7 +602,7 @@ interface BlockCardProps {
    * stepper outside dense/canvas rendering, or a compact badge that opens
    * BlockSettingsModal in dense rendering, which has no room for the
    * inline version. */
-  onUpdateBlock?: (patch: BlockSettingsPatch) => void;
+  onUpdateBlock?: (patch: BlockSettingsPatch) => void | Promise<void>;
 }
 
 export function BlockCard({

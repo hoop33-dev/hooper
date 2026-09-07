@@ -14,6 +14,7 @@ import {
   LayersIcon,
   LogOutIcon,
   StackIcon,
+  UserIcon,
   UsersIcon,
 } from "./ui/icons";
 
@@ -53,6 +54,10 @@ interface LeafNavItem {
   href: string;
   Icon: IconComponent;
   active: boolean;
+  /** Match the current route exactly rather than by prefix — for when a
+   * sibling route nests under this href and would otherwise light up both
+   * items. */
+  exact?: boolean;
 }
 
 interface ParentNavItem {
@@ -78,6 +83,13 @@ const NAV_ITEMS: NavItem[] = [
     id: "athletes",
     label: "Athletes",
     href: "/athletes",
+    Icon: UserIcon,
+    active: true,
+  },
+  {
+    id: "teams",
+    label: "Teams",
+    href: "/teams",
     Icon: UsersIcon,
     active: true,
   },
@@ -102,14 +114,14 @@ const NAV_ITEMS: NavItem[] = [
         Icon: StackIcon,
         active: true,
       },
+      {
+        id: "forms",
+        label: "Forms",
+        href: "/forms",
+        Icon: ClipboardIcon,
+        active: true,
+      },
     ],
-  },
-  {
-    id: "forms",
-    label: "Forms",
-    href: "/forms",
-    Icon: ClipboardIcon,
-    active: true,
   },
 ];
 
@@ -144,7 +156,9 @@ function SidebarNavItem({
   item: LeafNavItem;
   pathname: string;
 }) {
-  const isActive = pathname.startsWith(item.href);
+  const isActive = item.exact
+    ? pathname === item.href
+    : pathname.startsWith(item.href);
   const color = isActive ? "#F15825" : "rgba(255,255,255,0.42)";
 
   if (!item.active) {

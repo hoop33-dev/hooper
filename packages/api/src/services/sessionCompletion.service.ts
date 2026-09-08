@@ -99,6 +99,26 @@ function isUniqueViolation(error: { code?: string }): boolean {
   return error.code === "23505";
 }
 
+/** Abandons the athlete's current in-progress attempt at this session (if
+ * any) so the next entry starts a clean one. Marking it 'abandoned' rather
+ * than deleting keeps the logged sets for history and frees the
+ * one-in-progress partial unique index. Caller then routes through the normal
+ * "no in-progress attempt" path (pre-form, or startOrResumeSession). No-op
+ * when there's nothing in progress. */
+export async function restartSession(
+  sessionId: string,
+  athleteProfileId: string,
+): Promise<void> {
+  const client = getClient();
+  const { error } = await client
+    .from("session_completions")
+    .update({ status: "abandoned" })
+    .eq("session_id", sessionId)
+    .eq("athlete_profile_id", athleteProfileId)
+    .eq("status", "in_progress");
+  if (error) throw new Error(error.message);
+}
+
 export async function pauseSession(
   sessionCompletionId: string,
 ): Promise<SessionCompletionRow> {

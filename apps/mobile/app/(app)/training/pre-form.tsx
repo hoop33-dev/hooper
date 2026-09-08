@@ -22,7 +22,11 @@ import { useAuthStore } from "@/src/stores/auth.store";
 import type { FormQuestionWithOptions, FormWithQuestions } from "@hooper/db";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
+import {
+  KeyboardAwareScrollView,
+  KeyboardStickyView,
+} from "react-native-keyboard-controller";
 
 type Answers = Record<string, FormAnswerValue>;
 
@@ -129,10 +133,12 @@ function PreSessionFormBody({
         <H2 className="mb-1">Before you start</H2>
         <Caption>A few quick questions for your coach</Caption>
       </View>
-      <ScrollView
+      <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={120}
         contentContainerStyle={{ paddingBottom: 24 }}
-        className="px-5 pt-4">
+        className="flex-1 px-5 pt-4">
         {form.questions.map((question, i) => (
           <QuestionListItem
             key={question.id}
@@ -142,20 +148,22 @@ function PreSessionFormBody({
             onAnswerChange={onAnswerChange}
           />
         ))}
-      </ScrollView>
-      <View className="border-border-subtle border-t px-5 pt-3 pb-8">
-        <Button
-          variant="primary"
-          size="lg"
-          disabled={requiredMissing || submitting}
-          onPress={onSubmit}>
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            "Let's get to work."
-          )}
-        </Button>
-      </View>
+      </KeyboardAwareScrollView>
+      <KeyboardStickyView>
+        <View className="border-border-subtle bg-surface border-t px-5 pt-3 pb-8">
+          <Button
+            variant="primary"
+            size="lg"
+            disabled={requiredMissing || submitting}
+            onPress={onSubmit}>
+            {submitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              "Let's get to work."
+            )}
+          </Button>
+        </View>
+      </KeyboardStickyView>
     </>
   );
 }

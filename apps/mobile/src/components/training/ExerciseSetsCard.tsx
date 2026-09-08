@@ -1,13 +1,5 @@
 import { ChevronIcon } from "@/src/components/dashboard/icons";
-import {
-  BodySm,
-  Button,
-  Caption,
-  H4,
-  Meta,
-  PopupSheet,
-  Title,
-} from "@/src/components/ui";
+import { BodySm, Caption, H4, Meta, Title } from "@/src/components/ui";
 import { colors, radii } from "@/src/constants/theme";
 import { sortByUnitTypePriority } from "@/src/constants/unitTypes";
 import { useReducedMotion } from "@/src/hooks/useReducedMotion";
@@ -24,7 +16,7 @@ import type {
   ExerciseVideoSource,
 } from "@hooper/db";
 import { useEffect, useRef, useState } from "react";
-import { Image, Pressable, TextInput, View } from "react-native";
+import { Image, Pressable, View } from "react-native";
 import Animated, {
   Easing,
   interpolateColor,
@@ -38,6 +30,7 @@ import Animated, {
 import { Path, Svg } from "react-native-svg";
 
 import { NoteIcon, PlayIcon } from "./icons";
+import { useOpenValueEditor } from "./ValueEditorHost";
 import { VideoPlayerModal } from "./videoPlayer/VideoPlayerModal";
 
 const EASE_OUT = Easing.out(Easing.cubic);
@@ -69,7 +62,6 @@ const TICK_STROKE_DELAY = 280;
 const TICK_STROKE_DURATION = 240;
 const TICK_OPACITY_DURATION = TICK_SCALE_DURATION * 0.6;
 
-const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 /** Absolutely-positioned green pulse over a field, staggered by its index in
@@ -284,6 +276,11 @@ type ExerciseSetsCardProps = {
   blockExercise: AthleteBlockExercise;
   sets: SetRowState[];
   onValueChange: (setIndex: number, position: number, value: number) => void;
+  onApplyForward: (
+    position: number,
+    value: number,
+    targetSetIndices: number[],
+  ) => void;
   onSetDone: (setIndex: number) => void;
 };
 
@@ -446,58 +443,14 @@ function useFieldTextStyle(done: boolean) {
   }));
 }
 
-/** The sheet's contents, split out from FieldBox purely to keep that
- * function short — onBlur only commits (so tabbing away mid-edit still
- * saves), while onDismiss commits *and* closes the sheet (backdrop tap,
- * Android back, and the Done button all go through it). */
-function FieldEditSheet({
-  visible,
-  unitType,
-  text,
-  onChangeText,
-  onBlur,
-  onDismiss,
-}: {
-  visible: boolean;
-  unitType: string;
-  text: string;
-  onChangeText: (v: string) => void;
-  onBlur: () => void;
-  onDismiss: () => void;
-}) {
-  return (
-    <PopupSheet visible={visible} onDismiss={onDismiss} avoidKeyboard>
-      <Meta className="mb-2 uppercase">{unitType}</Meta>
-      <AnimatedTextInput
-        value={text}
-        onChangeText={onChangeText}
-        onBlur={onBlur}
-        keyboardType="decimal-pad"
-        placeholder="—"
-        placeholderTextColor={colors.textDisabled}
-        selectTextOnFocus
-        autoFocus
-        style={{
-          fontFamily: "BarlowCondensed-ExtraBold",
-          fontSize: 40,
-          color: colors.textPrimary,
-          padding: 0,
-          marginBottom: 20,
-        }}
-      />
-      <Button variant="primary" size="lg" onPress={onDismiss}>
-        Done
-      </Button>
-    </PopupSheet>
-  );
-}
-
 export function FieldBox({
   unitType,
   value,
   done,
   index,
   onChange,
+  hasLaterSets = false,
+  onApplyForward,
 }: {
   unitType: string;
   value: number | undefined;
@@ -506,72 +459,55 @@ export function FieldBox({
    * by `index * 70ms` so the motion reads left-to-right across the row. */
   index: number;
   onChange: (value: number) => void;
+  /** True when a later set of this exercise shares this measurement — gates
+   * the editor's "Apply to later sets" action. */
+  hasLaterSets?: boolean;
+  onApplyForward?: (value: number) => void;
 }) {
-  const [text, setText] = useState(value !== undefined ? String(value) : "");
-  const [sheetOpen, setSheetOpen] = useState(false);
-
-  useEffect(() => {
-    setText(value !== undefined ? String(value) : "");
-  }, [value]);
-
-  function commit() {
-    const numeric = Number(text);
-    if (text.trim() !== "" && Number.isFinite(numeric) && numeric >= 0) {
-      if (numeric !== value) onChange(numeric);
-    } else {
-      setText(value !== undefined ? String(value) : "");
-    }
-  }
-
-  function handleDismiss() {
-    commit();
-    setSheetOpen(false);
-  }
-
+  const openEditor = useOpenValueEditor();
   const textStyle = useFieldTextStyle(done);
+  const display = value !== undefined ? String(value) : "";
 
   return (
-    <>
-      <Pressable
-        disabled={done}
-        onPress={() => setSheetOpen(true)}
-        className="flex-1 rounded-lg border px-3 py-2"
-        style={{
-          backgroundColor: "rgba(255,255,255,0.04)",
-          borderColor: colors.borderSubtle,
-        }}>
-        <Meta
-          className="uppercase"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.7}>
-          {unitType}
-        </Meta>
-        <Animated.Text
-          style={[
-            {
-              fontFamily: "BarlowCondensed-ExtraBold",
-              fontSize: 20,
-              lineHeight: 20 * 1.15,
-              letterSpacing: 20 * 0.02,
-              color: text ? undefined : colors.textDisabled,
-            },
-            text ? textStyle : undefined,
-          ]}>
-          {text || "—"}
-        </Animated.Text>
-        <FieldFlash done={done} index={index} />
-      </Pressable>
-
-      <FieldEditSheet
-        visible={sheetOpen}
-        unitType={unitType}
-        text={text}
-        onChangeText={(v) => setText(v.replace(/[^0-9.]/g, ""))}
-        onBlur={commit}
-        onDismiss={handleDismiss}
-      />
-    </>
+    <Pressable
+      onPress={() =>
+        openEditor({
+          unitType,
+          initialValue: value,
+          showApplyForward: hasLaterSets,
+          onCommit: (next) => {
+            if (next !== null && next !== value) onChange(next);
+          },
+          onApplyForward: (next) => onApplyForward?.(next),
+        })
+      }
+      className="flex-1 rounded-lg border px-3 py-2"
+      style={{
+        backgroundColor: "rgba(255,255,255,0.04)",
+        borderColor: colors.borderSubtle,
+      }}>
+      <Meta
+        className="uppercase"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}>
+        {unitType}
+      </Meta>
+      <Animated.Text
+        style={[
+          {
+            fontFamily: "BarlowCondensed-ExtraBold",
+            fontSize: 20,
+            lineHeight: 20 * 1.15,
+            letterSpacing: 20 * 0.02,
+            color: display ? undefined : colors.textDisabled,
+          },
+          display ? textStyle : undefined,
+        ]}>
+        {display || "—"}
+      </Animated.Text>
+      <FieldFlash done={done} index={index} />
+    </Pressable>
   );
 }
 
@@ -625,7 +561,9 @@ function SetRow({
   set,
   measurements,
   styleName,
+  laterSetIndices,
   onValueChange,
+  onApplyForward,
   onSetDone,
 }: {
   set: SetRowState;
@@ -635,7 +573,15 @@ function SetRow({
    * resolveGroupStyle's `uniform`), since that case is already named once
    * on the exercise header instead. */
   styleName?: string | null;
+  /** The later sets of this exercise a value can be copied into (same
+   * variant group, after this one) — empty for the last set. */
+  laterSetIndices: number[];
   onValueChange: (position: number, value: number) => void;
+  onApplyForward: (
+    position: number,
+    value: number,
+    targetSetIndices: number[],
+  ) => void;
   onSetDone: () => void;
 }) {
   return (
@@ -649,7 +595,11 @@ function SetRow({
             unitType={m.unit_type}
             value={set.values[m.position]}
             done={set.done}
+            hasLaterSets={laterSetIndices.length > 0}
             onChange={(value) => onValueChange(m.position, value)}
+            onApplyForward={(value) =>
+              onApplyForward(m.position, value, laterSetIndices)
+            }
           />
         ))}
 
@@ -663,6 +613,7 @@ export function ExerciseSetsCard({
   blockExercise,
   sets,
   onValueChange,
+  onApplyForward,
   onSetDone,
 }: ExerciseSetsCardProps) {
   const { measurements, notes } = blockExercise;
@@ -727,9 +678,13 @@ export function ExerciseSetsCard({
                         ? resolveSetStyle(blockExercise, setIndex)?.name
                         : null
                     }
+                    laterSetIndices={group.setIndices.filter(
+                      (i) => i > setIndex,
+                    )}
                     onValueChange={(position, value) =>
                       onValueChange(setIndex, position, value)
                     }
+                    onApplyForward={onApplyForward}
                     onSetDone={() => onSetDone(setIndex)}
                   />
                 );

@@ -17,6 +17,12 @@ type BlockContentProps = {
     position: number,
     value: number,
   ) => void;
+  onApplyForward: (
+    blockExerciseId: string,
+    position: number,
+    value: number,
+    targetSetIndices: number[],
+  ) => void;
   onSetDone: (blockExerciseId: string, setIndex: number) => void;
   onBlockIdxChange: (index: number) => void;
   /** Live pixel scroll offset of this pager — read by BlockTabs to move its
@@ -29,6 +35,7 @@ export function BlockContent({
   blockIdx,
   setsByBlockExercise,
   onValueChange,
+  onApplyForward,
   onSetDone,
   onBlockIdxChange,
   scrollX,
@@ -74,6 +81,7 @@ export function BlockContent({
             isActive={i === blockIdx}
             setsByBlockExercise={setsByBlockExercise}
             onValueChange={onValueChange}
+            onApplyForward={onApplyForward}
             onSetDone={onSetDone}
           />
         </View>

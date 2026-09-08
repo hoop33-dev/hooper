@@ -32,6 +32,21 @@ function ShortTextField({ question, value, onChange }: FieldProps) {
   );
 }
 
+/** The +/− glyphs: a bare <Text> in a fixed-size circle sits visually low
+ * because of the font's line box / Android font padding, so pin the line
+ * height to the glyph and strip the extra padding to truly centre it. */
+function stepperGlyph(color: string) {
+  return {
+    fontFamily: bodyFont("700"),
+    fontSize: 20,
+    lineHeight: 20,
+    color,
+    textAlign: "center" as const,
+    textAlignVertical: "center" as const,
+    includeFontPadding: false,
+  };
+}
+
 function StepperField({ question, value, onChange }: FieldProps) {
   const min = question.min_value ?? 0;
   const max = question.max_value ?? null;
@@ -68,14 +83,7 @@ function StepperField({ question, value, onChange }: FieldProps) {
         onPress={() => step(-1)}
         hitSlop={8}
         className="bg-surface-3 h-10 w-10 items-center justify-center rounded-full">
-        <Text
-          style={{
-            fontFamily: bodyFont("700"),
-            fontSize: 20,
-            color: colors.textSecondary,
-          }}>
-          −
-        </Text>
+        <Text style={stepperGlyph(colors.textSecondary)}>−</Text>
       </Pressable>
 
       <View className="flex-row items-baseline gap-1.5">
@@ -102,14 +110,7 @@ function StepperField({ question, value, onChange }: FieldProps) {
         onPress={() => step(1)}
         hitSlop={8}
         className="bg-brand-orange h-10 w-10 items-center justify-center rounded-full">
-        <Text
-          style={{
-            fontFamily: bodyFont("700"),
-            fontSize: 20,
-            color: colors.textPrimary,
-          }}>
-          +
-        </Text>
+        <Text style={stepperGlyph(colors.textPrimary)}>+</Text>
       </Pressable>
     </View>
   );

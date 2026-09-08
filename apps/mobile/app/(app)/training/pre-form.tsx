@@ -137,8 +137,12 @@ function PreSessionFormBody({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         bottomOffset={120}
-        contentContainerStyle={{ paddingBottom: 24 }}
-        className="flex-1 px-5 pt-4">
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 16,
+          paddingBottom: 24,
+        }}
+        className="flex-1">
         {form.questions.map((question, i) => (
           <QuestionListItem
             key={question.id}

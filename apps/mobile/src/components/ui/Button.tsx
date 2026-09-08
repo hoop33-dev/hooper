@@ -56,7 +56,7 @@ function variantTextColor(variant: ButtonVariant, disabled: boolean): string {
     case "icon":
       return colors.textPrimary;
     case "secondary":
-      return colors.transparent;
+      return colors.textInverse;
     case "ghost":
       return colors.brandOrange;
   }
@@ -113,6 +113,11 @@ export function Button({
           opacity: pressed && !disabled ? 0.85 : 1,
         },
         style,
+        // A glow passed via `style` (e.g. shadows.orangeGlow) is suppressed
+        // while pressed or disabled: an elevation shadow behind a scaled-down
+        // or translucent (disabled bg) button bleeds through as a dark box,
+        // heaviest along the bottom edge.
+        (pressed || disabled) && { shadowOpacity: 0, elevation: 0 },
       ]}
       {...rest}>
       {typeof children === "string" ? (

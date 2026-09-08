@@ -14,7 +14,9 @@ import {
   Hero,
   OtpInput,
 } from "@/src/components/ui";
+import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
+import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 import {
   sendSecurityCode,
   verifySecurityCode,
@@ -26,9 +28,11 @@ const StyledSafeAreaView = styled(SafeAreaView);
 const CODE_LENGTH = 6;
 const RESEND_COOLDOWN = 60;
 
-function EmailIcon() {
+function EmailIcon({ accent }: { accent: string }) {
   return (
-    <View className="bg-orange-tint-10 border-orange-tint-20 h-[72px] w-[72px] items-center justify-center rounded-[20px] border-[1.5px]">
+    <View
+      className="h-[72px] w-[72px] items-center justify-center rounded-[20px] border-[1.5px]"
+      style={{ backgroundColor: `${accent}1A`, borderColor: `${accent}33` }}>
       <Svg width={32} height={32} viewBox="0 0 32 32" fill="none">
         <Rect
           x={2}
@@ -36,12 +40,12 @@ function EmailIcon() {
           width={28}
           height={20}
           rx={4}
-          stroke={colors.brandOrange}
+          stroke={accent}
           strokeWidth={1.8}
         />
         <Path
           d="M2 10L16 19L30 10"
-          stroke={colors.brandOrange}
+          stroke={accent}
           strokeWidth={1.8}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -202,6 +206,7 @@ type ResendRowProps = {
   isResending: boolean;
   resendSent: boolean;
   onResend: () => void;
+  accent: string;
 };
 
 function ResendRow({
@@ -209,6 +214,7 @@ function ResendRow({
   isResending,
   resendSent,
   onResend,
+  accent,
 }: ResendRowProps) {
   return (
     <View className="mb-7 items-center">
@@ -223,7 +229,7 @@ function ResendRow({
             onPress={cooldown > 0 || isResending ? undefined : onResend}
             className="font-semibold"
             style={{
-              color: cooldown > 0 ? colors.textTertiary : colors.brandOrange,
+              color: cooldown > 0 ? colors.textTertiary : accent,
             }}>
             {isResending
               ? "Sending…"
@@ -237,10 +243,16 @@ function ResendRow({
   );
 }
 
-function EmailPromptSection({ maskedEmail }: { maskedEmail: string }) {
+function EmailPromptSection({
+  maskedEmail,
+  accent,
+}: {
+  maskedEmail: string;
+  accent: string;
+}) {
   return (
     <View className="mb-9 items-center gap-5">
-      <EmailIcon />
+      <EmailIcon accent={accent} />
       <View className="items-center">
         <H4 className="mb-2">Check your email</H4>
         <BodySm className="text-center">
@@ -258,6 +270,8 @@ function EmailPromptSection({ maskedEmail }: { maskedEmail: string }) {
 export default function SecurityVerifyScreen() {
   const router = useRouter();
   const { session } = useAuthStore();
+  const user = useDashboardUser();
+  const accent = roleConfig(user?.role ?? "player").accent;
 
   const email = session?.user?.email ?? "";
   const maskedEmail = email.replace(
@@ -291,7 +305,7 @@ export default function SecurityVerifyScreen() {
         <Hero>Security</Hero>
       </View>
       <View className="flex-1 px-6 pt-6">
-        <EmailPromptSection maskedEmail={maskedEmail} />
+        <EmailPromptSection maskedEmail={maskedEmail} accent={accent} />
         <OtpInput
           code={code}
           error={!!errorMsg}
@@ -310,11 +324,12 @@ export default function SecurityVerifyScreen() {
           isResending={isResending}
           resendSent={resendSent}
           onResend={handleResend}
+          accent={accent}
         />
       </View>
       <View className="px-6 pb-2">
         <AccentButton
-          accent={colors.brandOrange}
+          accent={accent}
           variant={isComplete ? "solid" : "muted"}
           loading={isVerifying}
           disabled={!isComplete}

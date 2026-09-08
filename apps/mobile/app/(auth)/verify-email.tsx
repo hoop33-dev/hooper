@@ -39,7 +39,13 @@ const successBorder = "rgba(52,211,153,0.3)";
 const CODE_LENGTH = 6;
 const RESEND_COOLDOWN = 60;
 
-function EmailIllustration({ shake }: { shake: boolean }) {
+function EmailIllustration({
+  shake,
+  accent,
+}: {
+  shake: boolean;
+  accent: string;
+}) {
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -80,7 +86,9 @@ function EmailIllustration({ shake }: { shake: boolean }) {
 
   return (
     <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
-      <View className="bg-orange-tint-10 border-orange-tint-20 h-[72px] w-[72px] items-center justify-center rounded-[20px] border-[1.5px]">
+      <View
+        className="h-[72px] w-[72px] items-center justify-center rounded-[20px] border-[1.5px]"
+        style={{ backgroundColor: `${accent}1A`, borderColor: `${accent}33` }}>
         <Svg width={34} height={34} viewBox="0 0 34 34" fill="none">
           <Rect
             x={3}
@@ -88,17 +96,17 @@ function EmailIllustration({ shake }: { shake: boolean }) {
             width={28}
             height={20}
             rx={4}
-            stroke={colors.brandOrange}
+            stroke={accent}
             strokeWidth={1.8}
           />
           <Path
             d="M3 11L17 20L31 11"
-            stroke={colors.brandOrange}
+            stroke={accent}
             strokeWidth={1.8}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <Circle cx={25} cy={9} r={5} fill={colors.brandOrange} />
+          <Circle cx={25} cy={9} r={5} fill={accent} />
           <Path
             d="M22.5 9L24.2 10.8L27.5 7.5"
             stroke="white"
@@ -383,7 +391,7 @@ export default function VerifyEmailScreen() {
           <>
             {/* Icon + heading */}
             <View className="mb-10 items-center gap-5">
-              <EmailIllustration shake={shake} />
+              <EmailIllustration shake={shake} accent={accent} />
               <View className="items-center">
                 <H4 className="mb-2">Check your email</H4>
                 <BodySm className="text-center">
@@ -441,10 +449,7 @@ export default function VerifyEmailScreen() {
                     }
                     className="font-semibold"
                     style={{
-                      color:
-                        resendCooldown > 0
-                          ? colors.textTertiary
-                          : colors.brandOrange,
+                      color: resendCooldown > 0 ? colors.textTertiary : accent,
                     }}>
                     {isResending
                       ? "Sending…"

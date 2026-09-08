@@ -1,3 +1,4 @@
+import { ContinueRestartSheet } from "@/src/components/training/ContinueRestartSheet";
 import { SessionRow } from "@/src/components/training/SessionRow";
 import {
   BackButton,
@@ -14,6 +15,7 @@ import {
 } from "@/src/services/program.service";
 import {
   getInProgressCompletion,
+  restartSession,
   startOrResumeSession,
 } from "@/src/services/sessionCompletion.service";
 import { useAuthStore } from "@/src/stores/auth.store";
@@ -44,27 +46,24 @@ function groupByWeek(
   return [...weeks.entries()];
 }
 
-/** Resumes an in-progress attempt, routes through the pre-session form if
- * the program has one, or starts the session directly — same decision every
- * "start/continue" entry point in this screen needs. Works for any session,
- * not just the current one, so an athlete can jump ahead or redo a past one. */
-async function navigateToSession(
+/** Opens the player on an existing (in-progress) attempt. */
+function routeToPlayer(router: Router, sessionId: string) {
+  router.push({
+    pathname: "/(app)/training/play",
+    params: { sessionId },
+  });
+}
+
+/** Starts a session with no attempt in progress — through the pre-session
+ * form if the program has one, otherwise straight into the player. Works for
+ * any session, not just the current one, so an athlete can jump ahead or redo
+ * a past one. */
+async function routeToFreshSession(
   router: Router,
   session: AthleteSessionListItem,
   program: ProgramRow,
   athleteProfileId: string,
 ) {
-  const inProgress = await getInProgressCompletion(
-    session.id,
-    athleteProfileId,
-  );
-  if (inProgress) {
-    router.push({
-      pathname: "/(app)/training/play",
-      params: { sessionId: session.id },
-    });
-    return;
-  }
   if (program.form_id) {
     router.push({
       pathname: "/(app)/training/pre-form",
@@ -73,10 +72,7 @@ async function navigateToSession(
     return;
   }
   await startOrResumeSession(session.id, athleteProfileId);
-  router.push({
-    pathname: "/(app)/training/play",
-    params: { sessionId: session.id },
-  });
+  routeToPlayer(router, session.id);
 }
 
 function ProgressSummaryCard({
@@ -239,6 +235,60 @@ function SessionWeekList({
   );
 }
 
+/** Turns a session-row tap into navigation: straight in for a fresh session,
+ * or a Continue/Restart prompt when there's already an in-progress attempt.
+ * `restart` abandons that attempt (keeping its logs) before starting over. */
+function useSessionLauncher(
+  program: ProgramRow | null,
+  athleteProfileId: string | undefined,
+) {
+  const router = useRouter();
+  const [startingSessionId, setStartingSessionId] = useState<string | null>(
+    null,
+  );
+  const [pendingResume, setPendingResume] =
+    useState<AthleteSessionListItem | null>(null);
+
+  async function press(session: AthleteSessionListItem) {
+    if (!athleteProfileId || !program || startingSessionId) return;
+    setStartingSessionId(session.id);
+    try {
+      if (await getInProgressCompletion(session.id, athleteProfileId)) {
+        setPendingResume(session);
+        return;
+      }
+      await routeToFreshSession(router, session, program, athleteProfileId);
+    } finally {
+      setStartingSessionId(null);
+    }
+  }
+
+  async function restart() {
+    const session = pendingResume;
+    if (!session || !athleteProfileId || !program) return;
+    setPendingResume(null);
+    setStartingSessionId(session.id);
+    try {
+      await restartSession(session.id, athleteProfileId);
+      await routeToFreshSession(router, session, program, athleteProfileId);
+    } finally {
+      setStartingSessionId(null);
+    }
+  }
+
+  return {
+    startingSessionId,
+    pendingResume,
+    press,
+    restart,
+    continueResume: () => {
+      if (pendingResume) routeToPlayer(router, pendingResume.id);
+      setPendingResume(null);
+    },
+    cancelResume: () => setPendingResume(null),
+  };
+}
+
 export default function ProgramDetailScreen() {
   const { programId } = useLocalSearchParams<{ programId: string }>();
   const router = useRouter();
@@ -247,9 +297,7 @@ export default function ProgramDetailScreen() {
   const [sessions, setSessions] = useState<AthleteSessionListItem[] | null>(
     null,
   );
-  const [startingSessionId, setStartingSessionId] = useState<string | null>(
-    null,
-  );
+  const launcher = useSessionLauncher(program, profile?.id);
   const load = useCallback(async () => {
     if (!profile || !programId) return;
     const [programRow, sessionRows] = await Promise.all([
@@ -272,16 +320,6 @@ export default function ProgramDetailScreen() {
     onWeekLayout,
     onCurrentRowLayout,
   } = useScrollToCurrentSession(currentSession);
-
-  async function handleSessionPress(session: AthleteSessionListItem) {
-    if (!profile || !program || startingSessionId) return;
-    setStartingSessionId(session.id);
-    try {
-      await navigateToSession(router, session, program, profile.id);
-    } finally {
-      setStartingSessionId(null);
-    }
-  }
 
   return (
     <View className="bg-surface flex-1">
@@ -312,14 +350,20 @@ export default function ProgramDetailScreen() {
             className="px-5">
             <SessionWeekList
               sessions={sessions}
-              startingSessionId={startingSessionId}
+              startingSessionId={launcher.startingSessionId}
               onWeekLayout={onWeekLayout}
               onCurrentRowLayout={onCurrentRowLayout}
-              onSessionPress={handleSessionPress}
+              onSessionPress={launcher.press}
             />
           </ScrollView>
         </>
       )}
+      <ContinueRestartSheet
+        visible={!!launcher.pendingResume}
+        onContinue={launcher.continueResume}
+        onRestart={launcher.restart}
+        onCancel={launcher.cancelResume}
+      />
     </View>
   );
 }

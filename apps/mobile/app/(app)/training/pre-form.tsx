@@ -22,7 +22,11 @@ import { useAuthStore } from "@/src/stores/auth.store";
 import type { FormQuestionWithOptions, FormWithQuestions } from "@hooper/db";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
+import {
+  KeyboardAwareScrollView,
+  KeyboardStickyView,
+} from "react-native-keyboard-controller";
 
 type Answers = Record<string, FormAnswerValue>;
 
@@ -50,23 +54,24 @@ function priorAnswerValue(
   }
 }
 
-/** Seeds the answer state for *optional* questions only, so one counts as
- * already answered — and gets submitted as-is if the athlete never touches
- * it — whenever it has something sensible to start from: their own last
- * response (all types but short_text) falling back to the field's cosmetic
- * default (number/slider only; dropdown/yes_no/short_text have no meaningful
- * unselected default).
+/** Seeds every question's answer state (required and optional alike), so a
+ * returning athlete can just press continue when nothing's changed since
+ * last time: their own last response (all types but short_text) falling
+ * back to the field's cosmetic default (number/slider only; dropdown/
+ * yes_no/short_text have no meaningful unselected default).
  *
- * Required questions are deliberately never seeded: submit stays blocked
- * until the athlete actually answers each one, so e.g. an injury check-in
- * can't be skipped past on a prefilled "no" the athlete never read. */
+ * Required questions used to be deliberately skipped here — so e.g. an
+ * injury check-in couldn't be skipped past on a prefilled "no" the athlete
+ * never read — but that's now an accepted tradeoff: a stale yes_no answer
+ * can be submitted unread. short_text is still never carried forward
+ * (typed answers go stale fast) and a stale dropdown option is still
+ * dropped, so both of those still block submit until re-answered. */
 function buildInitialAnswers(
   form: FormWithQuestions,
   lastResponse: Record<string, unknown> | null,
 ): Answers {
   const answers: Answers = {};
   for (const question of form.questions) {
-    if (question.required) continue;
     const prior = priorAnswerValue(question, lastResponse?.[question.id]);
     const seeded =
       prior !== undefined ? prior : defaultAnswerForQuestion(question);
@@ -128,10 +133,16 @@ function PreSessionFormBody({
         <H2 className="mb-1">Before you start</H2>
         <Caption>A few quick questions for your coach</Caption>
       </View>
-      <ScrollView
+      <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 24 }}
-        className="px-5 pt-4">
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={120}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 16,
+          paddingBottom: 24,
+        }}
+        className="flex-1">
         {form.questions.map((question, i) => (
           <QuestionListItem
             key={question.id}
@@ -141,20 +152,22 @@ function PreSessionFormBody({
             onAnswerChange={onAnswerChange}
           />
         ))}
-      </ScrollView>
-      <View className="border-border-subtle border-t px-5 pt-3 pb-8">
-        <Button
-          variant="primary"
-          size="lg"
-          disabled={requiredMissing || submitting}
-          onPress={onSubmit}>
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            "Let's get to work."
-          )}
-        </Button>
-      </View>
+      </KeyboardAwareScrollView>
+      <KeyboardStickyView>
+        <View className="border-border-subtle bg-surface border-t px-5 pt-3 pb-8">
+          <Button
+            variant="primary"
+            size="lg"
+            disabled={requiredMissing || submitting}
+            onPress={onSubmit}>
+            {submitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              "Let's get to work."
+            )}
+          </Button>
+        </View>
+      </KeyboardStickyView>
     </>
   );
 }

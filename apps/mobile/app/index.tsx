@@ -11,6 +11,7 @@ import {
   ProgressIllustration,
 } from "@/src/components/splash/illustrations";
 import { Body, Button, Carousel, H2, Label, Logo } from "@/src/components/ui";
+import { shadows } from "@/src/constants/theme";
 
 const StyledImageBackground = styled(ImageBackground);
 const StyledSafeAreaView = styled(SafeAreaView);
@@ -100,7 +101,8 @@ export default function SplashScreen() {
           <Button
             variant="primary"
             size="lg"
-            className="shadow-orange-glow w-full"
+            className="w-full"
+            style={shadows.orangeGlow}
             onPress={() => router.push("/(auth)/role-selector")}>
             Create account
           </Button>

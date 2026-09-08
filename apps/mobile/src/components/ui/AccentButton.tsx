@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Pressable } from "react-native";
+import { ActivityIndicator, Pressable } from "react-native";
 
 import { colors } from "@/src/constants/theme";
 
@@ -31,18 +31,18 @@ function accentButtonStyle({
   loading: boolean;
   active: boolean;
 }) {
-  const backgroundColor = muted
-    ? colors.surface2
-    : loading
-      ? `${accent}80`
-      : accent;
+  const backgroundColor = muted ? colors.surface2 : accent;
+  // The glow/elevation is dropped whenever the button isn't a resting solid
+  // CTA (muted, mid-press, or loading): on Android an elevation shadow behind
+  // a scaled or translucent surface bleeds through as a hard dark rectangle.
+  const flat = muted || loading || active;
   return {
     backgroundColor,
     shadowColor: accent,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: muted || loading ? 0 : 0.45,
+    shadowOpacity: flat ? 0 : 0.45,
     shadowRadius: 16,
-    elevation: muted ? 0 : 6,
+    elevation: flat ? 0 : 6,
     transform: [{ scale: active ? 0.97 : 1 }],
     opacity: active ? 0.85 : 1,
   };
@@ -76,13 +76,19 @@ export function AccentButton({
         muted ? "border-border-subtle border" : ""
       } ${className}`}
       style={accentButtonStyle({ accent, muted, loading, active })}>
-      {icon}
-      {typeof children === "string" ? (
-        <Lead className={muted ? "text-text-secondary" : "text-white"}>
-          {children}
-        </Lead>
+      {loading ? (
+        <ActivityIndicator color={muted ? colors.textSecondary : "#fff"} />
       ) : (
-        children
+        <>
+          {icon}
+          {typeof children === "string" ? (
+            <Lead className={muted ? "text-text-secondary" : "text-white"}>
+              {children}
+            </Lead>
+          ) : (
+            children
+          )}
+        </>
       )}
     </Pressable>
   );

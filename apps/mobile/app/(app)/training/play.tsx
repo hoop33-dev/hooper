@@ -4,6 +4,7 @@ import { BlockTabs } from "@/src/components/training/BlockTabs";
 import { PauseOverlay } from "@/src/components/training/PauseOverlay";
 import { SessionFooterNav } from "@/src/components/training/SessionFooterNav";
 import { SessionProgressBar } from "@/src/components/training/SessionProgressBar";
+import { ValueEditorHost } from "@/src/components/training/ValueEditorHost";
 import { Button, Caption } from "@/src/components/ui";
 import { ExitGuardSheet } from "@/src/components/ui/ExitGuardSheet";
 import { colors } from "@/src/constants/theme";
@@ -86,6 +87,43 @@ function useCompleteSessionFlow(
   };
 }
 
+/** The two "are you sure" sheets on the player — exiting mid-session, and
+ * completing with sets still unlogged. Pulled out to keep the screen lean. */
+function PlayerConfirmSheets({
+  loggedLabel,
+  exitGuard,
+  completeFlow,
+}: {
+  loggedLabel: string;
+  exitGuard: ReturnType<typeof useExitGuard>;
+  completeFlow: ReturnType<typeof useCompleteSessionFlow>;
+}) {
+  return (
+    <>
+      <ExitGuardSheet
+        visible={exitGuard.visible}
+        title="EXIT SESSION?"
+        message={`You've logged ${loggedLabel}. Your progress is saved, but the session stays unfinished.`}
+        confirmLabel="Exit session"
+        cancelLabel="Keep training"
+        confirmAccent={colors.brandOrange}
+        onConfirm={exitGuard.confirmExit}
+        onCancel={exitGuard.cancelExit}
+      />
+      <ExitGuardSheet
+        visible={completeFlow.showConfirm}
+        title="Complete session?"
+        message={`You've logged ${loggedLabel}. Doing this will complete the session.`}
+        confirmLabel="Complete session"
+        cancelLabel="Keep training"
+        confirmAccent={colors.success}
+        onConfirm={completeFlow.confirmComplete}
+        onCancel={completeFlow.cancelComplete}
+      />
+    </>
+  );
+}
+
 function PlayerLoadError({ onRetry }: { onRetry: () => void }) {
   return (
     <View className="bg-surface flex-1 items-center justify-center px-8">
@@ -127,60 +165,48 @@ export default function SessionPlayerScreen() {
   const { doneSets, totalSets } = countSets(session, setsState);
 
   return (
-    <View className="bg-surface flex-1">
-      <BlockProgressHeader
-        blockCount={session.blocks.length}
-        blockIdx={blockIdx}
-        doneFlags={doneFlags}
-        paused={player.paused}
-        pausing={player.pausing}
-        onTogglePause={player.togglePause}
-        onExit={exitGuard.requestExit}
-      />
-      <SessionProgressBar doneSets={doneSets} totalSets={totalSets} />
-      <BlockTabs
-        blocks={session.blocks}
-        doneFlags={doneFlags}
-        onSelect={player.setBlockIdx}
-        scrollX={blockScrollX}
-      />
-      <BlockContent
-        blocks={session.blocks}
-        blockIdx={blockIdx}
-        setsByBlockExercise={setsState}
-        onValueChange={player.setFieldValue}
-        onSetDone={player.markSetDone}
-        onBlockIdxChange={player.setBlockIdx}
-        scrollX={blockScrollX}
-      />
-      <SessionFooterNav
-        canGoPrev={blockIdx > 0}
-        isLastBlock={blockIdx === session.blocks.length - 1}
-        onPrev={() => player.goBlock(-1)}
-        onNext={() => player.goBlock(1)}
-        onComplete={completeFlow.handleComplete}
-      />
-      {player.paused ? <PauseOverlay onResume={player.togglePause} /> : null}
-      <ExitGuardSheet
-        visible={exitGuard.visible}
-        title="EXIT SESSION?"
-        message={`You've logged ${doneSets} of ${totalSets} sets. Your progress is saved, but the session stays unfinished.`}
-        confirmLabel="Exit session"
-        cancelLabel="Keep training"
-        confirmAccent={colors.brandOrange}
-        onConfirm={exitGuard.confirmExit}
-        onCancel={exitGuard.cancelExit}
-      />
-      <ExitGuardSheet
-        visible={completeFlow.showConfirm}
-        title="Complete session?"
-        message={`You've logged ${doneSets} of ${totalSets} sets. Doing this will complete the session.`}
-        confirmLabel="Complete session"
-        cancelLabel="Keep training"
-        confirmAccent={colors.success}
-        onConfirm={completeFlow.confirmComplete}
-        onCancel={completeFlow.cancelComplete}
-      />
-    </View>
+    <ValueEditorHost>
+      <View className="bg-surface flex-1">
+        <BlockProgressHeader
+          blockCount={session.blocks.length}
+          blockIdx={blockIdx}
+          doneFlags={doneFlags}
+          paused={player.paused}
+          pausing={player.pausing}
+          onTogglePause={player.togglePause}
+          onExit={exitGuard.requestExit}
+        />
+        <SessionProgressBar doneSets={doneSets} totalSets={totalSets} />
+        <BlockTabs
+          blocks={session.blocks}
+          doneFlags={doneFlags}
+          onSelect={player.setBlockIdx}
+          scrollX={blockScrollX}
+        />
+        <BlockContent
+          blocks={session.blocks}
+          blockIdx={blockIdx}
+          setsByBlockExercise={setsState}
+          onValueChange={player.setFieldValue}
+          onApplyForward={player.applyValueForward}
+          onSetDone={player.markSetDone}
+          onBlockIdxChange={player.setBlockIdx}
+          scrollX={blockScrollX}
+        />
+        <SessionFooterNav
+          canGoPrev={blockIdx > 0}
+          isLastBlock={blockIdx === session.blocks.length - 1}
+          onPrev={() => player.goBlock(-1)}
+          onNext={() => player.goBlock(1)}
+          onComplete={completeFlow.handleComplete}
+        />
+        {player.paused ? <PauseOverlay onResume={player.togglePause} /> : null}
+        <PlayerConfirmSheets
+          loggedLabel={`${doneSets} of ${totalSets} sets`}
+          exitGuard={exitGuard}
+          completeFlow={completeFlow}
+        />
+      </View>
+    </ValueEditorHost>
   );
 }

@@ -11,6 +11,7 @@ import {
   ProgressIllustration,
 } from "@/src/components/splash/illustrations";
 import { Body, Button, Carousel, H2, Label, Logo } from "@/src/components/ui";
+import { shadows } from "@/src/constants/theme";
 
 const StyledImageBackground = styled(ImageBackground);
 const StyledSafeAreaView = styled(SafeAreaView);
@@ -31,21 +32,21 @@ const SLIDES: Slide[] = [
     id: "train-smart",
     label: "Train smart",
     headline: "Your court.\nYour rules.",
-    body: "Structured programs built by your coach — delivered straight to your pocket.",
+    body: "Structured programs built by your coach, delivered straight to your pocket.",
     illustration: <CourtIllustration />,
   },
   {
     id: "coach-connect",
     label: "Coach connect",
     headline: "Your team.\nYour programs.",
-    body: "Coaches build, assign, and track. Athletes execute. The loop closes in real time.",
+    body: "Coaches build programs, assign exercises, and track results.",
     illustration: <CoachConnectIllustration />,
   },
   {
     id: "track-progress",
     label: "Track progress",
     headline: "Numbers\ndon't lie.",
-    body: "Every set, every rep, every session — logged and visualised so you can see the gains.",
+    body: "Sets, reps, and sessions are logged and visualised so you can see the gains.",
     illustration: <ProgressIllustration />,
   },
 ];
@@ -100,7 +101,8 @@ export default function SplashScreen() {
           <Button
             variant="primary"
             size="lg"
-            className="shadow-orange-glow w-full"
+            className="w-full"
+            style={shadows.orangeGlow}
             onPress={() => router.push("/(auth)/role-selector")}>
             Create account
           </Button>

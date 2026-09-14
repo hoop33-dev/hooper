@@ -1,9 +1,9 @@
 import { useRouter } from "expo-router";
-import { Pressable, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
 import { roleConfig, type RoleId } from "@/src/constants/roles";
-import { colors } from "@/src/constants/theme";
+import { bodyFont, colors } from "@/src/constants/theme";
 import {
   INDICATOR_WIDTH,
   useBottomNavIndicator,
@@ -24,6 +24,13 @@ const TABS: Tab[] = [
   { id: "chat", label: "Chat", Icon: ChatIcon },
   { id: "settings", label: "Settings", Icon: SettingsIcon },
 ];
+
+/** Athletes see the landing tab as "Home"; coaches and parents keep
+ * "Dashboard". Chat/Settings read the same for everyone. */
+function tabLabel(tab: Tab, role: RoleId): string {
+  if (tab.id === "dashboard") return role === "player" ? "Home" : "Dashboard";
+  return tab.label;
+}
 
 type BottomNavProps = {
   active: NavTabId;
@@ -78,11 +85,12 @@ export function BottomNav({ active, role }: BottomNavProps) {
       {TABS.map((t) => {
         const isActive = t.id === active;
         const color = isActive ? r.accent : colors.textTertiary;
+        const label = tabLabel(t, role);
         return (
           <Pressable
             key={t.id}
             accessibilityRole="button"
-            accessibilityLabel={t.label}
+            accessibilityLabel={label}
             onPress={() => go(t.id)}
             style={{
               flex: 1,
@@ -90,8 +98,18 @@ export function BottomNav({ active, role }: BottomNavProps) {
               justifyContent: "center",
               paddingTop: 8,
               paddingBottom: 6,
+              gap: 3,
             }}>
             <t.Icon size={22} color={color} />
+            <Text
+              style={{
+                fontFamily: bodyFont(isActive ? "600" : "500"),
+                fontSize: 10.5,
+                letterSpacing: 0.2,
+                color,
+              }}>
+              {label}
+            </Text>
           </Pressable>
         );
       })}

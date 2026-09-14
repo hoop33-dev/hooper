@@ -1,6 +1,7 @@
 import {
   completeSession,
   pauseSession,
+  restartSession,
   resumeSession,
   setSessionEffortRpe,
   startOrResumeSession,
@@ -125,6 +126,38 @@ describe("startOrResumeSession", () => {
         session_date: "2026-07-29",
       }),
     );
+  });
+});
+
+// ─── restartSession ────────────────────────────────────────────────────────
+
+describe("restartSession", () => {
+  /** `.update(...).eq(...).eq(...).eq(...)` resolving to `{ error }` */
+  function makeAbandonBuilder(resolveValue: unknown) {
+    const eq3 = jest.fn().mockResolvedValue(resolveValue);
+    const eq2 = jest.fn().mockReturnValue({ eq: eq3 });
+    const eq1 = jest.fn().mockReturnValue({ eq: eq2 });
+    const update = jest.fn().mockReturnValue({ eq: eq1 });
+    return { update, eq1 };
+  }
+
+  it("marks the in-progress attempt abandoned, scoped to this session + athlete", async () => {
+    const builder = makeAbandonBuilder({ error: null });
+    mockFrom.mockReturnValue(builder);
+
+    await restartSession("s1", "p1");
+
+    expect(builder.update).toHaveBeenCalledWith({ status: "abandoned" });
+    expect(builder.eq1).toHaveBeenCalledWith("session_id", "s1");
+    expect(mockFrom).toHaveBeenCalledWith("session_completions");
+  });
+
+  it("throws when the update errors", async () => {
+    mockFrom.mockReturnValue(
+      makeAbandonBuilder({ error: { message: "nope" } }),
+    );
+
+    await expect(restartSession("s1", "p1")).rejects.toThrow("nope");
   });
 });
 

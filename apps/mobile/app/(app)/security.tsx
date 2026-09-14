@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path, Rect } from "react-native-svg";
 
@@ -141,11 +141,15 @@ function PasswordCard({
         size="lg"
         disabled={isSending}
         onPress={onPress}
-        style={{ backgroundColor: isSending ? `${accent}80` : accent }}>
-        <View className="flex-row items-center gap-2">
-          <MailIcon />
-          <Lead className="text-white">Send reset email</Lead>
-        </View>
+        style={{ backgroundColor: accent }}>
+        {isSending ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <View className="flex-row items-center gap-2">
+            <MailIcon />
+            <Lead className="text-white">Send reset email</Lead>
+          </View>
+        )}
       </Button>
     </View>
   );

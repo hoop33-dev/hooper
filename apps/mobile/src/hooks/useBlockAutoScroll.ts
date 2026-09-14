@@ -27,6 +27,7 @@ export type AutoScrollItem = { id: string; done: boolean };
 export function useBlockAutoScroll(isActive: boolean, items: AutoScrollItem[]) {
   const scrollRef = useRef<ScrollView>(null);
   const [viewportHeight, setViewportHeight] = useState(0);
+  const contentHeight = useRef(0);
   const scrollY = useRef(0);
   const cardLayouts = useRef(new Map<string, LayoutRectangle>());
   const prevDoneIds = useRef(new Set<string>());
@@ -45,9 +46,12 @@ export function useBlockAutoScroll(isActive: boolean, items: AutoScrollItem[]) {
         pendingScroll.current = { id, animated };
         return;
       }
-      const targetY = Math.max(
-        0,
-        layout.y + layout.height / 2 - viewportHeight / 2,
+      // Aim to vertically centre the card, but never scroll past the real end
+      // of the content — the ScrollView carries only a small bottom padding
+      // now, so a short block clamps here instead of showing dead space.
+      const targetY = Math.min(
+        Math.max(0, contentHeight.current - viewportHeight),
+        Math.max(0, layout.y + layout.height / 2 - viewportHeight / 2),
       );
       scrollRef.current?.scrollTo({ y: targetY, animated });
     },
@@ -113,19 +117,17 @@ export function useBlockAutoScroll(isActive: boolean, items: AutoScrollItem[]) {
     if (nextBelowViewport) scrollItemIntoView(next.id, true);
   }, [items, scrollItemIntoView, viewportHeight]);
 
-  function onViewportLayout(e: LayoutChangeEvent) {
-    setViewportHeight(e.nativeEvent.layout.height);
-  }
-
-  function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    scrollY.current = e.nativeEvent.contentOffset.y;
-  }
-
   return {
     scrollRef,
     viewportHeight,
-    onViewportLayout,
-    onScroll,
+    onViewportLayout: (e: LayoutChangeEvent) =>
+      setViewportHeight(e.nativeEvent.layout.height),
+    onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollY.current = e.nativeEvent.contentOffset.y;
+    },
+    onContentSizeChange: (_w: number, h: number) => {
+      contentHeight.current = h;
+    },
     registerCardLayout,
   };
 }

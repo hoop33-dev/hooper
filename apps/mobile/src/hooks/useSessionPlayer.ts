@@ -232,6 +232,152 @@ async function persistSetDone(params: {
   );
 }
 
+/** Writes a single measurement value straight through, keeping its
+ * "completed" status — used when the athlete edits a value on a set they've
+ * already ticked (item: editable completed sets) or fills a value forward
+ * onto a later set that's already done. Optimistic: reverts just this cell to
+ * `prevValue` if the write fails. A pending set needs none of this — its
+ * value rides along when the set is ticked. */
+async function persistFieldEdit(params: {
+  completion: SessionCompletionRow;
+  athleteProfileId: string;
+  be: AthleteBlockExercise;
+  blockExerciseId: string;
+  setIndex: number;
+  position: number;
+  value: number;
+  prevValue: number | undefined;
+  commitSetsState: (next: SetsStateUpdater) => void;
+}) {
+  const { be, setIndex, position } = params;
+  const measurement = be.measurements.find(
+    (m) => m.set_index === setIndex && m.position === position,
+  );
+  if (!measurement) return;
+  try {
+    await upsertSetLog({
+      sessionCompletionId: params.completion.id,
+      blockExerciseId: params.blockExerciseId,
+      position,
+      setIndex,
+      athleteProfileId: params.athleteProfileId,
+      exerciseId: resolveSetExercise(be, setIndex).id,
+      unitType: measurement.unit_type,
+      plannedValue: measurement.value,
+      actualValue: params.value,
+      status: "completed",
+    });
+  } catch {
+    params.commitSetsState((prev) =>
+      applyFieldValue(
+        prev,
+        params.blockExerciseId,
+        setIndex,
+        position,
+        params.prevValue ?? 0,
+      ),
+    );
+  }
+}
+
+/** Writes one measurement value into local state for `setIndex`, and — when
+ * that row is already ticked done — persists it straight away so a completed
+ * set stays editable in place. A pending row needs no write here; its value
+ * rides along when the set is ticked. Shared by the single-field edit and the
+ * "apply to later sets" action. */
+function writeFieldValue(params: {
+  completion: SessionCompletionRow | null;
+  athleteProfileId: string | undefined;
+  be: AthleteBlockExercise;
+  blockExerciseId: string;
+  setIndex: number;
+  position: number;
+  value: number;
+  setsStateRef: MutableRefObject<SetsByBlockExercise>;
+  commitSetsState: (next: SetsStateUpdater) => void;
+}) {
+  const {
+    completion,
+    athleteProfileId,
+    be,
+    blockExerciseId,
+    setIndex,
+    position,
+    value,
+  } = params;
+  const prevValue =
+    params.setsStateRef.current[blockExerciseId]?.[setIndex]?.values[position];
+  params.commitSetsState((prev) =>
+    applyFieldValue(prev, blockExerciseId, setIndex, position, value),
+  );
+  const row = params.setsStateRef.current[blockExerciseId]?.[setIndex];
+  if (row?.done && completion && athleteProfileId) {
+    void persistFieldEdit({
+      completion,
+      athleteProfileId,
+      be,
+      blockExerciseId,
+      setIndex,
+      position,
+      value,
+      prevValue,
+      commitSetsState: params.commitSetsState,
+    });
+  }
+}
+
+type FieldEditDeps = {
+  session: AthleteSessionDetail | null;
+  completion: SessionCompletionRow | null;
+  athleteProfileId: string | undefined;
+  setsStateRef: MutableRefObject<SetsByBlockExercise>;
+  commitSetsState: (next: SetsStateUpdater) => void;
+};
+
+/** The `setFieldValue` / `applyValueForward` callbacks the player passes down
+ * to each value box. `setFieldValue` writes one set (persisting it if already
+ * done); `applyValueForward` writes the same value onto the caller-supplied
+ * later sets too — the component owns the "which sets" decision since it's
+ * the one already grouping sets by variant for rendering. Exported for tests. */
+export function makeFieldEditors(deps: FieldEditDeps) {
+  const write = (
+    blockExerciseId: string,
+    setIndices: number[],
+    position: number,
+    value: number,
+  ) => {
+    const be = deps.session && findBlockExercise(deps.session, blockExerciseId);
+    if (!be) return;
+    for (const setIndex of setIndices) {
+      writeFieldValue({
+        completion: deps.completion,
+        athleteProfileId: deps.athleteProfileId,
+        be,
+        blockExerciseId,
+        setIndex,
+        position,
+        value,
+        setsStateRef: deps.setsStateRef,
+        commitSetsState: deps.commitSetsState,
+      });
+    }
+  };
+  return {
+    setFieldValue: (
+      beId: string,
+      setIndex: number,
+      position: number,
+      value: number,
+    ) => write(beId, [setIndex], position, value),
+    applyValueForward: (
+      beId: string,
+      position: number,
+      value: number,
+      targetSetIndices: number[],
+    ) => write(beId, targetSetIndices, position, value),
+  };
+}
+
 async function persistDoneToggle(params: {
   completion: SessionCompletionRow;
   athleteProfileId: string;
@@ -425,16 +571,13 @@ export function useSessionPlayer(
     setBlockIdx,
   });
 
-  function setFieldValue(
-    blockExerciseId: string,
-    setIndex: number,
-    position: number,
-    value: number,
-  ) {
-    commitSetsState((prev) =>
-      applyFieldValue(prev, blockExerciseId, setIndex, position, value),
-    );
-  }
+  const { setFieldValue, applyValueForward } = makeFieldEditors({
+    session,
+    completion,
+    athleteProfileId,
+    setsStateRef,
+    commitSetsState,
+  });
 
   async function markSetDone(blockExerciseId: string, setIndex: number) {
     if (!completion || !athleteProfileId || !session) return;
@@ -483,6 +626,7 @@ export function useSessionPlayer(
     loadError,
     retryLoad,
     setFieldValue,
+    applyValueForward,
     markSetDone,
     togglePause,
     goBlock,

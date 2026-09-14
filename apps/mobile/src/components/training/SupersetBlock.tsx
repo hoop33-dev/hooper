@@ -26,6 +26,12 @@ type SupersetBlockProps = {
     position: number,
     value: number,
   ) => void;
+  onApplyForward: (
+    blockExerciseId: string,
+    position: number,
+    value: number,
+    targetSetIndices: number[],
+  ) => void;
   onSetDone: (blockExerciseId: string, setIndex: number) => void;
   /** Reports each round card's layout within the scrolling block content,
    * keyed "round-{index}", so BlockContent can scroll the next one into view
@@ -41,13 +47,22 @@ function RoundExerciseRow({
   blockExercise,
   setIndex,
   set,
+  laterRounds,
   onValueChange,
+  onApplyForward,
   onSetDone,
 }: {
   blockExercise: AthleteBlockExercise;
   setIndex: number;
   set: SetRowState | undefined;
+  /** The later rounds a value can be copied into — empty on the last round. */
+  laterRounds: number[];
   onValueChange: (position: number, value: number) => void;
+  onApplyForward: (
+    position: number,
+    value: number,
+    targetSetIndices: number[],
+  ) => void;
   onSetDone: () => void;
 }) {
   const exercise = resolveSetExercise(blockExercise, setIndex);
@@ -85,7 +100,11 @@ function RoundExerciseRow({
             unitType={m.unit_type}
             value={set?.values[m.position]}
             done={done}
+            hasLaterSets={laterRounds.length > 0}
             onChange={(value) => onValueChange(m.position, value)}
+            onApplyForward={(value) =>
+              onApplyForward(m.position, value, laterRounds)
+            }
           />
         ))}
         <SetDoneButton done={done} onPress={onSetDone} />
@@ -96,13 +115,16 @@ function RoundExerciseRow({
 
 function RoundCard({
   roundIndex,
+  roundCount,
   block,
   setsByBlockExercise,
   onValueChange,
+  onApplyForward,
   onSetDone,
   onLayout,
 }: {
   roundIndex: number;
+  roundCount: number;
   block: AthleteBlock;
   setsByBlockExercise: Record<string, SetRowState[]>;
   onValueChange: (
@@ -110,10 +132,20 @@ function RoundCard({
     position: number,
     value: number,
   ) => void;
+  onApplyForward: (
+    blockExerciseId: string,
+    position: number,
+    value: number,
+    targetSetIndices: number[],
+  ) => void;
   onSetDone: (blockExerciseId: string) => void;
   onLayout: (layout: LayoutRectangle) => void;
 }) {
   const total = block.exercises.length;
+  const laterRounds = Array.from(
+    { length: Math.max(0, roundCount - roundIndex - 1) },
+    (_, k) => roundIndex + 1 + k,
+  );
   const doneCount = block.exercises.filter(
     (be) => setsByBlockExercise[be.id]?.[roundIndex]?.done,
   ).length;
@@ -144,8 +176,12 @@ function RoundCard({
               blockExercise={be}
               setIndex={roundIndex}
               set={setsByBlockExercise[be.id]?.[roundIndex]}
+              laterRounds={laterRounds}
               onValueChange={(position, value) =>
                 onValueChange(be.id, position, value)
+              }
+              onApplyForward={(position, value, targets) =>
+                onApplyForward(be.id, position, value, targets)
               }
               onSetDone={() => onSetDone(be.id)}
             />
@@ -166,6 +202,7 @@ export function SupersetBlock({
   block,
   setsByBlockExercise,
   onValueChange,
+  onApplyForward,
   onSetDone,
   onCardLayout,
 }: SupersetBlockProps) {
@@ -177,11 +214,13 @@ export function SupersetBlock({
         <RoundCard
           key={roundIndex}
           roundIndex={roundIndex}
+          roundCount={rounds}
           block={block}
           setsByBlockExercise={setsByBlockExercise}
           onValueChange={(blockExerciseId, position, value) =>
             onValueChange(blockExerciseId, roundIndex, position, value)
           }
+          onApplyForward={onApplyForward}
           onSetDone={(blockExerciseId) =>
             onSetDone(blockExerciseId, roundIndex)
           }

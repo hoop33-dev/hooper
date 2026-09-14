@@ -178,8 +178,18 @@ launcher screen** — that auto-updates from the `dev` branch. They install it
   publishes an OTA update to the `development` branch/channel.
 - On their next launch, testers' apps check for, download, and apply the update
   (default `expo-updates` behaviour — applied on the following launch).
+- In parallel, `auto-dev-build.yml` compares the pushed commit's native
+  fingerprint (per platform) against the latest finished `dev`-profile build's
+  fingerprint. If it changed, it automatically runs `eas build --profile dev`
+  for the affected platform(s) — see "Native modules" below. If it's
+  unchanged, it does nothing; the OTA update above already covers it.
 
 ### Cutting a tester build
+
+Native rebuilds are triggered automatically by `auto-dev-build.yml` when a
+push to `dev` changes the native fingerprint (see above) — you shouldn't
+normally need to run this by hand. To force one anyway (e.g. the very first
+build, or to rebuild without a fingerprint change):
 
 ```bash
 # one build that testers install; send them the resulting install link / QR
@@ -191,6 +201,19 @@ eas build --profile dev --platform all
 - **Android:** produces an installable `.apk`.
 
 Testers only need to reinstall when the **native layer** changes (see below).
+
+### Getting the current build / install link
+
+- Latest build + install link (also works for a specific platform):
+  `eas build:list --profile dev --platform all --limit 1` — or open the
+  project's **Builds** page on the Expo dashboard. The JSON form
+  (`--json`) includes `artifacts.buildUrl`, a direct `.apk`/`.ipa` link.
+- Not sure if the current build is still up to date? Compare fingerprints:
+  `eas fingerprint:generate --build-profile dev --platform android` (or
+  `ios`) against the latest finished build's fingerprint from
+  `eas build:list --profile dev --platform android --status finished --limit 1 --json`
+  (`fingerprint.hash`). Or just check the `auto-dev-build.yml` Action run for
+  the commit in question — it does exactly this comparison on every push.
 
 ### Native modules — the important part
 
@@ -206,6 +229,8 @@ version is a hash of the native project, so:
 
 > Rule of thumb: if a PR adds/removes a package with native code or changes
 > `app.json` plugins/native config, testers need a fresh `eas build --profile dev`.
+> This is now detected and triggered automatically (see above) rather than
+> relying on someone noticing during review.
 
 ### One-time setup checklist
 

@@ -11,11 +11,13 @@ import { getLogsForCompletion } from "@/src/services/measurementLog.service";
 import { getSessionDetail } from "@/src/services/program.service";
 import {
   completeSession,
+  getLastEffortRpe,
   setSessionEffortRpe,
 } from "@/src/services/sessionCompletion.service";
+import { useAuthStore } from "@/src/stores/auth.store";
 import type { SessionCompletionRow } from "@hooper/db";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
@@ -117,10 +119,12 @@ type SessionStats = { sets: number; exercises: number };
 async function loadSummaryStats(
   sessionCompletionId: string,
   sessionId: string,
+  athleteProfileId: string | undefined,
 ) {
-  const [session, logs] = await Promise.all([
+  const [session, logs, lastRpe] = await Promise.all([
     getSessionDetail(sessionId),
     getLogsForCompletion(sessionCompletionId),
+    athleteProfileId ? getLastEffortRpe(athleteProfileId) : null,
   ]);
   const completedLogs = logs.filter((l) => l.status === "completed");
   // Logs are one row per measurement position, so a set tracking e.g. reps +
@@ -132,18 +136,21 @@ async function loadSummaryStats(
   return {
     sessionName: session.name,
     stats: { sets: completedSets.size, exercises: exerciseIds.size },
+    lastRpe,
   };
 }
 
 function useCompletionSummary(
   sessionCompletionId: string | undefined,
   sessionId: string | undefined,
+  athleteProfileId: string | undefined,
 ) {
   const [completion, setCompletion] = useState<SessionCompletionRow | null>(
     null,
   );
   const [sessionName, setSessionName] = useState("");
   const [stats, setStats] = useState<SessionStats | null>(null);
+  const [lastRpe, setLastRpe] = useState<number | null>(null);
   const [finalizeError, setFinalizeError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -169,17 +176,20 @@ function useCompletionSummary(
       if (cancelled) return;
       setCompletion(finalized);
 
-      // Cosmetic: the name + set/exercise counts. A failure here (session
-      // renamed/deleted, flaky network) must not block the athlete from
-      // rating the session and leaving — just show the stats as unknown.
+      // Cosmetic: the name + set/exercise counts + last RPE. A failure here
+      // (session renamed/deleted, flaky network) must not block the athlete
+      // from rating the session and leaving — just show the stats as
+      // unknown and leave the RPE slider unseeded.
       try {
         const summary = await loadSummaryStats(
           sessionCompletionId!,
           sessionId!,
+          athleteProfileId,
         );
         if (cancelled) return;
         setSessionName(summary.sessionName);
         setStats(summary.stats);
+        setLastRpe(summary.lastRpe);
       } catch (e) {
         if (!cancelled) console.warn("Couldn't load the session summary", e);
       }
@@ -190,12 +200,13 @@ function useCompletionSummary(
     return () => {
       cancelled = true;
     };
-  }, [sessionCompletionId, sessionId, reloadKey]);
+  }, [sessionCompletionId, sessionId, athleteProfileId, reloadKey]);
 
   return {
     completion,
     sessionName,
     stats,
+    lastRpe,
     finalizeError,
     retry: () => setReloadKey((k) => k + 1),
   };
@@ -207,13 +218,28 @@ export default function SessionCompleteScreen() {
     sessionId: string;
   }>();
   const router = useRouter();
-  const { completion, sessionName, stats, finalizeError, retry } =
-    useCompletionSummary(sessionCompletionId, sessionId);
-  // Null until the athlete actually sets it — RPE feeds coach load
-  // monitoring, so a fabricated mid-range default would be worse than
-  // making them take the extra second to rate it.
+  const profile = useAuthStore((s) => s.profile);
+  const { completion, sessionName, stats, lastRpe, finalizeError, retry } =
+    useCompletionSummary(sessionCompletionId, sessionId, profile?.id);
+  // Starts null, then seeded from the athlete's last logged RPE (see
+  // lastRpe/userTouchedRpeRef below) so a returning athlete can press Done
+  // without dragging the slider when nothing's changed — RPE feeds coach
+  // load monitoring, so this only ever carries forward a real prior rating,
+  // never a fabricated mid-range guess.
   const [rpe, setRpe] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Guards against the cosmetic lastRpe fetch overwriting a value the
+  // athlete has already dragged the slider to themselves.
+  const userTouchedRpeRef = useRef(false);
+
+  useEffect(() => {
+    if (!userTouchedRpeRef.current && lastRpe != null) setRpe(lastRpe);
+  }, [lastRpe]);
+
+  function handleRpeChange(n: number) {
+    userTouchedRpeRef.current = true;
+    setRpe(n);
+  }
 
   async function handleDone() {
     if (!completion || submitting || rpe === null) return;
@@ -258,7 +284,7 @@ export default function SessionCompleteScreen() {
           sets={stats?.sets ?? null}
           exercises={stats?.exercises ?? null}
         />
-        <RpeCard rpe={rpe} onChange={setRpe} />
+        <RpeCard rpe={rpe} onChange={handleRpeChange} />
       </View>
       <View className="pb-9">
         <Button

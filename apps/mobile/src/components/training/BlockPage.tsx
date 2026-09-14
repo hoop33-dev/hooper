@@ -23,6 +23,12 @@ type BlockPageProps = {
     position: number,
     value: number,
   ) => void;
+  onApplyForward: (
+    blockExerciseId: string,
+    position: number,
+    value: number,
+    targetSetIndices: number[],
+  ) => void;
   onSetDone: (blockExerciseId: string, setIndex: number) => void;
 };
 
@@ -90,30 +96,27 @@ export function BlockPage({
   isActive,
   setsByBlockExercise,
   onValueChange,
+  onApplyForward,
   onSetDone,
 }: BlockPageProps) {
   const rounds = block.sets ?? block.exercises[0]?.sets ?? 0;
   const {
     scrollRef,
-    viewportHeight,
     onViewportLayout,
     onScroll,
+    onContentSizeChange,
     registerCardLayout,
   } = useBlockPageAutoScroll(block, isActive, setsByBlockExercise, rounds);
-
-  // Half the viewport height, so even the last card in the list has enough
-  // room below it to be scrolled to a vertically-centered position instead
-  // of the scroll clamping at the bottom of the content.
-  const paddingBottom = Math.max(100, viewportHeight / 2);
 
   return (
     <ScrollView
       ref={scrollRef}
       onLayout={onViewportLayout}
       onScroll={onScroll}
+      onContentSizeChange={onContentSizeChange}
       scrollEventThrottle={16}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ padding: 20, paddingBottom }}
+      contentContainerStyle={{ padding: 20, paddingBottom: 24 }}
       className="flex-1">
       <BlockHeader block={block} rounds={rounds} />
 
@@ -122,6 +125,7 @@ export function BlockPage({
           block={block}
           setsByBlockExercise={setsByBlockExercise}
           onValueChange={onValueChange}
+          onApplyForward={onApplyForward}
           onSetDone={onSetDone}
           onCardLayout={registerCardLayout}
         />
@@ -135,6 +139,9 @@ export function BlockPage({
               sets={setsByBlockExercise[be.id] ?? []}
               onValueChange={(setIndex, position, value) =>
                 onValueChange(be.id, setIndex, position, value)
+              }
+              onApplyForward={(position, value, targets) =>
+                onApplyForward(be.id, position, value, targets)
               }
               onSetDone={(setIndex) => onSetDone(be.id, setIndex)}
             />

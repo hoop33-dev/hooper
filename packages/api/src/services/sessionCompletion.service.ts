@@ -99,6 +99,26 @@ function isUniqueViolation(error: { code?: string }): boolean {
   return error.code === "23505";
 }
 
+/** Abandons the athlete's current in-progress attempt at this session (if
+ * any) so the next entry starts a clean one. Marking it 'abandoned' rather
+ * than deleting keeps the logged sets for history and frees the
+ * one-in-progress partial unique index. Caller then routes through the normal
+ * "no in-progress attempt" path (pre-form, or startOrResumeSession). No-op
+ * when there's nothing in progress. */
+export async function restartSession(
+  sessionId: string,
+  athleteProfileId: string,
+): Promise<void> {
+  const client = getClient();
+  const { error } = await client
+    .from("session_completions")
+    .update({ status: "abandoned" })
+    .eq("session_id", sessionId)
+    .eq("athlete_profile_id", athleteProfileId)
+    .eq("status", "in_progress");
+  if (error) throw new Error(error.message);
+}
+
 export async function pauseSession(
   sessionCompletionId: string,
 ): Promise<SessionCompletionRow> {
@@ -207,6 +227,27 @@ export async function completeSession(
     .single();
   if (error) throw new Error(error.message);
   return data;
+}
+
+/** The athlete's most recent self-rated effort — pre-fills the RPE slider on
+ * the next session's summary screen so a returning athlete isn't starting
+ * from a blank slate every time. The not-null filter naturally excludes the
+ * athlete's own in-flight completion (effort_rpe is still null there until
+ * setSessionEffortRpe runs), so there's nothing else to exclude. */
+export async function getLastEffortRpe(
+  athleteProfileId: string,
+): Promise<number | null> {
+  const client = getClient();
+  const { data, error } = await client
+    .from("session_completions")
+    .select("effort_rpe")
+    .eq("athlete_profile_id", athleteProfileId)
+    .not("effort_rpe", "is", null)
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.effort_rpe ?? null;
 }
 
 /** Records the athlete's post-session effort rating without re-touching

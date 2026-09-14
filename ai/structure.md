@@ -51,6 +51,12 @@ per-platform — web uses `@supabase/ssr` (per-request, cookie-based) under
   production on the production branch) — configured in the Vercel dashboard
   with Root Directory `apps/web`, not via a workflow in this repo.
 - `pr-previews.yml` — Expo EAS Update preview on mobile PRs.
+- `auto-development-update.yml` / `manual-development-update.yml` /
+  `manual-production-update.yml` — OTA `eas update` publishes to the
+  `development`/`production` channels (auto on push to `dev`, manual
+  dispatch for both). `auto-dev-build.yml` runs alongside the `dev` one,
+  auto-triggering a fresh `eas build --profile dev` per platform when the
+  native fingerprint changes (see README "Tester Builds").
 - `deploy-edge-functions.yml`, `deploy-email-templates.yml`, `migrate-feature-db.yml`
   — Supabase backend deploys.
 

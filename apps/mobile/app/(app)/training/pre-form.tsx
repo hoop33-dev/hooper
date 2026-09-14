@@ -1,5 +1,6 @@
 import {
   FormQuestionField,
+  clampNumericAnswer,
   defaultAnswerForQuestion,
   type FormAnswerValue,
 } from "@/src/components/forms/FormQuestionField";
@@ -33,7 +34,12 @@ type Answers = Record<string, FormAnswerValue>;
 /** The athlete's prior answer to this question, if it's still usable —
  * short_text is deliberately never carried forward (typed answers go stale
  * fast), and a stale dropdown value that no longer matches any option is
- * dropped rather than silently selecting nothing behind the scenes. */
+ * dropped rather than silently selecting nothing behind the scenes. A
+ * number/slider value is clamped into the question's *current*
+ * min_value/max_value: a coach can narrow or move those bounds after the
+ * athlete's last response, and without this an old out-of-range value would
+ * get seeded untouched, letting Continue submit it without the athlete ever
+ * having to revisit the field. */
 function priorAnswerValue(
   question: FormQuestionWithOptions,
   prior: unknown,
@@ -41,7 +47,9 @@ function priorAnswerValue(
   switch (question.type) {
     case "number":
     case "slider":
-      return typeof prior === "number" ? prior : undefined;
+      return typeof prior === "number"
+        ? clampNumericAnswer(question, prior)
+        : undefined;
     case "yes_no":
       return typeof prior === "boolean" ? prior : undefined;
     case "dropdown":

@@ -49,7 +49,6 @@ function stepperGlyph(color: string) {
 
 function StepperField({ question, value, onChange }: FieldProps) {
   const min = question.min_value ?? 0;
-  const max = question.max_value ?? null;
   const current = typeof value === "number" ? value : min;
 
   const [text, setText] = useState(String(current));
@@ -59,10 +58,7 @@ function StepperField({ question, value, onChange }: FieldProps) {
   useEffect(() => setText(String(current)), [current]);
 
   function clamp(n: number) {
-    let next = n;
-    if (next < min) next = min;
-    if (max != null && next > max) next = max;
-    return next;
+    return clampNumericAnswer(question, n);
   }
 
   function step(delta: number) {
@@ -120,7 +116,9 @@ function SliderField({ question, value, onChange }: FieldProps) {
   const min = question.min_value ?? 1;
   const max = question.max_value ?? 10;
   const current =
-    typeof value === "number" ? value : Math.round((min + max) / 2);
+    typeof value === "number"
+      ? clampNumericAnswer(question, value)
+      : Math.round((min + max) / 2);
 
   return (
     <Slider
@@ -237,6 +235,38 @@ function YesNoField({ value, onChange }: FieldProps) {
   );
 }
 
+/** Numeric bounds for number/slider questions, matching StepperField's and
+ * SliderField's own fallback defaults (number is only bounded below by
+ * default; slider defaults to a fixed 1-10 scale). */
+function numericBounds(question: FormQuestionWithOptions): {
+  min: number;
+  max: number | null;
+} {
+  switch (question.type) {
+    case "number":
+      return { min: question.min_value ?? 0, max: question.max_value ?? null };
+    case "slider":
+      return { min: question.min_value ?? 1, max: question.max_value ?? 10 };
+    default:
+      return { min: 0, max: null };
+  }
+}
+
+/** Clamps a numeric answer into a number/slider question's *current*
+ * min_value/max_value — a coach can narrow or move those bounds after the
+ * athlete last answered, so a value carried forward from a prior response
+ * (or typed in) must never be trusted as still in range. */
+export function clampNumericAnswer(
+  question: FormQuestionWithOptions,
+  n: number,
+): number {
+  const { min, max } = numericBounds(question);
+  let next = n;
+  if (next < min) next = min;
+  if (max != null && next > max) next = max;
+  return next;
+}
+
 /** The cosmetic starting value each field type shows before the athlete
  * touches it — StepperField's min, SliderField's midpoint (kept in sync with
  * those components' own fallback math). ShortTextField/DropdownField/
@@ -246,12 +276,13 @@ export function defaultAnswerForQuestion(
   question: FormQuestionWithOptions,
 ): FormAnswerValue | undefined {
   switch (question.type) {
-    case "number":
-      return question.min_value ?? 0;
+    case "number": {
+      const { min } = numericBounds(question);
+      return min;
+    }
     case "slider": {
-      const min = question.min_value ?? 1;
-      const max = question.max_value ?? 10;
-      return Math.round((min + max) / 2);
+      const { min, max } = numericBounds(question);
+      return Math.round((min + (max ?? min)) / 2);
     }
     case "short_text":
     case "dropdown":

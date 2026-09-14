@@ -312,6 +312,7 @@ export default function SecurityVerifyScreen() {
           inputRefs={inputRefs}
           onChange={handleChange}
           onKeyPress={handleKeyPress}
+          accent={accent}
         />
         <View className="mt-3 mb-4 h-[18px] items-center">
           {errorMsg ? (

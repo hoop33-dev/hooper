@@ -410,6 +410,7 @@ export default function VerifyEmailScreen() {
               inputRefs={inputRefs}
               onChange={handleChange}
               onKeyPress={handleKeyPress}
+              accent={accent}
             />
 
             {/* Error / spacer */}

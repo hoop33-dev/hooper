@@ -2,11 +2,11 @@ import { TextInput, View, type TextInput as RNTextInput } from "react-native";
 
 import { bodyFont, colors } from "@/src/constants/theme";
 
+const DEFAULT_ACCENT = colors.brandOrange;
+
 // Tints not in the core palette.
 const DANGER_FILL = "rgba(229,62,62,0.12)";
 const DANGER_BORDER = "rgba(229,62,62,0.3)";
-const FILLED = "rgba(241,88,37,0.08)";
-const FILLED_BORDER = "rgba(241,88,37,0.45)";
 
 type OtpInputProps = {
   code: string[];
@@ -15,13 +15,20 @@ type OtpInputProps = {
   onChange: (index: number, value: string) => void;
   onKeyPress: (index: number, key: string) => void;
   length?: number;
+  /** Accent (hex) for a filled box — follows the signup role. */
+  accent?: string;
 };
 
-function boxColors(error: boolean, filled: boolean) {
+function boxColors(error: boolean, filled: boolean, accent: string) {
   if (error)
     return { bg: DANGER_FILL, border: DANGER_BORDER, text: colors.danger };
   if (filled)
-    return { bg: FILLED, border: FILLED_BORDER, text: colors.textPrimary };
+    // `${accent}14` ≈ 8% fill, `${accent}73` ≈ 45% border.
+    return {
+      bg: `${accent}14`,
+      border: `${accent}73`,
+      text: colors.textPrimary,
+    };
   return {
     bg: colors.surface2,
     border: colors.borderStrong,
@@ -37,11 +44,12 @@ export function OtpInput({
   onChange,
   onKeyPress,
   length = 6,
+  accent = DEFAULT_ACCENT,
 }: OtpInputProps) {
   return (
     <View className="flex-row justify-center gap-2.5">
       {Array.from({ length }).map((_, i) => {
-        const c = boxColors(error, !!code[i]);
+        const c = boxColors(error, !!code[i], accent);
         return (
           <TextInput
             key={i}

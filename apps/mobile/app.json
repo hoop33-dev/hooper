@@ -37,6 +37,12 @@
       }
     },
     "owner": "hoop33-dev",
-    "plugins": ["expo-router", "expo-font", "expo-image-picker", "expo-video"]
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-image-picker",
+      "expo-video",
+      "@react-native-community/datetimepicker"
+    ]
   }
 }

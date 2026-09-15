@@ -6,39 +6,144 @@ on:
   pull_request:
     branches: [main, dev]
 
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  typecheck:
-    name: typecheck
+  # ---------------------------------------------------------------------------
+  # Mobile (Expo / React Native)
+  # ---------------------------------------------------------------------------
+  mobile-typecheck:
+    name: mobile · typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+        working-directory: apps/mobile
 
-  lint:
-    name: lint
+  mobile-lint:
+    name: mobile · lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so the migration validator can diff against the base branch.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
+      # ESLint with the suppressions baseline (pre-existing violations don't
+      # block, but any new violation of a suppressed rule fails).
       - run: npm run lint
+        working-directory: apps/mobile
+      # Full dependency-cruiser graph: circular deps + layering.
+      - run: npm run lint:deps
+        working-directory: apps/mobile
+      # Dead-code scan — advisory only, never blocks merge.
+      - name: dead code (advisory)
+        continue-on-error: true
+        run: npm run lint:dead
+        working-directory: apps/mobile
 
-  test:
-    name: test
+  mobile-test:
+    name: mobile · test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run test
+        working-directory: apps/mobile
+
+  # ---------------------------------------------------------------------------
+  # Web (Next.js)
+  # ---------------------------------------------------------------------------
+  web-typecheck:
+    name: web · typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+        working-directory: apps/web
+
+  web-lint:
+    name: web · lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+        working-directory: apps/web
+
+  web-test:
+    name: web · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test
+        working-directory: apps/web
+
+  web-build:
+    name: web · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        working-directory: apps/web
+        env:
+          # Public anon keys; build-time prerender needs them present. Real
+          # values are injected by Vercel at deploy time.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+
+  # ---------------------------------------------------------------------------
+  # Shared backend (Supabase migrations)
+  # ---------------------------------------------------------------------------
+  db-migrations:
+    name: db · append-only migrations
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: check db migrations
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          BASE_REF="origin/${{ github.base_ref }}" node scripts/check-db-migrations.mjs

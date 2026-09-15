@@ -1,0 +1,54 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+
+@import "nativewind/theme";
+
+@theme {
+  /* ── BRAND PALETTE ───────────────────────────── */
+  --color-brand-orange: #f15825;
+  --color-brand-light-orange: #f68d68;
+  --color-brand-navy: #00205c;
+  --color-brand-blue: #0047ba;
+  --color-brand-black: #231f20;
+  --color-brand-white: #ffffff;
+
+  /* ── SURFACES ────────────────────────────────── */
+  --color-surface: #1a1718;
+  --color-surface-2: #2d2829;
+  --color-surface-3: #3d3738;
+
+  /* ── BORDERS ─────────────────────────────────── */
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+
+  /* ── TEXT ────────────────────────────────────── */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: rgba(255, 255, 255, 0.65);
+  --color-text-tertiary: rgba(255, 255, 255, 0.35);
+  --color-text-disabled: rgba(255, 255, 255, 0.25);
+  --color-text-inverse: #231f20;
+
+  /* ── SEMANTIC ────────────────────────────────── */
+  --color-danger: #e53e3e;
+  --color-success: #38a169;
+  --color-warning: #f15825;
+
+  /* ── ORANGE TINTS ────────────────────────────── */
+  --color-orange-tint-10: rgba(241, 88, 37, 0.1);
+  --color-orange-tint-20: rgba(241, 88, 37, 0.2);
+  --color-orange-tint-40: rgba(241, 88, 37, 0.4);
+
+  /* ── TYPOGRAPHY ──────────────────────────────── */
+  /* Headings use Barlow Condensed (registered per weight at runtime — see
+     Typography.tsx); body / UI text uses Outfit. Mirrored in theme.ts `fonts`. */
+  --font-family-heading: "BarlowCondensed";
+  --font-family-body: "Outfit";
+
+  /* ── SHADOWS (NativeWind utilities) ──────────── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-orange-glow: 0 0 16px rgba(241, 88, 37, 0.45);
+  --shadow-navy-glow: 0 4px 16px rgba(0, 32, 92, 0.5);
+}

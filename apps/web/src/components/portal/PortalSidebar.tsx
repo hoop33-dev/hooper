@@ -263,10 +263,18 @@ function SidebarCoachFooter({ profile }: { profile: CoachProfile | null }) {
 
   return (
     <div className="flex items-center gap-2.5 border-t border-white/[0.08] px-5 py-3.5">
-      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#4A7FD4] to-[#2B5AA8]">
-        <span className="text-[11px] font-extrabold text-white">
-          {initials}
-        </span>
+      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#4A7FD4] to-[#2B5AA8]">
+        {profile?.avatar_url ? (
+          <img
+            src={profile.avatar_url}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span className="text-[11px] font-extrabold text-white">
+            {initials}
+          </span>
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[12px] leading-tight font-bold text-white">

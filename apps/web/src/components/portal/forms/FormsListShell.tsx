@@ -14,6 +14,9 @@ type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
 interface FormsListShellProps {
   forms: FormSummary[];
+  /** Opens the create modal on mount — set from the `?create=1` deep link
+   * the dashboard's "Create form" button uses. */
+  initialCreateOpen?: boolean;
   createAction: (data: FormCreateFormData) => Promise<ActionResult<FormRow>>;
   updateAction: (
     id: string,
@@ -40,13 +43,14 @@ function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
 
 export function FormsListShell({
   forms,
+  initialCreateOpen = false,
   createAction,
   updateAction,
   deleteAction,
 }: FormsListShellProps) {
   const { showError } = useToast();
   const { items: localForms, mutate } = useOptimisticList(forms);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(initialCreateOpen);
   const [editing, setEditing] = useState<FormSummary | null>(null);
 
   async function handleCreate(data: FormCreateFormData) {

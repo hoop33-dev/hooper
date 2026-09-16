@@ -4,6 +4,7 @@ import { createClient } from "@/src/lib/supabase/server";
 import { listRegions } from "@/src/services/region.service";
 import type {
   AssignedProgramRef,
+  AthleteDashboardRow,
   AthleteDetail,
   AthleteSummary,
 } from "@hooper/db";
@@ -105,6 +106,66 @@ export const listAthletes = cache(
         last_sign_in_at: lastSignInsResult.data.get(profile.id) ?? null,
         programs: programsResult.data.get(profile.id) ?? [],
       }));
+
+      return ok(rows);
+    } catch (e) {
+      return err(toErrorMessage(e));
+    }
+  },
+);
+
+/** The dashboard's Athletes card: the N athletes who logged in most
+ * recently, ranked server-side via the `list_athletes_by_last_sign_in` RPC
+ * (mirrors get_athlete_last_sign_ins, but sorts + limits across every
+ * athlete instead of looking up a known id list). */
+export const listRecentAthletesByLogin = cache(
+  async (limit = 6): Promise<Result<AthleteDashboardRow[]>> => {
+    try {
+      const supabase = await createClient();
+      const { data: ranked, error: rankedError } = await supabase.rpc(
+        "list_athletes_by_last_sign_in",
+        { p_limit: limit },
+      );
+      if (rankedError) return err(rankedError.message);
+
+      const orderedIds = (ranked ?? []).map((row) => row.profile_id);
+      if (orderedIds.length === 0) return ok([]);
+
+      const lastSignInById = new Map(
+        (ranked ?? []).map((row) => [row.profile_id, row.last_sign_in_at]),
+      );
+
+      const [profilesResult, programsResult, regionsResult] = await Promise.all(
+        [
+          supabase.from("profiles").select("*").in("id", orderedIds),
+          fetchAssignedPrograms(orderedIds),
+          listRegions(),
+        ],
+      );
+      if (profilesResult.error) return err(profilesResult.error.message);
+      if (!programsResult.ok) return err(programsResult.error);
+      if (!regionsResult.ok) return err(regionsResult.error);
+
+      const regionNameById = new Map(
+        regionsResult.data.map((region) => [region.id, region.name]),
+      );
+      const profileById = new Map(
+        profilesResult.data.map((profile) => [profile.id, profile]),
+      );
+
+      const rows: AthleteDashboardRow[] = orderedIds
+        .map((id) => profileById.get(id))
+        .filter((profile): profile is NonNullable<typeof profile> =>
+          Boolean(profile),
+        )
+        .map((profile) => ({
+          ...profile,
+          last_sign_in_at: lastSignInById.get(profile.id) ?? null,
+          regionName: profile.region_id
+            ? (regionNameById.get(profile.region_id) ?? null)
+            : null,
+          programs: programsResult.data.get(profile.id) ?? [],
+        }));
 
       return ok(rows);
     } catch (e) {

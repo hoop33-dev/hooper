@@ -20,6 +20,9 @@ type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 interface ProgramsListShellProps {
   programs: ProgramSummary[];
   forms: FormSummary[];
+  /** Opens the create modal on mount — set from the `?create=1` deep link
+   * the dashboard's "Create program" button uses. */
+  initialCreateOpen?: boolean;
   createAction: (
     data: ProgramCreateFormData,
   ) => Promise<ActionResult<ProgramRow>>;
@@ -94,10 +97,11 @@ type ProgramListMutations = Pick<
 function useProgramListActions(
   programs: ProgramSummary[],
   actions: ProgramListMutations,
+  initialCreateOpen: boolean,
 ) {
   const { showError } = useToast();
   const { items, mutate } = useOptimisticList(programs);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(initialCreateOpen);
   const [editing, setEditing] = useState<ProgramSummary | null>(null);
 
   const patchRow = (prev: ProgramSummary[], row: ProgramRow) =>
@@ -194,6 +198,7 @@ function useProgramListActions(
 export function ProgramsListShell({
   programs,
   forms,
+  initialCreateOpen = false,
   createAction,
   updateAction,
   deleteAction,
@@ -211,13 +216,17 @@ export function ProgramsListShell({
     handlePublish,
     handleDelete,
     handleAttachForm,
-  } = useProgramListActions(programs, {
-    createAction,
-    updateAction,
-    deleteAction,
-    publishAction,
-    attachFormAction,
-  });
+  } = useProgramListActions(
+    programs,
+    {
+      createAction,
+      updateAction,
+      deleteAction,
+      publishAction,
+      attachFormAction,
+    },
+    initialCreateOpen,
+  );
   const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>("All");
 
   const filtered = localPrograms.filter(

@@ -2,6 +2,7 @@ import type { Result } from "@/src/lib/result";
 import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type {
+  FormDashboardRow,
   FormQuestionOptionRow,
   FormQuestionRow,
   FormQuestionType,
@@ -85,6 +86,52 @@ export const listForms = cache(async (): Promise<Result<FormSummary[]>> => {
     return err(toErrorMessage(e));
   }
 });
+
+/** The dashboard's Forms card: the N forms with the most recently submitted
+ * response (falling back to updated_at for forms with none), ranked via the
+ * `form_recency` view rather than updated_at alone. */
+export const listRecentFormsByCompletion = cache(
+  async (limit = 6): Promise<Result<FormDashboardRow[]>> => {
+    try {
+      const supabase = await createClient();
+      const { data: recency, error: recencyError } = await supabase
+        .from("form_recency")
+        .select("form_id")
+        .order("last_submitted_at", { ascending: false, nullsFirst: false })
+        .order("updated_at", { ascending: false })
+        .limit(limit);
+      if (recencyError) return err(recencyError.message);
+
+      const orderedIds = (recency ?? []).map((row) => row.form_id);
+      if (orderedIds.length === 0) return ok([]);
+
+      const { data: forms, error: formsError } = await supabase
+        .from("forms")
+        .select("*, form_questions(count), programs(count)")
+        .in("id", orderedIds);
+      if (formsError) return err(formsError.message);
+
+      const byId = new Map(forms.map((row) => [row.id, row]));
+      const rows = orderedIds
+        .map((id) => byId.get(id))
+        .filter((row): row is NonNullable<typeof row> => row !== undefined)
+        .map((row) => {
+          const questionCount = Array.isArray(row.form_questions)
+            ? ((row.form_questions[0] as { count: number } | undefined)
+                ?.count ?? 0)
+            : 0;
+          const programCount = Array.isArray(row.programs)
+            ? ((row.programs[0] as { count: number } | undefined)?.count ?? 0)
+            : 0;
+          return { ...row, questionCount, programCount };
+        });
+
+      return ok(rows as unknown as FormDashboardRow[]);
+    } catch (e) {
+      return err(toErrorMessage(e));
+    }
+  },
+);
 
 export async function getFormById(
   id: string,

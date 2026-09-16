@@ -4,11 +4,13 @@ import { createClient } from "@/src/lib/supabase/server";
 import type {
   AssignedProgramRef,
   ProfileRow,
+  TeamDashboardRow,
   TeamDetail,
   TeamMember,
   TeamRow,
   TeamSummary,
 } from "@hooper/db";
+import { cache } from "react";
 
 type ProgramTeamJoinRow = {
   team_id: string;
@@ -79,6 +81,57 @@ export async function listTeams(): Promise<Result<TeamSummary[]>> {
     return err(toErrorMessage(e));
   }
 }
+
+/** The dashboard's Teams card: the N teams with the most recently added
+ * member (falling back to updated_at for teams with none), ranked via the
+ * `team_recency` view rather than name. */
+export const listRecentTeams = cache(
+  async (limit = 6): Promise<Result<TeamDashboardRow[]>> => {
+    try {
+      const supabase = await createClient();
+      const { data: recency, error: recencyError } = await supabase
+        .from("team_recency")
+        .select("team_id")
+        .order("last_member_joined_at", { ascending: false, nullsFirst: false })
+        .order("updated_at", { ascending: false })
+        .limit(limit);
+      if (recencyError) return err(recencyError.message);
+
+      const orderedIds = (recency ?? []).map((row) => row.team_id);
+      if (orderedIds.length === 0) return ok([]);
+
+      const [teamsResult, programsResult] = await Promise.all([
+        supabase
+          .from("teams")
+          .select("*, team_members(count)")
+          .in("id", orderedIds),
+        fetchAssignedPrograms(orderedIds),
+      ]);
+      if (teamsResult.error) return err(teamsResult.error.message);
+      if (!programsResult.ok) return err(programsResult.error);
+
+      const byId = new Map(teamsResult.data.map((row) => [row.id, row]));
+      const rows = orderedIds
+        .map((id) => byId.get(id))
+        .filter((row): row is NonNullable<typeof row> => row !== undefined)
+        .map((row) => {
+          const memberCount = Array.isArray(row.team_members)
+            ? ((row.team_members[0] as { count: number } | undefined)?.count ??
+              0)
+            : 0;
+          return {
+            ...row,
+            memberCount,
+            programs: programsResult.data.get(row.id) ?? [],
+          };
+        });
+
+      return ok(rows as unknown as TeamDashboardRow[]);
+    } catch (e) {
+      return err(toErrorMessage(e));
+    }
+  },
+);
 
 export async function getTeamById(id: string): Promise<Result<TeamDetail>> {
   try {

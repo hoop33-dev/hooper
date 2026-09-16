@@ -12,16 +12,23 @@ import {
   updateProgramAction,
 } from "./actions";
 
-export default async function ProgramsPage() {
-  const [programsResult, formsResult, profileResult] = await Promise.all([
-    listPrograms(),
-    listForms(),
-    getCoachProfileId(),
-  ]);
+export default async function ProgramsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [programsResult, formsResult, profileResult, resolvedSearchParams] =
+    await Promise.all([
+      listPrograms(),
+      listForms(),
+      getCoachProfileId(),
+      searchParams,
+    ]);
 
   const programs = programsResult.ok ? programsResult.data : [];
   const forms = formsResult.ok ? formsResult.data : [];
   const profileId = profileResult.ok ? profileResult.data : "";
+  const initialCreateOpen = resolvedSearchParams.create === "1";
 
   async function wrappedCreate(data: ProgramCreateFormData) {
     "use server";
@@ -37,6 +44,7 @@ export default async function ProgramsPage() {
       <ProgramsListShell
         programs={programs}
         forms={forms}
+        initialCreateOpen={initialCreateOpen}
         createAction={wrappedCreate}
         updateAction={updateProgramAction}
         deleteAction={deleteProgramAction}

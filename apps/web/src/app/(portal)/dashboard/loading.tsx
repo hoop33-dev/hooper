@@ -1,4 +1,4 @@
-import { DashboardOverviewSkeleton } from "@/src/components/portal/dashboard/DashboardOverviewSkeleton";
+import { DashboardListCardSkeleton } from "@/src/components/portal/dashboard/DashboardListCardSkeleton";
 import { PageSkeleton } from "@/src/components/portal/ui/PageSkeleton";
 
 export default function DashboardLoading() {
@@ -7,7 +7,11 @@ export default function DashboardLoading() {
       title="Dashboard"
       subtitle="Welcome back - here's what's happening with your programs">
       <div className="pt-4">
-        <DashboardOverviewSkeleton />
+        <div className="grid grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <DashboardListCardSkeleton key={i} />
+          ))}
+        </div>
 
         <div className="mt-8">
           <h2 className="text-portal-text3 mb-3 text-[11px] font-semibold tracking-widest uppercase">

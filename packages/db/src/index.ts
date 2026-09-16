@@ -247,3 +247,33 @@ export type TeamDetail = TeamRow & {
   programs: AssignedProgramRef[];
   members: TeamMember[];
 };
+
+// accessCount is the distinct count of athletes who can see this program,
+// deduped across direct assignment (program_athletes) and team-based
+// assignment (program_teams -> team_members) — an athlete on both counts
+// once. Rows are ordered by program_recency (most recent completed
+// session, falling back to updated_at), not by name/updated_at like
+// ProgramSummary.
+export type ProgramDashboardRow = ProgramRow & {
+  accessCount: number;
+};
+
+// Same shape as AthleteDetail, but ordered by list_athletes_by_last_sign_in
+// (rank across every athlete, not just a known id set).
+export type AthleteDashboardRow = ProfileRow & {
+  last_sign_in_at: string | null;
+  regionName: string | null;
+  programs: AssignedProgramRef[];
+};
+
+// TeamSummary's shape already fits: memberCount + programs. Ordering is
+// what differs — by team_recency (most recent member join date), not name.
+export type TeamDashboardRow = TeamSummary;
+
+// questionCount/programCount as in FormSummary; ordered by form_recency
+// (most recent submitted response, falling back to updated_at) instead of
+// updated_at alone.
+export type FormDashboardRow = FormRow & {
+  questionCount: number;
+  programCount: number;
+};

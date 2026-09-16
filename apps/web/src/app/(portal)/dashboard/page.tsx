@@ -1,24 +1,27 @@
-import { DashboardOverviewSkeleton } from "@/src/components/portal/dashboard/DashboardOverviewSkeleton";
+import { AthleteDashboardRow } from "@/src/components/portal/dashboard/AthleteDashboardRow";
+import { DashboardListCard } from "@/src/components/portal/dashboard/DashboardListCard";
+import { DashboardListCardSkeleton } from "@/src/components/portal/dashboard/DashboardListCardSkeleton";
+import { FormDashboardRow } from "@/src/components/portal/dashboard/FormDashboardRow";
+import { ProgramDashboardRow } from "@/src/components/portal/dashboard/ProgramDashboardRow";
 import { QuickLinkCard } from "@/src/components/portal/dashboard/QuickLinkCard";
-import { RecentPrograms } from "@/src/components/portal/dashboard/RecentPrograms";
-import { StatCard } from "@/src/components/portal/dashboard/StatCard";
-import { AppLink } from "@/src/components/portal/ui/AppLink";
+import { TeamDashboardRow } from "@/src/components/portal/dashboard/TeamDashboardRow";
 import { PageHeader } from "@/src/components/portal/ui/PageHeader";
 import {
+  ClipboardIcon,
   DumbbellIcon,
   LayersIcon,
   StackIcon,
+  UserIcon,
   UsersIcon,
 } from "@/src/components/portal/ui/icons";
-import { countAthletes } from "@/src/services/athlete.service";
+import { listRecentAthletesByLogin } from "@/src/services/athlete.service";
 import { getCoachProfile } from "@/src/services/auth.service";
-import {
-  countPrograms,
-  listRecentPrograms,
-} from "@/src/services/program.service";
+import { listRecentFormsByCompletion } from "@/src/services/form.service";
+import { listRecentProgramsByCompletion } from "@/src/services/program.service";
+import { listRecentTeams } from "@/src/services/team.service";
 import { Suspense } from "react";
 
-const RECENT_PROGRAMS_LIMIT = 5;
+const DASHBOARD_LIST_LIMIT = 6;
 
 export default async function DashboardPage() {
   const profileResult = await getCoachProfile();
@@ -34,9 +37,20 @@ export default async function DashboardPage() {
         subtitle={`${greeting} - here's what's happening with your programs`}
       />
       <div className="flex-1 overflow-y-auto px-7 py-6">
-        <Suspense fallback={<DashboardOverviewSkeleton />}>
-          <DashboardOverview />
-        </Suspense>
+        <div className="grid grid-cols-2 gap-4">
+          <Suspense fallback={<DashboardListCardSkeleton />}>
+            <ProgramsDashboardCard />
+          </Suspense>
+          <Suspense fallback={<DashboardListCardSkeleton />}>
+            <AthletesDashboardCard />
+          </Suspense>
+          <Suspense fallback={<DashboardListCardSkeleton />}>
+            <TeamsDashboardCard />
+          </Suspense>
+          <Suspense fallback={<DashboardListCardSkeleton />}>
+            <FormsDashboardCard />
+          </Suspense>
+        </div>
 
         <div className="mt-8">
           <h2 className="text-portal-text3 mb-3 text-[11px] font-semibold tracking-widest uppercase">
@@ -62,51 +76,88 @@ export default async function DashboardPage() {
   );
 }
 
-/** Counts + recent list — the only data-dependent part of the dashboard, so it
- * streams in behind the header rather than blocking first paint. Uses cheap
- * count reads instead of the full `listPrograms` / `listAthletes` queries. */
-async function DashboardOverview() {
-  const [programCountResult, athleteCountResult, recentResult] =
-    await Promise.all([
-      countPrograms(),
-      countAthletes(),
-      listRecentPrograms(RECENT_PROGRAMS_LIMIT),
-    ]);
-
-  const programCount = programCountResult.ok ? programCountResult.data : 0;
-  const athleteCount = athleteCountResult.ok ? athleteCountResult.data : 0;
-  const recentPrograms = recentResult.ok ? recentResult.data : [];
+/** Streams independently of the other 3 cards — a slow query here (the
+ * program_recency join) shouldn't hold up Athletes/Teams/Forms. */
+async function ProgramsDashboardCard() {
+  const result = await listRecentProgramsByCompletion(DASHBOARD_LIST_LIMIT);
+  const programs = result.ok ? result.data : [];
 
   return (
-    <>
-      <div className="grid grid-cols-2 gap-4">
-        <StatCard
-          label="Programs"
-          value={programCount}
-          icon={<LayersIcon size={18} />}
-          href="/programs"
-        />
-        <StatCard
-          label="Athletes"
-          value={athleteCount}
-          icon={<UsersIcon size={18} />}
-          href="/athletes"
-        />
-      </div>
+    <DashboardListCard
+      title="Programs"
+      href="/programs"
+      viewAllLabel="View all programs"
+      createHref="/programs?create=1"
+      createLabel="Create program"
+      icon={<LayersIcon size={18} />}
+      isEmpty={programs.length === 0}
+      emptyTitle="No programs yet"
+      emptyHint="Create your first training program to see it here">
+      {programs.map((program) => (
+        <ProgramDashboardRow key={program.id} program={program} />
+      ))}
+    </DashboardListCard>
+  );
+}
 
-      <div className="border-portal-border bg-portal-card mt-8 overflow-hidden rounded-xl border">
-        <div className="border-portal-border flex items-center justify-between border-b px-5 py-4">
-          <h2 className="text-portal-text1 text-sm font-bold">
-            Recently Edited Programs
-          </h2>
-          <AppLink
-            href="/programs"
-            className="text-portal-orange text-xs font-semibold hover:underline">
-            View all programs
-          </AppLink>
-        </div>
-        <RecentPrograms programs={recentPrograms} />
-      </div>
-    </>
+async function AthletesDashboardCard() {
+  const result = await listRecentAthletesByLogin(DASHBOARD_LIST_LIMIT);
+  const athletes = result.ok ? result.data : [];
+
+  return (
+    <DashboardListCard
+      title="Athletes"
+      href="/athletes"
+      viewAllLabel="View all athletes"
+      icon={<UserIcon size={18} />}
+      isEmpty={athletes.length === 0}
+      emptyTitle="No athletes yet"
+      emptyHint="Athletes you invite will show up here">
+      {athletes.map((athlete) => (
+        <AthleteDashboardRow key={athlete.id} athlete={athlete} />
+      ))}
+    </DashboardListCard>
+  );
+}
+
+async function TeamsDashboardCard() {
+  const result = await listRecentTeams(DASHBOARD_LIST_LIMIT);
+  const teams = result.ok ? result.data : [];
+
+  return (
+    <DashboardListCard
+      title="Teams"
+      href="/teams"
+      viewAllLabel="View all teams"
+      icon={<UsersIcon size={18} />}
+      isEmpty={teams.length === 0}
+      emptyTitle="No teams yet"
+      emptyHint="Create a team to start grouping athletes">
+      {teams.map((team) => (
+        <TeamDashboardRow key={team.id} team={team} />
+      ))}
+    </DashboardListCard>
+  );
+}
+
+async function FormsDashboardCard() {
+  const result = await listRecentFormsByCompletion(DASHBOARD_LIST_LIMIT);
+  const forms = result.ok ? result.data : [];
+
+  return (
+    <DashboardListCard
+      title="Forms"
+      href="/forms"
+      viewAllLabel="View all forms"
+      createHref="/forms?create=1"
+      createLabel="Create form"
+      icon={<ClipboardIcon size={18} />}
+      isEmpty={forms.length === 0}
+      emptyTitle="No forms yet"
+      emptyHint="Create a form to start collecting athlete feedback">
+      {forms.map((form) => (
+        <FormDashboardRow key={form.id} form={form} />
+      ))}
+    </DashboardListCard>
   );
 }

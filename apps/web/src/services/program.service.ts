@@ -2,6 +2,7 @@ import type { Result } from "@/src/lib/result";
 import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type {
+  ProgramDashboardRow,
   ProgramRow,
   ProgramSummary,
   ProgramWithSessions,
@@ -108,32 +109,131 @@ export const countPrograms = cache(async (): Promise<Result<number>> => {
   }
 });
 
-/** The N most recently edited programs — the dashboard's "Recently Edited"
- * list, without pulling every program + its session rows. */
-export const listRecentPrograms = cache(
-  async (limit = 5): Promise<Result<ProgramSummary[]>> => {
+/** program_id -> set of directly-assigned athlete ids, scoped to the given
+ * program ids. */
+async function fetchDirectProgramAthletes(
+  programIds: string[],
+): Promise<Result<Map<string, Set<string>>>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("program_athletes")
+    .select("program_id, profile_id")
+    .in("program_id", programIds);
+  if (error) return err(error.message);
+
+  const byProgram = new Map<string, Set<string>>();
+  for (const row of data ?? []) {
+    const set = byProgram.get(row.program_id) ?? new Set<string>();
+    set.add(row.profile_id);
+    byProgram.set(row.program_id, set);
+  }
+  return ok(byProgram);
+}
+
+/** program_id -> set of athlete ids reachable via a team assigned to that
+ * program (program_teams -> team_members), scoped to the given program ids. */
+async function fetchTeamProgramAthletes(
+  programIds: string[],
+): Promise<Result<Map<string, Set<string>>>> {
+  const supabase = await createClient();
+  const { data: teamLinks, error: teamLinksError } = await supabase
+    .from("program_teams")
+    .select("program_id, team_id")
+    .in("program_id", programIds);
+  if (teamLinksError) return err(teamLinksError.message);
+
+  const teamIds = [...new Set((teamLinks ?? []).map((row) => row.team_id))];
+  if (teamIds.length === 0) return ok(new Map());
+
+  const { data: members, error: membersError } = await supabase
+    .from("team_members")
+    .select("team_id, profile_id")
+    .in("team_id", teamIds);
+  if (membersError) return err(membersError.message);
+
+  const athletesByTeam = new Map<string, string[]>();
+  for (const row of members ?? []) {
+    const list = athletesByTeam.get(row.team_id) ?? [];
+    list.push(row.profile_id);
+    athletesByTeam.set(row.team_id, list);
+  }
+
+  const byProgram = new Map<string, Set<string>>();
+  for (const link of teamLinks ?? []) {
+    const set = byProgram.get(link.program_id) ?? new Set<string>();
+    for (const profileId of athletesByTeam.get(link.team_id) ?? []) {
+      set.add(profileId);
+    }
+    byProgram.set(link.program_id, set);
+  }
+  return ok(byProgram);
+}
+
+/** Distinct athletes who can see each program, deduped across direct
+ * assignment (program_athletes) and team-based assignment (program_teams ->
+ * team_members) — an athlete reachable both ways counts once. Scoped to the
+ * given program ids (the dashboard's 6 shown rows), so this never scans the
+ * full assignment tables. */
+async function fetchProgramAccessCounts(
+  programIds: string[],
+): Promise<Result<Map<string, number>>> {
+  if (programIds.length === 0) return ok(new Map());
+
+  const [directResult, teamResult] = await Promise.all([
+    fetchDirectProgramAthletes(programIds),
+    fetchTeamProgramAthletes(programIds),
+  ]);
+  if (!directResult.ok) return err(directResult.error);
+  if (!teamResult.ok) return err(teamResult.error);
+
+  const counts = new Map<string, number>();
+  for (const programId of programIds) {
+    const merged = new Set<string>(directResult.data.get(programId));
+    for (const profileId of teamResult.data.get(programId) ?? []) {
+      merged.add(profileId);
+    }
+    counts.set(programId, merged.size);
+  }
+  return ok(counts);
+}
+
+/** The dashboard's Programs card: the N programs with the most recent
+ * completed session (falling back to updated_at for programs with none),
+ * ranked via the `program_recency` view rather than pulling every session +
+ * completion row into JS (see programProgress.service.ts for the pattern
+ * this avoids at dashboard scope). */
+export const listRecentProgramsByCompletion = cache(
+  async (limit = 6): Promise<Result<ProgramDashboardRow[]>> => {
     try {
       const supabase = await createClient();
-      const { data, error } = await supabase
-        .from("programs")
-        .select("*, sessions(week_number)")
+      const { data: recency, error: recencyError } = await supabase
+        .from("program_recency")
+        .select("program_id")
+        .order("last_completed_at", { ascending: false, nullsFirst: false })
         .order("updated_at", { ascending: false })
         .limit(limit);
+      if (recencyError) return err(recencyError.message);
 
-      if (error) return err(error.message);
+      const orderedIds = (recency ?? []).map((row) => row.program_id);
+      if (orderedIds.length === 0) return ok([]);
 
-      const rows = (data ?? []).map((row) => {
-        const sessions = Array.isArray(row.sessions)
-          ? (row.sessions as { week_number: number }[])
-          : [];
-        return {
+      const [programsResult, countsResult] = await Promise.all([
+        supabase.from("programs").select("*").in("id", orderedIds),
+        fetchProgramAccessCounts(orderedIds),
+      ]);
+      if (programsResult.error) return err(programsResult.error.message);
+      if (!countsResult.ok) return err(countsResult.error);
+
+      const byId = new Map(programsResult.data.map((row) => [row.id, row]));
+      const rows = orderedIds
+        .map((id) => byId.get(id))
+        .filter((row): row is ProgramRow => row !== undefined)
+        .map((row) => ({
           ...row,
-          sessionCount: sessions.length,
-          sessionsPerWeek: sessionsPerWeekRange(sessions),
-        };
-      });
+          accessCount: countsResult.data.get(row.id) ?? 0,
+        }));
 
-      return ok(rows as ProgramSummary[]);
+      return ok(rows);
     } catch (e) {
       return err(toErrorMessage(e));
     }

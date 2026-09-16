@@ -34,7 +34,7 @@ export default async function DashboardPage() {
     <div className="flex h-full flex-col overflow-hidden">
       <PageHeader
         title="Dashboard"
-        subtitle={`${greeting} - here's what's happening with your programs`}
+        subtitle={`${greeting} - here's what's been happening while you were away`}
       />
       <div className="flex-1 overflow-y-auto px-7 py-6">
         <div className="grid grid-cols-2 gap-4">

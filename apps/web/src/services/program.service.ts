@@ -209,8 +209,7 @@ export const listRecentProgramsByCompletion = cache(
       const { data: recency, error: recencyError } = await supabase
         .from("program_recency")
         .select("program_id")
-        .order("last_completed_at", { ascending: false, nullsFirst: false })
-        .order("updated_at", { ascending: false })
+        .order("recency_at", { ascending: false })
         .limit(limit);
       if (recencyError) return err(recencyError.message);
 

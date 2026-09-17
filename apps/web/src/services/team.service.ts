@@ -92,8 +92,7 @@ export const listRecentTeams = cache(
       const { data: recency, error: recencyError } = await supabase
         .from("team_recency")
         .select("team_id")
-        .order("last_member_joined_at", { ascending: false, nullsFirst: false })
-        .order("updated_at", { ascending: false })
+        .order("recency_at", { ascending: false })
         .limit(limit);
       if (recencyError) return err(recencyError.message);
 

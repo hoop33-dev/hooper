@@ -69,6 +69,12 @@ export type ProgramRecencyRow = {
   program_id: string;
   updated_at: string;
   last_completed_at: string | null;
+  /** COALESCE(last_completed_at, updated_at) — the actual sort key. Sorting
+   * by last_completed_at DESC NULLS LAST alone puts every completed program
+   * ahead of every uncompleted one regardless of recency, so a newly
+   * created/edited program can never surface once 6+ programs have any
+   * completion. */
+  recency_at: string;
 };
 
 /** view: team_recency (security_invoker) — dashboard sort key: most recent
@@ -77,6 +83,8 @@ export type TeamRecencyRow = {
   team_id: string;
   updated_at: string;
   last_member_joined_at: string | null;
+  /** COALESCE(last_member_joined_at, updated_at) — see ProgramRecencyRow.recency_at. */
+  recency_at: string;
 };
 
 /** view: form_recency (security_invoker) — dashboard sort key: most recent
@@ -85,6 +93,8 @@ export type FormRecencyRow = {
   form_id: string;
   updated_at: string;
   last_submitted_at: string | null;
+  /** COALESCE(last_submitted_at, updated_at) — see ProgramRecencyRow.recency_at. */
+  recency_at: string;
 };
 
 export type TeamRow = {

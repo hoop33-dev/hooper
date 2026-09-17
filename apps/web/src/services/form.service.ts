@@ -97,8 +97,7 @@ export const listRecentFormsByCompletion = cache(
       const { data: recency, error: recencyError } = await supabase
         .from("form_recency")
         .select("form_id")
-        .order("last_submitted_at", { ascending: false, nullsFirst: false })
-        .order("updated_at", { ascending: false })
+        .order("recency_at", { ascending: false })
         .limit(limit);
       if (recencyError) return err(recencyError.message);
 

@@ -77,7 +77,7 @@ export function BlockLibraryShelfBody({
         }
         searchInputId={searchInputId}
       />
-      <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto p-2.5">
+      <div className="flex flex-1 flex-wrap content-start gap-2 overflow-x-hidden overflow-y-auto p-2.5">
         {items.length === 0 ? (
           <div className="text-portal-text3 px-2 py-6 text-center text-xs">
             No block templates yet

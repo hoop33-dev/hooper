@@ -63,6 +63,40 @@ export type ProfileWithVerificationRow = ProfileRow & {
   last_sign_in_at: string | null;
 };
 
+/** view: program_recency (security_invoker) — dashboard sort key: most
+ * recent completed session per program, if any. */
+export type ProgramRecencyRow = {
+  program_id: string;
+  updated_at: string;
+  last_completed_at: string | null;
+  /** COALESCE(last_completed_at, updated_at) — the actual sort key. Sorting
+   * by last_completed_at DESC NULLS LAST alone puts every completed program
+   * ahead of every uncompleted one regardless of recency, so a newly
+   * created/edited program can never surface once 6+ programs have any
+   * completion. */
+  recency_at: string;
+};
+
+/** view: team_recency (security_invoker) — dashboard sort key: most recent
+ * team_members join date per team, if any. */
+export type TeamRecencyRow = {
+  team_id: string;
+  updated_at: string;
+  last_member_joined_at: string | null;
+  /** COALESCE(last_member_joined_at, updated_at) — see ProgramRecencyRow.recency_at. */
+  recency_at: string;
+};
+
+/** view: form_recency (security_invoker) — dashboard sort key: most recent
+ * submitted response per form, if any. */
+export type FormRecencyRow = {
+  form_id: string;
+  updated_at: string;
+  last_submitted_at: string | null;
+  /** COALESCE(last_submitted_at, updated_at) — see ProgramRecencyRow.recency_at. */
+  recency_at: string;
+};
+
 export type TeamRow = {
   id: string;
   name: string;
@@ -660,10 +694,26 @@ export type Database = {
         Row: ProfileWithVerificationRow;
         Relationships: [];
       };
+      program_recency: {
+        Row: ProgramRecencyRow;
+        Relationships: [];
+      };
+      team_recency: {
+        Row: TeamRecencyRow;
+        Relationships: [];
+      };
+      form_recency: {
+        Row: FormRecencyRow;
+        Relationships: [];
+      };
     };
     Functions: {
       get_athlete_last_sign_ins: {
         Args: { p_profile_ids: string[] };
+        Returns: { profile_id: string; last_sign_in_at: string | null }[];
+      };
+      list_athletes_by_last_sign_in: {
+        Args: { p_limit: number };
         Returns: { profile_id: string; last_sign_in_at: string | null }[];
       };
     };

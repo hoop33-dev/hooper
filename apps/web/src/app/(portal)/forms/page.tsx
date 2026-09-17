@@ -8,14 +8,20 @@ import {
   updateFormAction,
 } from "./actions";
 
-export default async function FormsPage() {
-  const [formsResult, profileResult] = await Promise.all([
+export default async function FormsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [formsResult, profileResult, resolvedSearchParams] = await Promise.all([
     listForms(),
     getCoachProfileId(),
+    searchParams,
   ]);
 
   const forms = formsResult.ok ? formsResult.data : [];
   const profileId = profileResult.ok ? profileResult.data : "";
+  const initialCreateOpen = resolvedSearchParams.create === "1";
 
   async function wrappedCreate(data: FormCreateFormData) {
     "use server";
@@ -26,6 +32,7 @@ export default async function FormsPage() {
     <div className="flex h-full flex-col overflow-hidden">
       <FormsListShell
         forms={forms}
+        initialCreateOpen={initialCreateOpen}
         createAction={wrappedCreate}
         updateAction={updateFormAction}
         deleteAction={deleteFormAction}

@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react";
 import type {
   LayoutChangeEvent,
   LayoutRectangle,
@@ -9,17 +15,68 @@ import type {
 
 export type AutoScrollItem = { id: string; done: boolean };
 
+// Nudges the scroll to the next item once the current one is ticked done
+// *while the athlete is still working forward* (not when they've scrolled
+// back up to fix an earlier one) — split out of useBlockAutoScroll to keep
+// that hook's activation-jump logic and this completion-follow logic
+// separately scannable.
+function useCompletionNudge(
+  items: AutoScrollItem[],
+  prevDoneIds: MutableRefObject<Set<string>>,
+  cardLayouts: MutableRefObject<Map<string, LayoutRectangle>>,
+  scrollY: MutableRefObject<number>,
+  viewportHeight: number,
+  scrollItemIntoView: (id: string, animated: boolean) => void,
+) {
+  useEffect(() => {
+    const doneNow = new Set(items.filter((it) => it.done).map((it) => it.id));
+    const justCompletedIdx = items.findIndex(
+      (it) => doneNow.has(it.id) && !prevDoneIds.current.has(it.id),
+    );
+    prevDoneIds.current = doneNow;
+
+    if (justCompletedIdx === -1) return;
+    const next = items[justCompletedIdx + 1];
+    if (!next) return;
+
+    // Only follow the completion forward if the next card is actually below
+    // the fold. If it's already on screen the athlete can see it — and if
+    // they'd scrolled up to re-check an earlier card, yanking the viewport
+    // down would fight them.
+    const nextLayout = cardLayouts.current.get(next.id);
+    const nextBelowViewport =
+      !nextLayout ||
+      viewportHeight === 0 ||
+      nextLayout.y >= scrollY.current + viewportHeight;
+    if (nextBelowViewport) scrollItemIntoView(next.id, true);
+  }, [
+    items,
+    prevDoneIds,
+    cardLayouts,
+    scrollY,
+    viewportHeight,
+    scrollItemIntoView,
+  ]);
+}
+
 /**
  * Keeps a block's ScrollView pointed at the "right" card without the athlete
- * scrolling manually: jumps to the first not-yet-completed item whenever the
- * block becomes the active page (Next block / Prev / a tab tap — the top of
- * the list if nothing in it has been started yet), and nudges the next item
- * into view once the current one is ticked done *while the athlete is still
- * working forward* (not when they've scrolled back up to fix an earlier one).
+ * scrolling manually: the *first* time the block becomes the active page in
+ * this screen visit (Next block / Prev / a tab tap), jumps to the first
+ * not-yet-completed item (the top of the list if nothing has been started
+ * yet). Later re-activations within the same visit (e.g. swiping back to a
+ * block you intentionally scrolled past) leave the scroll position alone —
+ * otherwise it'd fight an athlete who skipped a card on purpose. It also
+ * nudges the next item into view once the current one is ticked done *while
+ * the athlete is still working forward* (not when they've scrolled back up
+ * to fix an earlier one).
  *
  * `isActive` rather than a block key: BlockContent mounts one persistent
  * BlockPage per block in a horizontal pager, so a page's block id never
- * changes over its lifetime — only which page is on screen does.
+ * changes over its lifetime — only which page is on screen does. That same
+ * persistence is what makes `hasAutoScrolledRef` below "once per block per
+ * screen visit": it only resets when the session player screen itself is
+ * remounted (leaving and reopening the program).
  *
  * `items` is caller-supplied so both a plain block (one item per exercise)
  * and a superset block (one item per round) can share this hook.
@@ -82,40 +139,30 @@ export function useBlockAutoScroll(isActive: boolean, items: AutoScrollItem[]) {
   // mistake "entering a block with some items already done" for "just
   // finished one".
   const wasActive = useRef(false);
+  const hasAutoScrolledRef = useRef(false);
   useEffect(() => {
     if (isActive && !wasActive.current) {
       const current = latestItems.current;
-      const target = current.find((it) => !it.done) ?? current[0];
       prevDoneIds.current = new Set(
         current.filter((it) => it.done).map((it) => it.id),
       );
-      if (target) scrollItemIntoViewRef.current(target.id, false);
+      if (!hasAutoScrolledRef.current) {
+        hasAutoScrolledRef.current = true;
+        const target = current.find((it) => !it.done) ?? current[0];
+        if (target) scrollItemIntoViewRef.current(target.id, false);
+      }
     }
     wasActive.current = isActive;
   }, [isActive]);
 
-  useEffect(() => {
-    const doneNow = new Set(items.filter((it) => it.done).map((it) => it.id));
-    const justCompletedIdx = items.findIndex(
-      (it) => doneNow.has(it.id) && !prevDoneIds.current.has(it.id),
-    );
-    prevDoneIds.current = doneNow;
-
-    if (justCompletedIdx === -1) return;
-    const next = items[justCompletedIdx + 1];
-    if (!next) return;
-
-    // Only follow the completion forward if the next card is actually below
-    // the fold. If it's already on screen the athlete can see it — and if
-    // they'd scrolled up to re-check an earlier card, yanking the viewport
-    // down would fight them.
-    const nextLayout = cardLayouts.current.get(next.id);
-    const nextBelowViewport =
-      !nextLayout ||
-      viewportHeight === 0 ||
-      nextLayout.y >= scrollY.current + viewportHeight;
-    if (nextBelowViewport) scrollItemIntoView(next.id, true);
-  }, [items, scrollItemIntoView, viewportHeight]);
+  useCompletionNudge(
+    items,
+    prevDoneIds,
+    cardLayouts,
+    scrollY,
+    viewportHeight,
+    scrollItemIntoView,
+  );
 
   return {
     scrollRef,

@@ -125,7 +125,7 @@ export function ExerciseLibraryShelfBody({
         onCategory={onCategoryChange}
         categories={categories}
       />
-      <div className="flex flex-1 flex-wrap content-start gap-2 overflow-y-auto p-2.5">
+      <div className="flex flex-1 flex-wrap content-start gap-2 overflow-x-hidden overflow-y-auto p-2.5">
         {items.map((ex, index) => (
           <DraggableLibraryRow
             key={ex.id}

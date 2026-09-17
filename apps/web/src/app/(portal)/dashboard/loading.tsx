@@ -5,7 +5,7 @@ export default function DashboardLoading() {
   return (
     <PageSkeleton
       title="Dashboard"
-      subtitle="Welcome back - here's what's happening with your programs">
+      subtitle="Welcome back - here's what's been happening while you were away">
       <div className="pt-4">
         <div className="grid grid-cols-2 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (

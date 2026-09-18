@@ -10,7 +10,7 @@ export function DashboardListCardSkeleton({
 }) {
   return (
     <div className="border-portal-border bg-portal-card overflow-hidden rounded-xl border">
-      <div className="border-portal-border flex items-center justify-between border-b px-5 py-4">
+      <div className="border-portal-border flex h-14 items-center justify-between border-b px-5">
         <div className="bg-portal-border/60 h-4 w-28 animate-pulse rounded" />
         <div className="bg-portal-border/40 h-3 w-20 animate-pulse rounded" />
       </div>

@@ -31,7 +31,7 @@ export function DashboardListCard({
 }: DashboardListCardProps) {
   return (
     <div className="border-portal-border bg-portal-card overflow-hidden rounded-xl border">
-      <div className="border-portal-border flex items-center justify-between border-b px-5 py-4">
+      <div className="border-portal-border flex h-14 items-center justify-between border-b px-5">
         <AppLink
           href={href}
           className="text-portal-text1 flex items-center gap-2 text-sm font-bold hover:underline">

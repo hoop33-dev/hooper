@@ -1,4 +1,7 @@
-import type { SetRowState } from "@/src/components/training/ExerciseSetsCard";
+import type {
+  GroupSetTarget,
+  SetRowState,
+} from "@/src/components/training/ExerciseSetsCard";
 import { resolveSetExercise } from "@/src/lib/blockExerciseDisplay";
 import {
   buildPrefillMap,
@@ -456,6 +459,103 @@ async function performSetDoneToggle(params: {
   }
 }
 
+/** Forces one set to a given done state as part of a "tick/untick all" —
+ * same optimistic update-then-persist shape as `performSetDoneToggle`, but a
+ * force to `done` rather than a flip, and a silent no-op on a set that's
+ * already at that state (an already-ticked row in the group is left alone
+ * by a tick-all, and an already-pending row is left alone by an untick-all,
+ * rather than every row bouncing through a redundant write). */
+async function performSetForceState(params: {
+  session: AthleteSessionDetail;
+  completion: SessionCompletionRow;
+  athleteProfileId: string;
+  setsStateRef: MutableRefObject<SetsByBlockExercise>;
+  blockExerciseId: string;
+  setIndex: number;
+  done: boolean;
+  commitSetsState: (next: SetsStateUpdater) => void;
+}) {
+  const {
+    session,
+    completion,
+    athleteProfileId,
+    setsStateRef,
+    blockExerciseId,
+    setIndex,
+    done,
+    commitSetsState,
+  } = params;
+  const be = findBlockExercise(session, blockExerciseId);
+  const row = setsStateRef.current[blockExerciseId]?.[setIndex];
+  if (!be || !row || row.done === done) return;
+
+  commitSetsState((prev) => markRowDone(prev, blockExerciseId, setIndex, done));
+
+  try {
+    await persistDoneToggle({
+      completion,
+      athleteProfileId,
+      be,
+      setIndex,
+      row,
+      nextDone: done,
+    });
+  } catch {
+    commitSetsState((prev) =>
+      markRowDone(prev, blockExerciseId, setIndex, !done),
+    );
+  }
+}
+
+/** The `markSetDone` / `setManyDone` callbacks the player passes down —
+ * `markSetDone` toggles one set (see `performSetDoneToggle`), `setManyDone`
+ * forces a batch of sets to a given done state for the "tick all" button,
+ * which itself toggles between ticking everything and unticking everything
+ * (see `performSetForceState`). Grouped the same way as `makeFieldEditors`
+ * so `useSessionPlayer` itself stays within the line-count lint budget.
+ * Exported for tests. */
+export function makeSetDoneHandlers(deps: {
+  session: AthleteSessionDetail | null;
+  completion: SessionCompletionRow | null;
+  athleteProfileId: string | undefined;
+  setsStateRef: MutableRefObject<SetsByBlockExercise>;
+  commitSetsState: (next: SetsStateUpdater) => void;
+}) {
+  return {
+    markSetDone: async (blockExerciseId: string, setIndex: number) => {
+      const { session, completion, athleteProfileId } = deps;
+      if (!completion || !athleteProfileId || !session) return;
+      await performSetDoneToggle({
+        session,
+        completion,
+        athleteProfileId,
+        setsStateRef: deps.setsStateRef,
+        blockExerciseId,
+        setIndex,
+        commitSetsState: deps.commitSetsState,
+      });
+    },
+    setManyDone: async (targets: GroupSetTarget[], done: boolean) => {
+      const { session, completion, athleteProfileId } = deps;
+      if (!completion || !athleteProfileId || !session) return;
+      await Promise.all(
+        targets.map((t) =>
+          performSetForceState({
+            session,
+            completion,
+            athleteProfileId,
+            setsStateRef: deps.setsStateRef,
+            blockExerciseId: t.blockExerciseId,
+            setIndex: t.setIndex,
+            done,
+            commitSetsState: deps.commitSetsState,
+          }),
+        ),
+      );
+    },
+  };
+}
+
 async function performPauseToggle(
   completion: SessionCompletionRow,
 ): Promise<SessionCompletionRow> {
@@ -579,18 +679,13 @@ export function useSessionPlayer(
     commitSetsState,
   });
 
-  async function markSetDone(blockExerciseId: string, setIndex: number) {
-    if (!completion || !athleteProfileId || !session) return;
-    await performSetDoneToggle({
-      session,
-      completion,
-      athleteProfileId,
-      setsStateRef,
-      blockExerciseId,
-      setIndex,
-      commitSetsState,
-    });
-  }
+  const { markSetDone, setManyDone } = makeSetDoneHandlers({
+    session,
+    completion,
+    athleteProfileId,
+    setsStateRef,
+    commitSetsState,
+  });
 
   /** Optimistic: flip paused immediately, then reconcile with (or revert to)
    * the server response in the background. */
@@ -628,6 +723,7 @@ export function useSessionPlayer(
     setFieldValue,
     applyValueForward,
     markSetDone,
+    setManyDone,
     togglePause,
     goBlock,
   };

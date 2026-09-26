@@ -12,7 +12,9 @@ import {
   FieldBox,
   SetDoneButton,
   SetFieldRow,
+  TickAllButton,
   VideoThumbnail,
+  type GroupSetTarget,
   type SetRowState,
 } from "./ExerciseSetsCard";
 
@@ -33,6 +35,7 @@ type SupersetBlockProps = {
     targetSetIndices: number[],
   ) => void;
   onSetDone: (blockExerciseId: string, setIndex: number) => void;
+  onSetManyDone: (targets: GroupSetTarget[], done: boolean) => void;
   /** Reports each round card's layout within the scrolling block content,
    * keyed "round-{index}", so BlockContent can scroll the next one into view
    * on completion. */
@@ -113,6 +116,93 @@ function RoundExerciseRow({
   );
 }
 
+/** A round card's title bar — round number, done count, and the tick-all
+ * button. Split out of RoundCard purely to keep that component within the
+ * line-count lint budget once the tick-all wiring was added. */
+function RoundCardHeader({
+  roundIndex,
+  doneCount,
+  total,
+  allDone,
+  onTickAll,
+}: {
+  roundIndex: number;
+  doneCount: number;
+  total: number;
+  allDone: boolean;
+  onTickAll: () => void;
+}) {
+  return (
+    <View className="bg-surface-2 border-border-subtle flex-row items-center justify-between border-b px-4 py-3">
+      <Overline>Round {roundIndex + 1}</Overline>
+      <View className="flex-row items-center gap-2">
+        <View className="flex-row items-baseline">
+          <H4
+            style={{
+              color: allDone ? colors.textSecondary : colors.brandOrange,
+            }}>
+            {doneCount}
+          </H4>
+          <Caption>/{total}</Caption>
+        </View>
+        <TickAllButton allDone={allDone} onPress={onTickAll} />
+      </View>
+    </View>
+  );
+}
+
+/** A round card's exercise list — split out of RoundCard purely to keep that
+ * component within the line-count lint budget. */
+function RoundExerciseRows({
+  block,
+  roundIndex,
+  setsByBlockExercise,
+  laterRounds,
+  onValueChange,
+  onApplyForward,
+  onSetDone,
+}: {
+  block: AthleteBlock;
+  roundIndex: number;
+  setsByBlockExercise: Record<string, SetRowState[]>;
+  laterRounds: number[];
+  onValueChange: (
+    blockExerciseId: string,
+    position: number,
+    value: number,
+  ) => void;
+  onApplyForward: (
+    blockExerciseId: string,
+    position: number,
+    value: number,
+    targetSetIndices: number[],
+  ) => void;
+  onSetDone: (blockExerciseId: string) => void;
+}) {
+  return (
+    <View className="bg-surface-2">
+      {block.exercises.map((be, i) => (
+        <View key={be.id}>
+          {i > 0 ? <View className="border-border-subtle border-t" /> : null}
+          <RoundExerciseRow
+            blockExercise={be}
+            setIndex={roundIndex}
+            set={setsByBlockExercise[be.id]?.[roundIndex]}
+            laterRounds={laterRounds}
+            onValueChange={(position, value) =>
+              onValueChange(be.id, position, value)
+            }
+            onApplyForward={(position, value, targets) =>
+              onApplyForward(be.id, position, value, targets)
+            }
+            onSetDone={() => onSetDone(be.id)}
+          />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function RoundCard({
   roundIndex,
   roundCount,
@@ -121,6 +211,7 @@ function RoundCard({
   onValueChange,
   onApplyForward,
   onSetDone,
+  onSetManyDone,
   onLayout,
 }: {
   roundIndex: number;
@@ -139,6 +230,7 @@ function RoundCard({
     targetSetIndices: number[],
   ) => void;
   onSetDone: (blockExerciseId: string) => void;
+  onSetManyDone: (targets: GroupSetTarget[], done: boolean) => void;
   onLayout: (layout: LayoutRectangle) => void;
 }) {
   const total = block.exercises.length;
@@ -156,38 +248,30 @@ function RoundCard({
       onLayout={(e) => onLayout(e.nativeEvent.layout)}
       className="border-border-subtle mb-3 overflow-hidden rounded-2xl border"
       style={{ opacity: allDone ? 0.8 : 1 }}>
-      <View className="bg-surface-2 border-border-subtle flex-row items-center justify-between border-b px-4 py-3">
-        <Overline>Round {roundIndex + 1}</Overline>
-        <View className="flex-row items-baseline">
-          <H4
-            style={{
-              color: allDone ? colors.textSecondary : colors.brandOrange,
-            }}>
-            {doneCount}
-          </H4>
-          <Caption>/{total}</Caption>
-        </View>
-      </View>
-      <View className="bg-surface-2">
-        {block.exercises.map((be, i) => (
-          <View key={be.id}>
-            {i > 0 ? <View className="border-border-subtle border-t" /> : null}
-            <RoundExerciseRow
-              blockExercise={be}
-              setIndex={roundIndex}
-              set={setsByBlockExercise[be.id]?.[roundIndex]}
-              laterRounds={laterRounds}
-              onValueChange={(position, value) =>
-                onValueChange(be.id, position, value)
-              }
-              onApplyForward={(position, value, targets) =>
-                onApplyForward(be.id, position, value, targets)
-              }
-              onSetDone={() => onSetDone(be.id)}
-            />
-          </View>
-        ))}
-      </View>
+      <RoundCardHeader
+        roundIndex={roundIndex}
+        doneCount={doneCount}
+        total={total}
+        allDone={allDone}
+        onTickAll={() =>
+          onSetManyDone(
+            block.exercises.map((be) => ({
+              blockExerciseId: be.id,
+              setIndex: roundIndex,
+            })),
+            !allDone,
+          )
+        }
+      />
+      <RoundExerciseRows
+        block={block}
+        roundIndex={roundIndex}
+        setsByBlockExercise={setsByBlockExercise}
+        laterRounds={laterRounds}
+        onValueChange={onValueChange}
+        onApplyForward={onApplyForward}
+        onSetDone={onSetDone}
+      />
     </View>
   );
 }
@@ -204,6 +288,7 @@ export function SupersetBlock({
   onValueChange,
   onApplyForward,
   onSetDone,
+  onSetManyDone,
   onCardLayout,
 }: SupersetBlockProps) {
   const rounds = block.sets ?? block.exercises[0]?.sets ?? 0;
@@ -224,6 +309,7 @@ export function SupersetBlock({
           onSetDone={(blockExerciseId) =>
             onSetDone(blockExerciseId, roundIndex)
           }
+          onSetManyDone={onSetManyDone}
           onLayout={(layout) => onCardLayout(`round-${roundIndex}`, layout)}
         />
       ))}

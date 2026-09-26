@@ -8,7 +8,11 @@ import type { AthleteBlock } from "@hooper/api";
 import { useMemo } from "react";
 import { ScrollView, View } from "react-native";
 
-import { ExerciseSetsCard, type SetRowState } from "./ExerciseSetsCard";
+import {
+  ExerciseSetsCard,
+  type GroupSetTarget,
+  type SetRowState,
+} from "./ExerciseSetsCard";
 import { SupersetBlock } from "./SupersetBlock";
 
 type BlockPageProps = {
@@ -30,6 +34,7 @@ type BlockPageProps = {
     targetSetIndices: number[],
   ) => void;
   onSetDone: (blockExerciseId: string, setIndex: number) => void;
+  onSetManyDone: (targets: GroupSetTarget[], done: boolean) => void;
 };
 
 function isExerciseFullyDone(sets: SetRowState[] | undefined): boolean {
@@ -98,6 +103,7 @@ export function BlockPage({
   onValueChange,
   onApplyForward,
   onSetDone,
+  onSetManyDone,
 }: BlockPageProps) {
   const rounds = block.sets ?? block.exercises[0]?.sets ?? 0;
   const {
@@ -127,6 +133,7 @@ export function BlockPage({
           onValueChange={onValueChange}
           onApplyForward={onApplyForward}
           onSetDone={onSetDone}
+          onSetManyDone={onSetManyDone}
           onCardLayout={registerCardLayout}
         />
       ) : (
@@ -144,6 +151,7 @@ export function BlockPage({
                 onApplyForward(be.id, position, value, targets)
               }
               onSetDone={(setIndex) => onSetDone(be.id, setIndex)}
+              onSetManyDone={onSetManyDone}
             />
           </View>
         ))

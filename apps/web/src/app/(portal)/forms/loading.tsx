@@ -4,7 +4,7 @@ import { TableSkeleton } from "@/src/components/portal/ui/TableSkeleton";
 export default function FormsLoading() {
   return (
     <PageSkeleton
-      headerAction
+      toolbar
       title="Forms"
       subtitle="Build check-in forms athletes fill out before a workout">
       <TableSkeleton

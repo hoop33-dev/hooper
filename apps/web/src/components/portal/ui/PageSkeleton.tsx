@@ -1,17 +1,17 @@
 import type { ReactNode } from "react";
+import { ListToolbarSkeleton } from "./ListToolbar";
 import { PageHeader } from "./PageHeader";
 
 interface PageSkeletonProps {
   title: string;
   subtitle?: string;
-  /** Placeholder button in the header's action slot — for pages whose create
-   * button lives in the header (forms). */
-  headerAction?: boolean;
-  /** Render the create bar that sits between the header and the list on the
-   * programs / teams / blocks pages. */
+  /** Render the search/create toolbar that sits between the header and the
+   * list on the list pages (see `ListToolbar`). */
   toolbar?: boolean;
   /** Add the filter-pills placeholder to the left of the toolbar (programs). */
   toolbarFilter?: boolean;
+  /** Include the create-button placeholder in the toolbar. */
+  toolbarCreate?: boolean;
   children: ReactNode;
 }
 
@@ -23,29 +23,20 @@ interface PageSkeletonProps {
 export function PageSkeleton({
   title,
   subtitle,
-  headerAction = false,
   toolbar = false,
   toolbarFilter = false,
+  toolbarCreate = true,
   children,
 }: PageSkeletonProps) {
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <PageHeader
-        title={title}
-        subtitle={subtitle}
-        action={
-          headerAction ? (
-            <div className="bg-portal-border/40 h-9 w-32 animate-pulse rounded-lg" />
-          ) : undefined
-        }
-      />
+      <PageHeader title={title} subtitle={subtitle} />
       {toolbar && (
-        <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-3 border-b px-7 py-4">
+        <ListToolbarSkeleton create={toolbarCreate}>
           {toolbarFilter && (
             <div className="bg-portal-border/50 h-8 w-48 animate-pulse rounded-lg" />
           )}
-          <div className="bg-portal-border/40 ml-auto h-9 w-32 animate-pulse rounded-lg" />
-        </div>
+        </ListToolbarSkeleton>
       )}
       <div className="flex-1 overflow-y-auto px-7 py-2">{children}</div>
     </div>

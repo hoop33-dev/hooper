@@ -4,6 +4,7 @@ import type { SessionTemplateRow, SessionTemplateSummary } from "@hooper/db";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SessionRenamePopover } from "../programs/SessionRenamePopover";
+import { ListToolbar, matchesSearch } from "../ui/ListToolbar";
 import { PageHeader } from "../ui/PageHeader";
 import { PortalButton } from "../ui/PortalButton";
 import { useToast } from "../ui/Toast";
@@ -20,7 +21,23 @@ interface BlockLibraryListShellProps {
   deleteAction: (id: string) => Promise<ActionResult>;
 }
 
-function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
+function EmptyState({
+  hasSearch,
+  onCreateClick,
+}: {
+  hasSearch: boolean;
+  onCreateClick: () => void;
+}) {
+  if (hasSearch) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-1 py-20 text-center">
+        <p className="text-portal-text1 font-semibold">
+          No templates match your search
+        </p>
+        <p className="text-portal-text3 text-sm">Try a different search</p>
+      </div>
+    );
+  }
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 py-20">
       <div className="text-center">
@@ -47,6 +64,8 @@ export function BlockLibraryListShell({
   const { items: localTemplates, mutate } = useOptimisticList(templates);
   const [createOpen, setCreateOpen] = useState(false);
   const [renaming, setRenaming] = useState<SessionTemplateSummary | null>(null);
+  const [search, setSearch] = useState("");
+  const filtered = localTemplates.filter((t) => matchesSearch(search, t.name));
 
   async function handleCreate(name: string) {
     const result = await createAction(name);
@@ -82,19 +101,23 @@ export function BlockLibraryListShell({
       <PageHeader
         title="Block Library"
         subtitle="Save blocks and sessions once, reuse them across every program"
-        action={
-          <PortalButton variant="primary" onClick={() => setCreateOpen(true)}>
-            Create template
-          </PortalButton>
-        }
+      />
+      <ListToolbar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search templates…"
+        onCreate={() => setCreateOpen(true)}
       />
 
       <div className="flex-1 overflow-y-auto px-7 py-2">
-        {localTemplates.length === 0 ? (
-          <EmptyState onCreateClick={() => setCreateOpen(true)} />
+        {filtered.length === 0 ? (
+          <EmptyState
+            hasSearch={localTemplates.length > 0}
+            onCreateClick={() => setCreateOpen(true)}
+          />
         ) : (
           <BlockLibraryTable
-            templates={localTemplates}
+            templates={filtered}
             onRename={setRenaming}
             onDelete={handleDelete}
           />

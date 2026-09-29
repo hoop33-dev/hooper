@@ -11,6 +11,7 @@ import type {
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { filterExercises } from "../programs/exerciseFilter";
+import { ListToolbar } from "../ui/ListToolbar";
 import { PortalButton } from "../ui/PortalButton";
 import { ExerciseCard } from "./ExerciseCard";
 import type { ExerciseFormData } from "./ExerciseModal";
@@ -50,34 +51,6 @@ interface ExerciseLibraryShellProps {
     name: string;
     created_by: string;
   }) => Promise<{ ok: boolean; data?: UnitTypeRow; error?: string }>;
-}
-
-function SearchBar({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="relative">
-      <svg
-        className="text-portal-text3 absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2">
-        <circle cx="11" cy="11" r="8" />
-        <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
-      </svg>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Search exercises…"
-        className="border-portal-border bg-portal-card text-portal-text1 placeholder:text-portal-text3 focus:border-portal-orange h-9 w-64 rounded-lg border pr-3 pl-9 text-sm focus:outline-none"
-      />
-    </div>
-  );
 }
 
 function sortedHierarchical(
@@ -216,7 +189,11 @@ function LibraryToolbar({
   onCreateClick: () => void;
 }) {
   return (
-    <div className="border-portal-border bg-portal-card flex flex-wrap items-center gap-3 border-b px-7 py-3">
+    <ListToolbar
+      search={search}
+      onSearchChange={onSearchChange}
+      searchPlaceholder="Search exercises…"
+      onCreate={onCreateClick}>
       <CategoryFilterDropdown
         categories={categories}
         selected={categoryFilter}
@@ -273,16 +250,7 @@ function LibraryToolbar({
         </svg>
         Manage unit types
       </AppLink>
-      <div className="ml-auto flex flex-shrink-0 items-center gap-3">
-        <SearchBar value={search} onChange={onSearchChange} />
-        <PortalButton variant="primary" onClick={onCreateClick}>
-          <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-          </svg>
-          Create
-        </PortalButton>
-      </div>
-    </div>
+    </ListToolbar>
   );
 }
 

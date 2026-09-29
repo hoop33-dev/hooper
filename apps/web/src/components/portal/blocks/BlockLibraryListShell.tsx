@@ -3,7 +3,6 @@
 import type { SessionTemplateRow, SessionTemplateSummary } from "@hooper/db";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { SessionRenamePopover } from "../programs/SessionRenamePopover";
 import { ListToolbar, matchesSearch } from "../ui/ListToolbar";
 import { PageHeader } from "../ui/PageHeader";
 import { PortalButton } from "../ui/PortalButton";
@@ -11,6 +10,7 @@ import { useToast } from "../ui/Toast";
 import { useOptimisticList } from "../ui/useOptimisticList";
 import { BlockLibraryCreateModal } from "./BlockLibraryCreateModal";
 import { BlockLibraryTable } from "./BlockLibraryTable";
+import { BlockTemplateEditDrawer } from "./BlockTemplateEditDrawer";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 
@@ -63,7 +63,7 @@ export function BlockLibraryListShell({
   const { showError } = useToast();
   const { items: localTemplates, mutate } = useOptimisticList(templates);
   const [createOpen, setCreateOpen] = useState(false);
-  const [renaming, setRenaming] = useState<SessionTemplateSummary | null>(null);
+  const [editing, setEditing] = useState<SessionTemplateSummary | null>(null);
   const [search, setSearch] = useState("");
   const filtered = localTemplates.filter((t) => matchesSearch(search, t.name));
 
@@ -77,21 +77,24 @@ export function BlockLibraryListShell({
     }
   }
 
-  async function handleRename(name: string) {
-    if (!renaming) return;
-    const id = renaming.id;
-    setRenaming(null);
+  async function handleSave(name: string) {
+    if (!editing) return;
+    const id = editing.id;
     const result = await mutate(
       (prev) => prev.map((t) => (t.id === id ? { ...t, name } : t)),
       () => renameAction(id, name),
     );
-    if (!result.ok) showError(result.error ?? "Failed to rename template.");
+    if (result.ok) setEditing(null);
+    else showError(result.error ?? "Failed to rename template.");
   }
 
-  async function handleDelete(template: SessionTemplateSummary) {
+  async function handleDelete() {
+    if (!editing) return;
+    const id = editing.id;
+    setEditing(null);
     const result = await mutate(
-      (prev) => prev.filter((t) => t.id !== template.id),
-      () => deleteAction(template.id),
+      (prev) => prev.filter((t) => t.id !== id),
+      () => deleteAction(id),
     );
     if (!result.ok) showError(result.error ?? "Failed to delete template.");
   }
@@ -116,11 +119,7 @@ export function BlockLibraryListShell({
             onCreateClick={() => setCreateOpen(true)}
           />
         ) : (
-          <BlockLibraryTable
-            templates={filtered}
-            onRename={setRenaming}
-            onDelete={handleDelete}
-          />
+          <BlockLibraryTable templates={filtered} onEdit={setEditing} />
         )}
       </div>
 
@@ -130,12 +129,12 @@ export function BlockLibraryListShell({
           onCreate={handleCreate}
         />
       )}
-      {renaming && (
-        <SessionRenamePopover
-          currentName={renaming.name}
-          title="Rename template"
-          onClose={() => setRenaming(null)}
-          onRename={handleRename}
+      {editing && (
+        <BlockTemplateEditDrawer
+          template={editing}
+          onClose={() => setEditing(null)}
+          onSave={handleSave}
+          onDelete={handleDelete}
         />
       )}
     </div>

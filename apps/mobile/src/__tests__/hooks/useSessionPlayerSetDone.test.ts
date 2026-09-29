@@ -145,4 +145,61 @@ describe("makeSetDoneHandlers", () => {
 
     expect(h.state.be2[0].done).toBe(false);
   });
+
+  it("cleans up server-side when a set with multiple measurement positions partially persists", async () => {
+    const session = {
+      id: "s1",
+      blocks: [
+        {
+          id: "b1",
+          is_superset: false,
+          exercises: [
+            {
+              id: "be1",
+              exercise_id: "ex-be1",
+              sets: 1,
+              exercise: { id: "ex-be1", name: "be1" },
+              measurements: [0, 1].map((position) => ({
+                block_exercise_id: "be1",
+                position,
+                set_index: 0,
+                unit_type: "reps",
+                value: 10,
+                value_entered_by: "coach",
+                value_unit: null,
+              })),
+              setVariants: {},
+              setStyles: {},
+            },
+          ],
+        },
+      ],
+    } as never;
+
+    // Position 0's upsert lands as "completed" before position 1's fails —
+    // a genuinely partial write, not the whole set failing outright.
+    mockUpsertSetLog
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error("network"));
+
+    const h = harness({ be1: [{ done: false, values: { 0: 10, 1: 10 } }] });
+    const { setManyDone } = makeSetDoneHandlers({
+      session,
+      completion,
+      athleteProfileId: "athlete-1",
+      setsStateRef: h.ref as never,
+      commitSetsState: h.commitSetsState,
+    });
+
+    await setManyDone([{ blockExerciseId: "be1", setIndex: 0 }], true);
+
+    expect(h.state.be1[0].done).toBe(false);
+    // The position that DID persist as "completed" must be rolled back
+    // server-side too, or it lingers in exercise history / prefills even
+    // though the set now renders as not done.
+    expect(mockMarkSetPending).toHaveBeenCalledTimes(1);
+    expect(mockMarkSetPending).toHaveBeenCalledWith(
+      expect.objectContaining({ blockExerciseId: "be1", setIndex: 0 }),
+    );
+  });
 });

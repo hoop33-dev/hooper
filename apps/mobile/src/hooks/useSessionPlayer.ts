@@ -504,6 +504,20 @@ async function performSetForceState(params: {
     commitSetsState((prev) =>
       markRowDone(prev, blockExerciseId, setIndex, !done),
     );
+    // A forced-done set writes one row per measurement position
+    // (persistSetDone), so one position can fail after another already
+    // landed as "completed" server-side. Left alone, that row would still
+    // show up in exercise history and feed future prefills even though the
+    // set now renders as not done. Roll it back the same way
+    // performSetDoneToggle does — best effort, the all-positions-done check
+    // in buildExerciseSets is the backstop.
+    if (done) {
+      try {
+        await persistSetPending({ completion, be, setIndex });
+      } catch {
+        /* nothing more we can do here */
+      }
+    }
   }
 }
 

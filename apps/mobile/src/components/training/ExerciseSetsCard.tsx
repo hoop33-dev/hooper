@@ -62,6 +62,15 @@ const TICK_STROKE_DELAY = 280;
 const TICK_STROKE_DURATION = 240;
 const TICK_OPACITY_DURATION = TICK_SCALE_DURATION * 0.6;
 
+// Tick-all button (Part 3 — "mark/unmark everything in this group at once").
+// Shown beside an exercise/round's done count; a persistent toggle rather
+// than something that appears/disappears.
+const TICK_ALL_SIZE = 34;
+// Same chevron as TICK_PATH, shifted +5 on x so the two overlap like a
+// "done all" glyph, in a wider viewBox that fits both.
+const DOUBLE_TICK_VIEWBOX = "0 0 20 16";
+const DOUBLE_TICK_FRONT_PATH = "M18.333 4L11 11.333L7.667 8";
+
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 /** Absolutely-positioned green pulse over a field, staggered by its index in
@@ -266,11 +275,76 @@ function AnimatedCheckTick({
   );
 }
 
+function DoubleCheckIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg
+      width={size}
+      height={(size * 16) / 20}
+      viewBox={DOUBLE_TICK_VIEWBOX}
+      fill="none">
+      <Path
+        d={TICK_PATH}
+        stroke={color}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d={DOUBLE_TICK_FRONT_PATH}
+        stroke={color}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** "Tick everything in this group at once" — sits beside an exercise/round's
+ * done count and stays put (it never disappears): while the group isn't
+ * fully done it's an outline button that ticks every remaining set, and once
+ * the group is fully done it flips to a filled "active" look — tapping it
+ * again unticks every set in the group. */
+export function TickAllButton({
+  allDone,
+  onPress,
+}: {
+  allDone: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      style={{
+        width: TICK_ALL_SIZE,
+        height: TICK_ALL_SIZE,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: radii.full,
+        borderWidth: allDone ? 0 : 1.5,
+        backgroundColor: allDone ? colors.success : "rgba(241,88,37,0.1)",
+        borderColor: "rgba(241,88,37,0.28)",
+      }}>
+      <DoubleCheckIcon
+        size={15}
+        color={allDone ? "#fff" : colors.brandOrange}
+      />
+    </Pressable>
+  );
+}
+
 export type SetRowState = {
   done: boolean;
   /** Measurement position (0-2, matches block_exercise_measurements.position) -> value. */
   values: Record<number, number>;
 };
+
+/** A (blockExerciseId, setIndex) pair the tick-all button acts on in one go
+ * — plain positions rather than SetRowStates, since the caller (the session
+ * player's persistence layer) is the one that knows how to write each set's
+ * already-entered values through as "completed"/"pending". */
+export type GroupSetTarget = { blockExerciseId: string; setIndex: number };
 
 type ExerciseSetsCardProps = {
   blockExercise: AthleteBlockExercise;
@@ -282,6 +356,7 @@ type ExerciseSetsCardProps = {
     targetSetIndices: number[],
   ) => void;
   onSetDone: (setIndex: number) => void;
+  onSetManyDone: (targets: GroupSetTarget[], done: boolean) => void;
 };
 
 export function VideoThumbnail({
@@ -367,6 +442,7 @@ function ExerciseHeader({
   doneCount,
   total,
   allDone,
+  onTickAll,
 }: {
   name: string;
   videoUrl: string | null;
@@ -381,6 +457,7 @@ function ExerciseHeader({
   doneCount: number;
   total: number;
   allDone: boolean;
+  onTickAll: () => void;
 }) {
   return (
     <View className="bg-surface-2 border-border-subtle border px-4 py-3">
@@ -401,14 +478,17 @@ function ExerciseHeader({
           </Title>
           {setsLabel ? <Meta className="mt-0.5">{setsLabel}</Meta> : null}
         </View>
-        <View className="flex-row items-baseline">
-          <H4
-            style={{
-              color: allDone ? colors.textSecondary : colors.brandOrange,
-            }}>
-            {doneCount}
-          </H4>
-          <Caption>/{total}</Caption>
+        <View className="items-end gap-1.5">
+          <View className="flex-row items-baseline">
+            <H4
+              style={{
+                color: allDone ? colors.textSecondary : colors.brandOrange,
+              }}>
+              {doneCount}
+            </H4>
+            <Caption>/{total}</Caption>
+          </View>
+          <TickAllButton allDone={allDone} onPress={onTickAll} />
         </View>
       </View>
       {notes ? <CoachNotes notes={notes} /> : null}
@@ -609,12 +689,151 @@ function SetRow({
   );
 }
 
+/** A variant group's set rows — split out of ExerciseVariantGroup purely to
+ * keep that component within the line-count lint budget. */
+function ExerciseSetRows({
+  blockExercise,
+  group,
+  sets,
+  measurementsBySet,
+  showPerSetStyle,
+  onValueChange,
+  onApplyForward,
+  onSetDone,
+}: {
+  blockExercise: AthleteBlockExercise;
+  group: { exercise: AthleteBlockExercise["exercise"]; setIndices: number[] };
+  sets: SetRowState[];
+  measurementsBySet: Map<number, BlockExerciseMeasurementRow[]>;
+  showPerSetStyle: boolean;
+  onValueChange: (setIndex: number, position: number, value: number) => void;
+  onApplyForward: (
+    position: number,
+    value: number,
+    targetSetIndices: number[],
+  ) => void;
+  onSetDone: (setIndex: number) => void;
+}) {
+  return (
+    <View className="bg-surface-2 border-border-subtle gap-2 border border-t-0 px-4 py-3">
+      {group.setIndices.map((setIndex) => {
+        const set = sets[setIndex];
+        if (!set) return null;
+        return (
+          <SetRow
+            key={setIndex}
+            set={set}
+            measurements={sortByUnitTypePriority(
+              measurementsBySet.get(setIndex) ?? [],
+            )}
+            styleName={
+              showPerSetStyle
+                ? resolveSetStyle(blockExercise, setIndex)?.name
+                : null
+            }
+            laterSetIndices={group.setIndices.filter((i) => i > setIndex)}
+            onValueChange={(position, value) =>
+              onValueChange(setIndex, position, value)
+            }
+            onApplyForward={onApplyForward}
+            onSetDone={() => onSetDone(setIndex)}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
+/** One variant group's card — header + its set rows. Split out of
+ * ExerciseSetsCard purely to keep that component within the line-count lint
+ * budget once the tick-all wiring was added. */
+function ExerciseVariantGroup({
+  blockExercise,
+  group,
+  groupIndex,
+  sets,
+  measurementsBySet,
+  notes,
+  onValueChange,
+  onApplyForward,
+  onSetDone,
+  onSetManyDone,
+}: {
+  blockExercise: AthleteBlockExercise;
+  group: { exercise: AthleteBlockExercise["exercise"]; setIndices: number[] };
+  groupIndex: number;
+  sets: SetRowState[];
+  measurementsBySet: Map<number, BlockExerciseMeasurementRow[]>;
+  notes: string | null;
+  onValueChange: (setIndex: number, position: number, value: number) => void;
+  onApplyForward: (
+    position: number,
+    value: number,
+    targetSetIndices: number[],
+  ) => void;
+  onSetDone: (setIndex: number) => void;
+  onSetManyDone: (targets: GroupSetTarget[], done: boolean) => void;
+}) {
+  const groupSets = group.setIndices
+    .map((setIndex) => sets[setIndex])
+    .filter(Boolean);
+  const doneCount = groupSets.filter((s) => s.done).length;
+  const allDone = doneCount === groupSets.length && groupSets.length > 0;
+  const groupStyle = resolveGroupStyle(blockExercise, group.setIndices);
+  // A style that applies to every set in the group (not just the most
+  // common) is named once, under the exercise name, in place of a sets
+  // count — there's no plain sets-count line otherwise. A style that only
+  // wins a plurality among a mix is instead shown per-row (see styleName
+  // below) since one name can't represent the whole group.
+  const setsLabel = groupStyle?.uniform ? groupStyle.name : null;
+  const showPerSetStyle = !!groupStyle && !groupStyle.uniform;
+
+  return (
+    <View
+      className="mb-3 overflow-hidden rounded-2xl"
+      style={{ opacity: allDone ? 0.8 : 1 }}>
+      <ExerciseHeader
+        name={group.exercise.name}
+        videoUrl={group.exercise.video_url}
+        videoSource={group.exercise.video_source}
+        videoOrientation={group.exercise.video_orientation}
+        videoThumbnailUrl={group.exercise.video_thumbnail_url}
+        notes={groupIndex === 0 ? notes : null}
+        setsLabel={setsLabel}
+        doneCount={doneCount}
+        total={groupSets.length}
+        allDone={allDone}
+        onTickAll={() =>
+          onSetManyDone(
+            group.setIndices.map((setIndex) => ({
+              blockExerciseId: blockExercise.id,
+              setIndex,
+            })),
+            !allDone,
+          )
+        }
+      />
+      <ExerciseSetRows
+        blockExercise={blockExercise}
+        group={group}
+        sets={sets}
+        measurementsBySet={measurementsBySet}
+        showPerSetStyle={showPerSetStyle}
+        onValueChange={onValueChange}
+        onApplyForward={onApplyForward}
+        onSetDone={onSetDone}
+      />
+    </View>
+  );
+}
+
 export function ExerciseSetsCard({
   blockExercise,
   sets,
   onValueChange,
   onApplyForward,
   onSetDone,
+  onSetManyDone,
 }: ExerciseSetsCardProps) {
   const { measurements, notes } = blockExercise;
 
@@ -629,70 +848,21 @@ export function ExerciseSetsCard({
 
   return (
     <>
-      {groups.map((group, groupIndex) => {
-        const groupSets = group.setIndices
-          .map((setIndex) => sets[setIndex])
-          .filter(Boolean);
-        const doneCount = groupSets.filter((s) => s.done).length;
-        const allDone = doneCount === groupSets.length && groupSets.length > 0;
-        const groupStyle = resolveGroupStyle(blockExercise, group.setIndices);
-        // A style that applies to every set in the group (not just the most
-        // common) is named once, under the exercise name, in place of a
-        // sets count — there's no plain sets-count line otherwise. A style
-        // that only wins a plurality among a mix is instead shown per-row
-        // (see styleName below) since one name can't represent the whole
-        // group.
-        const setsLabel = groupStyle?.uniform ? groupStyle.name : null;
-        const showPerSetStyle = !!groupStyle && !groupStyle.uniform;
-
-        return (
-          <View
-            key={group.exercise.id + groupIndex}
-            className="mb-3 overflow-hidden rounded-2xl"
-            style={{ opacity: allDone ? 0.8 : 1 }}>
-            <ExerciseHeader
-              name={group.exercise.name}
-              videoUrl={group.exercise.video_url}
-              videoSource={group.exercise.video_source}
-              videoOrientation={group.exercise.video_orientation}
-              videoThumbnailUrl={group.exercise.video_thumbnail_url}
-              notes={groupIndex === 0 ? notes : null}
-              setsLabel={setsLabel}
-              doneCount={doneCount}
-              total={groupSets.length}
-              allDone={allDone}
-            />
-            <View className="bg-surface-2 border-border-subtle gap-2 border border-t-0 px-4 py-3">
-              {group.setIndices.map((setIndex) => {
-                const set = sets[setIndex];
-                if (!set) return null;
-                return (
-                  <SetRow
-                    key={setIndex}
-                    set={set}
-                    measurements={sortByUnitTypePriority(
-                      measurementsBySet.get(setIndex) ?? [],
-                    )}
-                    styleName={
-                      showPerSetStyle
-                        ? resolveSetStyle(blockExercise, setIndex)?.name
-                        : null
-                    }
-                    laterSetIndices={group.setIndices.filter(
-                      (i) => i > setIndex,
-                    )}
-                    onValueChange={(position, value) =>
-                      onValueChange(setIndex, position, value)
-                    }
-                    onApplyForward={onApplyForward}
-                    onSetDone={() => onSetDone(setIndex)}
-                  />
-                );
-              })}
-            </View>
-          </View>
-        );
-      })}
+      {groups.map((group, groupIndex) => (
+        <ExerciseVariantGroup
+          key={group.exercise.id + groupIndex}
+          blockExercise={blockExercise}
+          group={group}
+          groupIndex={groupIndex}
+          sets={sets}
+          measurementsBySet={measurementsBySet}
+          notes={notes}
+          onValueChange={onValueChange}
+          onApplyForward={onApplyForward}
+          onSetDone={onSetDone}
+          onSetManyDone={onSetManyDone}
+        />
+      ))}
     </>
   );
 }

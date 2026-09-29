@@ -5,7 +5,7 @@ import { useWindowDimensions, View } from "react-native";
 import Animated, { type SharedValue } from "react-native-reanimated";
 
 import { BlockPage } from "./BlockPage";
-import type { SetRowState } from "./ExerciseSetsCard";
+import type { GroupSetTarget, SetRowState } from "./ExerciseSetsCard";
 
 type BlockContentProps = {
   blocks: AthleteBlock[];
@@ -24,6 +24,7 @@ type BlockContentProps = {
     targetSetIndices: number[],
   ) => void;
   onSetDone: (blockExerciseId: string, setIndex: number) => void;
+  onSetManyDone: (targets: GroupSetTarget[], done: boolean) => void;
   onBlockIdxChange: (index: number) => void;
   /** Live pixel scroll offset of this pager — read by BlockTabs to move its
    * indicator and highlight the active tab continuously as the user swipes. */
@@ -37,6 +38,7 @@ export function BlockContent({
   onValueChange,
   onApplyForward,
   onSetDone,
+  onSetManyDone,
   onBlockIdxChange,
   scrollX,
 }: BlockContentProps) {
@@ -83,6 +85,7 @@ export function BlockContent({
             onValueChange={onValueChange}
             onApplyForward={onApplyForward}
             onSetDone={onSetDone}
+            onSetManyDone={onSetManyDone}
           />
         </View>
       ))}

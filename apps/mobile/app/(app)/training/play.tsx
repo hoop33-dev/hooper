@@ -190,6 +190,7 @@ export default function SessionPlayerScreen() {
           onValueChange={player.setFieldValue}
           onApplyForward={player.applyValueForward}
           onSetDone={player.markSetDone}
+          onSetManyDone={player.setManyDone}
           onBlockIdxChange={player.setBlockIdx}
           scrollX={blockScrollX}
         />

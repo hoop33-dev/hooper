@@ -2,6 +2,7 @@
 
 import type { FormRow, FormSummary } from "@hooper/db";
 import { useState } from "react";
+import { ListToolbar, matchesSearch } from "../ui/ListToolbar";
 import { PageHeader } from "../ui/PageHeader";
 import { PortalButton } from "../ui/PortalButton";
 import { useToast } from "../ui/Toast";
@@ -25,7 +26,23 @@ interface FormsListShellProps {
   deleteAction: (id: string) => Promise<ActionResult>;
 }
 
-function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
+function EmptyState({
+  hasSearch,
+  onCreateClick,
+}: {
+  hasSearch: boolean;
+  onCreateClick: () => void;
+}) {
+  if (hasSearch) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-1 py-20 text-center">
+        <p className="text-portal-text1 font-semibold">
+          No forms match your search
+        </p>
+        <p className="text-portal-text3 text-sm">Try a different search</p>
+      </div>
+    );
+  }
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 py-20">
       <div className="text-center">
@@ -52,6 +69,10 @@ export function FormsListShell({
   const { items: localForms, mutate } = useOptimisticList(forms);
   const [createOpen, setCreateOpen] = useState(initialCreateOpen);
   const [editing, setEditing] = useState<FormSummary | null>(null);
+  const [search, setSearch] = useState("");
+  const filtered = localForms.filter((f) =>
+    matchesSearch(search, f.name, f.description),
+  );
 
   async function handleCreate(data: FormCreateFormData) {
     const result = await mutate<FormRow>(
@@ -96,18 +117,22 @@ export function FormsListShell({
       <PageHeader
         title="Forms"
         subtitle="Build check-in forms athletes fill out before a workout"
-        action={
-          <PortalButton variant="primary" onClick={() => setCreateOpen(true)}>
-            Create form
-          </PortalButton>
-        }
+      />
+      <ListToolbar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search forms…"
+        onCreate={() => setCreateOpen(true)}
       />
 
       <div className="flex-1 overflow-y-auto px-7 py-2">
-        {localForms.length === 0 ? (
-          <EmptyState onCreateClick={() => setCreateOpen(true)} />
+        {filtered.length === 0 ? (
+          <EmptyState
+            hasSearch={localForms.length > 0}
+            onCreateClick={() => setCreateOpen(true)}
+          />
         ) : (
-          <FormsTable forms={localForms} onEdit={setEditing} />
+          <FormsTable forms={filtered} onEdit={setEditing} />
         )}
       </div>
 

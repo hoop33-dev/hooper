@@ -3,6 +3,7 @@
 import { uploadTeamAvatar } from "@/src/services/teamAvatar.client";
 import type { TeamRow, TeamSummary } from "@hooper/db";
 import { useState } from "react";
+import { ListToolbar, matchesSearch } from "../../ui/ListToolbar";
 import { PortalButton } from "../../ui/PortalButton";
 import { useOptimisticList } from "../../ui/useOptimisticList";
 import { TeamCreateModal, type TeamCreateFormData } from "./TeamCreateModal";
@@ -22,7 +23,23 @@ interface TeamsListShellProps {
   ) => Promise<ActionResult<TeamRow>>;
 }
 
-function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
+function EmptyState({
+  hasSearch,
+  onCreateClick,
+}: {
+  hasSearch: boolean;
+  onCreateClick: () => void;
+}) {
+  if (hasSearch) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-1 py-20 text-center">
+        <p className="text-portal-text1 font-semibold">
+          No teams match your search
+        </p>
+        <p className="text-portal-text3 text-sm">Try a different search</p>
+      </div>
+    );
+  }
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 py-20">
       <div className="text-center">
@@ -45,6 +62,10 @@ export function TeamsListShell({
 }: TeamsListShellProps) {
   const { items: localTeams, mutate } = useOptimisticList(teams);
   const [createOpen, setCreateOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const filtered = localTeams.filter((t) =>
+    matchesSearch(search, t.name, t.description),
+  );
 
   async function createTeamWithAvatar(
     data: TeamCreateFormData,
@@ -87,20 +108,21 @@ export function TeamsListShell({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-3 border-b px-7 py-4">
-        <PortalButton
-          variant="primary"
-          className="ml-auto"
-          onClick={() => setCreateOpen(true)}>
-          Create team
-        </PortalButton>
-      </div>
+      <ListToolbar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search teams…"
+        onCreate={() => setCreateOpen(true)}
+      />
 
       <div className="flex-1 overflow-y-auto px-7 py-2">
-        {localTeams.length === 0 ? (
-          <EmptyState onCreateClick={() => setCreateOpen(true)} />
+        {filtered.length === 0 ? (
+          <EmptyState
+            hasSearch={localTeams.length > 0}
+            onCreateClick={() => setCreateOpen(true)}
+          />
         ) : (
-          <TeamsTable teams={localTeams} />
+          <TeamsTable teams={filtered} />
         )}
       </div>
 

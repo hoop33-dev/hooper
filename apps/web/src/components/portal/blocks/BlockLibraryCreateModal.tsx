@@ -51,11 +51,6 @@ export function BlockLibraryCreateModal({
             autoFocus
             onKeyDown={(e) => e.key === "Enter" && handleCreate()}
           />
-          <p className="text-portal-text3 text-xs">
-            Add blocks and exercises after creating it — a template with one
-            block can be dragged into any session; several blocks makes it a
-            whole reusable session.
-          </p>
         </div>
         <div className="border-portal-border flex justify-end gap-2 border-t px-6 py-4">
           <PortalButton variant="ghost" onClick={onClose} disabled={saving}>

@@ -2,6 +2,7 @@
 
 import type { FormSummary, ProgramRow, ProgramSummary } from "@hooper/db";
 import { useState } from "react";
+import { ListToolbar, matchesSearch } from "../ui/ListToolbar";
 import { PortalButton } from "../ui/PortalButton";
 import { useToast } from "../ui/Toast";
 import { useOptimisticList } from "../ui/useOptimisticList";
@@ -66,7 +67,25 @@ function FilterPills({
   );
 }
 
-function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
+function EmptyState({
+  hasFilters,
+  onCreateClick,
+}: {
+  hasFilters: boolean;
+  onCreateClick: () => void;
+}) {
+  if (hasFilters) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-1 py-20 text-center">
+        <p className="text-portal-text1 font-semibold">
+          No programs match your search
+        </p>
+        <p className="text-portal-text3 text-sm">
+          Try a different search or status filter
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 py-20">
       <div className="text-center">
@@ -229,25 +248,30 @@ export function ProgramsListShell({
   );
   const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>("All");
 
+  const [search, setSearch] = useState("");
+
   const filtered = localPrograms.filter(
-    (p) => filter === "All" || p.status === filter.toLowerCase(),
+    (p) =>
+      (filter === "All" || p.status === filter.toLowerCase()) &&
+      matchesSearch(search, p.name, p.description),
   );
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="border-portal-border bg-portal-card flex flex-shrink-0 items-center gap-3 border-b px-7 py-4">
+      <ListToolbar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search programs…"
+        onCreate={() => setCreateOpen(true)}>
         <FilterPills filter={filter} onChange={setFilter} />
-        <PortalButton
-          variant="primary"
-          className="ml-auto"
-          onClick={() => setCreateOpen(true)}>
-          Create program
-        </PortalButton>
-      </div>
+      </ListToolbar>
 
       <div className="flex-1 overflow-y-auto px-7 py-2">
         {filtered.length === 0 ? (
-          <EmptyState onCreateClick={() => setCreateOpen(true)} />
+          <EmptyState
+            hasFilters={localPrograms.length > 0}
+            onCreateClick={() => setCreateOpen(true)}
+          />
         ) : (
           <ProgramsTable programs={filtered} onEdit={setEditing} />
         )}

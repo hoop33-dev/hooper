@@ -4,6 +4,8 @@ import { TableSkeleton } from "@/src/components/portal/ui/TableSkeleton";
 export default function AthletesLoading() {
   return (
     <PageSkeleton
+      toolbar
+      toolbarCreate={false}
       title="Athletes"
       subtitle="Browse athletes and manage their program assignments">
       <TableSkeleton columns={["Athlete", "Program", "Last login"]} />

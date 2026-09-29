@@ -1,7 +1,5 @@
 import type { SessionTemplateSummary } from "@hooper/db";
 import { AppLink } from "../ui/AppLink";
-import { SpinnerIcon } from "../ui/icons";
-import { useInlineConfirm } from "../ui/useInlineConfirm";
 
 function formatUpdatedAt(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -24,48 +22,14 @@ function TemplateNameCell({ template }: { template: SessionTemplateSummary }) {
   );
 }
 
-function DeleteTemplateButton({ onDelete }: { onDelete: () => void }) {
-  const { armed, confirming, arm, confirm } = useInlineConfirm(onDelete);
-
-  if (confirming) {
-    return (
-      <span className="border-portal-border flex h-[26px] w-[68px] items-center justify-center rounded-lg border">
-        <SpinnerIcon size={13} />
-      </span>
-    );
-  }
-
-  if (armed) {
-    return (
-      <button
-        type="button"
-        onClick={confirm}
-        className="rounded-lg border border-red-500 px-3 py-1 text-xs font-semibold text-red-500 hover:bg-red-50">
-        Confirm?
-      </button>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={arm}
-      className="border-portal-border text-portal-text2 hover:bg-portal-bg rounded-lg border px-3 py-1 text-xs font-semibold">
-      Delete
-    </button>
-  );
-}
-
 interface BlockLibraryTableProps {
   templates: SessionTemplateSummary[];
-  onRename: (template: SessionTemplateSummary) => void;
-  onDelete: (template: SessionTemplateSummary) => void;
+  onEdit: (template: SessionTemplateSummary) => void;
 }
 
 export function BlockLibraryTable({
   templates,
-  onRename,
-  onDelete,
+  onEdit,
 }: BlockLibraryTableProps) {
   return (
     <table className="w-full border-collapse">
@@ -102,15 +66,12 @@ export function BlockLibraryTable({
               {formatUpdatedAt(template.updated_at)}
             </td>
             <td className="py-3.5 text-right">
-              <div className="relative z-10 flex justify-end gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => onRename(template)}
-                  className="border-portal-border text-portal-text2 hover:bg-portal-bg rounded-lg border px-3 py-1 text-xs font-semibold">
-                  Rename
-                </button>
-                <DeleteTemplateButton onDelete={() => onDelete(template)} />
-              </div>
+              <button
+                type="button"
+                onClick={() => onEdit(template)}
+                className="border-portal-border text-portal-text2 hover:bg-portal-card relative z-10 rounded-lg border px-3 py-1 text-xs font-semibold">
+                Edit
+              </button>
             </td>
           </tr>
         ))}

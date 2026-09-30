@@ -13,6 +13,11 @@ export type {
   FormQuestionRow,
   FormQuestionType,
   FormRow,
+  PackageBillingInterval,
+  PackageBillingType,
+  PackageCoachRow,
+  PackageProgramRow,
+  PackageRow,
   ProfileWithVerificationRow,
   ProgramAthleteRow,
   ProgramRow,
@@ -276,4 +281,33 @@ export type TeamDashboardRow = TeamSummary;
 export type FormDashboardRow = FormRow & {
   questionCount: number;
   programCount: number;
+};
+
+import type { PackageRow } from "./schema";
+
+export type PackageCoachRef = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+};
+
+// List row: the package plus the programs and coaches attached to it.
+// Active-buyer counts arrive with purchases in a later billing phase.
+export type PackageSummary = PackageRow & {
+  programs: AssignedProgramRef[];
+  coaches: PackageCoachRef[];
+};
+
+// Detail programs carry the same week/session shape as ProgramSummary so the
+// card can show "8 wk · 3/wk".
+export type PackageProgramRef = AssignedProgramRef & {
+  weeks: number;
+  sessionsPerWeek: [min: number, max: number] | null;
+};
+
+export type PackageDetail = PackageRow & {
+  programs: PackageProgramRef[];
+  coaches: PackageCoachRef[];
 };

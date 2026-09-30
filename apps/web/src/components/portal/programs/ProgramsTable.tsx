@@ -11,7 +11,7 @@ function formatUpdatedAt(iso: string): string {
   });
 }
 
-function formatSessionsPerWeek(
+export function formatSessionsPerWeek(
   range: ProgramSummary["sessionsPerWeek"],
 ): string {
   if (!range) return "no sessions yet";

@@ -125,6 +125,41 @@ export type ProgramTeamRow = {
   created_at: string;
 };
 
+export type PackageBillingType = "recurring" | "one_time";
+export type PackageBillingInterval = "week" | "month" | "quarter" | "year";
+
+/** A sellable bundle of programs + coaches. `slug` is the permanent public
+ * link id — immutable and never reused (rows are soft-deleted via
+ * `deleted_at`, which RLS hides). Recurring packages set `billing_interval`;
+ * one-off packages set `access_weeks` instead, or leave it null for
+ * unlimited access. */
+export type PackageRow = {
+  id: string;
+  slug: string;
+  name: string;
+  price_cents: number;
+  currency: string;
+  billing_type: PackageBillingType;
+  billing_interval: PackageBillingInterval | null;
+  access_weeks: number | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type PackageProgramRow = {
+  package_id: string;
+  program_id: string;
+  created_at: string;
+};
+
+export type PackageCoachRow = {
+  package_id: string;
+  profile_id: string;
+  created_at: string;
+};
+
 export type ExerciseCategoryRow = {
   id: string;
   name: string;
@@ -510,6 +545,30 @@ export type Database = {
         Update: Partial<ProgramTeamRow>;
         Relationships: [];
       };
+      packages: {
+        Row: PackageRow;
+        Insert: Partial<PackageRow> &
+          Pick<
+            PackageRow,
+            "slug" | "name" | "price_cents" | "billing_type" | "created_by"
+          >;
+        Update: Partial<PackageRow>;
+        Relationships: [];
+      };
+      package_programs: {
+        Row: PackageProgramRow;
+        Insert: Partial<PackageProgramRow> &
+          Pick<PackageProgramRow, "package_id" | "program_id">;
+        Update: Partial<PackageProgramRow>;
+        Relationships: [];
+      };
+      package_coaches: {
+        Row: PackageCoachRow;
+        Insert: Partial<PackageCoachRow> &
+          Pick<PackageCoachRow, "package_id" | "profile_id">;
+        Update: Partial<PackageCoachRow>;
+        Relationships: [];
+      };
       exercise_categories: {
         Row: ExerciseCategoryRow;
         Insert: Partial<ExerciseCategoryRow> &
@@ -715,6 +774,14 @@ export type Database = {
       list_athletes_by_last_sign_in: {
         Args: { p_limit: number };
         Returns: { profile_id: string; last_sign_in_at: string | null }[];
+      };
+      package_slug_available: {
+        Args: { p_slug: string };
+        Returns: boolean;
+      };
+      soft_delete_package: {
+        Args: { p_package_id: string };
+        Returns: undefined;
       };
     };
     Enums: {

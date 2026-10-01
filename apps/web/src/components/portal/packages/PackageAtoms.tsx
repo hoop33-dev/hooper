@@ -2,9 +2,7 @@
 
 import { cn } from "@/src/lib/cn";
 import type { PackageCoachRef } from "@hooper/db";
-import type { ReactNode } from "react";
-import { PackageIcon, XIcon } from "../ui/icons";
-import { useModalDismiss } from "../ui/useModalDismiss";
+import { PackageIcon } from "../ui/icons";
 
 export function coachName(coach: PackageCoachRef): string {
   return (
@@ -59,48 +57,6 @@ export function CoachAvatar({
       ) : (
         coachInitials(coach)
       )}
-    </div>
-  );
-}
-
-/** Centered modal card with the portal's standard header — shared by the
- * package create, add-item and delete modals. */
-export function PackageModal({
-  title,
-  subtitle,
-  onClose,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  const onBackdropClick = useModalDismiss(onClose);
-  return (
-    <div
-      onClick={onBackdropClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-portal-card flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl shadow-2xl">
-        <div className="border-portal-border flex items-center justify-between border-b px-6 py-4">
-          <div className="min-w-0">
-            <h2 className="font-title text-portal-text1 text-lg font-extrabold tracking-wide">
-              {title}
-            </h2>
-            {subtitle && (
-              <p className="text-portal-text3 truncate text-xs">{subtitle}</p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="border-portal-border text-portal-text2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border">
-            <XIcon />
-          </button>
-        </div>
-        {children}
-      </div>
     </div>
   );
 }

@@ -4,7 +4,6 @@ import { cn } from "@/src/lib/cn";
 import { useSortable } from "@dnd-kit/sortable";
 import type { FormQuestionWithOptions } from "@hooper/db";
 import { InlineConfirmDelete } from "../ui/InlineConfirmDelete";
-import { PortalBadge } from "../ui/PortalBadge";
 import { questionTypeLabel } from "./questionTypes";
 
 function GripIcon() {
@@ -20,11 +19,26 @@ function GripIcon() {
   );
 }
 
+function Chip({ label, active = false }: { label: string; active?: boolean }) {
+  return (
+    <span
+      className={cn(
+        "rounded-full border px-2.5 py-[3px] text-[11px] font-semibold whitespace-nowrap",
+        active
+          ? "bg-portal-orange-soft text-portal-orange border-[rgba(241,88,37,0.22)]"
+          : "border-portal-border bg-portal-bg text-portal-text2",
+      )}>
+      {label}
+    </span>
+  );
+}
+
 interface SortableQuestionRowProps {
   question: FormQuestionWithOptions;
   index: number;
   onOpen: () => void;
   onDelete: () => void;
+  onToggleRequired: () => void;
   isDropTarget: boolean;
   dropAfter: boolean;
   dragActive: boolean;
@@ -35,6 +49,7 @@ export function SortableQuestionRow({
   index,
   onOpen,
   onDelete,
+  onToggleRequired,
   isDropTarget,
   dropAfter,
   dragActive,
@@ -52,7 +67,7 @@ export function SortableQuestionRow({
     <div
       ref={setNodeRef}
       className={cn(
-        "border-portal-border bg-portal-card group relative flex cursor-pointer touch-none items-center gap-3 rounded-xl border px-4 py-3.5 select-none",
+        "border-portal-border bg-portal-card relative flex cursor-pointer touch-none items-center gap-3 border-b px-4 py-2.5 select-none last:border-b-0",
         !dragActive && "hover:bg-portal-bg",
         isDragging && "opacity-40",
       )}
@@ -62,30 +77,44 @@ export function SortableQuestionRow({
       {isDropTarget && (
         <div
           className={cn(
-            "bg-portal-orange pointer-events-none absolute inset-x-0 z-10 h-0.5 rounded-full",
-            dropAfter ? "-bottom-1.5" : "-top-1.5",
+            "bg-portal-orange pointer-events-none absolute inset-x-0 z-10 h-0.5",
+            dropAfter ? "-bottom-px" : "-top-px",
           )}
         />
       )}
       <span className="text-portal-text3 flex-shrink-0 cursor-grab active:cursor-grabbing">
         <GripIcon />
       </span>
-      <span className="text-portal-text3 w-5 flex-shrink-0 text-xs font-semibold">
+      <span className="bg-portal-bg font-title text-portal-text2 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-base font-extrabold">
         {index + 1}
       </span>
-      <span className="text-portal-text1 flex-1 truncate text-sm font-semibold">
-        {question.prompt}
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate text-[13px] font-semibold",
+          question.prompt ? "text-portal-text1" : "text-portal-text3 italic",
+        )}>
+        {question.prompt || "Untitled question"}
       </span>
-      <PortalBadge variant="neutral">
-        {questionTypeLabel(question.type)}
-      </PortalBadge>
-      {question.required && (
-        <PortalBadge variant="orange">Required</PortalBadge>
-      )}
+      <Chip label={questionTypeLabel(question.type)} />
+      <button
+        type="button"
+        title={question.required ? "Make optional" : "Make required"}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleRequired();
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="flex-shrink-0 cursor-pointer">
+        <Chip
+          label={question.required ? "Required" : "Optional"}
+          active={question.required}
+        />
+      </button>
       <InlineConfirmDelete
         onDelete={onDelete}
         idleTitle="Delete question"
-        idleClassName="text-portal-text3 hover:text-red-500"
+        size={12}
+        idleClassName="border-portal-border flex h-[26px] w-[26px] items-center justify-center rounded-md border text-red-500 hover:bg-red-50"
       />
     </div>
   );

@@ -246,7 +246,11 @@ export type TeamSummary = TeamRow & {
 
 // joined_at is the team_members row's created_at — when this profile was
 // added to the team, not the profile's own created_at.
-export type TeamMember = ProfileRow & { joined_at: string };
+// last_sign_in_at comes from the coach-only get_athlete_last_sign_ins RPC.
+export type TeamMember = ProfileRow & {
+  joined_at: string;
+  last_sign_in_at: string | null;
+};
 
 export type TeamDetail = TeamRow & {
   programs: AssignedProgramRef[];

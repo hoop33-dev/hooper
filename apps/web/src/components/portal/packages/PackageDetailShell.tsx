@@ -1,5 +1,6 @@
 "use client";
 
+import { formatProgramSub, formatShortDate, plural } from "@/src/lib/format";
 import {
   formatPackagePrice,
   pickPricing,
@@ -13,52 +14,31 @@ import type {
   ProgramSummary,
 } from "@hooper/db";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { formatSessionsPerWeek } from "../programs/ProgramsTable";
+import { useState } from "react";
+import {
+  DetailError,
+  DetailListCard,
+  DetailRow,
+  RemoveButton,
+} from "../ui/DetailListCard";
+import { LetterTile } from "../ui/LetterTile";
 import { PageHeader } from "../ui/PageHeader";
 import { PortalButton } from "../ui/PortalButton";
 import {
-  AddPackageItemModal,
-  type PackagePickItem,
-} from "./AddPackageItemModal";
+  SearchPickerModal,
+  type SearchPickerItem,
+} from "../ui/SearchPickerModal";
+import { useOptimisticDetail } from "../ui/useOptimisticDetail";
 import { CoachAvatar, coachName } from "./PackageAtoms";
 import {
   ActiveBuyersCard,
   PackageLinkCard,
-  PackageListCard,
   PricingCard,
 } from "./PackageDetailCards";
 import { PackageEditDrawer } from "./PackageEditDrawer";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 type Modal = "program" | "coach" | "edit" | null;
-
-function ProgramTile({ name }: { name: string }) {
-  return (
-    <div className="bg-portal-orange-soft text-portal-orange flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-sm font-extrabold">
-      {name.trim().charAt(0).toUpperCase() || "P"}
-    </div>
-  );
-}
-
-function programSub(program: {
-  weeks: number;
-  sessionsPerWeek: ProgramSummary["sessionsPerWeek"];
-}): string {
-  return `${program.weeks} wk · ${formatSessionsPerWeek(program.sessionsPerWeek)}`;
-}
-
-function plural(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`;
-}
-
-function formatCreated(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 type PackageDetailActions = {
   updateAction: (
@@ -84,10 +64,6 @@ type PackageDetailActions = {
   ) => Promise<ActionResult>;
 };
 
-/** Local mirror of the package with optimistic edits. Each edit applies
- * straight away, runs its action, and rolls back + surfaces the error if it
- * fails; a refresh follows either way so the server's copy wins (a refresh's
- * new props replace the local copy wholesale, same as useOptimisticList). */
 function usePackageDetail(
   pkg: PackageDetail,
   allPrograms: ProgramSummary[],
@@ -95,26 +71,7 @@ function usePackageDetail(
   actions: PackageDetailActions,
 ) {
   const router = useRouter();
-  const [local, setLocal] = useState(pkg);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => setLocal(pkg), [pkg]);
-
-  async function mutate(
-    patch: (prev: PackageDetail) => PackageDetail,
-    action: () => Promise<ActionResult<unknown>>,
-  ): Promise<ActionResult> {
-    const rollback = local;
-    setLocal(patch);
-    setError(null);
-    const result = await action();
-    if (!result.ok) {
-      setLocal(rollback);
-      setError(result.error ?? "Something went wrong.");
-    }
-    router.refresh();
-    return { ok: result.ok, error: result.error };
-  }
-
+  const { local, error, mutate } = useOptimisticDetail(pkg);
   const id = local.id;
   return {
     local,
@@ -129,16 +86,16 @@ function usePackageDetail(
         (prev) => ({ ...prev, ...pricing }),
         () => actions.updateAction(id, pricing),
       ),
-    addProgram: (programId: string) => {
+    addProgram: async (programId: string): Promise<ActionResult> => {
       const program = allPrograms.find((p) => p.id === programId);
-      if (!program) return;
+      if (!program) return { ok: false, error: "Program not found." };
       const ref: PackageProgramRef = {
         id: program.id,
         name: program.name,
         weeks: program.weeks,
         sessionsPerWeek: program.sessionsPerWeek,
       };
-      void mutate(
+      return mutate(
         (prev) => ({ ...prev, programs: [...prev.programs, ref] }),
         () => actions.addProgramAction(id, programId),
       );
@@ -151,10 +108,10 @@ function usePackageDetail(
         }),
         () => actions.removeProgramAction(id, programId),
       ),
-    addCoach: (profileId: string) => {
+    addCoach: async (profileId: string): Promise<ActionResult> => {
       const coach = allCoaches.find((c) => c.id === profileId);
-      if (!coach) return;
-      void mutate(
+      if (!coach) return { ok: false, error: "Coach not found." };
+      return mutate(
         (prev) => ({ ...prev, coaches: [...prev.coaches, coach] }),
         () => actions.addCoachAction(id, profileId),
       );
@@ -177,46 +134,21 @@ function usePackageDetail(
 
 type PackageDetailState = ReturnType<typeof usePackageDetail>;
 
-function programItemsFor(programs: ProgramSummary[]): PackagePickItem[] {
-  return programs.map((p) => ({
-    id: p.id,
-    title: p.name,
-    sub: programSub(p),
-    lead: <ProgramTile name={p.name} />,
-  }));
-}
-
-function coachItemsFor(
-  coaches: PackageCoachRef[],
-  size: number,
-): PackagePickItem[] {
-  return coaches.map((c) => ({
-    id: c.id,
-    title: coachName(c),
-    sub: c.username ? `@${c.username}` : undefined,
-    lead: <CoachAvatar coach={c} size={size} />,
-  }));
+function coachSub(coach: PackageCoachRef): string | undefined {
+  return coach.username ? `@${coach.username}` : undefined;
 }
 
 function PackageDetailBody({
   state,
-  canAddProgram,
-  canAddCoach,
   onOpen,
 }: {
   state: PackageDetailState;
-  canAddProgram: boolean;
-  canAddCoach: boolean;
   onOpen: (modal: Modal) => void;
 }) {
   const { local } = state;
   return (
     <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-7">
-      {state.error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-600">
-          {state.error}
-        </div>
-      )}
+      <DetailError error={state.error} />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_240px]">
         <PackageLinkCard slug={local.slug} />
@@ -225,32 +157,105 @@ function PackageDetailBody({
 
       <div className="grid items-start gap-5 lg:grid-cols-3">
         <PricingCard pricing={pickPricing(local)} onSave={state.savePricing} />
-        <PackageListCard
+        <DetailListCard
           title="Programs"
-          items={local.programs.map((p) => ({
-            id: p.id,
-            title: p.name,
-            sub: programSub(p),
-            lead: <ProgramTile name={p.name} />,
-          }))}
-          emptyLabel="No programs in this package."
-          addLabel="Add program"
-          canAdd={canAddProgram}
+          count={local.programs.length}
           onAdd={() => onOpen("program")}
-          onRemove={state.removeProgram}
-        />
-        <PackageListCard
+          emptyLabel="No programs in this package."
+          emptyCta="Add program">
+          {local.programs.map((p) => (
+            <DetailRow
+              key={p.id}
+              lead={<LetterTile name={p.name} />}
+              title={p.name}
+              sub={formatProgramSub(p)}
+              trail={
+                <RemoveButton
+                  label={p.name}
+                  onClick={() => state.removeProgram(p.id)}
+                />
+              }
+            />
+          ))}
+        </DetailListCard>
+        <DetailListCard
           title="Coaches"
-          items={coachItemsFor(local.coaches, 34)}
-          emptyLabel="No coaches on this package."
-          addLabel="Add coach"
-          canAdd={canAddCoach}
+          count={local.coaches.length}
           onAdd={() => onOpen("coach")}
-          onRemove={state.removeCoach}
-        />
+          emptyLabel="No coaches on this package."
+          emptyCta="Add coach">
+          {local.coaches.map((c) => (
+            <DetailRow
+              key={c.id}
+              lead={<CoachAvatar coach={c} size={34} />}
+              title={coachName(c)}
+              sub={coachSub(c)}
+              trail={
+                <RemoveButton
+                  label={coachName(c)}
+                  onClick={() => state.removeCoach(c.id)}
+                />
+              }
+            />
+          ))}
+        </DetailListCard>
       </div>
     </div>
   );
+}
+
+function PackagePickers({
+  modal,
+  state,
+  programItems,
+  coachItems,
+  onClose,
+}: {
+  modal: Modal;
+  state: PackageDetailState;
+  programItems: SearchPickerItem[];
+  coachItems: SearchPickerItem[];
+  onClose: () => void;
+}) {
+  const { local } = state;
+  if (modal === "program") {
+    return (
+      <SearchPickerModal
+        title="Add program"
+        subtitle={local.name}
+        placeholder="Search programs…"
+        items={programItems}
+        emptyLabel="All programs are already in this package."
+        onAdd={state.addProgram}
+        onClose={onClose}
+      />
+    );
+  }
+  if (modal === "coach") {
+    return (
+      <SearchPickerModal
+        title="Add coach"
+        subtitle={local.name}
+        placeholder="Search coaches…"
+        items={coachItems}
+        emptyLabel="All coaches are already on this package."
+        onAdd={state.addCoach}
+        onClose={onClose}
+      />
+    );
+  }
+  if (modal === "edit") {
+    return (
+      <PackageEditDrawer
+        name={local.name}
+        slug={local.slug}
+        onSave={state.rename}
+        onDelete={state.remove}
+        onClose={onClose}
+      />
+    );
+  }
+  return null;
 }
 
 export function PackageDetailShell({
@@ -266,22 +271,31 @@ export function PackageDetailShell({
   const state = usePackageDetail(pkg, allPrograms, allCoaches, actions);
   const { local } = state;
   const [modal, setModal] = useState<Modal>(null);
-  const close = () => setModal(null);
-  const summary = `${formatPackagePrice(local)} with ${plural(local.programs.length, "program", "programs")} and ${plural(
+  const summary = `${formatPackagePrice(local)} with ${plural(local.programs.length, "program")} and ${plural(
     local.coaches.length,
     "coach",
     "coaches",
-  )}. Created ${formatCreated(local.created_at)}`;
+  )}. Created ${formatShortDate(local.created_at)}`;
 
   const attachedProgramIds = new Set(local.programs.map((p) => p.id));
   const attachedCoachIds = new Set(local.coaches.map((c) => c.id));
-  const programItems = programItemsFor(
-    allPrograms.filter((p) => !attachedProgramIds.has(p.id)),
-  );
-  const coachItems = coachItemsFor(
-    allCoaches.filter((c) => !attachedCoachIds.has(c.id)),
-    36,
-  );
+  const programItems: SearchPickerItem[] = allPrograms
+    .filter((p) => !attachedProgramIds.has(p.id))
+    .map((p) => ({
+      id: p.id,
+      title: p.name,
+      sub: formatProgramSub(p),
+      lead: <LetterTile name={p.name} />,
+    }));
+  const coachItems: SearchPickerItem[] = allCoaches
+    .filter((c) => !attachedCoachIds.has(c.id))
+    .map((c) => ({
+      id: c.id,
+      title: coachName(c),
+      sub: coachSub(c),
+      search: c.username ?? undefined,
+      lead: <CoachAvatar coach={c} size={36} />,
+    }));
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -300,44 +314,15 @@ export function PackageDetailShell({
         }
       />
 
-      <PackageDetailBody
-        state={state}
-        canAddProgram={programItems.length > 0}
-        canAddCoach={coachItems.length > 0}
-        onOpen={setModal}
-      />
+      <PackageDetailBody state={state} onOpen={setModal} />
 
-      {modal === "program" && (
-        <AddPackageItemModal
-          title="Add program"
-          packageName={local.name}
-          items={programItems}
-          emptyLabel="All programs are already in this package."
-          searchPlaceholder="Search programs…"
-          onPick={state.addProgram}
-          onClose={close}
-        />
-      )}
-      {modal === "coach" && (
-        <AddPackageItemModal
-          title="Add coach"
-          packageName={local.name}
-          items={coachItems}
-          emptyLabel="All coaches are already on this package."
-          searchPlaceholder="Search coaches…"
-          onPick={state.addCoach}
-          onClose={close}
-        />
-      )}
-      {modal === "edit" && (
-        <PackageEditDrawer
-          name={local.name}
-          slug={local.slug}
-          onSave={state.rename}
-          onDelete={state.remove}
-          onClose={close}
-        />
-      )}
+      <PackagePickers
+        modal={modal}
+        state={state}
+        programItems={programItems}
+        coachItems={coachItems}
+        onClose={() => setModal(null)}
+      />
     </div>
   );
 }

@@ -54,6 +54,7 @@ export async function addTeamMemberAction(
   if (result.ok) {
     revalidatePath("/teams");
     revalidatePath(`/teams/${teamId}`);
+    revalidatePath(`/athletes/${profileId}`);
   }
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }
@@ -66,6 +67,7 @@ export async function removeTeamMemberAction(
   if (result.ok) {
     revalidatePath("/teams");
     revalidatePath(`/teams/${teamId}`);
+    revalidatePath(`/athletes/${profileId}`);
   }
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

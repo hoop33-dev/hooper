@@ -11,8 +11,8 @@ import {
   type PackagePricing,
   type PackagePricingDraft,
 } from "@/src/lib/packages";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { CheckIcon, CopyIcon, LockIcon, PlusIcon, XIcon } from "../ui/icons";
+import { useEffect, useRef, useState } from "react";
+import { CheckIcon, CopyIcon, LockIcon } from "../ui/icons";
 import { PortalButton } from "../ui/PortalButton";
 import { PackagePriceFields } from "./PackagePriceFields";
 
@@ -185,86 +185,6 @@ export function PricingCard({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-export type PackageListCardItem = {
-  id: string;
-  title: string;
-  sub?: string;
-  lead: ReactNode;
-};
-
-/** The Programs / Coaches cards: header with an Add link, attached rows
- * with remove buttons, and an empty state. */
-export function PackageListCard({
-  title,
-  items,
-  emptyLabel,
-  addLabel,
-  canAdd,
-  onAdd,
-  onRemove,
-}: {
-  title: string;
-  items: PackageListCardItem[];
-  emptyLabel: string;
-  addLabel: string;
-  canAdd: boolean;
-  onAdd: () => void;
-  onRemove: (id: string) => void;
-}) {
-  return (
-    <div className={cardClass}>
-      <div className="border-portal-border flex items-center justify-between border-b px-5 py-3.5">
-        <h2 className="text-portal-text1 text-sm font-bold">
-          {title} ({items.length})
-        </h2>
-        {canAdd && items.length > 0 && (
-          <button
-            type="button"
-            onClick={onAdd}
-            className="text-portal-orange flex cursor-pointer items-center gap-1 text-[13px] font-semibold">
-            <PlusIcon size={14} /> Add
-          </button>
-        )}
-      </div>
-      {items.length === 0 ? (
-        <div className="p-7 text-center">
-          <p className="text-portal-text3 mb-3 text-[13px]">{emptyLabel}</p>
-          {canAdd && (
-            <PortalButton variant="primary" size="sm" onClick={onAdd}>
-              {addLabel}
-            </PortalButton>
-          )}
-        </div>
-      ) : (
-        items.map((item) => (
-          <div
-            key={item.id}
-            className="border-portal-border flex items-center gap-3 border-b px-4 py-3 last:border-b-0">
-            {item.lead}
-            <div className="min-w-0 flex-1">
-              <div className="text-portal-text1 truncate text-[13px] font-semibold">
-                {item.title}
-              </div>
-              {item.sub && (
-                <div className="text-portal-text3 mt-0.5 text-[11px]">
-                  {item.sub}
-                </div>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => onRemove(item.id)}
-              aria-label={`Remove ${item.title}`}
-              className="border-portal-border flex h-[26px] w-[26px] flex-shrink-0 cursor-pointer items-center justify-center rounded-md border text-red-500 hover:bg-red-50">
-              <XIcon size={12} />
-            </button>
-          </div>
-        ))
-      )}
     </div>
   );
 }

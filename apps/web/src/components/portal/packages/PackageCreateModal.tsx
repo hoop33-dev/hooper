@@ -13,12 +13,9 @@ import {
 } from "@/src/lib/packages";
 import { useEffect, useState } from "react";
 import { LockIcon } from "../ui/icons";
+import { Modal } from "../ui/Modal";
 import { PortalButton } from "../ui/PortalButton";
-import {
-  packageFieldClass,
-  packageLabelClass,
-  PackageModal,
-} from "./PackageAtoms";
+import { packageFieldClass, packageLabelClass } from "./PackageAtoms";
 import { PackagePriceFields } from "./PackagePriceFields";
 
 export type PackageCreateFormData = PackagePricing & {
@@ -149,7 +146,7 @@ export function PackageCreateModal({
   }
 
   return (
-    <PackageModal title="Create package" onClose={onClose}>
+    <Modal title="Create package" onClose={onClose}>
       <div className="flex flex-col gap-[18px] overflow-y-auto px-6 py-6">
         <div>
           <label htmlFor="package-name" className={packageLabelClass}>
@@ -201,6 +198,6 @@ export function PackageCreateModal({
           {saving ? "Creating…" : "Create package"}
         </PortalButton>
       </div>
-    </PackageModal>
+    </Modal>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { AppLink } from "@/src/components/portal/ui/AppLink";
+import { formatSessionsPerWeek } from "@/src/lib/format";
 import type { ProgramSummary } from "@hooper/db";
 import { ProgramStatusBadge } from "./ProgramStatusBadge";
 
@@ -9,14 +10,6 @@ function formatUpdatedAt(iso: string): string {
     month: "short",
     day: "numeric",
   });
-}
-
-function formatSessionsPerWeek(
-  range: ProgramSummary["sessionsPerWeek"],
-): string {
-  if (!range) return "no sessions yet";
-  const [min, max] = range;
-  return min === max ? `${min}/wk` : `${min}-${max}/wk`;
 }
 
 function ProgramNameCell({ program }: { program: ProgramSummary }) {

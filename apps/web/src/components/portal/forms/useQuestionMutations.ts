@@ -30,6 +30,12 @@ export function useQuestionMutations({
   router,
 }: QuestionMutationsArgs) {
   const { showError } = useToast();
+  const handleToggleRequired = useRequiredToggle({
+    questions,
+    setQuestions,
+    actions,
+    router,
+  });
 
   async function handleAddQuestion() {
     const nextPosition =
@@ -52,8 +58,12 @@ export function useQuestionMutations({
     }
   }
 
-  async function handleSaveQuestion(data: UpdateFormQuestionInput) {
-    if (!editingQuestion) return;
+  /** Resolves true once saved (and the editor closed), false if the save
+   * failed and the editor stayed open — "Add another" chains on it. */
+  async function handleSaveQuestion(
+    data: UpdateFormQuestionInput,
+  ): Promise<boolean> {
+    if (!editingQuestion) return false;
     const id = editingQuestion.id;
     const rollback = questions;
     setQuestions((prev) =>
@@ -80,11 +90,12 @@ export function useQuestionMutations({
       );
       setEditingQuestion(null);
       router.refresh();
-    } else {
-      // Leave the editor open with the user's changes intact.
-      setQuestions(rollback);
-      showError(result.error ?? "Couldn't save your changes.");
+      return true;
     }
+    // Leave the editor open with the user's changes intact.
+    setQuestions(rollback);
+    showError(result.error ?? "Couldn't save your changes.");
+    return false;
   }
 
   async function handleDeleteQuestion(id: string) {
@@ -102,5 +113,43 @@ export function useQuestionMutations({
     }
   }
 
-  return { handleAddQuestion, handleSaveQuestion, handleDeleteQuestion };
+  return {
+    handleAddQuestion,
+    handleSaveQuestion,
+    handleDeleteQuestion,
+    handleToggleRequired,
+  };
+}
+
+/** The row's Required/Optional chip — flips just `required`, without
+ * opening the editor. */
+function useRequiredToggle({
+  questions,
+  setQuestions,
+  actions,
+  router,
+}: Pick<
+  QuestionMutationsArgs,
+  "questions" | "setQuestions" | "actions" | "router"
+>) {
+  const { showError } = useToast();
+
+  return async function handleToggleRequired(
+    question: FormQuestionWithOptions,
+  ) {
+    const rollback = questions;
+    const required = !question.required;
+    setQuestions((prev) =>
+      prev.map((q) => (q.id === question.id ? { ...q, required } : q)),
+    );
+    const result = await actions.updateQuestionAction(question.id, {
+      required,
+    });
+    if (result.ok) {
+      router.refresh();
+    } else {
+      setQuestions(rollback);
+      showError(result.error ?? "Couldn't update the question.");
+    }
+  };
 }

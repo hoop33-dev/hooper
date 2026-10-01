@@ -13,6 +13,7 @@ import {
   HomeIcon,
   LayersIcon,
   LogOutIcon,
+  PackageIcon,
   StackIcon,
   UserIcon,
   UsersIcon,
@@ -91,6 +92,13 @@ const NAV_ITEMS: NavItem[] = [
     label: "Teams",
     href: "/teams",
     Icon: UsersIcon,
+    active: true,
+  },
+  {
+    id: "packages",
+    label: "Packages",
+    href: "/packages",
+    Icon: PackageIcon,
     active: true,
   },
   {

@@ -28,7 +28,7 @@ export function useProgramAttachments(
   async function setProgramFormId(
     programId: string,
     nextFormId: string | null,
-  ) {
+  ): Promise<ActionResult> {
     const previous = programs;
     setPrograms((prev) =>
       prev.map((p) => (p.id === programId ? { ...p, form_id: nextFormId } : p)),
@@ -36,17 +36,18 @@ export function useProgramAttachments(
     const result = await attachFormToProgramAction(programId, nextFormId);
     if (!result.ok) {
       setPrograms(previous);
-      return;
+      return { ok: false, error: result.error };
     }
     router.refresh();
+    return { ok: true };
   }
 
-  async function handleAttach(programId: string) {
-    await setProgramFormId(programId, formId);
+  function handleAttach(programId: string) {
+    return setProgramFormId(programId, formId);
   }
 
-  async function handleDetach(programId: string) {
-    await setProgramFormId(programId, null);
+  function handleDetach(programId: string) {
+    return setProgramFormId(programId, null);
   }
 
   return { programs, handleAttach, handleDetach };

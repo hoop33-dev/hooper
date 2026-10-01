@@ -12,7 +12,7 @@ const MIN_OPTIONS = 2;
  * the save request shape, so the modal component itself only renders. */
 export function useQuestionEditForm(
   question: FormQuestionWithOptions,
-  onSave: (data: UpdateFormQuestionInput) => Promise<void>,
+  onSave: (data: UpdateFormQuestionInput) => Promise<unknown>,
 ) {
   const [prompt, setPrompt] = useState(question.prompt);
   const [description, setDescription] = useState(question.description ?? "");

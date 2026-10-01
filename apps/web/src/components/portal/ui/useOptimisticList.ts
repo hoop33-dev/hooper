@@ -47,8 +47,8 @@ export function useOptimisticList<T extends { id: string }>(serverItems: T[]) {
     const result = await action();
     if (!result.ok) {
       // `rollback` is this render's snapshot, so it also undoes any sibling
-      // mutation that overlapped this one (AssignProgramsModal fires adds +
-      // removes through Promise.all). Refresh so the server's list — which
+      // mutation that overlapped this one (e.g. several SearchPickerModal
+      // adds in flight). Refresh so the server's list — which
       // did record those siblings — becomes the source of truth again.
       setItems(rollback);
       router.refresh();

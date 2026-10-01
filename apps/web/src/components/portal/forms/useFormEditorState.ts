@@ -67,16 +67,20 @@ export function useFormEditorState(
     setQuestions(form.questions);
   }, [form.questions]);
 
-  const { handleAddQuestion, handleSaveQuestion, handleDeleteQuestion } =
-    useQuestionMutations({
-      formId: form.id,
-      questions,
-      setQuestions,
-      editingQuestion,
-      setEditingQuestion,
-      actions,
-      router,
-    });
+  const {
+    handleAddQuestion,
+    handleSaveQuestion,
+    handleDeleteQuestion,
+    handleToggleRequired,
+  } = useQuestionMutations({
+    formId: form.id,
+    questions,
+    setQuestions,
+    editingQuestion,
+    setEditingQuestion,
+    actions,
+    router,
+  });
 
   /** Applies the new order immediately (before the server call resolves) so
    * the drop feels instant, then snaps back to the pre-drag order only if
@@ -118,6 +122,7 @@ export function useFormEditorState(
     handleAddQuestion,
     handleSaveQuestion,
     handleDeleteQuestion,
+    handleToggleRequired,
     handleReorder,
     handleAttach,
     handleDetach,

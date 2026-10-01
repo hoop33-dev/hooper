@@ -40,7 +40,7 @@ async function fetchAssignedPrograms(
  * the get_athlete_last_sign_ins migration comment), so last_sign_in_at is
  * fetched via that SECURITY DEFINER RPC instead of a direct table/view
  * query — it returns rows only when the caller is a coach. */
-async function fetchLastSignIns(
+export async function fetchLastSignIns(
   profileIds: string[],
 ): Promise<Result<Map<string, string | null>>> {
   const supabase = await createClient();

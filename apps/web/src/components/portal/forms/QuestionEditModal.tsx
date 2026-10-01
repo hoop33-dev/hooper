@@ -4,10 +4,11 @@ import { FORM_UNITS } from "@/src/constants/formUnits";
 import { cn } from "@/src/lib/cn";
 import type { UpdateFormQuestionInput } from "@/src/services/form.service";
 import type { FormQuestionUnit, FormQuestionWithOptions } from "@hooper/db";
+import { useRef } from "react";
+import { XIcon } from "../ui/icons";
+import { Modal, ModalFooter } from "../ui/Modal";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
-import { XIcon } from "../ui/icons";
-import { useModalDismiss } from "../ui/useModalDismiss";
 import { QuestionTypeSelector } from "./QuestionTypeSelector";
 import { useQuestionEditForm } from "./useQuestionEditForm";
 
@@ -16,8 +17,13 @@ const MAX_OPTIONS = 5;
 
 interface QuestionEditModalProps {
   question: FormQuestionWithOptions;
+  /** Shown under the title — the form's name. */
+  formName: string;
   onClose: () => void;
-  onSave: (data: UpdateFormQuestionInput) => Promise<void>;
+  /** Resolves true once saved; false keeps the modal open. */
+  onSave: (data: UpdateFormQuestionInput) => Promise<boolean>;
+  /** Saves, then starts a fresh question in the same modal. */
+  onSaveAndAddAnother: (data: UpdateFormQuestionInput) => Promise<void>;
 }
 
 type QuestionEditForm = ReturnType<typeof useQuestionEditForm>;
@@ -247,46 +253,45 @@ function QuestionEditFields({ form }: { form: QuestionEditForm }) {
 
 export function QuestionEditModal({
   question,
+  formName,
   onClose,
   onSave,
+  onSaveAndAddAnother,
 }: QuestionEditModalProps) {
-  const form = useQuestionEditForm(question, onSave);
-  const onBackdropClick = useModalDismiss(onClose);
+  // Which footer button started the save — the form hook only knows "save".
+  const addAnother = useRef(false);
+  const form = useQuestionEditForm(question, async (data) => {
+    if (addAnother.current) await onSaveAndAddAnother(data);
+    else await onSave(data);
+  });
+
+  function save(andAddAnother: boolean) {
+    addAnother.current = andAddAnother;
+    void form.handleSave();
+  }
 
   return (
-    <div
-      onClick={onBackdropClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-portal-card flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl shadow-2xl">
-        <div className="border-portal-border flex items-center justify-between border-b px-6 py-4">
-          <h2 className="font-title text-portal-text1 text-lg font-extrabold tracking-wide">
-            Edit question
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-portal-text3 hover:bg-portal-bg hover:text-portal-text1 flex h-8 w-8 items-center justify-center rounded-lg">
-            <XIcon size={16} />
-          </button>
-        </div>
-
-        <QuestionEditFields form={form} />
-
-        <div className="border-portal-border flex justify-end gap-2 border-t px-6 py-4">
-          <PortalButton
-            variant="ghost"
-            onClick={onClose}
-            disabled={form.saving}>
-            Cancel
-          </PortalButton>
-          <PortalButton
-            variant="primary"
-            onClick={form.handleSave}
-            disabled={form.saving || !form.isValid}>
-            {form.saving ? "Saving…" : "Save question"}
-          </PortalButton>
-        </div>
-      </div>
-    </div>
+    <Modal
+      title={question.prompt ? "Edit question" : "Add question"}
+      subtitle={formName}
+      onClose={onClose}>
+      <QuestionEditFields form={form} />
+      <ModalFooter>
+        <PortalButton variant="ghost" onClick={onClose} disabled={form.saving}>
+          Cancel
+        </PortalButton>
+        <PortalButton
+          onClick={() => save(true)}
+          disabled={form.saving || !form.isValid}>
+          Add another
+        </PortalButton>
+        <PortalButton
+          variant="primary"
+          onClick={() => save(false)}
+          disabled={form.saving || !form.isValid}>
+          {form.saving ? "Saving…" : "Save question"}
+        </PortalButton>
+      </ModalFooter>
+    </Modal>
   );
 }

@@ -166,6 +166,7 @@ function PackageDetailBody({
           {local.programs.map((p) => (
             <DetailRow
               key={p.id}
+              href={`/programs/${p.id}`}
               lead={<LetterTile name={p.name} />}
               title={p.name}
               sub={formatProgramSub(p)}

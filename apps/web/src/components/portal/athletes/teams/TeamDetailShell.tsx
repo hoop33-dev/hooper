@@ -148,6 +148,7 @@ function TeamCards({
         {members.map((m) => (
           <DetailRow
             key={m.id}
+            href={`/athletes/${m.id}`}
             lead={<AthleteAvatar profile={m} />}
             title={athleteName(m)}
             sub={memberSub(m)}
@@ -171,6 +172,7 @@ function TeamCards({
           return (
             <DetailRow
               key={p.id}
+              href={`/programs/${p.id}`}
               lead={<LetterTile name={p.name} />}
               title={p.name}
               sub={

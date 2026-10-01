@@ -1,6 +1,8 @@
 "use client";
 
+import { cn } from "@/src/lib/cn";
 import { Children, type ReactNode } from "react";
+import { AppLink } from "./AppLink";
 import { PlusIcon, XIcon } from "./icons";
 import { PortalButton } from "./PortalButton";
 
@@ -70,14 +72,18 @@ export function DetailRow({
   title,
   sub,
   trail,
+  href,
 }: {
   lead?: ReactNode;
   title: ReactNode;
   sub?: ReactNode;
   trail?: ReactNode;
+  /** Makes the whole row a link to the item's own page. The trail (e.g. the
+   * remove button) sits above the link so it stays clickable. */
+  href?: string;
 }) {
-  return (
-    <div className="border-portal-border flex items-center gap-3 border-b px-4 py-3 last:border-b-0">
+  const body = (
+    <>
       {lead}
       <div className="min-w-0 flex-1">
         <div className="text-portal-text1 truncate text-[13px] font-semibold">
@@ -89,7 +95,24 @@ export function DetailRow({
           </div>
         )}
       </div>
-      {trail}
+    </>
+  );
+  return (
+    <div
+      className={cn(
+        "border-portal-border relative flex items-center gap-3 border-b px-4 py-3 last:border-b-0",
+        href && "hover:bg-portal-bg",
+      )}>
+      {href ? (
+        <AppLink
+          href={href}
+          className="flex min-w-0 flex-1 items-center gap-3 after:absolute after:inset-0">
+          {body}
+        </AppLink>
+      ) : (
+        body
+      )}
+      {trail && <div className="relative z-10 flex-shrink-0">{trail}</div>}
     </div>
   );
 }

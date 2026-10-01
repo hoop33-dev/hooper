@@ -188,6 +188,7 @@ function ProgramRow({
 }) {
   return (
     <DetailRow
+      href={`/programs/${entry.id}`}
       lead={<LetterTile name={entry.name} />}
       title={entry.name}
       sub={
@@ -355,6 +356,7 @@ export function AthleteDetailShell({
               {links.local.teams.map((t) => (
                 <DetailRow
                   key={t.id}
+                  href={`/teams/${t.id}`}
                   lead={<TeamTile team={t} size={34} />}
                   title={t.name}
                   sub={plural(t.memberCount, "athlete")}

@@ -28,6 +28,10 @@ content_path = "./supabase/templates/recovery.html"
 [functions.send-account-exists-email]
 verify_jwt = false
 
+# Called by Stripe, authenticated by its Stripe-Signature header.
+[functions.stripe-webhook]
+verify_jwt = false
+
 # magic_link is retained as a fallback but is no longer triggered by any
 # Hooper code path — send-security-code uses admin.generateLink (no email sent
 # by Supabase) and send-account-exists-email uses Resend directly.

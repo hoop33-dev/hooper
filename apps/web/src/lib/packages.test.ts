@@ -114,6 +114,28 @@ describe("draftToPricing", () => {
     });
   });
 
+  it.each(["0", "0.01", "0.49"])("rejects %s as below the minimum", (price) => {
+    const result = draftToPricing({
+      price,
+      billing_type: "one_time",
+      billing_interval: "month",
+      access_weeks: "8",
+      unlimited_access: false,
+    });
+    expect(result).toEqual({ ok: false, error: "Minimum price is $0.50" });
+  });
+
+  it("accepts exactly the minimum", () => {
+    const result = draftToPricing({
+      price: "0.50",
+      billing_type: "recurring",
+      billing_interval: "month",
+      access_weeks: "8",
+      unlimited_access: false,
+    });
+    expect(result.ok && result.pricing.price_cents).toBe(50);
+  });
+
   it("rejects a zero access length", () => {
     const result = draftToPricing({
       price: "10",

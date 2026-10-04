@@ -34,6 +34,8 @@ function expiry(card: CardSummary) {
   return `${String(card.exp_month).padStart(2, "0")}/${String(card.exp_year).slice(-2)}`;
 }
 
+type Message = { tone: "ok" | "error"; text: string };
+
 type Mode =
   | { kind: "view" }
   | { kind: "loading" }
@@ -42,15 +44,15 @@ type Mode =
 export function PaymentMethodCard({
   card,
   error,
+  initialMessage,
 }: {
   card: CardSummary | null;
   error: string | null;
+  /** Outcome of a redirected (3DS) card update, from ./card-return. */
+  initialMessage: Message | null;
 }) {
   const [mode, setMode] = useState<Mode>({ kind: "view" });
-  const [message, setMessage] = useState<{
-    tone: "ok" | "error";
-    text: string;
-  } | null>(null);
+  const [message, setMessage] = useState<Message | null>(initialMessage);
 
   async function startEdit() {
     setMessage(null);
@@ -162,7 +164,11 @@ function UpdateCardForm({
 
     const { error: stripeError, setupIntent } = await stripe.confirmSetup({
       elements,
-      confirmParams: { return_url: `${window.location.origin}/account` },
+      // If the bank needs a redirect, this code never resumes — card-return
+      // sets the default card instead.
+      confirmParams: {
+        return_url: `${window.location.origin}/account/card-return`,
+      },
       redirect: "if_required",
     });
     if (stripeError || !setupIntent?.payment_method) {

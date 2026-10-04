@@ -77,6 +77,11 @@ export const DEFAULT_PRICING_DRAFT: PackagePricingDraft = {
   unlimited_access: false,
 };
 
+/** Stripe's minimum charge (NZ$0.50) — anything lower can never be paid
+ * for at checkout. Mirrors MIN_CHARGE_CENTS in
+ * supabase/functions/_shared/billingMath.ts. */
+export const MIN_PRICE_CENTS = 50;
+
 export function dollarsToCents(value: string): number | null {
   const trimmed = value.trim();
   if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return null;
@@ -106,6 +111,12 @@ export function draftToPricing(
 ): { ok: true; pricing: PackagePricing } | { ok: false; error: string } {
   const cents = dollarsToCents(draft.price);
   if (cents === null) return { ok: false, error: "Enter a valid price" };
+  if (cents < MIN_PRICE_CENTS) {
+    return {
+      ok: false,
+      error: `Minimum price is ${money(MIN_PRICE_CENTS)}`,
+    };
+  }
   if (draft.billing_type === "recurring") {
     return {
       ok: true,

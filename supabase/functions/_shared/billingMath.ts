@@ -1,6 +1,10 @@
 // Pure billing helpers shared by the Stripe edge functions. No imports, so
 // they can be unit-tested outside Deno.
 
+/** Smallest charge Stripe accepts for our currencies (NZ$0.50 and
+ * equivalents). Mirrors MIN_PRICE_CENTS in apps/web/src/lib/packages.ts. */
+export const MIN_CHARGE_CENTS = 50;
+
 export type PackageBillingType = "recurring" | "one_time";
 export type PackageBillingInterval = "week" | "month" | "quarter" | "year";
 

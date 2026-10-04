@@ -37,6 +37,13 @@ function isExpired(p: MyPackagePurchase) {
   );
 }
 
+/** Abandoned checkouts (incomplete, or expired without paying) aren't
+ * purchases from the user's point of view. Paid one-offs that have run out
+ * stay, labelled "Ended". */
+export function visiblePurchases(purchases: MyPackagePurchase[]) {
+  return purchases.filter((p) => p.paid_at !== null);
+}
+
 export function PackagesCard({
   purchases,
   error,
@@ -44,10 +51,7 @@ export function PackagesCard({
   purchases: MyPackagePurchase[];
   error: string | null;
 }) {
-  // Abandoned checkouts aren't purchases from the user's point of view.
-  const shown = purchases.filter(
-    (p) => p.status !== "incomplete" && p.status !== "expired",
-  );
+  const shown = visiblePurchases(purchases);
 
   return (
     <Card>

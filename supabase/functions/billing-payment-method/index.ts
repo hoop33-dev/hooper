@@ -4,6 +4,9 @@
 //   { action: "get" }                          → { card | null }
 //   { action: "create_setup_intent" }          → { clientSecret }
 //   { action: "set_default", paymentMethodId } → { card }
+//   { action: "complete_setup", setupIntentId } → { card }
+//     (after a 3DS redirect on card update, the client never ran
+//     set_default — the portal's return route calls this instead)
 // "Default" lives in two places in Stripe — the Customer's
 // invoice_settings (used for new subscriptions/one-off charges) and each
 // subscription's own default_payment_method (set by checkout's
@@ -31,7 +34,11 @@ Deno.serve(async (req: Request) => {
     const caller = await resolveCaller(req, admin);
     if (!caller) return json(401, { ok: false, error: "Unauthorized" });
 
-    let body: { action?: unknown; paymentMethodId?: unknown };
+    let body: {
+      action?: unknown;
+      paymentMethodId?: unknown;
+      setupIntentId?: unknown;
+    };
     try {
       body = await req.json();
     } catch {
@@ -66,33 +73,27 @@ Deno.serve(async (req: Request) => {
       if (typeof body.paymentMethodId !== "string") {
         return json(400, { ok: false, error: "Missing payment method" });
       }
-      const pm = await stripe.paymentMethods.retrieve(body.paymentMethodId);
-      const owner =
-        typeof pm.customer === "string" ? pm.customer : pm.customer?.id;
-      if (owner !== customer) {
-        return json(403, { ok: false, error: "Unknown payment method" });
-      }
+      return await makeDefault(customer, body.paymentMethodId);
+    }
 
-      await stripe.customers.update(customer, {
-        invoice_settings: { default_payment_method: pm.id },
-      });
-      const subs = await stripe.subscriptions.list({
-        customer,
-        status: "all",
-        limit: 100,
-      });
-      await Promise.all(
-        subs.data
-          .filter((s) =>
-            ["active", "past_due", "trialing", "unpaid"].includes(s.status),
-          )
-          .map((s) =>
-            stripe.subscriptions.update(s.id, {
-              default_payment_method: pm.id,
-            }),
-          ),
-      );
-      return json(200, { ok: true, card: cardSummary(pm) });
+    if (body.action === "complete_setup") {
+      if (typeof body.setupIntentId !== "string") {
+        return json(400, { ok: false, error: "Missing setup intent" });
+      }
+      const si = await stripe.setupIntents.retrieve(body.setupIntentId);
+      const owner =
+        typeof si.customer === "string" ? si.customer : si.customer?.id;
+      if (owner !== customer) {
+        return json(403, { ok: false, error: "Unknown setup intent" });
+      }
+      const pmId =
+        typeof si.payment_method === "string"
+          ? si.payment_method
+          : si.payment_method?.id;
+      if (si.status !== "succeeded" || !pmId) {
+        return json(400, { ok: false, error: "Couldn't save that card." });
+      }
+      return await makeDefault(customer, pmId);
     }
 
     return json(400, { ok: false, error: "Unknown action" });
@@ -101,6 +102,37 @@ Deno.serve(async (req: Request) => {
     return json(500, { ok: false, error: "Unable to load payment details." });
   }
 });
+
+/** Sets the card as the default in both places Stripe looks: the Customer's
+ * invoice_settings and every live subscription. Idempotent. */
+async function makeDefault(customer: string, paymentMethodId: string) {
+  const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+  const owner = typeof pm.customer === "string" ? pm.customer : pm.customer?.id;
+  if (owner !== customer) {
+    return json(403, { ok: false, error: "Unknown payment method" });
+  }
+
+  await stripe.customers.update(customer, {
+    invoice_settings: { default_payment_method: pm.id },
+  });
+  const subs = await stripe.subscriptions.list({
+    customer,
+    status: "all",
+    limit: 100,
+  });
+  await Promise.all(
+    subs.data
+      .filter((s) =>
+        ["active", "past_due", "trialing", "unpaid"].includes(s.status),
+      )
+      .map((s) =>
+        stripe.subscriptions.update(s.id, {
+          default_payment_method: pm.id,
+        }),
+      ),
+  );
+  return json(200, { ok: true, card: cardSummary(pm) });
+}
 
 /** The Customer's invoice default, falling back to the most recently added
  * card (a subscription-only checkout saves the card on the subscription,

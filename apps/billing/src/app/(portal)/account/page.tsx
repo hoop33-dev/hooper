@@ -10,7 +10,18 @@ import { DetailsCard } from "./DetailsCard";
 import { PackagesCard } from "./PackagesCard";
 import { PaymentMethodCard } from "./PaymentMethodCard";
 
-export default async function AccountPage() {
+/** Set by ./card-return after a redirected card update. */
+const CARD_RESULT = {
+  updated: { tone: "ok", text: "Card updated." },
+  failed: { tone: "error", text: "Couldn't save that card. Please try again." },
+} as const;
+
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ card?: string }>;
+}) {
+  const { card: cardResult } = await searchParams;
   const [profile, purchases, card] = await Promise.all([
     getMyProfile(),
     getMyPurchases(),
@@ -34,6 +45,11 @@ export default async function AccountPage() {
             <PaymentMethodCard
               card={card.ok ? card.data : null}
               error={card.ok ? null : card.error}
+              initialMessage={
+                cardResult === "updated" || cardResult === "failed"
+                  ? CARD_RESULT[cardResult]
+                  : null
+              }
             />
             <AppCard />
           </div>

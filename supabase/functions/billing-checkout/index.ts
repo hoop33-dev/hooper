@@ -10,6 +10,7 @@
 // partial unique index on live purchases makes a concurrent second request
 // fail fast instead of creating a duplicate subscription.
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { MIN_CHARGE_CENTS } from "../_shared/billingMath.ts";
 import {
   adminClient,
   type Caller,
@@ -43,7 +44,21 @@ type PurchaseRow = {
   amount_cents: number;
   stripe_subscription_id: string | null;
   stripe_payment_intent_id: string | null;
+  access_until: string | null;
+  created_at: string;
 };
+
+/** A claim row with no Stripe ref yet belongs to a request that's still
+ * creating its Stripe object. Past this age we assume that request died
+ * between the insert and setStripeRef and the row can be reclaimed. */
+const CLAIM_STALE_MS = 2 * 60 * 1000;
+
+const IN_PROGRESS = {
+  ok: false,
+  code: "in_progress",
+  error:
+    "A checkout for this package is already in progress. Refresh to continue.",
+} as const;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -81,17 +96,28 @@ Deno.serve(async (req: Request) => {
         error: "This package is no longer available.",
       });
     }
+    // Stripe rejects charges under ~NZ$0.50. The coach portal enforces this
+    // now, but packages saved before that can still be below it.
+    if (pkg.price_cents < MIN_CHARGE_CENTS) {
+      return json(200, {
+        ok: false,
+        code: "unavailable",
+        error: "This package can't be purchased right now. Contact your coach.",
+      });
+    }
 
-    const { data: live, error: liveError } = await admin
+    const { data: found, error: liveError } = await admin
       .from("package_purchases")
       .select(
-        "id, kind, status, amount_cents, stripe_subscription_id, stripe_payment_intent_id",
+        "id, kind, status, amount_cents, stripe_subscription_id, stripe_payment_intent_id, access_until, created_at",
       )
       .eq("athlete_profile_id", caller.profileId)
       .eq("package_id", pkg.id)
       .in("status", ["incomplete", "active", "past_due"])
       .maybeSingle<PurchaseRow>();
     if (liveError) throw new Error(liveError.message);
+
+    const live = found && (await retireIfElapsed(admin, found));
 
     if (live && live.status !== "incomplete") {
       return json(200, {
@@ -113,9 +139,37 @@ Deno.serve(async (req: Request) => {
   }
 });
 
+/** One-off access is evaluated at read time (package_program_ids), so an
+ * elapsed one-off row stays 'active' until something retires it. Expire it
+ * here so it frees the unique live slot and the athlete can buy again.
+ * Returns null when the row was retired. */
+async function retireIfElapsed(
+  admin: SupabaseClient,
+  row: PurchaseRow,
+): Promise<PurchaseRow | null> {
+  const now = new Date();
+  const elapsed =
+    row.kind === "one_time" &&
+    row.status === "active" &&
+    row.access_until !== null &&
+    new Date(row.access_until) <= now;
+  if (!elapsed) return row;
+
+  const { error } = await admin
+    .from("package_purchases")
+    .update({ status: "expired" })
+    .eq("id", row.id)
+    .eq("status", "active")
+    .lte("access_until", now.toISOString());
+  if (error) throw new Error(error.message);
+  return null;
+}
+
 /** Picks an abandoned 'incomplete' attempt back up if its Stripe object can
  * still be paid at the current price. Otherwise cancels it, marks the row
- * expired (freeing the unique slot) and returns null so a fresh one starts. */
+ * expired (freeing the unique slot) and returns null so a fresh one starts.
+ * A fresh claim with no Stripe ref yet is another request mid-flight, so
+ * that returns in_progress rather than racing it with a second object. */
 async function resume(
   admin: SupabaseClient,
   live: PurchaseRow,
@@ -171,12 +225,19 @@ async function resume(
       return { ...base, status: "processing" };
     }
     if (payable) await stripe.paymentIntents.cancel(pi.id);
+  } else if (
+    Date.now() - new Date(live.created_at).getTime() <
+    CLAIM_STALE_MS
+  ) {
+    return IN_PROGRESS;
   }
 
   const { error } = await admin
     .from("package_purchases")
     .update({ status: "expired" })
-    .eq("id", live.id);
+    .eq("id", live.id)
+    // Don't clobber a row the webhook activated while we were looking.
+    .eq("status", "incomplete");
   if (error) throw new Error(error.message);
   return null;
 }
@@ -199,14 +260,7 @@ async function start(admin: SupabaseClient, caller: Caller, pkg: PackageRow) {
     .single();
   if (claimError) {
     // 23505: a concurrent request already claimed this package.
-    if (claimError.code === "23505") {
-      return {
-        ok: false,
-        code: "in_progress",
-        error:
-          "A checkout for this package is already in progress. Refresh to continue.",
-      };
-    }
+    if (claimError.code === "23505") return IN_PROGRESS;
     throw new Error(claimError.message);
   }
 

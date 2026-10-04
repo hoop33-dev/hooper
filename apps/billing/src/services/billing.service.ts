@@ -20,7 +20,7 @@ export type CheckoutStart =
   | { status: "already_owned"; purchaseId: string };
 
 export type CheckoutError = {
-  code?: "not_found" | "in_progress";
+  code?: "not_found" | "in_progress" | "unavailable";
   message: string;
 };
 
@@ -85,7 +85,9 @@ export async function startCheckout(
       ok: false,
       error: {
         code:
-          payload.code === "not_found" || payload.code === "in_progress"
+          payload.code === "not_found" ||
+          payload.code === "in_progress" ||
+          payload.code === "unavailable"
             ? payload.code
             : undefined,
         message: payload.error ?? "Unable to start checkout.",
@@ -119,6 +121,19 @@ export async function setDefaultPaymentMethod(
   const res = await invoke<FnResponse & { card: CardSummary | null }>(
     "billing-payment-method",
     { action: "set_default", paymentMethodId },
+  );
+  if (!res.ok) return res;
+  return ok(res.data.card);
+}
+
+/** After a card-update redirect (3DS), make the SetupIntent's card the
+ * default — the client never got to run setDefaultPaymentMethod. */
+export async function completeSetupIntent(
+  setupIntentId: string,
+): Promise<Result<CardSummary | null>> {
+  const res = await invoke<FnResponse & { card: CardSummary | null }>(
+    "billing-payment-method",
+    { action: "complete_setup", setupIntentId },
   );
   if (!res.ok) return res;
   return ok(res.data.card);

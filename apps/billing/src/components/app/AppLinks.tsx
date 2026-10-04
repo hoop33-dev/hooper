@@ -1,5 +1,6 @@
 "use client";
 
+import { AppleIcon, GooglePlayIcon } from "@/src/components/icons";
 import { cn } from "@/src/lib/cn";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -26,10 +27,12 @@ export function AppQr({ size = 124 }: { size?: number }) {
 export function StoreBadges({ dark = true }: { dark?: boolean }) {
   return (
     <div className="flex flex-wrap gap-2.5">
-      {[
-        ["Download on the", "App Store"],
-        ["Get it on", "Google Play"],
-      ].map(([pre, store]) => (
+      {(
+        [
+          ["Download on the", "App Store", AppleIcon],
+          ["Get it on", "Google Play", GooglePlayIcon],
+        ] as const
+      ).map(([pre, store, Icon]) => (
         <a
           key={store}
           href={APP_LINK}
@@ -39,11 +42,9 @@ export function StoreBadges({ dark = true }: { dark?: boolean }) {
             "flex items-center gap-[9px] rounded-[9px] border px-3.5 py-2",
             dark ? "border-white/20" : "border-bp-border",
           )}>
-          <div
-            className={cn(
-              "size-[18px] shrink-0 rounded",
-              dark ? "bg-white/15" : "bg-bp-bg",
-            )}
+          <Icon
+            size={18}
+            className={cn("shrink-0", dark ? "text-white" : "text-bp-text1")}
           />
           <div>
             <div

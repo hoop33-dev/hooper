@@ -6,6 +6,7 @@ import {
   LogoutIcon,
   SettingsIcon,
 } from "@/src/components/icons";
+import { LogoMark } from "@/src/components/ui/Logo";
 import { Avatar, Title } from "@/src/components/ui/primitives";
 import { cn } from "@/src/lib/cn";
 import Link from "next/link";
@@ -20,7 +21,9 @@ const NAV = [
 export type ShellUser = { name: string; initials: string; label: string };
 
 /** Light portal chrome: dark app-promo bar, dark sidebar (desktop) or bottom
- * nav (mobile), light content area. */
+ * nav (mobile), light content area. On desktop the shell is pinned to the
+ * viewport and only the content column scrolls, so the sidebar fills exactly
+ * the space under the app bar. */
 export function Shell({
   user,
   active,
@@ -31,11 +34,11 @@ export function Shell({
   children: ReactNode;
 }) {
   return (
-    <div className="bg-bp-bg flex min-h-screen flex-col font-sans">
+    <div className="bg-bp-bg flex min-h-screen flex-col font-sans md:h-dvh md:min-h-0">
       <AppBar />
-      <div className="flex flex-1">
+      <div className="flex flex-1 md:min-h-0">
         <Sidebar user={user} active={active} />
-        <div className="flex min-w-0 flex-1 flex-col pb-[62px] md:pb-0">
+        <div className="flex min-w-0 flex-1 flex-col pb-[62px] md:overflow-y-auto md:pb-0">
           {children}
         </div>
       </div>
@@ -69,11 +72,9 @@ function AppBar() {
 
 function Sidebar({ user, active }: { user: ShellUser; active: string }) {
   return (
-    <aside className="bg-ink sticky top-0 hidden h-screen w-[218px] shrink-0 flex-col md:flex">
+    <aside className="bg-ink hidden w-[218px] shrink-0 flex-col md:flex">
       <div className="flex items-center gap-2.5 border-b border-white/[0.06] px-5 pt-4 pb-3.5">
-        <div className="bg-orange flex size-7 items-center justify-center rounded-lg text-white">
-          <DumbbellIcon size={15} />
-        </div>
+        <LogoMark size={28} />
         <span className="font-title tracking-title text-[17px] font-black text-white uppercase">
           Hooper
         </span>

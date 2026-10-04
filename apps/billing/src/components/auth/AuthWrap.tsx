@@ -1,4 +1,5 @@
-import { ChevronIcon, DumbbellIcon } from "@/src/components/icons";
+import { ChevronIcon } from "@/src/components/icons";
+import { LogoMark } from "@/src/components/ui/Logo";
 import { cn } from "@/src/lib/cn";
 import type { ReactNode } from "react";
 
@@ -17,9 +18,7 @@ export function AuthWrap({
   return (
     <div className="bg-dk-bg flex min-h-screen flex-col font-sans">
       <header className="flex shrink-0 items-center gap-2.5 px-5 pt-5 md:px-8 md:pt-[26px]">
-        <div className="bg-orange flex size-[30px] items-center justify-center rounded-lg text-white">
-          <DumbbellIcon size={16} />
-        </div>
+        <LogoMark size={30} />
         <span className="font-title tracking-title text-[19px] font-black text-white uppercase">
           Hooper
         </span>

@@ -64,11 +64,11 @@ export function CheckoutClient({
 }
 
 async function begin(slug: string, setState: (s: State) => void) {
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 6; attempt++) {
     const res = await startCheckoutAction(slug);
     if (res.ok) return setState({ kind: "ready", start: res.data });
-    // A parallel request (another tab, a double mount) holds the claim for a
-    // moment — retry and we'll resume its attempt.
+    // A parallel request (another tab, a double mount) holds the claim while
+    // it creates its Stripe object — retry and we'll resume its attempt.
     if (res.error.code !== "in_progress") {
       return setState({ kind: "error", message: res.error.message });
     }

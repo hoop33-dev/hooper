@@ -1,6 +1,6 @@
 import type { MyPackagePurchase } from "@hooper/db";
 import { describe, expect, it } from "vitest";
-import { accessLine } from "./PackagesCard";
+import { accessLine, visiblePurchases } from "./PackagesCard";
 
 const base: MyPackagePurchase = {
   id: "p1",
@@ -40,5 +40,24 @@ describe("accessLine", () => {
         current_period_end: "2026-11-01T00:00:00Z",
       }),
     ).toMatch(/^Renews /);
+  });
+});
+
+describe("visiblePurchases", () => {
+  const paid = "2026-10-01T00:00:00Z";
+  it("hides unpaid incomplete and abandoned expired attempts", () => {
+    expect(
+      visiblePurchases([
+        { ...base, id: "a", status: "incomplete" },
+        { ...base, id: "b", status: "expired" },
+      ]),
+    ).toEqual([]);
+  });
+  it("keeps a paid one-off after it has been retired as expired", () => {
+    const rows = visiblePurchases([
+      { ...base, id: "old", status: "expired", paid_at: paid },
+      { ...base, id: "new", status: "active", paid_at: paid },
+    ]);
+    expect(rows.map((r) => r.id)).toEqual(["old", "new"]);
   });
 });

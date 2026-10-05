@@ -1,5 +1,5 @@
 import type { SessionTemplateSummary } from "@hooper/db";
-import { AppLink } from "../ui/AppLink";
+import { AppLink } from "@hooper/shared/next";
 
 function formatUpdatedAt(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {

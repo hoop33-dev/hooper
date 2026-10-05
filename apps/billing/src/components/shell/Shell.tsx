@@ -9,7 +9,7 @@ import {
 import { MobileLinks, SidebarLinks } from "@/src/components/shell/NavLinks";
 import { LogoMark } from "@/src/components/ui/Logo";
 import { Avatar, Title } from "@/src/components/ui/primitives";
-import Link from "next/link";
+import { AppLink } from "@hooper/shared/next";
 import type { ReactNode } from "react";
 
 export type ShellUser = { name: string; initials: string; label: string };
@@ -153,7 +153,7 @@ export function TopBar({
   );
 }
 
-function BackStrip({
+export function BackStrip({
   back,
   crumbs,
 }: {
@@ -162,14 +162,14 @@ function BackStrip({
 }) {
   return (
     <div className="border-bp-border bg-bp-card flex h-[42px] shrink-0 items-center justify-between gap-3.5 border-b px-4 md:h-[46px] md:px-7">
-      <Link
+      <AppLink
         href={back.href}
         className="text-bp-text1 flex min-w-0 items-center gap-[9px]">
         <ChevronIcon size={16} dir="left" />
         <span className="text-[11.5px] font-bold tracking-[0.12em] uppercase">
           {back.label}
         </span>
-      </Link>
+      </AppLink>
       {crumbs && (
         <nav
           aria-label="Breadcrumb"
@@ -180,11 +180,11 @@ function BackStrip({
               className="flex min-w-0 items-center gap-2 text-[12.5px]">
               {i > 0 && <span className="text-bp-text3">/</span>}
               {c.href ? (
-                <Link
+                <AppLink
                   href={c.href}
                   className="text-bp-text2 truncate font-medium">
                   {c.label}
-                </Link>
+                </AppLink>
               ) : (
                 <span className="text-bp-text1 truncate font-bold">
                   {c.label}

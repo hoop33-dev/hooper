@@ -1,6 +1,6 @@
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { UsersIcon } from "@/src/components/portal/ui/icons";
 import type { ProgramDashboardRow as ProgramDashboardRowData } from "@hooper/db";
+import { AppLink } from "@hooper/shared/next";
 
 export function ProgramDashboardRow({
   program,

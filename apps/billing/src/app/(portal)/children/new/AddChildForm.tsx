@@ -8,6 +8,7 @@ import {
 import { Btn, BtnLink } from "@/src/components/ui/Btn";
 import { Card, Label } from "@/src/components/ui/primitives";
 import type { ChildFormFields, FieldErrors } from "@/src/lib/validation";
+import { useReportNavPending } from "@hooper/shared/next";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 
@@ -17,6 +18,7 @@ export function AddChildForm() {
   const [errors, setErrors] = useState<FieldErrors<keyof ChildFormFields>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  useReportNavPending(pending);
 
   function submit(e: FormEvent) {
     e.preventDefault();

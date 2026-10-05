@@ -1,7 +1,7 @@
 "use client";
 
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { FormSummary } from "@hooper/db";
+import { AppLink } from "@hooper/shared/next";
 
 function formatUpdatedAt(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {

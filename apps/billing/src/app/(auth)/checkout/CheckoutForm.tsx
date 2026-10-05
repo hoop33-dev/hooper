@@ -19,6 +19,7 @@ import {
 import { formatMoney } from "@/src/lib/format";
 import type { ChildFormFields, FieldErrors } from "@/src/lib/validation";
 import type { MyChild } from "@hooper/db";
+import { useReportNavPending } from "@hooper/shared/next";
 import {
   PaymentElement,
   useElements,
@@ -26,7 +27,7 @@ import {
 } from "@stripe/react-stripe-js";
 import type { Stripe, StripeElements } from "@stripe/stripe-js";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 import { startCheckoutAction } from "./actions";
 
 type Props = {
@@ -128,6 +129,10 @@ function usePay(props: Props, child: ChildFormFields) {
   const { slug, choice, childList, onChildCreated } = props;
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  // The push to /welcome waits on its RSC payload; keep Pay locked and the top
+  // bar running until it lands.
+  const [navigating, startNav] = useTransition();
+  useReportNavPending(navigating);
   const [error, setError] = useState<string | null>(null);
   const [childErrors, setChildErrors] = useState<
     FieldErrors<keyof ChildFormFields>
@@ -157,7 +162,8 @@ function usePay(props: Props, child: ChildFormFields) {
         );
       }
       const welcome = `/welcome?purchase=${data.purchaseId}&package=${slug}`;
-      if (data.status === "processing") return router.push(welcome);
+      if (data.status === "processing")
+        return startNav(() => router.push(welcome));
 
       const { error: payError } = await stripe.confirmPayment({
         elements,
@@ -169,7 +175,7 @@ function usePay(props: Props, child: ChildFormFields) {
         return setError(
           payError.message ?? "Payment failed. Please try again.",
         );
-      router.push(welcome);
+      startNav(() => router.push(welcome));
     } finally {
       setBusy(false);
     }
@@ -206,7 +212,7 @@ function usePay(props: Props, child: ChildFormFields) {
     return { id: c.id, firstName: c.firstName };
   }
 
-  return { run, busy, error, childErrors };
+  return { run, busy: busy || navigating, error, childErrors };
 }
 
 /** A parallel request (another tab, a double click) can hold the purchase

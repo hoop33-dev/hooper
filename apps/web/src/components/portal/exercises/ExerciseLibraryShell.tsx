@@ -1,6 +1,5 @@
 "use client";
 
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type {
   ExerciseCategoryRow,
   ExerciseStyleRow,
@@ -8,6 +7,7 @@ import type {
   ExerciseWithDetails,
   UnitTypeRow,
 } from "@hooper/db";
+import { AppLink } from "@hooper/shared/next";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { filterExercises } from "../programs/exerciseFilter";

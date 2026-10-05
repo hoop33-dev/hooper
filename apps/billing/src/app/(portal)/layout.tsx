@@ -15,7 +15,6 @@ export default async function PortalLayout({
 
   return (
     <Shell
-      active="/account"
       user={{
         name: fullName(firstName, lastName) || username || "Your account",
         initials: initials(firstName, lastName),

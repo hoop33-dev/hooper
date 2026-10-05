@@ -20,7 +20,7 @@ function usePurchasePhase(purchaseId: string | null, redirectFailed: boolean) {
     if (redirectFailed) return "failed";
     return purchaseId ? "confirming" : "none";
   });
-  const [packageName, setPackageName] = useState<string | null>(null);
+  const [info, setInfo] = useState<PurchaseInfo | null>(null);
 
   useEffect(() => {
     if (!purchaseId || redirectFailed) return;
@@ -32,7 +32,7 @@ function usePurchasePhase(purchaseId: string | null, redirectFailed: boolean) {
       tries++;
       const res = await purchaseStatusAction(purchaseId!);
       if (cancelled) return;
-      if (res) setPackageName(res.packageName);
+      if (res) setInfo({ packageName: res.packageName, child: res.child });
       if (res?.status === "active" || res?.status === "past_due") {
         setPhase("active");
         return;
@@ -50,7 +50,32 @@ function usePurchasePhase(purchaseId: string | null, redirectFailed: boolean) {
     };
   }, [purchaseId, redirectFailed]);
 
-  return { phase, packageName };
+  return { phase, info };
+}
+
+type PurchaseInfo = {
+  packageName: string;
+  child: { firstName: string | null; username: string | null } | null;
+};
+
+/** Hero copy once the purchase is confirmed (or slow to confirm). */
+export function welcomeSub(
+  phase: "active" | "slow" | "none",
+  info: PurchaseInfo | null,
+) {
+  if (phase === "slow") {
+    return "Your payment is processing. The package will appear in the app within a few minutes — we'll email you a receipt.";
+  }
+  if (!info) {
+    return "Your account is ready. Now get the app — that's where the training happens.";
+  }
+  const { packageName, child } = info;
+  if (child) {
+    const name = child.firstName || "Your child";
+    const login = child.username ? ` with the username @${child.username}` : "";
+    return `${name}'s ${packageName} is live. ${name} signs in to the Hooper app${login} — share the code below with them.`;
+  }
+  return `${packageName} is live. Now get the app — that's where the training happens.`;
 }
 
 export function WelcomeClient({
@@ -62,7 +87,7 @@ export function WelcomeClient({
   slug: string | null;
   redirectFailed: boolean;
 }) {
-  const { phase, packageName } = usePurchasePhase(purchaseId, redirectFailed);
+  const { phase, info } = usePurchasePhase(purchaseId, redirectFailed);
 
   if (phase === "failed") {
     return (
@@ -94,12 +119,7 @@ export function WelcomeClient({
     );
   }
 
-  const sub =
-    phase === "slow"
-      ? "Your payment is processing. Your package will appear in the app within a few minutes — we'll email you a receipt."
-      : packageName
-        ? `${packageName} is live. Now get the app — that's where the training happens.`
-        : "Your account is ready. Now get the app — that's where the training happens.";
+  const sub = welcomeSub(phase, info);
 
   return (
     <>

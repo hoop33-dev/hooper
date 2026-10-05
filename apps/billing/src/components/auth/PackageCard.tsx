@@ -111,7 +111,7 @@ export function PackageCard({
           <div>
             <div className="text-[13px] text-white/60">Total today</div>
             <div className="text-[11px] text-white/40">
-              NZD · incl. GST {formatMoney(gstOfCents(pkg.price_cents))}
+              NZD, incl. GST {formatMoney(gstOfCents(pkg.price_cents))}
             </div>
           </div>
           <Money className="text-[26px] text-white">

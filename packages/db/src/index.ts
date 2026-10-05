@@ -14,6 +14,7 @@ export type {
   FormQuestionRow,
   FormQuestionType,
   FormRow,
+  MyChild,
   MyPackagePurchase,
   PackageBillingInterval,
   PackageBillingType,

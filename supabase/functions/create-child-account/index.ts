@@ -1,8 +1,12 @@
 // Deploy: supabase functions deploy create-child-account
 //
-// Requires a valid JWT (parent must be authenticated). Uses the service-role
-// client to create a child account with email_confirm: true so the child
-// never needs email verification (fake email, subdomain we control).
+// Requires a valid JWT. Any adult account (real email, not itself a managed
+// child) may add a child — there's no separate "parent" account type. Uses
+// the service-role client to create the child with email_confirm: true so the
+// child never needs email verification (fake email, subdomain we control).
+// After linking, the caller gets the `parent` role as a marker meaning "has
+// children" (a no-op if they already have it). Called by the mobile app and
+// the billing portal.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -14,7 +18,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const PASSWORD_RULE = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+// Mirrors PASSWORD_RULE in packages/shared/src/passwordRules.ts.
+const PASSWORD_RULE = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -88,14 +93,16 @@ Deno.serve(async (req: Request) => {
     return json(400, {
       ok: false,
       field: "password",
-      error: "Password must be ≥8 chars with an uppercase letter and a number",
+      error:
+        "Min 8 characters with an uppercase letter, a number, and a special character",
     });
   }
 
-  // Look up caller's profile and confirm they are a parent
+  // Look up the caller. Children (fake-email accounts, or anyone who is
+  // themselves managed by a guardian) can't add children of their own.
   const { data: callerProfile, error: profileError } = await admin
     .from("profiles")
-    .select("id, region_id")
+    .select("id, region_id, has_real_email")
     .eq("auth_user_id", callerUser.id)
     .single();
 
@@ -103,15 +110,21 @@ Deno.serve(async (req: Request) => {
     return json(401, { ok: false, error: "Unauthorized" });
   }
 
-  const { data: roleRow, error: roleError } = await admin
-    .from("user_roles")
-    .select("role")
-    .eq("profile_id", callerProfile.id)
-    .eq("role", "parent")
+  const { data: managedLink, error: managedError } = await admin
+    .from("parent_player_links")
+    .select("id")
+    .eq("player_profile_id", callerProfile.id)
+    .eq("status", "active")
     .maybeSingle();
 
-  if (roleError || !roleRow) {
-    return json(403, { ok: false, error: "Only parents can add children" });
+  if (managedError) {
+    return json(500, { ok: false, error: "Unable to create child account" });
+  }
+  if (!callerProfile.has_real_email || managedLink) {
+    return json(403, {
+      ok: false,
+      error: "This account can't add children",
+    });
   }
 
   // Check username availability
@@ -132,12 +145,12 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Resolve region slug
-  let resolvedRegionSlug: string;
+  // Resolve region slug: explicit, else inherit the caller's. Accounts made
+  // in the billing portal have no region, so the child may have none too.
+  let resolvedRegionSlug: string | null = null;
   if (typeof regionSlug === "string" && regionSlug.trim()) {
     resolvedRegionSlug = regionSlug.trim();
-  } else {
-    // Inherit parent's region
+  } else if (callerProfile.region_id) {
     const { data: regionRow, error: regionErr } = await admin
       .from("regions")
       .select("slug")
@@ -181,7 +194,7 @@ Deno.serve(async (req: Request) => {
   // Read back the new profile id (trigger fires synchronously)
   const { data: newProfile, error: newProfileError } = await admin
     .from("profiles")
-    .select("id, first_name, last_name, username")
+    .select("id, first_name, last_name, username, date_of_birth")
     .eq("auth_user_id", newAuthUserId)
     .single();
 
@@ -201,6 +214,18 @@ Deno.serve(async (req: Request) => {
     return json(500, { ok: false, error: "Unable to create child account" });
   }
 
+  // Mark the caller as having children. Best-effort: the child and link
+  // already exist, and the marker is only an optimisation for lookups.
+  const { error: roleError } = await admin
+    .from("user_roles")
+    .upsert(
+      { profile_id: callerProfile.id, role: "parent" },
+      { onConflict: "profile_id,role", ignoreDuplicates: true },
+    );
+  if (roleError) {
+    console.error("create-child-account: parent role upsert failed", roleError);
+  }
+
   return json(200, {
     ok: true,
     child: {
@@ -208,6 +233,7 @@ Deno.serve(async (req: Request) => {
       firstName: newProfile.first_name,
       lastName: newProfile.last_name,
       username: newProfile.username,
+      dateOfBirth: newProfile.date_of_birth,
     },
   });
 });

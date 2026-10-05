@@ -155,7 +155,7 @@ function ResendRow({
             Resend
           </button>
         )}
-        <span className="text-white/40"> · check spam</span>
+        <span className="text-white/40"> - check spam</span>
       </span>
       <Link href={backHref} className="text-white/60 underline">
         {backLabel}

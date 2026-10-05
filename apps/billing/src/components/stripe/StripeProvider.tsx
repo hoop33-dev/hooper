@@ -94,6 +94,42 @@ export function StripeProvider({
   );
 }
 
+/** Payment Element without an intent yet ("deferred intent"): the form
+ * renders from the amount alone, and the PaymentIntent / Subscription is
+ * created only when the user presses Pay — after they've chosen who the
+ * purchase is for. The options here must match what billing-checkout creates
+ * (card only; one-off payments save the card off-session). */
+export function DeferredStripeProvider({
+  mode,
+  amountCents,
+  currency,
+  children,
+}: {
+  mode: "subscription" | "payment";
+  amountCents: number;
+  currency: string;
+  children: ReactNode;
+}) {
+  return (
+    <Elements
+      stripe={getStripe()}
+      options={{
+        mode,
+        amount: amountCents,
+        currency: currency.toLowerCase(),
+        allowedPaymentMethodTypes: ["card"],
+        ...(mode === "payment"
+          ? { setupFutureUsage: "off_session" as const }
+          : {}),
+        appearance: DARK,
+        fonts: [{ cssSrc: FONT_CSS }],
+        loader: "never",
+      }}>
+      {children}
+    </Elements>
+  );
+}
+
 /** Card only for v1 — Apple Pay / Google Pay come later. */
 export const PAYMENT_ELEMENT_OPTIONS = {
   layout: "tabs" as const,

@@ -174,3 +174,29 @@ export function AuthLink({
     </a>
   );
 }
+
+/** Orange-filled radio dot used in the dark pickers (design `Radio`). */
+export function Radio({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex size-[19px] shrink-0 items-center justify-center rounded-full border-[1.5px]",
+        on ? "border-orange bg-orange" : "border-white/10 bg-transparent",
+      )}>
+      {on && (
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 14 14"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round">
+          <path d="M2 7l3.5 3.5L12 3" />
+        </svg>
+      )}
+    </span>
+  );
+}

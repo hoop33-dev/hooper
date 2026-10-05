@@ -34,11 +34,7 @@ export function RosterCard({
     ...[...purchasesByChild.values()].flat(),
   ];
   const totals = householdTotals(all);
-  const withPackages =
-    (self ? 1 : 0) +
-    childList.filter((c) =>
-      (purchasesByChild.get(c.profile_id) ?? []).some((p) => isLive(p)),
-    ).length;
+  const livePackages = all.filter((p) => isLive(p)).length;
 
   return (
     <div className="border-bp-border bg-bp-card min-w-0 overflow-hidden rounded-xl border">
@@ -47,7 +43,8 @@ export function RosterCard({
         <span className="text-bp-text3 text-[12.5px]">
           {self && "You + "}
           {childList.length} {childList.length === 1 ? "child" : "children"}
-          {!purchasesError && ` with ${withPackages} packages`}
+          {!purchasesError &&
+            ` with ${livePackages} ${livePackages === 1 ? "package" : "packages"} total`}
         </span>
       </div>
       <ul>

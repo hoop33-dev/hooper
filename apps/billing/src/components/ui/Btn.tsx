@@ -1,5 +1,5 @@
 import { cn } from "@/src/lib/cn";
-import Link from "next/link";
+import { AppLink } from "@hooper/shared/next";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 /** The design's `Btn`: primary (orange), dark, ghost (white card), quiet
@@ -95,9 +95,11 @@ export function BtnLink({
   children: ReactNode;
 }) {
   return (
-    <Link href={href} className={btnClass({ variant, size, full, className })}>
+    <AppLink
+      href={href}
+      className={btnClass({ variant, size, full, className })}>
       {children}
-    </Link>
+    </AppLink>
   );
 }
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/src/lib/cn";
 import { usePathname } from "next/navigation";
 import {
   createContext,
@@ -93,10 +92,13 @@ export function useReportNavPending(isPending: boolean): void {
 }
 
 /**
- * Thin 2px bar pinned to the top of the portal. Creeps toward 90% while a
+ * Thin 2px bar pinned to the top of the page. Creeps toward 90% while a
  * navigation is pending, then snaps to 100% and fades.
+ *
+ * Layout is inline so this package needs no Tailwind scanning; the app passes
+ * its own colour utility via `className` (e.g. `bg-orange`).
  */
-export function TopProgressBar() {
+export function TopProgressBar({ className }: { className: string }) {
   const { pending } = useNavProgress();
   const [width, setWidth] = useState(0);
   const [visible, setVisible] = useState(false);
@@ -125,13 +127,23 @@ export function TopProgressBar() {
   return (
     <div
       aria-hidden
-      className={cn(
-        "pointer-events-none fixed inset-x-0 top-0 z-[200] h-0.5 transition-opacity duration-200",
-        visible ? "opacity-100" : "opacity-0",
-      )}>
+      style={{
+        pointerEvents: "none",
+        position: "fixed",
+        insetInline: 0,
+        top: 0,
+        zIndex: 200,
+        height: 2,
+        opacity: visible ? 1 : 0,
+        transition: "opacity 200ms",
+      }}>
       <div
-        className="bg-portal-orange h-full transition-[width] duration-300 ease-out"
-        style={{ width: `${width}%` }}
+        className={className}
+        style={{
+          height: "100%",
+          width: `${width}%`,
+          transition: "width 300ms ease-out",
+        }}
       />
     </div>
   );

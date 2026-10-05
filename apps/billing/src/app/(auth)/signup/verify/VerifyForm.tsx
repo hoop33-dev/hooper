@@ -5,7 +5,7 @@ import { CODE_LENGTH, CodeInput } from "@/src/components/auth/CodeInput";
 import { MailIcon } from "@/src/components/icons";
 import { Btn } from "@/src/components/ui/Btn";
 import { withPackage } from "@/src/lib/routes";
-import Link from "next/link";
+import { AppLink } from "@hooper/shared/next";
 import { useEffect, useState, useTransition } from "react";
 import { resendCodeAction, verifyCodeAction } from "../../actions";
 
@@ -157,9 +157,9 @@ function ResendRow({
         )}
         <span className="text-white/40"> - check spam</span>
       </span>
-      <Link href={backHref} className="text-white/60 underline">
+      <AppLink href={backHref} className="text-white/60 underline">
         {backLabel}
-      </Link>
+      </AppLink>
     </div>
   );
 }

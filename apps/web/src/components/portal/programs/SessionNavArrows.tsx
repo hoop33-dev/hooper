@@ -1,5 +1,5 @@
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { SessionRow } from "@hooper/db";
+import { AppLink } from "@hooper/shared/next";
 import { ChevronLeftIcon, ChevronRightIcon } from "../ui/icons";
 
 interface SessionNavArrowsProps {

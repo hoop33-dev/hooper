@@ -2,7 +2,7 @@
 
 import { SettingsIcon, UsersIcon } from "@/src/components/icons";
 import { cn } from "@/src/lib/cn";
-import Link from "next/link";
+import { AppLink } from "@hooper/shared/next";
 import { usePathname } from "next/navigation";
 
 /** Portal nav, in the design's order. Overview, Payments and Activity slot
@@ -24,7 +24,7 @@ export function SidebarLinks() {
       {NAV.map(({ href, label, Icon }) => {
         const on = isActive(href);
         return (
-          <Link
+          <AppLink
             key={href}
             href={href}
             aria-current={on ? "page" : undefined}
@@ -36,7 +36,7 @@ export function SidebarLinks() {
             )}>
             <Icon size={17} className={on ? "text-orange" : "text-white/40"} />
             {label}
-          </Link>
+          </AppLink>
         );
       })}
     </nav>
@@ -50,7 +50,7 @@ export function MobileLinks() {
       {NAV.map(({ href, label, Icon }) => {
         const on = isActive(href);
         return (
-          <Link
+          <AppLink
             key={href}
             href={href}
             aria-current={on ? "page" : undefined}
@@ -63,7 +63,7 @@ export function MobileLinks() {
               )}>
               {label}
             </span>
-          </Link>
+          </AppLink>
         );
       })}
     </>

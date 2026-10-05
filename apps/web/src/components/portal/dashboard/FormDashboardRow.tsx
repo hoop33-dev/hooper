@@ -1,5 +1,5 @@
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { FormDashboardRow as FormDashboardRowData } from "@hooper/db";
+import { AppLink } from "@hooper/shared/next";
 
 export function FormDashboardRow({ form }: { form: FormDashboardRowData }) {
   return (

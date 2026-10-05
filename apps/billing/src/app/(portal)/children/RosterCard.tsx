@@ -4,7 +4,7 @@ import { formatMoney, fullName, initials } from "@/src/lib/format";
 import { cycleLabel, householdTotals, isLive } from "@/src/lib/household";
 import { statusTag } from "@/src/lib/purchases";
 import type { MyChild, MyPackagePurchase } from "@hooper/db";
-import Link from "next/link";
+import { AppLink } from "@hooper/shared/next";
 
 const TONES = ["orange", "navy", "slate", "blue"] as const;
 
@@ -86,7 +86,7 @@ function RosterRow({
   const needsFix = purchases.some((p) => p.status === "past_due");
   return (
     <li className="border-bp-border border-b">
-      <Link
+      <AppLink
         href={`/children/${child.profile_id}`}
         className="hover:bg-bp-bg/60 flex items-center gap-[13px] px-4 py-3.5 md:px-5">
         <Avatar
@@ -109,7 +109,7 @@ function RosterRow({
           <PackageChips purchases={purchases} />
         </div>
         <ChevronIcon size={16} className="text-bp-text3 shrink-0" />
-      </Link>
+      </AppLink>
     </li>
   );
 }

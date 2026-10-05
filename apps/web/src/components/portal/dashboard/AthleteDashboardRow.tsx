@@ -1,6 +1,6 @@
 import { ProgramBadge } from "@/src/components/portal/athletes/ProgramBadge";
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { AthleteDashboardRow as AthleteDashboardRowData } from "@hooper/db";
+import { AppLink } from "@hooper/shared/next";
 
 function formatLastLogin(iso: string | null): string {
   if (!iso) return "Never";

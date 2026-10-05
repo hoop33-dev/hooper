@@ -8,7 +8,7 @@ import {
   getPaymentMethod,
 } from "@/src/services/billing.service";
 import { getMyChild } from "@/src/services/children.service";
-import Link from "next/link";
+import { AppLink } from "@hooper/shared/next";
 import { notFound } from "next/navigation";
 import { ChildBillingTab } from "./ChildBillingTab";
 import { ChildPasswordCard } from "./ChildPasswordCard";
@@ -107,7 +107,7 @@ function Tabs({ id, tab }: { id: string; tab: Tab }) {
   return (
     <div className="border-bp-border bg-bp-card flex shrink-0 gap-1.5 border-b px-4 py-3 md:px-7 md:py-3.5">
       {tabs.map(([t, label]) => (
-        <Link
+        <AppLink
           key={t}
           href={
             t === "billing" ? `/children/${id}` : `/children/${id}?tab=${t}`
@@ -120,7 +120,7 @@ function Tabs({ id, tab }: { id: string; tab: Tab }) {
               : "border-bp-border text-bp-text2",
           )}>
           {label}
-        </Link>
+        </AppLink>
       ))}
     </div>
   );

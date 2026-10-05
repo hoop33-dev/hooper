@@ -1,6 +1,7 @@
 import { ChevronIcon } from "@/src/components/icons";
 import { LogoMark } from "@/src/components/ui/Logo";
 import { cn } from "@/src/lib/cn";
+import { AppLink } from "@hooper/shared/next";
 import type { ReactNode } from "react";
 
 /** Dark full-page frame for every auth/checkout screen: logo header, then a
@@ -169,9 +170,9 @@ export function AuthLink({
   children: ReactNode;
 }) {
   return (
-    <a href={href} className="text-orange font-bold">
+    <AppLink href={href} className="text-orange font-bold">
       {children}
-    </a>
+    </AppLink>
   );
 }
 

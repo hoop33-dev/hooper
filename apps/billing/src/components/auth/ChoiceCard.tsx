@@ -1,6 +1,6 @@
 import { ArrowIcon } from "@/src/components/icons";
 import { cn } from "@/src/lib/cn";
-import Link from "next/link";
+import { AppLink } from "@hooper/shared/next";
 import type { ReactNode } from "react";
 
 /** Big tappable row on the Start screen ("I'm new to Hooper" / "I have an
@@ -21,7 +21,7 @@ export function ChoiceCard({
   primary?: boolean;
 }) {
   return (
-    <Link
+    <AppLink
       href={href}
       className={cn(
         "flex items-center gap-4 rounded-xl border p-5 transition-colors",
@@ -52,6 +52,6 @@ export function ChoiceCard({
         <span className="hidden md:inline">{cta}</span>
         <ArrowIcon size={14} />
       </div>
-    </Link>
+    </AppLink>
   );
 }

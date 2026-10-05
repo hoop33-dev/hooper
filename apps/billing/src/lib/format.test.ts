@@ -46,19 +46,19 @@ describe("package labels", () => {
     expect(perLabel(forever)).toBe("one-off");
   });
   it("billing line", () => {
-    expect(billingLine(monthly)).toBe("Billed monthly · cancel any time");
+    expect(billingLine(monthly)).toBe("Billed monthly, cancel any time");
     expect(billingLine(quarterly)).toBe(
-      "Billed every 3 months · cancel any time",
+      "Billed every 3 months, cancel any time",
     );
-    expect(billingLine(block)).toBe("One payment · 12 weeks of access");
-    expect(billingLine(forever)).toBe("One payment · ongoing access");
+    expect(billingLine(block)).toBe("One payment, 12 weeks of access");
+    expect(billingLine(forever)).toBe("One payment, ongoing access");
   });
   it("program meta", () => {
     expect(programMeta({ weeks: 8, session_count: 24 })).toBe(
-      "8 weeks · 3 sessions a week",
+      "8 weeks, 3 sessions a week",
     );
     expect(programMeta({ weeks: 1, session_count: 1 })).toBe(
-      "1 week · 1 session a week",
+      "1 week, 1 session a week",
     );
     expect(programMeta({ weeks: 0, session_count: 5 })).toBe("5 sessions");
     expect(programMeta({ weeks: 6, session_count: 0 })).toBe("6 weeks");

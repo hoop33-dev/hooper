@@ -9,9 +9,15 @@ import type { MyPackagePurchase } from "@hooper/db";
  * be charged to. */
 export function NextChargesCard({
   purchases,
+  selfId,
+  error,
   card,
 }: {
   purchases: MyPackagePurchase[];
+  /** The signed-in user's profile id, so their own renewals read "your". */
+  selfId: string | null;
+  /** Set when the purchases lookup failed, so renewals are unknown. */
+  error: string | null;
   card: CardSummary | null;
 }) {
   const upcoming = nextCharges(purchases).slice(0, 4);
@@ -20,14 +26,20 @@ export function NextChargesCard({
   return (
     <Card>
       <Label className="mb-3">Next household charge</Label>
-      {first ? (
+      {error ? (
+        <div className="text-danger mb-3 text-[13px]">
+          Couldn&apos;t load upcoming charges: {error}
+        </div>
+      ) : first ? (
         <>
           <Money className="text-bp-text1 text-[32px]">
             {formatMoney(first.amount_cents)}
           </Money>
           <div className="text-bp-text2 mt-1.5 mb-3 text-[12.5px]">
             {formatDate(first.current_period_end!)} for{" "}
-            {`${first.athlete_first_name}'s ${first.package_name}`}
+            {first.athlete_profile_id === selfId
+              ? `your ${first.package_name}`
+              : `${first.athlete_first_name}'s ${first.package_name}`}
           </div>
           {upcoming.length > 1 && (
             <ul className="border-bp-border mb-3 border-t">
@@ -36,7 +48,10 @@ export function NextChargesCard({
                   key={p.id}
                   className="border-bp-border flex justify-between gap-3 border-b py-2 text-[12.5px]">
                   <span className="text-bp-text2 truncate">
-                    {formatDate(p.current_period_end!)} - {p.athlete_first_name}
+                    {formatDate(p.current_period_end!)} -{" "}
+                    {p.athlete_profile_id === selfId
+                      ? "You"
+                      : p.athlete_first_name}
                   </span>
                   <span className="text-bp-text1 font-semibold tabular-nums">
                     {formatMoney(p.amount_cents)}

@@ -1,7 +1,7 @@
 import { AuthWrap, DarkCard, Hed } from "@/src/components/auth/AuthWrap";
 import { AlertIcon } from "@/src/components/icons";
 import { btnClass } from "@/src/components/ui/Btn";
-import Link from "next/link";
+import { AppLink } from "@hooper/shared/next";
 
 /** Shown when ?package= points at an unknown or deleted package. */
 export function PackageUnavailable() {
@@ -17,7 +17,7 @@ export function PackageUnavailable() {
         Already have a Hooper account? You can still sign in to manage your
         billing.
         <div className="mt-4">
-          <Link
+          <AppLink
             href="/signin"
             className={btnClass({
               variant: "ghostDark",
@@ -25,7 +25,7 @@ export function PackageUnavailable() {
               full: true,
             })}>
             Sign in
-          </Link>
+          </AppLink>
         </div>
       </DarkCard>
     </AuthWrap>

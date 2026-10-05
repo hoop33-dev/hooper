@@ -1,5 +1,5 @@
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { cn } from "@/src/lib/cn";
+import { AppLink } from "@hooper/shared/next";
 import type { ReactNode } from "react";
 import { ArrowLeftIcon } from "./icons";
 

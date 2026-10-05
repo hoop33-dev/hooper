@@ -1,3 +1,4 @@
+import { NavProgressProvider, TopProgressBar } from "@hooper/shared/next";
 import type { Metadata } from "next";
 import { Barlow_Condensed, Outfit } from "next/font/google";
 import type { ReactNode } from "react";
@@ -27,7 +28,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       className={`${outfit.variable} ${barlowCondensed.variable}`}>
-      <body className="min-h-screen font-sans antialiased">{children}</body>
+      <body className="min-h-screen font-sans antialiased">
+        {/* One provider for portal and auth screens alike: every AppLink and
+            router.push transition feeds the same top bar. */}
+        <NavProgressProvider>
+          <TopProgressBar className="bg-orange" />
+          {children}
+        </NavProgressProvider>
+      </body>
     </html>
   );
 }

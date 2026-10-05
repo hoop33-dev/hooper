@@ -2,7 +2,7 @@
 
 import { formatPackagePriceCell } from "@/src/lib/packages";
 import type { PackageSummary } from "@hooper/db";
-import { AppLink } from "../ui/AppLink";
+import { AppLink } from "@hooper/shared/next";
 import { UsersIcon } from "../ui/icons";
 import { CoachAvatar, PackageTile } from "./PackageAtoms";
 

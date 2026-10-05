@@ -45,3 +45,50 @@ export function validateSignUp(
   if (password) errors.password = password;
   return errors;
 }
+
+export type ChildFormFields = {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string; // YYYY-MM-DD from <input type="date">
+  username: string;
+  password: string;
+};
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** A date of birth: a real calendar date, in the past, and not absurd. */
+export function validateDateOfBirth(
+  raw: string,
+  today = new Date(),
+): string | null {
+  if (!raw) return "Required";
+  if (!ISO_DATE.test(raw)) return "Enter a valid date";
+  const d = new Date(`${raw}T00:00:00Z`);
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== raw) {
+    return "Enter a valid date";
+  }
+  if (d.getTime() >= today.getTime()) return "Must be in the past";
+  if (today.getUTCFullYear() - d.getUTCFullYear() > 100)
+    return "Enter a valid date";
+  return null;
+}
+
+/** Child account fields. `requirePassword` is false when editing a profile
+ * (the password is changed separately). */
+export function validateChild(
+  f: ChildFormFields,
+  { requirePassword = true }: { requirePassword?: boolean } = {},
+): FieldErrors<keyof ChildFormFields> {
+  const errors: FieldErrors<keyof ChildFormFields> = {};
+  if (!f.firstName.trim()) errors.firstName = "Required";
+  if (!f.lastName.trim()) errors.lastName = "Required";
+  const dob = validateDateOfBirth(f.dateOfBirth);
+  if (dob) errors.dateOfBirth = dob;
+  const username = validateUsername(f.username);
+  if (username) errors.username = username;
+  if (requirePassword) {
+    const password = validatePassword(f.password);
+    if (password) errors.password = password;
+  }
+  return errors;
+}

@@ -1,6 +1,7 @@
 import { ChevronIcon } from "@/src/components/icons";
 import { LogoMark } from "@/src/components/ui/Logo";
 import { cn } from "@/src/lib/cn";
+import { AppLink } from "@hooper/shared/next";
 import type { ReactNode } from "react";
 
 /** Dark full-page frame for every auth/checkout screen: logo header, then a
@@ -169,8 +170,34 @@ export function AuthLink({
   children: ReactNode;
 }) {
   return (
-    <a href={href} className="text-orange font-bold">
+    <AppLink href={href} className="text-orange font-bold">
       {children}
-    </a>
+    </AppLink>
+  );
+}
+
+/** Orange-filled radio dot used in the dark pickers (design `Radio`). */
+export function Radio({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex size-[19px] shrink-0 items-center justify-center rounded-full border-[1.5px]",
+        on ? "border-orange bg-orange" : "border-white/10 bg-transparent",
+      )}>
+      {on && (
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 14 14"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round">
+          <path d="M2 7l3.5 3.5L12 3" />
+        </svg>
+      )}
+    </span>
   );
 }

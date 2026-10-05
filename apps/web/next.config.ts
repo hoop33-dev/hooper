@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   // multiple lockfiles.
   outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
   // Workspace packages ship TypeScript source; let Next transpile them.
-  transpilePackages: ["@hooper/db"],
+  transpilePackages: ["@hooper/db", "@hooper/shared"],
   // The program-PDF route (src/app/api/programs/[id]/export) drives headless
   // Chromium, then post-processes the PDF to stamp fillable form fields.
   // puppeteer/chromium carry native binaries or are require()d conditionally at

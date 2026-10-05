@@ -2,6 +2,22 @@
   "name": "@hooper/shared",
   "version": "0.0.1",
   "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./next": "./src/next/index.ts"
+  },
   "main": "src/index.ts",
-  "types": "src/index.ts"
+  "types": "src/index.ts",
+  "peerDependencies": {
+    "next": ">=15",
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  }
 }

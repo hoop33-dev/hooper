@@ -1,4 +1,5 @@
 import { PageBody, TopBar } from "@/src/components/shell/Shell";
+import { purchasesFor } from "@/src/lib/purchases";
 import {
   getMyPurchases,
   getPaymentMethod,
@@ -37,7 +38,11 @@ export default async function AccountPage({
           <div className="flex min-w-0 flex-col gap-4">
             <DetailsCard profile={profile.data} />
             <PackagesCard
-              purchases={purchases.ok ? purchases.data : []}
+              purchases={
+                purchases.ok
+                  ? purchasesFor(purchases.data, profile.data.id)
+                  : []
+              }
               error={purchases.ok ? null : purchases.error}
             />
           </div>

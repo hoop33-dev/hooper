@@ -1,7 +1,9 @@
 // Deploy: supabase functions deploy billing-checkout
 //
-// Authenticated. Starts (or resumes) a package purchase for the caller and
-// returns a Stripe client secret for the billing portal's Payment Element.
+// Authenticated. Starts (or resumes) a package purchase and returns a Stripe
+// client secret for the billing portal's Payment Element. The caller always
+// pays; the purchase is for them, or — with `athleteProfileId` — for a child
+// they actively manage (parent_player_links), who then gets the access.
 //   recurring package → Subscription (default_incomplete); the secret pays
 //                       its first invoice and saves the card on the sub.
 //   one_time package  → PaymentIntent with setup_future_usage so the card
@@ -37,6 +39,8 @@ type PackageRow = {
   access_weeks: number | null;
 };
 
+type Athlete = { profileId: string; firstName: string | null };
+
 type PurchaseRow = {
   id: string;
   kind: "subscription" | "one_time";
@@ -71,14 +75,27 @@ Deno.serve(async (req: Request) => {
     if (!caller) return json(401, { ok: false, error: "Unauthorized" });
 
     let slug: unknown;
+    let athleteProfileId: unknown;
     try {
-      ({ slug } = await req.json());
+      ({ slug, athleteProfileId } = await req.json());
     } catch {
       return json(400, { ok: false, error: "Invalid request body" });
     }
     if (typeof slug !== "string" || !slug) {
       return json(400, { ok: false, error: "Missing package" });
     }
+
+    const athlete = await resolveAthlete(admin, caller, athleteProfileId);
+    if (!athlete) {
+      return json(403, {
+        ok: false,
+        error: "You can only buy packages for children you manage.",
+      });
+    }
+    const forWho = {
+      athleteProfileId: athlete.profileId,
+      athleteFirstName: athlete.firstName,
+    };
 
     const { data: pkg, error: pkgError } = await admin
       .from("packages")
@@ -111,7 +128,7 @@ Deno.serve(async (req: Request) => {
       .select(
         "id, kind, status, amount_cents, stripe_subscription_id, stripe_payment_intent_id, access_until, created_at",
       )
-      .eq("athlete_profile_id", caller.profileId)
+      .eq("athlete_profile_id", athlete.profileId)
       .eq("package_id", pkg.id)
       .in("status", ["incomplete", "active", "past_due"])
       .maybeSingle<PurchaseRow>();
@@ -124,20 +141,59 @@ Deno.serve(async (req: Request) => {
         ok: true,
         status: "already_owned",
         purchaseId: live.id,
+        ...forWho,
       });
     }
 
     if (live) {
       const resumed = await resume(admin, live, pkg);
-      if (resumed) return json(200, resumed);
+      if (resumed) return json(200, { ...resumed, ...forWho });
     }
 
-    return json(200, await start(admin, caller, pkg));
+    return json(200, {
+      ...(await start(admin, caller, athlete, pkg)),
+      ...forWho,
+    });
   } catch (err) {
     console.error("billing-checkout: unhandled error", err);
     return json(500, { ok: false, error: "Unable to start checkout." });
   }
 });
+
+/** The athlete the purchase is for: the caller (no id, or their own id), or
+ * a child the caller actively manages. Null when the id isn't theirs. */
+async function resolveAthlete(
+  admin: SupabaseClient,
+  caller: Caller,
+  athleteProfileId: unknown,
+): Promise<Athlete | null> {
+  if (
+    athleteProfileId === undefined ||
+    athleteProfileId === null ||
+    athleteProfileId === caller.profileId
+  ) {
+    return { profileId: caller.profileId, firstName: caller.firstName };
+  }
+  if (typeof athleteProfileId !== "string") return null;
+
+  const { data: link, error } = await admin
+    .from("parent_player_links")
+    .select("id")
+    .eq("parent_profile_id", caller.profileId)
+    .eq("player_profile_id", athleteProfileId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!link) return null;
+
+  const { data: child, error: childError } = await admin
+    .from("profiles")
+    .select("id, first_name")
+    .eq("id", athleteProfileId)
+    .single();
+  if (childError) throw new Error(childError.message);
+  return { profileId: child.id, firstName: child.first_name };
+}
 
 /** One-off access is evaluated at read time (package_program_ids), so an
  * elapsed one-off row stays 'active' until something retires it. Expire it
@@ -242,7 +298,12 @@ async function resume(
   return null;
 }
 
-async function start(admin: SupabaseClient, caller: Caller, pkg: PackageRow) {
+async function start(
+  admin: SupabaseClient,
+  caller: Caller,
+  athlete: Athlete,
+  pkg: PackageRow,
+) {
   const kind = pkg.billing_type === "recurring" ? "subscription" : "one_time";
 
   const { data: purchase, error: claimError } = await admin
@@ -250,7 +311,7 @@ async function start(admin: SupabaseClient, caller: Caller, pkg: PackageRow) {
     .insert({
       package_id: pkg.id,
       payer_profile_id: caller.profileId,
-      athlete_profile_id: caller.profileId,
+      athlete_profile_id: athlete.profileId,
       kind,
       status: "incomplete",
       amount_cents: pkg.price_cents,
@@ -268,6 +329,7 @@ async function start(admin: SupabaseClient, caller: Caller, pkg: PackageRow) {
     purchase_id: purchase.id,
     package_id: pkg.id,
     profile_id: caller.profileId,
+    athlete_profile_id: athlete.profileId,
     kind,
   };
 

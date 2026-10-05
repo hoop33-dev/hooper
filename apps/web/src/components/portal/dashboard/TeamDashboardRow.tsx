@@ -1,7 +1,7 @@
 import { ProgramBadge } from "@/src/components/portal/athletes/ProgramBadge";
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { UsersIcon } from "@/src/components/portal/ui/icons";
 import type { TeamDashboardRow as TeamDashboardRowData } from "@hooper/db";
+import { AppLink } from "@hooper/shared/next";
 
 export function TeamDashboardRow({ team }: { team: TeamDashboardRowData }) {
   const initial = team.name.trim().charAt(0).toUpperCase() || "T";

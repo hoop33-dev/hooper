@@ -211,7 +211,9 @@ export type PublicPackage = {
   coaches: { first_name: string | null; last_name: string | null }[];
 };
 
-/** my_package_purchases() — the caller's purchases joined to package names. */
+/** my_package_purchases() — purchases the caller paid for or receives,
+ * joined to package display fields and who each one is for (a payer sees
+ * their children's purchases alongside their own). */
 export type MyPackagePurchase = Pick<
   PackagePurchaseRow,
   | "id"
@@ -224,10 +226,28 @@ export type MyPackagePurchase = Pick<
   | "access_until"
   | "paid_at"
   | "created_at"
+  | "athlete_profile_id"
 > & {
   package_name: string;
   package_slug: string;
+  billing_type: PackageBillingType;
   billing_interval: PackageBillingInterval | null;
+  access_weeks: number | null;
+  athlete_first_name: string | null;
+  athlete_last_name: string | null;
+  athlete_username: string | null;
+};
+
+/** my_children() — the caller's actively linked children. */
+export type MyChild = {
+  profile_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  username: string;
+  date_of_birth: string | null;
+  region_id: string | null;
+  has_real_email: boolean;
+  linked_at: string;
 };
 
 export type ExerciseCategoryRow = {
@@ -890,6 +910,10 @@ export type Database = {
       my_package_purchases: {
         Args: Record<string, never>;
         Returns: MyPackagePurchase[];
+      };
+      my_children: {
+        Args: Record<string, never>;
+        Returns: MyChild[];
       };
     };
     Enums: {

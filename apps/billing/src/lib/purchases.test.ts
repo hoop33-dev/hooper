@@ -1,13 +1,19 @@
 import type { MyPackagePurchase } from "@hooper/db";
 import { describe, expect, it } from "vitest";
-import { accessLine, visiblePurchases } from "./PackagesCard";
+import { accessLine, visiblePurchases } from "./purchases";
 
 const base: MyPackagePurchase = {
   id: "p1",
   package_id: "k1",
   package_name: "Pack",
   package_slug: "pack",
+  billing_type: "one_time",
   billing_interval: null,
+  access_weeks: null,
+  athlete_profile_id: "me",
+  athlete_first_name: "Sarah",
+  athlete_last_name: "Whitfield",
+  athlete_username: "sarahw",
   kind: "one_time",
   status: "active",
   amount_cents: 24900,

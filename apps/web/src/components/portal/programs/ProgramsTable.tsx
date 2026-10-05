@@ -1,8 +1,8 @@
 "use client";
 
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { formatSessionsPerWeek } from "@/src/lib/format";
 import type { ProgramSummary } from "@hooper/db";
+import { AppLink } from "@hooper/shared/next";
 import { ProgramStatusBadge } from "./ProgramStatusBadge";
 
 function formatUpdatedAt(iso: string): string {

@@ -42,14 +42,14 @@ export function billingLine(
       pkg.billing_interval === "quarter"
         ? "every 3 months"
         : `${pkg.billing_interval}ly`;
-    return `Billed ${every} · cancel any time`;
+    return `Billed ${every}, cancel any time`;
   }
   return pkg.access_weeks
-    ? `One payment · ${pkg.access_weeks} weeks of access`
-    : "One payment · ongoing access";
+    ? `One payment, ${pkg.access_weeks} weeks of access`
+    : "One payment, ongoing access";
 }
 
-/** "8 weeks · 3 sessions a week" for a program in a package. */
+/** "8 weeks, 3 sessions a week" for a program in a package. */
 export function programMeta(p: { weeks: number; session_count: number }) {
   const parts: string[] = [];
   if (p.weeks > 0) parts.push(`${p.weeks} week${p.weeks === 1 ? "" : "s"}`);
@@ -59,7 +59,7 @@ export function programMeta(p: { weeks: number; session_count: number }) {
   } else if (p.session_count > 0) {
     parts.push(`${p.session_count} sessions`);
   }
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 export function initials(first: string | null, last: string | null): string {

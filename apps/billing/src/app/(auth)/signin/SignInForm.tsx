@@ -4,7 +4,7 @@ import { AuthLink, FormError } from "@/src/components/auth/AuthWrap";
 import { Btn } from "@/src/components/ui/Btn";
 import { Field } from "@/src/components/ui/Field";
 import { withPackage } from "@/src/lib/routes";
-import Link from "next/link";
+import { AppLink } from "@hooper/shared/next";
 import { useActionState } from "react";
 import { signInAction, type SignInState } from "../actions";
 
@@ -35,11 +35,11 @@ export function SignInForm({ slug }: { slug: string | null }) {
         autoComplete="current-password"
         required
       />
-      <Link
+      <AppLink
         href={withPackage("/reset", slug)}
         className="text-orange -mt-1 self-start text-[13px] font-semibold">
         Forgot password
-      </Link>
+      </AppLink>
       {state.error && <FormError>{state.error}</FormError>}
       <Btn type="submit" variant="primary" size="lg" full loading={pending}>
         {slug ? "Sign in and continue" : "Sign in"}

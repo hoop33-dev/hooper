@@ -1,9 +1,9 @@
 "use client";
 
 import { signOut } from "@/src/app/(auth)/actions";
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { cn } from "@/src/lib/cn";
 import type { CoachProfile } from "@/src/services/auth.service";
+import { AppLink } from "@hooper/shared/next";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactElement } from "react";

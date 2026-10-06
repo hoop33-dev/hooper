@@ -1,6 +1,6 @@
 "use client";
 
-import { AppLink } from "@/src/components/portal/ui/AppLink";
+import { AppLink } from "@hooper/shared/next";
 import type { ReactNode } from "react";
 import type { LibraryTemplate } from "./blockTemplateFilter";
 import { DraggableBlockTemplateRow } from "./dnd/DraggableBlockTemplateRow";

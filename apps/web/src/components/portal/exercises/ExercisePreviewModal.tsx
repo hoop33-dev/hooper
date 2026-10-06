@@ -1,8 +1,8 @@
 "use client";
 
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { getEmbedUrl } from "@/src/lib/videoEmbed";
 import type { ExerciseWithDetails } from "@hooper/db";
+import { AppLink } from "@hooper/shared/next";
 import { useModalDismiss } from "../ui/useModalDismiss";
 
 interface ExercisePreviewModalProps {

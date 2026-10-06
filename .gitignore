@@ -15,6 +15,7 @@ apps/mobile/expo-env.d.ts
 out/
 next-env.d.ts
 apps/web/.vercel
+apps/billing/.vercel
 
 # Native
 .kotlin/

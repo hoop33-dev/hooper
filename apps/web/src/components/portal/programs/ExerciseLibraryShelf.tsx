@@ -1,7 +1,7 @@
 "use client";
 
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
+import { AppLink } from "@hooper/shared/next";
 import { useState } from "react";
 import { ExercisePreviewModal } from "../exercises/ExercisePreviewModal";
 import { CreateExerciseButton } from "./CreateExerciseButton";

@@ -4,11 +4,14 @@ import {
 } from "@/src/services/program.service";
 import { initClient } from "@hooper/api";
 
-const mockSupabase = { from: jest.fn() };
+const mockSupabase = { from: jest.fn(), rpc: jest.fn() };
 const mockFrom = mockSupabase.from;
+const mockRpc = mockSupabase.rpc;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // package_program_ids — no purchased packages unless a test says otherwise
+  mockRpc.mockResolvedValue({ data: [], error: null });
   initClient(mockSupabase as any);
 });
 
@@ -107,6 +110,27 @@ describe("listAssignedPrograms", () => {
     expect(result).toHaveLength(1);
     expect(result[0].program.id).toBe("prog1");
     expect(result[0].totalSessions).toBe(0);
+  });
+
+  it("includes programs from purchased packages, scoped to the athlete", async () => {
+    mockRpc.mockResolvedValueOnce({ data: ["prog2"], error: null });
+    mockFrom
+      .mockReturnValueOnce(makeEqBuilder({ data: [], error: null })) // program_athletes
+      .mockReturnValueOnce(makeEqBuilder({ data: [], error: null })) // team_members
+      .mockReturnValueOnce(
+        makeProgramsListBuilder({
+          data: [{ id: "prog2", name: "Bought", status: "active" }],
+          error: null,
+        }),
+      )
+      .mockReturnValueOnce(makeSessionsBuilder({ data: [], error: null }));
+
+    const result = await listAssignedPrograms("athlete1");
+
+    expect(mockRpc).toHaveBeenCalledWith("package_program_ids", {
+      p_athlete_profile_id: "athlete1",
+    });
+    expect(result.map((c) => c.program.id)).toEqual(["prog2"]);
   });
 
   it("returns an empty list without querying programs when nothing is assigned", async () => {

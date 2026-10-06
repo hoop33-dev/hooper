@@ -160,6 +160,96 @@ export type PackageCoachRow = {
   created_at: string;
 };
 
+export type BillingCustomerRow = {
+  profile_id: string;
+  stripe_customer_id: string;
+  created_at: string;
+};
+
+export type PackagePurchaseKind = "subscription" | "one_time";
+export type PackagePurchaseStatus =
+  | "incomplete"
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "expired";
+
+/** A package bought through the billing portal. Written only by the Stripe
+ * edge functions (service role); clients read their own rows. `payer` and
+ * `athlete` are the same profile until buying for a child exists. One-off
+ * purchases grant access until `access_until` (null = unlimited). */
+export type PackagePurchaseRow = {
+  id: string;
+  package_id: string;
+  payer_profile_id: string;
+  athlete_profile_id: string;
+  kind: PackagePurchaseKind;
+  status: PackagePurchaseStatus;
+  stripe_subscription_id: string | null;
+  stripe_payment_intent_id: string | null;
+  amount_cents: number;
+  currency: string;
+  current_period_end: string | null;
+  paid_at: string | null;
+  access_until: string | null;
+  canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** get_public_package(slug) — the anon-readable checkout view of a package. */
+export type PublicPackage = {
+  id: string;
+  slug: string;
+  name: string;
+  price_cents: number;
+  currency: string;
+  billing_type: PackageBillingType;
+  billing_interval: PackageBillingInterval | null;
+  access_weeks: number | null;
+  programs: { name: string; weeks: number; session_count: number }[];
+  coaches: { first_name: string | null; last_name: string | null }[];
+};
+
+/** my_package_purchases() — purchases the caller paid for or receives,
+ * joined to package display fields and who each one is for (a payer sees
+ * their children's purchases alongside their own). */
+export type MyPackagePurchase = Pick<
+  PackagePurchaseRow,
+  | "id"
+  | "package_id"
+  | "kind"
+  | "status"
+  | "amount_cents"
+  | "currency"
+  | "current_period_end"
+  | "access_until"
+  | "paid_at"
+  | "created_at"
+  | "athlete_profile_id"
+> & {
+  package_name: string;
+  package_slug: string;
+  billing_type: PackageBillingType;
+  billing_interval: PackageBillingInterval | null;
+  access_weeks: number | null;
+  athlete_first_name: string | null;
+  athlete_last_name: string | null;
+  athlete_username: string | null;
+};
+
+/** my_children() — the caller's actively linked children. */
+export type MyChild = {
+  profile_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  username: string;
+  date_of_birth: string | null;
+  region_id: string | null;
+  has_real_email: boolean;
+  linked_at: string;
+};
+
 export type ExerciseCategoryRow = {
   id: string;
   name: string;
@@ -569,6 +659,28 @@ export type Database = {
         Update: Partial<PackageCoachRow>;
         Relationships: [];
       };
+      billing_customers: {
+        Row: BillingCustomerRow;
+        Insert: Partial<BillingCustomerRow> &
+          Pick<BillingCustomerRow, "profile_id" | "stripe_customer_id">;
+        Update: Partial<BillingCustomerRow>;
+        Relationships: [];
+      };
+      package_purchases: {
+        Row: PackagePurchaseRow;
+        Insert: Partial<PackagePurchaseRow> &
+          Pick<
+            PackagePurchaseRow,
+            | "package_id"
+            | "payer_profile_id"
+            | "athlete_profile_id"
+            | "kind"
+            | "amount_cents"
+            | "currency"
+          >;
+        Update: Partial<PackagePurchaseRow>;
+        Relationships: [];
+      };
       exercise_categories: {
         Row: ExerciseCategoryRow;
         Insert: Partial<ExerciseCategoryRow> &
@@ -775,6 +887,10 @@ export type Database = {
         Args: { p_limit: number };
         Returns: { profile_id: string; last_sign_in_at: string | null }[];
       };
+      is_username_available: {
+        Args: { p_username: string };
+        Returns: boolean;
+      };
       package_slug_available: {
         Args: { p_slug: string };
         Returns: boolean;
@@ -782,6 +898,22 @@ export type Database = {
       soft_delete_package: {
         Args: { p_package_id: string };
         Returns: undefined;
+      };
+      get_public_package: {
+        Args: { p_slug: string };
+        Returns: PublicPackage | null;
+      };
+      package_program_ids: {
+        Args: { p_athlete_profile_id: string };
+        Returns: string[];
+      };
+      my_package_purchases: {
+        Args: Record<string, never>;
+        Returns: MyPackagePurchase[];
+      };
+      my_children: {
+        Args: Record<string, never>;
+        Returns: MyChild[];
       };
     };
     Enums: {

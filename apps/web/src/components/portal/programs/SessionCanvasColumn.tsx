@@ -1,6 +1,5 @@
 "use client";
 
-import { AppLink } from "@/src/components/portal/ui/AppLink";
 import { cn } from "@/src/lib/cn";
 import { useDroppable } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
@@ -9,6 +8,7 @@ import type {
   ExerciseStyleRow,
   SessionWithBlocks,
 } from "@hooper/db";
+import { AppLink } from "@hooper/shared/next";
 import { BookmarkIcon, DuplicateIcon, LinkIcon, PencilIcon } from "../ui/icons";
 import { InlineConfirmDelete } from "../ui/InlineConfirmDelete";
 import { BlockCard, type BlockSettingsPatch } from "./BlockCard";

@@ -1,6 +1,6 @@
 "use server";
 
-import { validatePackageSlug } from "@/src/lib/packages";
+import { MIN_PRICE_CENTS, validatePackageSlug } from "@/src/lib/packages";
 import {
   addPackageCoach,
   addPackageProgram,
@@ -18,6 +18,10 @@ import type { PackageRow } from "@hooper/db";
 import { revalidatePath } from "next/cache";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
+
+/** Stripe can't charge less than this, so a cheaper package could never be
+ * bought. Re-checked here so the server never trusts the client's form. */
+const PRICE_TOO_LOW = "Minimum price is $0.50";
 
 /** Detail pages are keyed by slug, but mutations only know the package id —
  * revalidate every package detail page rather than look the slug up. */
@@ -45,6 +49,9 @@ export async function createPackageAction(
   const slugError = validatePackageSlug(data.slug);
   if (slugError) return { ok: false, error: slugError };
   if (!data.name.trim()) return { ok: false, error: "Name is required" };
+  if (data.price_cents < MIN_PRICE_CENTS) {
+    return { ok: false, error: PRICE_TOO_LOW };
+  }
 
   const result = await createPackage({ ...data, name: data.name.trim() });
   if (result.ok) revalidatePackages();
@@ -57,6 +64,9 @@ export async function updatePackageAction(
   id: string,
   data: UpdatePackageInput,
 ): Promise<ActionResult<PackageRow>> {
+  if (data.price_cents !== undefined && data.price_cents < MIN_PRICE_CENTS) {
+    return { ok: false, error: PRICE_TOO_LOW };
+  }
   const result = await updatePackage(id, data);
   if (result.ok) revalidatePackages();
   return result.ok

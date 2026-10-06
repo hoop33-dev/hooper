@@ -1,9 +1,9 @@
 "use client";
 
 import type { CoachProfile } from "@/src/services/auth.service";
+import { NavProgressProvider, TopProgressBar } from "@hooper/shared/next";
 import type { ReactNode } from "react";
 import { PortalSidebar } from "./PortalSidebar";
-import { NavProgressProvider, TopProgressBar } from "./ui/NavProgress";
 import { ToastProvider } from "./ui/Toast";
 
 interface PortalLayoutProps {
@@ -15,7 +15,7 @@ export function PortalLayout({ profile, children }: PortalLayoutProps) {
   return (
     <ToastProvider>
       <NavProgressProvider>
-        <TopProgressBar />
+        <TopProgressBar className="bg-portal-orange" />
         <div className="flex h-screen overflow-hidden">
           <PortalSidebar profile={profile} />
           <main className="bg-portal-bg text-portal-text1 flex min-h-0 flex-1 flex-col overflow-hidden">

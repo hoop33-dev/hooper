@@ -128,6 +128,67 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
 
   # ---------------------------------------------------------------------------
+  # Billing portal (Next.js)
+  # ---------------------------------------------------------------------------
+  billing-typecheck:
+    name: billing · typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+        working-directory: apps/billing
+
+  billing-lint:
+    name: billing · lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+        working-directory: apps/billing
+
+  billing-test:
+    name: billing · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test
+        working-directory: apps/billing
+
+  billing-build:
+    name: billing · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        working-directory: apps/billing
+        env:
+          # Public keys; build-time prerender needs them present. Real values
+          # are injected by Vercel at deploy time.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+
+  # ---------------------------------------------------------------------------
   # Shared backend (Supabase migrations)
   # ---------------------------------------------------------------------------
   db-migrations:

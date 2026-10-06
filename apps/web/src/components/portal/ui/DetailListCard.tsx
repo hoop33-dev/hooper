@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/src/lib/cn";
+import { AppLink } from "@hooper/shared/next";
 import { Children, type ReactNode } from "react";
-import { AppLink } from "./AppLink";
 import { PlusIcon, XIcon } from "./icons";
 import { PortalButton } from "./PortalButton";
 

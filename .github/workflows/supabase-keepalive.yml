@@ -1,0 +1,23 @@
+name: Supabase Keepalive
+
+# Free-tier Supabase projects pause after a week with no activity. This runs
+# a trivial read-only query daily against each project to keep them awake.
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [production, feature]
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.target }}
+    env:
+      SUPABASE_DB_CONNECTION_STRING: ${{ secrets.SUPABASE_DB_CONNECTION_STRING }}
+
+    steps:
+      - name: Ping ${{ matrix.target }} database
+        run: psql "$SUPABASE_DB_CONNECTION_STRING" -c "select 1;"

@@ -37,7 +37,7 @@ function verifyUrl(email: string, pkg: string | null, from?: string) {
 // ── Sign up ───────────────────────────────────────────────────
 
 export type SignUpState = {
-  values: Omit<SignUpFields, "password">;
+  values: Omit<SignUpFields, "password" | "confirmPassword">;
   errors: FieldErrors<keyof SignUpFields>;
   formError?: string;
 };
@@ -52,8 +52,9 @@ export async function signUpAction(
     username: str(formData, "username").trim().toLowerCase(),
     email: str(formData, "email").trim().toLowerCase(),
     password: str(formData, "password"),
+    confirmPassword: str(formData, "confirmPassword"),
   };
-  const { password: _pw, ...values } = fields;
+  const { password: _pw, confirmPassword: _cpw, ...values } = fields;
 
   const errors = validateSignUp(fields);
   if (Object.keys(errors).length > 0) return { values, errors };

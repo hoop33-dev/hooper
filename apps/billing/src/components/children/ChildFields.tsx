@@ -14,6 +14,7 @@ export const EMPTY_CHILD: ChildFormFields = {
   dateOfBirth: "",
   username: "",
   password: "",
+  confirmPassword: "",
 };
 
 /** A child's account details (design `ChildFields`). Controlled, so the
@@ -70,25 +71,21 @@ export function ChildFields({
         error={errors.dateOfBirth}
         disabled={disabled}
       />
-      <div
-        className={cn(
-          "grid grid-cols-1 gap-3",
-          withPassword && "md:grid-cols-2",
-        )}>
-        <Field
-          dark={dark}
-          label="Their username"
-          name="childUsername"
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          placeholder="For their app login"
-          value={values.username}
-          onChange={set("username")}
-          error={errors.username}
-          disabled={disabled}
-        />
-        {withPassword && (
+      <Field
+        dark={dark}
+        label="Their username"
+        name="childUsername"
+        autoComplete="off"
+        autoCapitalize="none"
+        spellCheck={false}
+        placeholder="For their app login"
+        value={values.username}
+        onChange={set("username")}
+        error={errors.username}
+        disabled={disabled}
+      />
+      {withPassword && (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Field
             dark={dark}
             label="Their password"
@@ -102,8 +99,19 @@ export function ChildFields({
             hint={errors.password ? undefined : PASSWORD_MESSAGE}
             disabled={disabled}
           />
-        )}
-      </div>
+          <Field
+            dark={dark}
+            label="Confirm password"
+            name="childConfirmPassword"
+            type="password"
+            autoComplete="new-password"
+            value={values.confirmPassword}
+            onChange={set("confirmPassword")}
+            error={errors.confirmPassword}
+            disabled={disabled}
+          />
+        </div>
+      )}
       {withPassword && <LoginNote dark={dark} />}
     </div>
   );

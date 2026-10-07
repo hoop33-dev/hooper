@@ -6,6 +6,7 @@ export type SignUpFields = {
   username: string;
   email: string;
   password: string;
+  confirmPassword: string;
 };
 
 export type FieldErrors<K extends string> = Partial<Record<K, string>>;
@@ -43,7 +44,18 @@ export function validateSignUp(
   if (email) errors.email = email;
   const password = validatePassword(f.password);
   if (password) errors.password = password;
+  const confirm = validateConfirmPassword(f.password, f.confirmPassword);
+  if (confirm) errors.confirmPassword = confirm;
   return errors;
+}
+
+export function validateConfirmPassword(
+  password: string,
+  confirm: string,
+): string | null {
+  if (!confirm) return "Required";
+  if (confirm !== password) return "Passwords don't match";
+  return null;
 }
 
 export type ChildFormFields = {
@@ -52,6 +64,7 @@ export type ChildFormFields = {
   dateOfBirth: string; // YYYY-MM-DD from <input type="date">
   username: string;
   password: string;
+  confirmPassword: string;
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -89,6 +102,8 @@ export function validateChild(
   if (requirePassword) {
     const password = validatePassword(f.password);
     if (password) errors.password = password;
+    const confirm = validateConfirmPassword(f.password, f.confirmPassword);
+    if (confirm) errors.confirmPassword = confirm;
   }
   return errors;
 }

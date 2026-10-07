@@ -70,6 +70,14 @@ export function SignUpForm({ slug }: { slug: string | null }) {
             error={errors.password}
             hint={PASSWORD_MESSAGE}
           />
+          <Field
+            dark
+            label="Confirm password"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            error={errors.confirmPassword}
+          />
           <div className="text-[13px] text-white/60">
             Already have an account?{" "}
             <AuthLink href={withPackage("/signin", slug)}>

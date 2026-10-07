@@ -15,6 +15,7 @@ export function ChildProfileForm({ child }: { child: MyChild }) {
     dateOfBirth: child.date_of_birth ?? "",
     username: child.username,
     password: "",
+    confirmPassword: "",
   });
   const [errors, setErrors] = useState<FieldErrors<keyof ChildFormFields>>({});
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(
@@ -26,7 +27,7 @@ export function ChildProfileForm({ child }: { child: MyChild }) {
     e.preventDefault();
     setMessage(null);
     startTransition(async () => {
-      const { password: _pw, ...fields } = values;
+      const { password: _pw, confirmPassword: _cpw, ...fields } = values;
       const res = await updateChildAction(child.profile_id, fields);
       if (!res.ok) {
         setErrors(res.errors);

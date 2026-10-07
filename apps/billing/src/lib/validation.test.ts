@@ -11,6 +11,7 @@ const valid = {
   username: "sarahw",
   email: "sarah@example.com",
   password: "Str0ng!pass",
+  confirmPassword: "Str0ng!pass",
 };
 
 describe("validateSignUp", () => {
@@ -24,14 +25,21 @@ describe("validateSignUp", () => {
       username: "has space",
       email: "nope",
       password: "short",
+      confirmPassword: "",
     });
     expect(Object.keys(errors).sort()).toEqual([
+      "confirmPassword",
       "email",
       "firstName",
       "lastName",
       "password",
       "username",
     ]);
+  });
+  it("flags a mismatched confirmation", () => {
+    expect(validateSignUp({ ...valid, confirmPassword: "Str0ng!pas" })).toEqual(
+      { confirmPassword: "Passwords don't match" },
+    );
   });
 });
 
@@ -58,6 +66,7 @@ describe("validateChild", () => {
     dateOfBirth: "2011-03-14",
     username: "liamw",
     password: "Str0ng!pass",
+    confirmPassword: "Str0ng!pass",
   };
   it("passes a complete child", () => {
     expect(validateChild(ok)).toEqual({});
@@ -69,8 +78,10 @@ describe("validateChild", () => {
       dateOfBirth: "",
       username: "a b",
       password: "x",
+      confirmPassword: "y",
     });
     expect(Object.keys(errors).sort()).toEqual([
+      "confirmPassword",
       "dateOfBirth",
       "firstName",
       "lastName",
@@ -80,7 +91,15 @@ describe("validateChild", () => {
   });
   it("skips the password when editing", () => {
     expect(
-      validateChild({ ...ok, password: "" }, { requirePassword: false }),
+      validateChild(
+        { ...ok, password: "", confirmPassword: "" },
+        { requirePassword: false },
+      ),
     ).toEqual({});
+  });
+  it("flags a mismatched confirmation", () => {
+    expect(validateChild({ ...ok, confirmPassword: "nope" })).toEqual({
+      confirmPassword: "Passwords don't match",
+    });
   });
 });

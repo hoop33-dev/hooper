@@ -3,7 +3,8 @@ import { AppLink } from "@hooper/shared/next";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 /** The design's `Btn`: primary (orange), dark, ghost (white card), quiet
- * (text only), danger; sm 30px / md 38px / lg 46px. `ghostDark` is the ghost
+ * (text only), danger (outlined), destructive (solid red) and quietDanger
+ * (red text only); sm 30px / md 38px / lg 46px. `ghostDark` is the ghost
  * variant used on the dark auth screens. */
 export type BtnVariant =
   | "primary"
@@ -11,7 +12,9 @@ export type BtnVariant =
   | "ghost"
   | "ghostDark"
   | "quiet"
-  | "danger";
+  | "danger"
+  | "destructive"
+  | "quietDanger";
 export type BtnSize = "sm" | "md" | "lg";
 
 const VARIANT: Record<BtnVariant, string> = {
@@ -21,6 +24,8 @@ const VARIANT: Record<BtnVariant, string> = {
   ghostDark: "bg-transparent border-white/10 text-white",
   quiet: "bg-transparent border-transparent text-bp-text2",
   danger: "bg-bp-card border-danger/30 text-danger",
+  destructive: "bg-danger border-danger text-white",
+  quietDanger: "bg-transparent border-transparent text-danger",
 };
 
 const SIZE: Record<BtnSize, string> = {

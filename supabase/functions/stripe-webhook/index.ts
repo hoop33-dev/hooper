@@ -149,6 +149,9 @@ async function onSubscriptionChanged(
   const update: Record<string, unknown> = {
     status,
     current_period_end: toIso(periodEnd),
+    // Mirrors a cancel or "keep" made in the portal or the Stripe dashboard.
+    cancel_at_period_end:
+      status === "canceled" ? false : sub.cancel_at_period_end,
   };
   if (status === "canceled") {
     update.canceled_at = toIso(sub.canceled_at) ?? new Date().toISOString();

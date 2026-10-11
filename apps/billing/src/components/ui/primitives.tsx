@@ -83,13 +83,15 @@ export type TagTone =
   | "danger"
   | "blue";
 
+/** Text statuses (the design's "Status: Text" variant): no pill, only
+ * attention tones keep their colour. */
 const TONE: Record<TagTone, string> = {
-  neutral: "bg-black/5 text-bp-text2",
-  orange: "bg-orange/10 text-orange",
-  green: "bg-green/10 text-green",
-  amber: "bg-amber/10 text-amber",
-  danger: "bg-danger/10 text-danger",
-  blue: "bg-blue/10 text-blue",
+  neutral: "text-bp-text3",
+  orange: "text-orange",
+  green: "text-bp-text3",
+  amber: "text-amber",
+  danger: "text-danger",
+  blue: "text-bp-text3",
 };
 
 export function Tag({
@@ -102,7 +104,7 @@ export function Tag({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-[5px] rounded-full px-[9px] py-[3px] text-[10.5px] font-bold tracking-[0.09em] whitespace-nowrap uppercase",
+        "inline-flex items-center gap-[5px] text-[12.5px] font-semibold whitespace-nowrap",
         TONE[tone],
       )}>
       {children}

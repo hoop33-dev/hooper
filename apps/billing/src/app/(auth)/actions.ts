@@ -112,7 +112,7 @@ export async function signInAction(
     await resendSignupOtp(res.data.email);
     redirect(verifyUrl(res.data.email, pkg, "signin"));
   }
-  redirect(pkg ? withPackage("/checkout", pkg) : "/account");
+  redirect(pkg ? withPackage("/checkout", pkg) : "/memberships");
 }
 
 export async function signOutAction(formData: FormData): Promise<void> {

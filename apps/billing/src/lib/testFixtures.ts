@@ -12,6 +12,7 @@ export function purchase(
     billing_type: "recurring",
     billing_interval: "month",
     access_weeks: null,
+    payer_profile_id: "me",
     athlete_profile_id: "kid1",
     athlete_first_name: "Liam",
     athlete_last_name: "Whitfield",
@@ -23,7 +24,11 @@ export function purchase(
     current_period_end: "2999-01-01T00:00:00Z",
     access_until: null,
     paid_at: "2026-10-01T00:00:00Z",
+    canceled_at: null,
+    cancel_at_period_end: false,
     created_at: "2026-10-01T00:00:00Z",
+    program_names: ["Shooting Mechanics"],
+    coach_names: ["Marcus Davis"],
     ...over,
   };
 }

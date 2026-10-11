@@ -193,6 +193,9 @@ export type PackagePurchaseRow = {
   paid_at: string | null;
   access_until: string | null;
   canceled_at: string | null;
+  /** Stopped by the payer; access runs to current_period_end, then ends. */
+  cancel_at_period_end: boolean;
+  cancel_reason: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -225,7 +228,10 @@ export type MyPackagePurchase = Pick<
   | "current_period_end"
   | "access_until"
   | "paid_at"
+  | "canceled_at"
+  | "cancel_at_period_end"
   | "created_at"
+  | "payer_profile_id"
   | "athlete_profile_id"
 > & {
   package_name: string;
@@ -236,6 +242,8 @@ export type MyPackagePurchase = Pick<
   athlete_first_name: string | null;
   athlete_last_name: string | null;
   athlete_username: string | null;
+  program_names: string[];
+  coach_names: string[];
 };
 
 /** my_children() — the caller's actively linked children. */

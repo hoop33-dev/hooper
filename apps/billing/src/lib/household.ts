@@ -1,4 +1,5 @@
 import type { MyPackagePurchase, PackageBillingInterval } from "@hooper/db";
+import { isEnding } from "./purchases";
 
 /** Purchases that currently give access or will charge again. */
 export function isLive(p: MyPackagePurchase, now = new Date()): boolean {
@@ -24,7 +25,8 @@ const ORDER: CycleTotal["cycle"][] = [
   "one_off",
 ];
 
-/** Live household spend grouped by billing cycle — each package is charged
+/** Live household spend that will charge again (a cancelled membership
+ * still running out its period is excluded), grouped by billing cycle — each package is charged
  * on its own, so there's no single household figure, just per-cycle sums
  * (e.g. $58/month + $249 one-off). */
 export function householdTotals(
@@ -33,7 +35,7 @@ export function householdTotals(
 ): CycleTotal[] {
   const byCycle = new Map<CycleTotal["cycle"], CycleTotal>();
   for (const p of purchases) {
-    if (!isLive(p, now)) continue;
+    if (!isLive(p, now) || isEnding(p)) continue;
     const cycle =
       p.kind === "subscription" && p.billing_interval
         ? p.billing_interval
@@ -60,6 +62,7 @@ export function nextCharges(
       (p) =>
         p.kind === "subscription" &&
         isLive(p, now) &&
+        !isEnding(p) &&
         p.current_period_end &&
         new Date(p.current_period_end) > now,
     )

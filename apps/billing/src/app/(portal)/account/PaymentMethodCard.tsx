@@ -1,12 +1,13 @@
 "use client";
 
-import { CreditIcon, LockIcon } from "@/src/components/icons";
+import { CreditIcon, LockIcon, PlusIcon } from "@/src/components/icons";
 import {
   PAYMENT_ELEMENT_OPTIONS,
   StripeProvider,
 } from "@/src/components/stripe/StripeProvider";
 import { Btn, Spinner } from "@/src/components/ui/Btn";
-import { Card, Label } from "@/src/components/ui/primitives";
+import { Card, Label, Tag } from "@/src/components/ui/primitives";
+import { cn } from "@/src/lib/cn";
 import type { CardSummary } from "@/src/services/billing.service";
 import {
   PaymentElement,
@@ -14,7 +15,7 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { createSetupIntentAction, setDefaultCardAction } from "./actions";
 
 function brandName(brand: string) {
@@ -66,78 +67,112 @@ export function PaymentMethodCard({
     setMode({ kind: "edit", clientSecret: res.data });
   }
 
+  const editing = mode.kind === "edit";
+
   return (
-    <Card className={card?.expired ? "border-danger/30" : undefined}>
-      <Label className="mb-3">Payment method</Label>
-
-      <CardOnFile card={card} error={error} />
-
-      {mode.kind === "edit" ? (
-        <StripeProvider clientSecret={mode.clientSecret} theme="light">
-          <UpdateCardForm
-            onCancel={() => setMode({ kind: "view" })}
-            onSaved={() => {
-              setMode({ kind: "view" });
-              setMessage({ tone: "ok", text: "Card updated." });
-            }}
+    <Card>
+      <Label className="mb-3.5">Payment method</Label>
+      <div className="flex flex-col gap-3">
+        {error ? (
+          <div className="text-danger text-[13px]">{error}</div>
+        ) : card ? (
+          <CardOnFile
+            card={card}
+            action={
+              !editing && (
+                <Btn
+                  variant={card.expired ? "primary" : "ghost"}
+                  size="sm"
+                  loading={mode.kind === "loading"}
+                  onClick={startEdit}>
+                  Update card
+                </Btn>
+              )
+            }
           />
-        </StripeProvider>
-      ) : (
-        <Btn
-          variant={card?.expired || !card ? "primary" : "ghost"}
-          size="sm"
-          full
-          loading={mode.kind === "loading"}
-          onClick={startEdit}>
-          {card ? "Update card" : "Add card"}
-        </Btn>
-      )}
+        ) : (
+          !editing && (
+            <button
+              type="button"
+              onClick={startEdit}
+              disabled={mode.kind === "loading"}
+              className="border-bp-border-mid text-bp-text2 flex h-[52px] items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed text-[13.5px] font-semibold disabled:opacity-50">
+              {mode.kind === "loading" ? (
+                <Spinner />
+              ) : (
+                <>
+                  <PlusIcon size={16} /> Add payment method
+                </>
+              )}
+            </button>
+          )
+        )}
 
-      {message && (
-        <div
-          role="status"
-          className={`mt-2.5 text-[12.5px] ${message.tone === "ok" ? "text-green" : "text-danger"}`}>
-          {message.text}
+        {editing && (
+          <StripeProvider clientSecret={mode.clientSecret} theme="light">
+            <UpdateCardForm
+              onCancel={() => setMode({ kind: "view" })}
+              onSaved={() => {
+                setMode({ kind: "view" });
+                setMessage({ tone: "ok", text: "Card updated." });
+              }}
+            />
+          </StripeProvider>
+        )}
+
+        {message && (
+          <div
+            role="status"
+            className={
+              message.tone === "ok"
+                ? "text-green text-[12.5px]"
+                : "text-danger text-[12.5px]"
+            }>
+            {message.text}
+          </div>
+        )}
+        <div className="text-bp-text3 flex items-center gap-2.5 text-xs">
+          <LockIcon size={13} className="shrink-0" /> Cards are stored by
+          Stripe. Hooper only sees the last 4 digits.
         </div>
-      )}
-      <div className="text-bp-text3 mt-3 flex items-center gap-2 text-xs">
-        <LockIcon size={13} className="shrink-0" /> Cards are stored by Stripe.
-        Hooper only sees the last 4 digits.
       </div>
     </Card>
   );
 }
 
+/** Design `PaymentMethods` row for the one default card. */
 function CardOnFile({
   card,
-  error,
+  action,
 }: {
-  card: CardSummary | null;
-  error: string | null;
+  card: CardSummary;
+  action: ReactNode;
 }) {
-  if (error) return <div className="text-danger mb-3 text-[13px]">{error}</div>;
-  if (!card)
-    return (
-      <div className="text-bp-text2 mb-3 text-[13px]">No card on file.</div>
-    );
   return (
-    <div className="mb-3 flex items-center gap-[11px]">
-      <div className="border-bp-border bg-bp-bg text-bp-text2 flex h-[27px] w-10 items-center justify-center rounded-md border">
-        <CreditIcon size={15} />
+    <div
+      className={cn(
+        "bg-bp-card flex flex-wrap items-center gap-3 rounded-xl border p-4",
+        card.expired ? "border-danger/30" : "border-bp-border",
+      )}>
+      <div className="border-bp-border bg-bp-bg text-bp-text2 flex h-[30px] w-11 shrink-0 items-center justify-center rounded-md border">
+        <CreditIcon size={16} />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-bp-text1 text-[13px] font-semibold">
+        <div className="text-bp-text1 text-sm font-bold whitespace-nowrap">
           {brandName(card.brand)} •••• {card.last4}
         </div>
-        <div
-          className={
-            card.expired
-              ? "text-danger text-[11.5px]"
-              : "text-bp-text3 text-[11.5px]"
-          }>
-          {card.expired ? "Expired" : "Expires"} {expiry(card)}
+        <div className="mt-[3px] flex flex-wrap items-center gap-2">
+          <span
+            className={cn(
+              "text-[12.5px]",
+              card.expired ? "text-danger font-semibold" : "text-bp-text2",
+            )}>
+            {card.expired ? "Expired" : "Expires"} {expiry(card)}
+          </span>
+          <Tag tone="blue">Default</Tag>
         </div>
       </div>
+      {action}
     </div>
   );
 }

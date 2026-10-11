@@ -1,13 +1,14 @@
 "use client";
 
-import { SettingsIcon, UsersIcon } from "@/src/components/icons";
+import { CalendarIcon, SettingsIcon, UsersIcon } from "@/src/components/icons";
 import { cn } from "@/src/lib/cn";
 import { AppLink } from "@hooper/shared/next";
 import { usePathname } from "next/navigation";
 
-/** Portal nav, in the design's order. Overview, Payments and Activity slot
- * in ahead of these as they're built. */
+/** Portal nav, in the design's order. Overview and Activity slot in ahead
+ * of these as they're built. */
 const NAV = [
+  { href: "/memberships", label: "Memberships", Icon: CalendarIcon },
   { href: "/children", label: "Children", Icon: UsersIcon },
   { href: "/account", label: "Account", Icon: SettingsIcon },
 ] as const;

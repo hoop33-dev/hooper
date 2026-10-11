@@ -130,3 +130,28 @@ export async function getMyPurchases(): Promise<Result<MyPackagePurchase[]>> {
   if (error) return err(error.message);
   return ok(data ?? []);
 }
+
+/** Stops a monthly membership the caller pays for. Active ones run to the
+ * end of the paid period; a failed (past_due) one ends now. */
+export async function cancelMembership(
+  purchaseId: string,
+  reason: string | null,
+): Promise<Result<null>> {
+  const res = await invoke<FnResponse>("billing-membership", {
+    action: "cancel",
+    purchaseId,
+    ...(reason ? { reason } : {}),
+  });
+  return res.ok ? ok(null) : res;
+}
+
+/** Undoes a pending end-of-period cancel. */
+export async function keepMembership(
+  purchaseId: string,
+): Promise<Result<null>> {
+  const res = await invoke<FnResponse>("billing-membership", {
+    action: "keep",
+    purchaseId,
+  });
+  return res.ok ? ok(null) : res;
+}

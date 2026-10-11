@@ -69,7 +69,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isSignedOutOnlyPath(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = pkg ? "/checkout" : "/account";
+    url.pathname = pkg ? "/checkout" : "/memberships";
     url.search = pkg ? `?package=${encodeURIComponent(pkg)}` : "";
     return NextResponse.redirect(url);
   }

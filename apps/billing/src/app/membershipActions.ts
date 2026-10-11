@@ -3,6 +3,7 @@
 import {
   cancelMembership,
   keepMembership,
+  retryMembershipPayment,
 } from "@/src/services/billing.service";
 import { revalidatePath } from "next/cache";
 
@@ -21,6 +22,13 @@ export async function stopMembershipAction(
 
 export async function keepMembershipAction(purchaseId: string) {
   const res = await keepMembership(purchaseId);
+  if (res.ok) revalidatePath("/", "layout");
+  return res;
+}
+
+/** "Pay now" on a failed renewal: retries the charge on the card on file. */
+export async function retryPaymentAction(purchaseId: string) {
+  const res = await retryMembershipPayment(purchaseId);
   if (res.ok) revalidatePath("/", "layout");
   return res;
 }

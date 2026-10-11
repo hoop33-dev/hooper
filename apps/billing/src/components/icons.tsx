@@ -194,3 +194,16 @@ export const XIcon = (p: IconProps) => (
     <path d="M18 6L6 18M6 6l12 12" />
   </Svg>
 );
+
+export const HomeIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z" />
+  </Svg>
+);
+
+export const ReceiptIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 3v18l2.5-1.6L10 21l2-1.6L14 21l2.5-1.6L19 21V3z" />
+    <path d="M9 8h6M9 12h6M9 16h3" />
+  </Svg>
+);

@@ -166,38 +166,39 @@ function RosterRow({
     .join(", ");
   return (
     <li className="border-bp-border border-b">
-      <AppLink
-        href={href}
-        className="hover:bg-bp-bg/60 flex items-center gap-[13px] px-4 pt-3.5 pb-1.5 md:px-5">
-        <Avatar initials={avatarInitials} size={38} tone={tone} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-bp-text1 truncate text-sm font-bold">
-              {name}
-            </span>
-            {isSelf && <Tag tone="neutral">You</Tag>}
-            {needsFix && <Tag tone="danger">Fix card</Tag>}
+      {/* The whole row — header and package list — is one link. */}
+      <AppLink href={href} className="hover:bg-bp-bg/60 block">
+        <div className="flex items-center gap-[13px] px-4 pt-3.5 pb-1.5 md:px-5">
+          <Avatar initials={avatarInitials} size={38} tone={tone} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-bp-text1 truncate text-sm font-bold">
+                {name}
+              </span>
+              {isSelf && <Tag tone="neutral">You</Tag>}
+              {needsFix && <Tag tone="danger">Fix card</Tag>}
+            </div>
+            <div className="text-bp-text2 mt-px truncate text-[12.5px]">
+              {meta}
+            </div>
           </div>
-          <div className="text-bp-text2 mt-px truncate text-[12.5px]">
-            {meta}
-          </div>
+          {!unavailable && <RowTotals totals={householdTotals(purchases)} />}
+          <ChevronIcon size={16} className="text-bp-text3 shrink-0" />
         </div>
-        {!unavailable && <RowTotals totals={householdTotals(purchases)} />}
-        <ChevronIcon size={16} className="text-bp-text3 shrink-0" />
+        {count > 0 ? (
+          <ul className="px-4 pb-2 pl-[67px] md:px-5 md:pl-[71px]">
+            {purchases.map((p, i) => (
+              <PackageLine key={p.id} purchase={p} last={i === count - 1} />
+            ))}
+          </ul>
+        ) : (
+          !unavailable && (
+            <div className="text-bp-text3 px-4 pb-3.5 pl-[67px] text-xs md:px-5 md:pl-[71px]">
+              No memberships yet
+            </div>
+          )
+        )}
       </AppLink>
-      {count > 0 ? (
-        <ul className="px-4 pb-2 pl-[67px] md:px-5 md:pl-[71px]">
-          {purchases.map((p, i) => (
-            <PackageLine key={p.id} purchase={p} last={i === count - 1} />
-          ))}
-        </ul>
-      ) : (
-        !unavailable && (
-          <div className="text-bp-text3 px-4 pb-3.5 pl-[67px] text-xs md:px-5 md:pl-[71px]">
-            No memberships yet
-          </div>
-        )
-      )}
     </li>
   );
 }

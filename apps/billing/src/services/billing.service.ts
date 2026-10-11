@@ -3,6 +3,7 @@ import { err, ok } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import { invokeFunction } from "@/src/services/_invoke";
 import type { MyPackagePurchase } from "@hooper/db";
+import { cache } from "react";
 
 /** Stripe work happens in Supabase edge functions (they hold the Stripe
  * secret and service-role keys). These wrappers invoke them with the signed-in
@@ -124,12 +125,16 @@ export async function completeSetupIntent(
   return ok(res.data.card);
 }
 
-export async function getMyPurchases(): Promise<Result<MyPackagePurchase[]>> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("my_package_purchases");
-  if (error) return err(error.message);
-  return ok(data ?? []);
-}
+/** Everything the caller pays for or receives. Cached per request: the
+ * portal layout (nav badge) and the page both read it. */
+export const getMyPurchases = cache(
+  async (): Promise<Result<MyPackagePurchase[]>> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("my_package_purchases");
+    if (error) return err(error.message);
+    return ok(data ?? []);
+  },
+);
 
 /** Stops a monthly membership the caller pays for. Active ones run to the
  * end of the paid period; a failed (past_due) one ends now. */
@@ -151,6 +156,41 @@ export async function keepMembership(
 ): Promise<Result<null>> {
   const res = await invoke<FnResponse>("billing-membership", {
     action: "keep",
+    purchaseId,
+  });
+  return res.ok ? ok(null) : res;
+}
+
+/** One row of the Invoices table: a membership invoice or a one-off
+ * package receipt from the caller's Stripe Customer. */
+export type InvoiceSummary = {
+  id: string;
+  /** Stripe's invoice number; null for a one-off payment receipt. */
+  number: string | null;
+  description: string;
+  date: string;
+  amountCents: number;
+  currency: string;
+  status: "paid" | "failed" | "due";
+  /** Stripe's hosted invoice page or receipt. */
+  url: string | null;
+};
+
+export async function listInvoices(): Promise<Result<InvoiceSummary[]>> {
+  const res = await invoke<FnResponse & { invoices: InvoiceSummary[] }>(
+    "billing-invoices",
+    { action: "list" },
+  );
+  if (!res.ok) return res;
+  return ok(res.data.invoices);
+}
+
+/** Retries a failed membership charge against the card on file. */
+export async function retryMembershipPayment(
+  purchaseId: string,
+): Promise<Result<null>> {
+  const res = await invoke<FnResponse>("billing-invoices", {
+    action: "pay",
     purchaseId,
   });
   return res.ok ? ok(null) : res;

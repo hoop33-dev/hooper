@@ -79,7 +79,7 @@ export async function verifyCodeAction(
 ): Promise<{ error: string }> {
   const res = await verifySignupOtp(email, code);
   if (!res.ok) return { error: res.error };
-  redirect(pkg ? withPackage("/checkout?verified=1", pkg) : "/welcome");
+  redirect(pkg ? withPackage("/checkout?verified=1", pkg) : "/");
 }
 
 export async function resendCodeAction(
@@ -158,5 +158,5 @@ export async function setNewPasswordAction(
 
   const res = await updatePassword(password);
   if (!res.ok) return { error: res.error };
-  redirect("/account");
+  redirect("/");
 }

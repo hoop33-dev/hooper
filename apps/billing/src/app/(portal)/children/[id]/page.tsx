@@ -1,20 +1,19 @@
+import { OpenAppButton } from "@/src/components/app/OpenAppButton";
+import { MembershipList } from "@/src/components/billing/MembershipList";
 import { CheckIcon } from "@/src/components/icons";
 import { PageBody, TopBar } from "@/src/components/shell/Shell";
 import { cn } from "@/src/lib/cn";
 import { fullName } from "@/src/lib/format";
 import { purchasesFor, visiblePurchases } from "@/src/lib/purchases";
-import {
-  getMyPurchases,
-  getPaymentMethod,
-} from "@/src/services/billing.service";
+import { getMyPurchases } from "@/src/services/billing.service";
 import { getMyChild } from "@/src/services/children.service";
+import { getMyProfile } from "@/src/services/profile.service";
 import { AppLink } from "@hooper/shared/next";
-import { notFound } from "next/navigation";
-import { ChildBillingTab } from "./ChildBillingTab";
+import { notFound, redirect } from "next/navigation";
 import { ChildPasswordCard } from "./ChildPasswordCard";
 import { ChildProfileForm } from "./ChildProfileForm";
 
-type Tab = "billing" | "profile";
+type Tab = "memberships" | "profile";
 
 export default async function ChildPage({
   params,
@@ -28,7 +27,8 @@ export default async function ChildPage({
   if (!child.ok) throw new Error(child.error);
   if (!child.data) notFound();
   const c = child.data;
-  const tab: Tab = sp.tab === "profile" ? "profile" : "billing";
+  // Anything else (including the old ?tab=billing) lands on Memberships.
+  const tab: Tab = sp.tab === "profile" ? "profile" : "memberships";
 
   const name = fullName(c.first_name, c.last_name) || c.username;
   const sub = `@${c.username}`;
@@ -40,10 +40,15 @@ export default async function ChildPage({
         sub={sub}
         back={{ href: "/children", label: "Children" }}
         crumbs={[{ label: "Children", href: "/children" }, { label: name }]}
+        right={<OpenAppButton />}
       />
       <Tabs id={id} tab={tab} />
       <PageBody>
-        <div className="flex max-w-[720px] flex-col gap-4">
+        <div
+          className={cn(
+            "flex flex-col gap-4",
+            tab === "profile" ? "max-w-[720px]" : "max-w-[880px]",
+          )}>
           {sp.created === "1" && (
             <div
               role="status"
@@ -55,8 +60,11 @@ export default async function ChildPage({
               </span>
             </div>
           )}
-          {tab === "billing" ? (
-            <BillingTab childId={id} firstName={c.first_name || c.username} />
+          {tab === "memberships" ? (
+            <MembershipsTab
+              childId={id}
+              firstName={c.first_name || c.username}
+            />
           ) : (
             <>
               <ChildProfileForm child={c} />
@@ -74,34 +82,36 @@ export default async function ChildPage({
   );
 }
 
-async function BillingTab({
+async function MembershipsTab({
   childId,
   firstName,
 }: {
   childId: string;
   firstName: string;
 }) {
-  const [purchases, card] = await Promise.all([
+  const [profile, purchases] = await Promise.all([
+    getMyProfile(),
     getMyPurchases(),
-    getPaymentMethod(),
   ]);
+  if (!profile.ok) redirect("/start");
   return (
-    <ChildBillingTab
-      firstName={firstName}
+    <MembershipList
       purchases={
         purchases.ok
           ? purchasesFor(visiblePurchases(purchases.data), childId)
           : []
       }
+      myProfileId={profile.data.id}
+      whose={`${firstName}'s`}
       error={purchases.ok ? null : purchases.error}
-      card={card.ok ? card.data : null}
+      emptyHint={`Open your coach's package link and choose "For my child" → ${firstName} at checkout.`}
     />
   );
 }
 
 function Tabs({ id, tab }: { id: string; tab: Tab }) {
   const tabs: [Tab, string][] = [
-    ["billing", "Billing"],
+    ["memberships", "Memberships"],
     ["profile", "Profile"],
   ];
   return (
@@ -110,7 +120,7 @@ function Tabs({ id, tab }: { id: string; tab: Tab }) {
         <AppLink
           key={t}
           href={
-            t === "billing" ? `/children/${id}` : `/children/${id}?tab=${t}`
+            t === "memberships" ? `/children/${id}` : `/children/${id}?tab=${t}`
           }
           aria-current={tab === t ? "page" : undefined}
           className={cn(

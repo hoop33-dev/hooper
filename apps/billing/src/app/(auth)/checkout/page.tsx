@@ -13,7 +13,7 @@ export default async function CheckoutPage({
 }) {
   const params = await searchParams;
   const loaded = await loadPackage(params.package);
-  if (loaded.kind === "none") redirect("/account");
+  if (loaded.kind === "none") redirect("/");
   if (loaded.kind === "unavailable") return <PackageUnavailable />;
 
   const [profile, children] = await Promise.all([

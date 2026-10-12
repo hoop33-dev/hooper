@@ -37,7 +37,7 @@ function verifyUrl(email: string, pkg: string | null, from?: string) {
 // ── Sign up ───────────────────────────────────────────────────
 
 export type SignUpState = {
-  values: Omit<SignUpFields, "password">;
+  values: Omit<SignUpFields, "password" | "confirmPassword">;
   errors: FieldErrors<keyof SignUpFields>;
   formError?: string;
 };
@@ -52,8 +52,9 @@ export async function signUpAction(
     username: str(formData, "username").trim().toLowerCase(),
     email: str(formData, "email").trim().toLowerCase(),
     password: str(formData, "password"),
+    confirmPassword: str(formData, "confirmPassword"),
   };
-  const { password: _pw, ...values } = fields;
+  const { password: _pw, confirmPassword: _cpw, ...values } = fields;
 
   const errors = validateSignUp(fields);
   if (Object.keys(errors).length > 0) return { values, errors };
@@ -78,7 +79,7 @@ export async function verifyCodeAction(
 ): Promise<{ error: string }> {
   const res = await verifySignupOtp(email, code);
   if (!res.ok) return { error: res.error };
-  redirect(pkg ? withPackage("/checkout?verified=1", pkg) : "/welcome");
+  redirect(pkg ? withPackage("/checkout?verified=1", pkg) : "/");
 }
 
 export async function resendCodeAction(
@@ -111,7 +112,7 @@ export async function signInAction(
     await resendSignupOtp(res.data.email);
     redirect(verifyUrl(res.data.email, pkg, "signin"));
   }
-  redirect(pkg ? withPackage("/checkout", pkg) : "/account");
+  redirect(pkg ? withPackage("/checkout", pkg) : "/");
 }
 
 export async function signOutAction(formData: FormData): Promise<void> {
@@ -157,5 +158,5 @@ export async function setNewPasswordAction(
 
   const res = await updatePassword(password);
   if (!res.ok) return { error: res.error };
-  redirect("/account");
+  redirect("/");
 }

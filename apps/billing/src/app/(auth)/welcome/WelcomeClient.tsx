@@ -148,7 +148,7 @@ export function WelcomeClient({
         </div>
       </DarkCard>
       <div className="mt-5">
-        <BtnLink href="/account" variant="ghostDark" size="lg" full>
+        <BtnLink href="/" variant="ghostDark" size="lg" full>
           Go to billing portal
         </BtnLink>
       </div>

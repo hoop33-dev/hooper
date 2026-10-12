@@ -33,6 +33,7 @@ function normalise(f: ChildFormFields): ChildFormFields {
     dateOfBirth: f.dateOfBirth,
     username: f.username.trim().toLowerCase(),
     password: f.password,
+    confirmPassword: f.confirmPassword,
   };
 }
 
@@ -56,9 +57,9 @@ export async function createChildAction(
 
 export async function updateChildAction(
   childId: string,
-  input: Omit<ChildFormFields, "password">,
+  input: Omit<ChildFormFields, "password" | "confirmPassword">,
 ): Promise<ChildActionResult<null>> {
-  const fields = normalise({ ...input, password: "" });
+  const fields = normalise({ ...input, password: "", confirmPassword: "" });
   const errors = validateChild(fields, { requirePassword: false });
   if (Object.keys(errors).length > 0) return { ok: false, errors };
 

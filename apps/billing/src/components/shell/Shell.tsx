@@ -20,21 +20,24 @@ export type ShellUser = { name: string; initials: string; label: string };
  * the space under the app bar. */
 export function Shell({
   user,
+  alerts,
   children,
 }: {
   user: ShellUser;
+  /** Failed charges the user can pay — badges Overview in the nav. */
+  alerts: number;
   children: ReactNode;
 }) {
   return (
     <div className="bg-bp-bg flex min-h-screen flex-col font-sans md:h-dvh md:min-h-0">
       <AppBar />
       <div className="flex flex-1 md:min-h-0">
-        <Sidebar user={user} />
+        <Sidebar user={user} alerts={alerts} />
         <div className="flex min-w-0 flex-1 flex-col pb-[62px] md:overflow-y-auto md:pb-0">
           {children}
         </div>
       </div>
-      <MobileNav />
+      <MobileNav alerts={alerts} />
     </div>
   );
 }
@@ -62,7 +65,7 @@ function AppBar() {
   );
 }
 
-function Sidebar({ user }: { user: ShellUser }) {
+function Sidebar({ user, alerts }: { user: ShellUser; alerts: number }) {
   return (
     <aside className="bg-ink hidden w-[218px] shrink-0 flex-col md:flex">
       <div className="flex items-center gap-2.5 border-b border-white/[0.06] px-5 pt-4 pb-3.5">
@@ -74,7 +77,7 @@ function Sidebar({ user }: { user: ShellUser }) {
           Billing
         </span>
       </div>
-      <SidebarLinks />
+      <SidebarLinks alerts={alerts} />
       <div className="flex items-center gap-2.5 border-t border-white/[0.08] px-3.5 py-3">
         <Avatar initials={user.initials} size={30} tone="navy" />
         <div className="min-w-0 flex-1">
@@ -97,10 +100,10 @@ function Sidebar({ user }: { user: ShellUser }) {
   );
 }
 
-function MobileNav() {
+function MobileNav({ alerts }: { alerts: number }) {
   return (
     <nav className="bg-ink fixed inset-x-0 bottom-0 flex h-[62px] border-t border-white/[0.08] pb-1.5 md:hidden">
-      <MobileLinks />
+      <MobileLinks alerts={alerts} />
       <form action={signOutAction} className="flex flex-1">
         <button
           type="submit"

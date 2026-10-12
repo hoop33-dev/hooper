@@ -87,3 +87,12 @@ describe("nextCharges", () => {
     expect(list.map((p) => p.id)).toEqual(["soon", "late"]);
   });
 });
+
+describe("cancelled memberships", () => {
+  it("still live, but no longer counted as an upcoming charge", () => {
+    const ending = purchase({ id: "e", cancel_at_period_end: true });
+    expect(isLive(ending, now)).toBe(true);
+    expect(householdTotals([ending], now)).toEqual([]);
+    expect(nextCharges([ending], now)).toEqual([]);
+  });
+});

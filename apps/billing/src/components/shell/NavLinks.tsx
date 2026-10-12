@@ -1,23 +1,34 @@
 "use client";
 
-import { SettingsIcon, UsersIcon } from "@/src/components/icons";
+import {
+  CalendarIcon,
+  HomeIcon,
+  SettingsIcon,
+  UsersIcon,
+} from "@/src/components/icons";
 import { cn } from "@/src/lib/cn";
 import { AppLink } from "@hooper/shared/next";
 import { usePathname } from "next/navigation";
 
-/** Portal nav, in the design's order. Overview, Payments and Activity slot
- * in ahead of these as they're built. */
+/** Portal nav, in the design's order. Activity slots in after Memberships
+ * once it's built. */
 const NAV = [
+  { href: "/", label: "Overview", Icon: HomeIcon },
+  { href: "/memberships", label: "Memberships", Icon: CalendarIcon },
   { href: "/children", label: "Children", Icon: UsersIcon },
   { href: "/account", label: "Account", Icon: SettingsIcon },
 ] as const;
 
 function useActive() {
   const pathname = usePathname();
-  return (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  return (href: string) =>
+    href === "/"
+      ? pathname === "/"
+      : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function SidebarLinks() {
+/** `alerts` (failed charges) badges Overview, like the design. */
+export function SidebarLinks({ alerts }: { alerts: number }) {
   const isActive = useActive();
   return (
     <nav className="flex flex-1 flex-col gap-px p-2.5">
@@ -36,6 +47,13 @@ export function SidebarLinks() {
             )}>
             <Icon size={17} className={on ? "text-orange" : "text-white/40"} />
             {label}
+            {href === "/" && alerts > 0 && (
+              <span
+                aria-label={`${alerts} failed ${alerts === 1 ? "charge" : "charges"}`}
+                className="bg-orange ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-[5px] text-[10.5px] font-extrabold text-white">
+                {alerts}
+              </span>
+            )}
           </AppLink>
         );
       })}
@@ -43,7 +61,7 @@ export function SidebarLinks() {
   );
 }
 
-export function MobileLinks() {
+export function MobileLinks({ alerts }: { alerts: number }) {
   const isActive = useActive();
   return (
     <>
@@ -54,7 +72,7 @@ export function MobileLinks() {
             key={href}
             href={href}
             aria-current={on ? "page" : undefined}
-            className="flex flex-1 flex-col items-center justify-center gap-1">
+            className="relative flex flex-1 flex-col items-center justify-center gap-1">
             <Icon size={17} className={on ? "text-orange" : "text-white/40"} />
             <span
               className={cn(
@@ -63,6 +81,11 @@ export function MobileLinks() {
               )}>
               {label}
             </span>
+            {href === "/" && alerts > 0 && (
+              <span className="bg-orange absolute top-1.5 left-1/2 ml-1.5 flex size-[15px] items-center justify-center rounded-full text-[9.5px] font-extrabold text-white">
+                {alerts}
+              </span>
+            )}
           </AppLink>
         );
       })}

@@ -70,11 +70,13 @@ export function fullName(first: string | null, last: string | null): string {
   return [first, last].filter(Boolean).join(" ");
 }
 
-/** "12 Oct 2026" */
+/** "12 Oct 2026" in New Zealand time — matches the Auckland calendar days
+ * renewals are grouped by, whatever timezone the server or browser is in. */
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-NZ", {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "Pacific/Auckland",
   });
 }

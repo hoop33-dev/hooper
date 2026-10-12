@@ -83,7 +83,6 @@ async function ExerciseLibraryData({
       profileId={profileId}
       searchQuery=""
       selectedCategoryId=""
-      initialEditExerciseId={editExerciseId}
       createAction={wrappedCreate}
       updateAction={updateExerciseAction}
       deleteAction={deleteExerciseAction}

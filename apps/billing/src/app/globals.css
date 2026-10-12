@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+/* Billing portal tokens (bp-* light portal, dk-* dark auth) live in
+   tailwind.config.ts. */
+@config "../../tailwind.config.ts";
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background-color: #1a1718;
+}
+
+/* Tailwind's preflight resets <button> to cursor: default. Every button in
+   this app is clickable, so restore the native pointer cursor globally. */
+button:not(:disabled) {
+  cursor: pointer;
+}

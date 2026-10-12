@@ -8,7 +8,9 @@ import { useModalDismiss } from "../ui/useModalDismiss";
 
 interface BlockLibraryCreateModalProps {
   onClose: () => void;
-  onCreate: (name: string) => Promise<void>;
+  /** Resolves true once created; the modal then stays saving while the shell
+   * navigates to the new template. */
+  onCreate: (name: string) => Promise<boolean>;
 }
 
 export function BlockLibraryCreateModal({
@@ -22,8 +24,10 @@ export function BlockLibraryCreateModal({
   async function handleCreate() {
     if (!name.trim() || saving) return;
     setSaving(true);
-    await onCreate(name.trim());
-    setSaving(false);
+    const created = await onCreate(name.trim());
+    // On success the shell navigates to the new item, so stay on the saving
+    // state until that page replaces this one.
+    if (!created) setSaving(false);
   }
 
   return (

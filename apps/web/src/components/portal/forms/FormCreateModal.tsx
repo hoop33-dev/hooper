@@ -12,7 +12,9 @@ export type FormCreateFormData = {
 
 interface FormCreateModalProps {
   onClose: () => void;
-  onCreate: (data: FormCreateFormData) => Promise<void>;
+  /** Resolves true once created; the modal then stays saving while the shell
+   * navigates to the new form. */
+  onCreate: (data: FormCreateFormData) => Promise<boolean>;
 }
 
 function ModalHeader({ onClose }: { onClose: () => void }) {
@@ -101,11 +103,13 @@ export function FormCreateModal({ onClose, onCreate }: FormCreateModalProps) {
   async function handleCreate() {
     if (!name.trim() || saving) return;
     setSaving(true);
-    await onCreate({
+    const created = await onCreate({
       name: name.trim(),
       description: description.trim() || undefined,
     });
-    setSaving(false);
+    // On success the shell navigates to the new item, so stay on the saving
+    // state until that page replaces this one.
+    if (!created) setSaving(false);
   }
 
   return (

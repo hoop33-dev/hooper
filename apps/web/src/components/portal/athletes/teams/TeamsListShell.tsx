@@ -2,10 +2,10 @@
 
 import { uploadTeamAvatar } from "@/src/services/teamAvatar.client";
 import type { TeamRow, TeamSummary } from "@hooper/db";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ListToolbar, matchesSearch } from "../../ui/ListToolbar";
 import { PortalButton } from "../../ui/PortalButton";
-import { useOptimisticList } from "../../ui/useOptimisticList";
 import { TeamCreateModal, type TeamCreateFormData } from "./TeamCreateModal";
 import { TeamsTable } from "./TeamsTable";
 
@@ -60,10 +60,10 @@ export function TeamsListShell({
   createAction,
   updateAvatarAction,
 }: TeamsListShellProps) {
-  const { items: localTeams, mutate } = useOptimisticList(teams);
+  const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const filtered = localTeams.filter((t) =>
+  const filtered = teams.filter((t) =>
     matchesSearch(search, t.name, t.description),
   );
 
@@ -98,12 +98,12 @@ export function TeamsListShell({
   }
 
   async function handleCreate(data: TeamCreateFormData): Promise<ActionResult> {
-    const result = await mutate<TeamRow>(
-      (prev) => prev,
-      () => createTeamWithAvatar(data),
-      (prev, row) => [{ ...row, memberCount: 0, programs: [] }, ...prev],
-    );
-    return result.ok ? { ok: true } : { ok: false, error: result.error };
+    const result = await createTeamWithAvatar(data);
+    if (!result.ok || !result.data) {
+      return { ok: false, error: result.error };
+    }
+    router.push(`/teams/${result.data.id}`);
+    return { ok: true };
   }
 
   return (
@@ -118,7 +118,7 @@ export function TeamsListShell({
       <div className="flex-1 overflow-y-auto px-7 py-2">
         {filtered.length === 0 ? (
           <EmptyState
-            hasSearch={localTeams.length > 0}
+            hasSearch={teams.length > 0}
             onCreateClick={() => setCreateOpen(true)}
           />
         ) : (

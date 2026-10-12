@@ -100,8 +100,23 @@ function ParentSelector({
   );
 }
 
+function isDuplicateName(
+  name: string,
+  allCategories: ExerciseCategoryRow[],
+  currentId?: string,
+) {
+  const normalized = name.trim().toLowerCase();
+  return (
+    normalized !== "" &&
+    allCategories.some(
+      (c) => c.id !== currentId && c.name.trim().toLowerCase() === normalized,
+    )
+  );
+}
+
 function CategoryForm({
   initial,
+  currentId,
   allCategories,
   excludeIds,
   onSubmit,
@@ -109,6 +124,8 @@ function CategoryForm({
   submitLabel,
 }: {
   initial?: { name: string; description: string; parent_id?: string | null };
+  /** The category being edited, so its own name doesn't count as a duplicate. */
+  currentId?: string;
   allCategories: ExerciseCategoryRow[];
   excludeIds: string[];
   onSubmit: (data: {
@@ -124,9 +141,10 @@ function CategoryForm({
   const [parentId, setParentId] = useState(initial?.parent_id ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const duplicate = isDuplicateName(name, allCategories, currentId);
 
   async function handleSubmit() {
-    if (!name.trim()) return;
+    if (!name.trim() || duplicate) return;
     setSaving(true);
     setError(null);
     try {
@@ -151,6 +169,9 @@ function CategoryForm({
         onChange={(e) => setName(e.target.value)}
         placeholder="e.g. Lower Body"
         required
+        error={
+          duplicate ? "A category with this name already exists" : undefined
+        }
       />
       <PortalTextarea
         id="cat-desc"
@@ -176,7 +197,7 @@ function CategoryForm({
         <PortalButton
           variant="primary"
           onClick={handleSubmit}
-          disabled={saving || !name.trim()}>
+          disabled={saving || !name.trim() || duplicate}>
           {saving ? "Saving…" : submitLabel}
         </PortalButton>
       </div>
@@ -274,6 +295,7 @@ function EditMode({
           description: category.description ?? "",
           parent_id: category.parent_id,
         }}
+        currentId={category.id}
         allCategories={allCategories}
         excludeIds={[category.id, ...descendantIds]}
         onSubmit={async (data) => {

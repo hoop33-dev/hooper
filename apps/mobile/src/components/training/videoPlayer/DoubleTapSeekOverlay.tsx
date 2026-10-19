@@ -1,7 +1,6 @@
+import { Title } from "@/src/components/ui";
 import { useCallback, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, View } from "react-native";
-
-import { SkipBack10Icon, SkipForward10Icon } from "../icons";
 
 const DOUBLE_TAP_WINDOW_MS = 300;
 const FLASH_VISIBLE_MS = 350;
@@ -59,7 +58,7 @@ type DoubleTapSeekOverlayProps = {
 
 /** Sits above VideoSurface and below PlayerControls (see VideoPlayerModal),
  * splitting the video into left/middle/right thirds: double-tapping the
- * left or right third skips ±10s (with a brief icon flash on that side,
+ * left or right third skips ±10s (with a brief "-10"/"+10" flash on that side,
  * like YouTube), while a single tap anywhere — including a lone tap in the
  * skip zones once the double-tap window elapses — toggles play/pause. */
 export function DoubleTapSeekOverlay({
@@ -115,11 +114,9 @@ export function DoubleTapSeekOverlay({
             { opacity },
           ]}>
           <View style={styles.flashBubble}>
-            {flashZone === "back" ? (
-              <SkipBack10Icon size={30} color="#fff" />
-            ) : (
-              <SkipForward10Icon size={30} color="#fff" />
-            )}
+            <Title className="text-text-primary">
+              {flashZone === "back" ? "-10" : "+10"}
+            </Title>
           </View>
         </Animated.View>
       ) : null}

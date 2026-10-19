@@ -5,18 +5,21 @@ import {
   resolveSetExercise,
   resolveSetStyle,
 } from "@/src/lib/blockExerciseDisplay";
+import { exerciseMediaItems } from "@/src/lib/exerciseMedia";
 import type { AthleteBlock, AthleteBlockExercise } from "@hooper/api";
+import { useMemo, useState } from "react";
 import { View, type LayoutRectangle } from "react-native";
 
+import { ExerciseMediaThumbnail } from "./ExerciseMediaThumbnail";
 import {
   FieldBox,
   SetDoneButton,
   SetFieldRow,
   TickAllButton,
-  VideoThumbnail,
   type GroupSetTarget,
   type SetRowState,
 } from "./ExerciseSetsCard";
+import { ExerciseMediaViewer } from "./videoPlayer/ExerciseMediaViewer";
 
 type SupersetBlockProps = {
   block: AthleteBlock;
@@ -74,20 +77,17 @@ function RoundExerciseRow({
     blockExercise.measurements.filter((m) => m.set_index === setIndex),
   );
   const done = set?.done ?? false;
+  const media = useMemo(() => exerciseMediaItems(exercise), [exercise]);
+  const [viewerStart, setViewerStart] = useState<number | null>(null);
 
   return (
     <View className="gap-2 px-4 py-3">
       <View className="flex-row items-center gap-3">
-        {exercise.video_url ? (
-          <VideoThumbnail
-            videoUrl={exercise.video_url}
-            videoSource={exercise.video_source}
-            videoOrientation={exercise.video_orientation}
-            videoThumbnailUrl={exercise.video_thumbnail_url}
-            title={exercise.name}
-            faded={done}
-          />
-        ) : null}
+        <ExerciseMediaThumbnail
+          items={media}
+          onOpen={setViewerStart}
+          faded={done}
+        />
         <View className="flex-1">
           <Title className={done ? "text-text-secondary" : "text-text-primary"}>
             {exercise.name}
@@ -112,6 +112,13 @@ function RoundExerciseRow({
         ))}
         <SetDoneButton done={done} onPress={onSetDone} />
       </SetFieldRow>
+      <ExerciseMediaViewer
+        startIndex={viewerStart}
+        onClose={() => setViewerStart(null)}
+        items={media}
+        title={exercise.name}
+        cue={exercise.description}
+      />
     </View>
   );
 }

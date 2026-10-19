@@ -103,6 +103,7 @@ function session(
             created_by: "coach",
             created_at: "",
             updated_at: "",
+            photos: [],
           },
           style: null,
           setVariants: {},

@@ -5,8 +5,8 @@ import {
   resolveSetExercise,
   resolveSetStyle,
 } from "@/src/lib/blockExerciseDisplay";
-import type { AthleteBlockExercise } from "@hooper/api";
-import type { ExerciseRow, ExerciseStyleRow } from "@hooper/db";
+import type { AthleteBlockExercise, AthleteExercise } from "@hooper/api";
+import type { ExerciseStyleRow } from "@hooper/db";
 
 describe("resolveMostCommonId", () => {
   it("is the base id, with no non-matching sets, when there are no overrides", () => {
@@ -24,7 +24,7 @@ describe("resolveMostCommonId", () => {
   });
 });
 
-function makeExercise(id: string, name: string): ExerciseRow {
+function makeExercise(id: string, name: string): AthleteExercise {
   return {
     id,
     name,
@@ -38,6 +38,7 @@ function makeExercise(id: string, name: string): ExerciseRow {
     created_by: "coach1",
     created_at: "",
     updated_at: "",
+    photos: [],
   };
 }
 

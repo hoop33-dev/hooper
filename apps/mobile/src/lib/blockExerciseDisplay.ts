@@ -1,5 +1,5 @@
-import type { AthleteBlockExercise } from "@hooper/api";
-import type { ExerciseRow, ExerciseStyleRow } from "@hooper/db";
+import type { AthleteBlockExercise, AthleteExercise } from "@hooper/api";
+import type { ExerciseStyleRow } from "@hooper/db";
 
 /** Sentinel for "no style" in a plain string-keyed override map — style_id
  * can be null (unlike a variant's exercise_id, which is always set), and
@@ -48,7 +48,7 @@ export function resolveMostCommonId(
 export function resolveSetExercise(
   be: AthleteBlockExercise,
   setIndex: number,
-): ExerciseRow {
+): AthleteExercise {
   return be.setVariants[setIndex] ?? be.exercise;
 }
 
@@ -119,8 +119,8 @@ export function resolveGroupStyle(
  */
 export function groupSetsByVariant(
   be: AthleteBlockExercise,
-): { exercise: ExerciseRow; setIndices: number[] }[] {
-  const groups: { exercise: ExerciseRow; setIndices: number[] }[] = [];
+): { exercise: AthleteExercise; setIndices: number[] }[] {
+  const groups: { exercise: AthleteExercise; setIndices: number[] }[] = [];
   for (let setIndex = 0; setIndex < be.sets; setIndex++) {
     const exercise = resolveSetExercise(be, setIndex);
     const current = groups[groups.length - 1];

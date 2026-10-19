@@ -8,13 +8,13 @@ import type {
   UnitTypeRow,
 } from "@hooper/db";
 import { AppLink } from "@hooper/shared/next";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { filterExercises } from "../programs/exerciseFilter";
 import { ListToolbar } from "../ui/ListToolbar";
 import { PortalButton } from "../ui/PortalButton";
 import { ExerciseCard } from "./ExerciseCard";
-import type { ExerciseFormData } from "./ExerciseModal";
+import type { ExerciseFormData, ExerciseModalProps } from "./ExerciseModal";
 import { ExerciseModal } from "./ExerciseModal";
 
 type ActionResult = { ok: boolean; error?: string; id?: string };
@@ -27,9 +27,6 @@ interface ExerciseLibraryShellProps {
   profileId: string;
   searchQuery: string;
   selectedCategoryId: string;
-  /** When set (from /exercises/[id]), opens that exercise's edit modal on
-   * mount so the URL and the open modal stay in sync. */
-  initialEditExerciseId?: string;
   createAction: (data: ExerciseFormData) => Promise<ActionResult>;
   updateAction: (id: string, data: ExerciseFormData) => Promise<ActionResult>;
   deleteAction: (id: string) => Promise<ActionResult>;
@@ -39,6 +36,7 @@ interface ExerciseLibraryShellProps {
     videoSource: ExerciseVideoSource,
     thumbnailUrl?: string | null,
   ) => Promise<ActionResult>;
+  replacePhotosAction: ExerciseModalProps["replacePhotosAction"];
   createCategoryAction?: (input: {
     name: string;
     created_by: string;
@@ -257,24 +255,33 @@ function LibraryToolbar({
 /** Owns the create/edit modal's open state, extracted out of
  * ExerciseLibraryShell so the component itself stays under the lint's
  * max-lines-per-function limit. */
-function useExerciseLibraryModal(
-  exercises: ExerciseWithDetails[],
-  initialEditExerciseId: string | undefined,
-) {
+function useExerciseLibraryModal(exercises: ExerciseWithDetails[]) {
   const router = useRouter();
+  const pathname = usePathname();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExercise, setEditingExercise] =
     useState<ExerciseWithDetails | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // The URL tracks the open edit modal (/exercises/[id]) via shallow
+  // history updates — a router.push would swap route segments and remount
+  // the whole library behind its loading skeleton. Syncing from the
+  // pathname also covers the initial deep link and browser back/forward.
+  const pathExerciseId = pathname.match(/^\/exercises\/([^/]+)$/)?.[1];
   useEffect(() => {
-    if (!initialEditExerciseId) return;
-    const exercise = exercises.find((ex) => ex.id === initialEditExerciseId);
+    const exercise = pathExerciseId
+      ? exercises.find((ex) => ex.id === pathExerciseId)
+      : undefined;
     if (exercise) {
       setEditingExercise(exercise);
       setModalOpen(true);
+    } else {
+      setEditingExercise((current) => {
+        if (current) setModalOpen(false);
+        return null;
+      });
     }
-  }, [initialEditExerciseId, exercises]);
+  }, [pathExerciseId, exercises]);
 
   function openCreate() {
     setEditingExercise(null);
@@ -283,13 +290,13 @@ function useExerciseLibraryModal(
   function openEdit(exercise: ExerciseWithDetails) {
     setEditingExercise(exercise);
     setModalOpen(true);
-    router.push(`/exercises/${exercise.id}`, { scroll: false });
+    window.history.pushState(null, "", `/exercises/${exercise.id}`);
   }
   function closeModal() {
     const wasEditing = editingExercise !== null;
     setModalOpen(false);
     setEditingExercise(null);
-    if (wasEditing) router.push("/exercises", { scroll: false });
+    if (wasEditing) window.history.pushState(null, "", "/exercises");
   }
   function handleSaved() {
     closeModal();
@@ -315,18 +322,18 @@ export function ExerciseLibraryShell({
   styles,
   unitTypes,
   profileId,
-  initialEditExerciseId,
   createAction,
   updateAction,
   deleteAction,
   updateVideoUrlAction,
+  replacePhotosAction,
   createCategoryAction,
   createStyleAction,
   createUnitTypeAction,
 }: ExerciseLibraryShellProps) {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const modal = useExerciseLibraryModal(exercises, initialEditExerciseId);
+  const modal = useExerciseLibraryModal(exercises);
 
   const filtered = filterExercises(
     exercises,
@@ -383,6 +390,7 @@ export function ExerciseLibraryShell({
           updateAction={updateAction}
           deleteAction={deleteAction}
           updateVideoUrlAction={updateVideoUrlAction}
+          replacePhotosAction={replacePhotosAction}
           createCategoryAction={createCategoryAction}
           createStyleAction={createStyleAction}
           createUnitTypeAction={createUnitTypeAction}

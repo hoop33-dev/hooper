@@ -2,13 +2,17 @@
 
 import { cn } from "@/src/lib/cn";
 import { getThumbnailUrl } from "@/src/lib/videoEmbed";
-import type { ExerciseWithDetails } from "@hooper/db";
+import type { ExercisePhotoRow, ExerciseWithDetails } from "@hooper/db";
 import { useState } from "react";
 
 type ThumbnailExercise = Pick<
   ExerciseWithDetails,
   "name" | "video_url" | "video_source" | "video_thumbnail_url"
->;
+> & {
+  /** Optional so callers with a bare exercise row still work — when
+   * present, the first photo stands in for a missing video. */
+  photos?: Pick<ExercisePhotoRow, "url">[];
+};
 
 function exerciseInitials(name: string): string {
   return (
@@ -33,14 +37,16 @@ interface ExerciseVideoThumbnailProps {
 /**
  * A cropped still of an exercise's demo video — YouTube's thumbnail for a
  * link, the frame captured at upload time for an upload — falling back to the
- * exercise's initials when there's no video (or the image fails to load).
+ * exercise's first photo when there's no video, then to its initials (or
+ * when the image fails to load).
  */
 export function ExerciseVideoThumbnail({
   exercise,
   className,
   fallbackClassName,
 }: ExerciseVideoThumbnailProps) {
-  const { video_url, video_source, video_thumbnail_url, name } = exercise;
+  const { video_url, video_source, video_thumbnail_url, name, photos } =
+    exercise;
   const [failed, setFailed] = useState(false);
 
   const imageUrl =
@@ -53,6 +59,20 @@ export function ExerciseVideoThumbnail({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={imageUrl}
+        alt=""
+        draggable={false}
+        className={cn("bg-black object-cover", className)}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  const photoUrl = photos?.[0]?.url;
+  if (!video_url && photoUrl && !failed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={photoUrl}
         alt=""
         draggable={false}
         className={cn("bg-black object-cover", className)}

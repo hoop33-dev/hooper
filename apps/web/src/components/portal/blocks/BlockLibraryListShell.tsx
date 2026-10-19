@@ -70,11 +70,11 @@ export function BlockLibraryListShell({
   async function handleCreate(name: string) {
     const result = await createAction(name);
     if (result.ok && result.data) {
-      setCreateOpen(false);
       router.push(`/blocks/${result.data.id}`);
-    } else {
-      showError(result.error ?? "Failed to create template.");
+      return true;
     }
+    showError(result.error ?? "Failed to create template.");
+    return false;
   }
 
   async function handleSave(name: string) {

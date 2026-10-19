@@ -18,6 +18,7 @@ import type { SessionWithBlocks } from "@hooper/db";
 import { notFound } from "next/navigation";
 import {
   createExerciseAction,
+  replaceExercisePhotosAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
 } from "../../exercises/actions";
@@ -191,6 +192,7 @@ export default async function BlockTemplateEditorPage({
         createExerciseAction={wrappedCreateExercise}
         updateExerciseAction={updateExerciseAction}
         updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+        replaceExercisePhotosAction={replaceExercisePhotosAction}
         createCategoryAction={createCategoryAction}
         createStyleAction={createStyleAction}
         createUnitTypeAction={createUnitTypeAction}

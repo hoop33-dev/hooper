@@ -28,6 +28,7 @@ import {
 } from "../../../../blocks/actions";
 import {
   createExerciseAction,
+  replaceExercisePhotosAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
 } from "../../../../exercises/actions";
@@ -219,6 +220,7 @@ async function SessionCanvasData({
       createExerciseAction={wrappedCreateExercise}
       updateExerciseAction={updateExerciseAction}
       updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+      replaceExercisePhotosAction={replaceExercisePhotosAction}
       createCategoryAction={createCategoryAction}
       createStyleAction={createStyleAction}
       createUnitTypeAction={createUnitTypeAction}

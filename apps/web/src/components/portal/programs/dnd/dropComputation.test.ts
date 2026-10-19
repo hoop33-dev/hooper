@@ -23,6 +23,7 @@ function makeExercise(id: string): ExerciseWithDetails {
     categories: [],
     unitTypes: ["Reps"],
     unitTypeIds: [],
+    photos: [],
     defaultStyle: null,
     variants: [],
   };

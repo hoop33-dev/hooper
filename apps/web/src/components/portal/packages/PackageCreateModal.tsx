@@ -137,10 +137,9 @@ export function PackageCreateModal({
       slug,
       ...parsedPricing.pricing,
     });
-    if (result.ok) {
-      onClose();
-      return;
-    }
+    // On success the shell navigates to the new item, so stay on the saving
+    // state until that page replaces this one.
+    if (result.ok) return;
     setSaving(false);
     setError(result.error ?? "Failed to create package.");
   }

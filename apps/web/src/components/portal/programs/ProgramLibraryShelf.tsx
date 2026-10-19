@@ -30,6 +30,7 @@ export function ProgramLibraryShelf({
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
+  replaceExercisePhotosAction,
   createCategoryAction,
   createStyleAction,
   createUnitTypeAction,
@@ -73,6 +74,7 @@ export function ProgramLibraryShelf({
               createExerciseAction={createExerciseAction}
               updateExerciseAction={updateExerciseAction}
               updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+              replaceExercisePhotosAction={replaceExercisePhotosAction}
               createCategoryAction={createCategoryAction}
               createStyleAction={createStyleAction}
               createUnitTypeAction={createUnitTypeAction}

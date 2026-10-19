@@ -43,6 +43,12 @@ export interface ExerciseModalProps {
     videoSource: ExerciseVideoSource,
     thumbnailUrl?: string | null,
   ) => Promise<ActionResult>;
+  /** Replaces the exercise's photo rows with this ordered list — files are
+   * uploaded by the browser first; the server derives URLs from the paths. */
+  replacePhotosAction: (
+    id: string,
+    photos: { storagePath: string; caption: string }[],
+  ) => Promise<ActionResult>;
   /** Powers the category combobox's inline "+ Add category" affordance.
    * Optional so callers that haven't wired it yet just don't get the
    * inline-create UI. */

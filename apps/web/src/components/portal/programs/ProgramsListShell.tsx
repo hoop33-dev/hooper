@@ -1,6 +1,7 @@
 "use client";
 
 import type { FormSummary, ProgramRow, ProgramSummary } from "@hooper/db";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ListToolbar, matchesSearch } from "../ui/ListToolbar";
 import { PortalButton } from "../ui/PortalButton";
@@ -112,12 +113,14 @@ type ProgramListMutations = Pick<
 
 /** Owns the optimistic program list plus the create-modal / edit-drawer
  * state, so every mutation patches the table immediately and only closes its
- * modal once the action resolves (see router-refresh-modal-gap). */
+ * modal once the action resolves (see router-refresh-modal-gap). Creating a
+ * program navigates straight into it instead. */
 function useProgramListActions(
   programs: ProgramSummary[],
   actions: ProgramListMutations,
   initialCreateOpen: boolean,
 ) {
+  const router = useRouter();
   const { showError } = useToast();
   const { items, mutate } = useOptimisticList(programs);
   const [createOpen, setCreateOpen] = useState(initialCreateOpen);
@@ -127,16 +130,13 @@ function useProgramListActions(
     prev.map((p) => (p.id === row.id ? { ...p, ...row } : p));
 
   async function handleCreate(data: ProgramCreateFormData) {
-    const result = await mutate<ProgramRow>(
-      (prev) => prev,
-      () => actions.createAction(data),
-      (prev, row) => [
-        { ...row, sessionCount: 0, sessionsPerWeek: null },
-        ...prev,
-      ],
-    );
-    if (result.ok) setCreateOpen(false);
-    else showError(result.error ?? "Failed to create program.");
+    const result = await actions.createAction(data);
+    if (result.ok && result.data) {
+      router.push(`/programs/${result.data.id}`);
+      return true;
+    }
+    showError(result.error ?? "Failed to create program.");
+    return false;
   }
 
   async function handleSave(data: ProgramEditFormData) {

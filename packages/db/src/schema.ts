@@ -335,6 +335,19 @@ export type ExerciseUnitTypeRow = {
   position: number;
 };
 
+/** One of up to 5 captioned photos on an exercise, shown after the demo
+ * video in `position` order. `storage_path` is the object path in the
+ * exercise-photos bucket (kept so a removed photo's file can be deleted). */
+export type ExercisePhotoRow = {
+  id: string;
+  exercise_id: string;
+  position: number;
+  url: string;
+  storage_path: string;
+  caption: string;
+  created_at: string;
+};
+
 export type ProgramStatus = "draft" | "active";
 
 export type ProgramRow = {
@@ -714,6 +727,13 @@ export type Database = {
         Update: Partial<ExerciseUnitTypeRow>;
         Relationships: [];
       };
+      exercise_photos: {
+        Row: ExercisePhotoRow;
+        Insert: Omit<ExercisePhotoRow, "id" | "created_at"> &
+          Partial<Pick<ExercisePhotoRow, "id" | "created_at">>;
+        Update: Partial<ExercisePhotoRow>;
+        Relationships: [];
+      };
       exercise_styles: {
         Row: ExerciseStyleRow;
         Insert: Partial<ExerciseStyleRow> &
@@ -905,6 +925,13 @@ export type Database = {
       };
       soft_delete_package: {
         Args: { p_package_id: string };
+        Returns: undefined;
+      };
+      replace_exercise_photos: {
+        Args: {
+          p_exercise_id: string;
+          p_photos: { storage_path: string; url: string; caption: string }[];
+        };
         Returns: undefined;
       };
       get_public_package: {

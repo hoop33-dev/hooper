@@ -1,7 +1,13 @@
 "use client";
 
+import { resizeImageToJpeg } from "@/src/lib/imageResize";
 import { isYoutubeUrl } from "@/src/lib/videoEmbed";
 import { captureVideoThumbnail } from "@/src/lib/videoThumbnailCapture";
+import {
+  deleteAllExercisePhotos,
+  deleteExercisePhotoFiles,
+  uploadExercisePhoto,
+} from "@/src/services/exercisePhotos.client";
 import {
   deleteExerciseVideo,
   deleteExerciseVideoThumbnail,
@@ -9,6 +15,7 @@ import {
   uploadExerciseVideoThumbnail,
 } from "@/src/services/exerciseVideo.client";
 import type {
+  ExercisePhotoRow,
   ExerciseStyleRow,
   ExerciseVideoSource,
   UnitTypeRow,
@@ -18,6 +25,14 @@ import type {
   ExerciseFormData,
   ExerciseModalProps,
 } from "./exerciseModalTypes";
+import {
+  draftsFromPhotos,
+  photosChanged,
+  removedPhotoPaths,
+  validatePhotos,
+  type PhotoDraft,
+  type PhotoRowErrors,
+} from "./photoFieldState";
 import {
   computeVideoDecision,
   type VideoDecision,
@@ -135,6 +150,53 @@ async function syncExerciseVideo(
   return null;
 }
 
+/** Uploads newly picked photos, then replaces the exercise's photo rows with
+ * the final ordered list. Old files are only deleted once the rows no longer
+ * point at them; on failure, the files this save uploaded are cleaned up
+ * instead so nothing is orphaned. */
+async function syncExercisePhotos(
+  exerciseId: string,
+  initial: ExercisePhotoRow[],
+  drafts: PhotoDraft[],
+  profileId: string,
+  replacePhotosAction: ExerciseModalProps["replacePhotosAction"],
+): Promise<string | null> {
+  if (!photosChanged(initial, drafts)) return null;
+
+  const uploaded: string[] = [];
+  const fail = async (message: string) => {
+    await deleteExercisePhotoFiles(uploaded);
+    return message;
+  };
+
+  const photos: { storagePath: string; caption: string }[] = [];
+  for (const draft of drafts) {
+    let storagePath = draft.storagePath;
+    if (draft.file) {
+      let blob: Blob;
+      try {
+        blob = await resizeImageToJpeg(draft.file);
+      } catch {
+        return fail(
+          "One of the photos couldn't be read. Try a different image.",
+        );
+      }
+      const result = await uploadExercisePhoto(exerciseId, blob, profileId);
+      if (!result.ok) return fail(result.error ?? "Failed to upload photo.");
+      uploaded.push(result.data);
+      storagePath = result.data;
+    }
+    if (!storagePath) return fail("Each photo needs an image.");
+    photos.push({ storagePath, caption: draft.caption.trim() });
+  }
+
+  const result = await replacePhotosAction(exerciseId, photos);
+  if (!result.ok) return fail(result.error ?? "Failed to save photos.");
+
+  await deleteExercisePhotoFiles(removedPhotoPaths(initial, drafts));
+  return null;
+}
+
 type FormFields = {
   name: string;
   description: string;
@@ -143,28 +205,91 @@ type FormFields = {
   parentId: string;
   defaultStyleId: string;
   videoState: VideoFieldState;
+  photos: PhotoDraft[];
 };
 
 type SaveSetters = {
   setNameError: Dispatch<SetStateAction<string | undefined>>;
+  setShowPhotoErrors: Dispatch<SetStateAction<boolean>>;
   setSaving: Dispatch<SetStateAction<boolean>>;
   setError: Dispatch<SetStateAction<string | null>>;
 };
+
+function photoErrorMessage(count: number): string {
+  return count === 1
+    ? "A photo is missing its image or caption — fill it in or remove it."
+    : `${count} photos are missing an image or caption — fill them in or remove them.`;
+}
+
+/** Client-side checks before anything is written. Every failing check is
+ * surfaced at once (name + photos), so the coach isn't drip-fed errors. */
+function validateBeforeSave(
+  fields: FormFields,
+  existingSource: ExerciseVideoSource | null,
+  setters: SaveSetters,
+): boolean {
+  const { setNameError, setShowPhotoErrors, setError } = setters;
+  const nameMissing = !fields.name.trim();
+  setNameError(nameMissing ? "Exercise name is required" : undefined);
+
+  const photoErrorCount = Object.keys(validatePhotos(fields.photos)).length;
+  if (photoErrorCount > 0) {
+    setShowPhotoErrors(true);
+    setError(photoErrorMessage(photoErrorCount));
+    // The photo list sits below the video in a scrolling column, so the
+    // flagged rows are usually off-screen — bring the first one into view
+    // once the error styling has rendered.
+    requestAnimationFrame(() =>
+      document
+        .querySelector("[data-photo-invalid]")
+        ?.scrollIntoView({ block: "center", behavior: "smooth" }),
+    );
+    return false;
+  }
+  if (nameMissing) return false;
+
+  const videoDecision = computeVideoDecision(fields.videoState, existingSource);
+  if (videoDecision.action === "set-link" && !isYoutubeUrl(videoDecision.url)) {
+    setError(
+      "Enter a YouTube link (youtube.com or youtu.be) for the demo video.",
+    );
+    return false;
+  }
+  return true;
+}
+
+/** Video then photos — both need the exercise row to exist first (a new
+ * exercise only gets its id from the create action). */
+async function syncExerciseMedia(
+  props: ExerciseModalProps,
+  exerciseId: string,
+  fields: FormFields,
+): Promise<string | null> {
+  const existingSource = props.exercise?.video_source ?? null;
+  const videoError = await syncExerciseVideo(
+    exerciseId,
+    existingSource,
+    computeVideoDecision(fields.videoState, existingSource),
+    fields.videoState,
+    props.profileId,
+    props.updateVideoUrlAction,
+  );
+  if (videoError) return videoError;
+  return syncExercisePhotos(
+    exerciseId,
+    props.exercise?.photos ?? [],
+    fields.photos,
+    props.profileId,
+    props.replacePhotosAction,
+  );
+}
 
 async function runSave(
   props: ExerciseModalProps,
   fields: FormFields,
   setters: SaveSetters,
 ): Promise<void> {
-  const {
-    mode,
-    exercise,
-    profileId,
-    onSave,
-    createAction,
-    updateAction,
-    updateVideoUrlAction,
-  } = props;
+  const { mode, exercise, onSave, createAction, updateAction } = props;
   const {
     name,
     description,
@@ -174,22 +299,11 @@ async function runSave(
     defaultStyleId,
     videoState,
   } = fields;
-  const { setNameError, setSaving, setError } = setters;
+  const { setSaving, setError } = setters;
 
-  if (!name.trim()) {
-    setNameError("Exercise name is required");
-    return;
-  }
   const existingSource = exercise?.video_source ?? null;
-  const videoDecision = computeVideoDecision(videoState, existingSource);
-  if (videoDecision.action === "set-link" && !isYoutubeUrl(videoDecision.url)) {
-    setError(
-      "Enter a YouTube link (youtube.com or youtu.be) for the demo video.",
-    );
-    return;
-  }
+  if (!validateBeforeSave(fields, existingSource, setters)) return;
 
-  setNameError(undefined);
   setSaving(true);
   setError(null);
 
@@ -215,18 +329,11 @@ async function runSave(
   }
 
   const exerciseId = mode === "create" ? result.id : exercise!.id;
-  const videoError = exerciseId
-    ? await syncExerciseVideo(
-        exerciseId,
-        existingSource,
-        videoDecision,
-        videoState,
-        profileId,
-        updateVideoUrlAction,
-      )
+  const mediaError = exerciseId
+    ? await syncExerciseMedia(props, exerciseId, fields)
     : null;
-  if (videoError) {
-    setError(videoError);
+  if (mediaError) {
+    setError(mediaError);
     setSaving(false);
     return;
   }
@@ -254,6 +361,8 @@ async function runDelete(
     await deleteExerciseVideo(exercise.id, profileId);
     await deleteExerciseVideoThumbnail(exercise.id, profileId);
   }
+  if (exercise.photos.length > 0)
+    await deleteAllExercisePhotos(exercise.id, profileId);
   onDelete?.();
 }
 
@@ -278,6 +387,10 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
   const [videoState, setVideoState] = useState<VideoFieldState>(() =>
     initialVideoState(exercise),
   );
+  const [photos, setPhotos] = useState<PhotoDraft[]>(() =>
+    draftsFromPhotos(exercise?.photos ?? []),
+  );
+  const [showPhotoErrors, setShowPhotoErrors] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | undefined>();
@@ -301,9 +414,15 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
         parentId,
         defaultStyleId,
         videoState,
+        photos,
       },
-      { setNameError, setSaving, setError },
+      { setNameError, setShowPhotoErrors, setSaving, setError },
     );
+
+  // Errors stay hidden until the first save attempt, then track edits live
+  // so a fixed row clears immediately.
+  const photoErrors: Record<string, PhotoRowErrors> | undefined =
+    showPhotoErrors ? validatePhotos(photos) : undefined;
 
   const handleDelete = () => runDelete(props, { setSaving, setError });
 
@@ -325,6 +444,9 @@ export function useExerciseModalForm(props: ExerciseModalProps) {
     unitTypes,
     addUnitType,
     setVideoState,
+    photos,
+    setPhotos,
+    photoErrors,
     saving,
     error,
     nameError,

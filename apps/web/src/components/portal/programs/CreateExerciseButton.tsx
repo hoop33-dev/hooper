@@ -30,6 +30,10 @@ interface CreateExerciseButtonProps {
     videoUrl: string,
     videoSource: ExerciseVideoSource,
   ) => Promise<ActionResult>;
+  replaceExercisePhotosAction: (
+    id: string,
+    photos: { storagePath: string; caption: string }[],
+  ) => Promise<ActionResult>;
   createCategoryAction?: (input: {
     name: string;
     created_by: string;
@@ -62,6 +66,7 @@ export function CreateExerciseButton({
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
+  replaceExercisePhotosAction,
   createCategoryAction,
   createStyleAction,
   unitTypes,
@@ -108,6 +113,7 @@ export function CreateExerciseButton({
           createAction={createExerciseAction}
           updateAction={updateExerciseAction}
           updateVideoUrlAction={updateExerciseVideoUrlAction}
+          replacePhotosAction={replaceExercisePhotosAction}
           createCategoryAction={createCategoryAction}
           createStyleAction={createStyleAction}
           createUnitTypeAction={createUnitTypeAction}

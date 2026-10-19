@@ -13,7 +13,9 @@ export type ProgramCreateFormData = {
 
 interface ProgramCreateModalProps {
   onClose: () => void;
-  onCreate: (data: ProgramCreateFormData) => Promise<void>;
+  /** Resolves true once created; the modal then stays saving while the shell
+   * navigates to the new program. */
+  onCreate: (data: ProgramCreateFormData) => Promise<boolean>;
 }
 
 function ModalHeader({ onClose }: { onClose: () => void }) {
@@ -117,12 +119,14 @@ export function ProgramCreateModal({
   async function handleCreate() {
     if (!name.trim() || saving) return;
     setSaving(true);
-    await onCreate({
+    const created = await onCreate({
       name: name.trim(),
       description: description.trim() || undefined,
       notes: notes.trim() || undefined,
     });
-    setSaving(false);
+    // On success the shell navigates to the new item, so stay on the saving
+    // state until that page replaces this one.
+    if (!created) setSaving(false);
   }
 
   return (

@@ -4,8 +4,10 @@ import type { ExerciseFormData } from "@/src/components/portal/exercises/Exercis
 import {
   createExercise,
   deleteExercise,
+  replaceExercisePhotos,
   updateExercise,
   updateExerciseVideoUrl,
+  type ExercisePhotoInput,
 } from "@/src/services/exercise.service";
 import type { ExerciseVideoSource } from "@hooper/db";
 import { revalidatePath } from "next/cache";
@@ -69,6 +71,15 @@ export async function updateExerciseVideoUrlAction(
     videoSource,
     thumbnailUrl,
   );
+  if (result.ok) revalidatePath("/exercises");
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+export async function replaceExercisePhotosAction(
+  id: string,
+  photos: ExercisePhotoInput[],
+): Promise<ActionResult> {
+  const result = await replaceExercisePhotos(id, photos);
   if (result.ok) revalidatePath("/exercises");
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

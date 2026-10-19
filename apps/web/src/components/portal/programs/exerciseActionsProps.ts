@@ -23,6 +23,10 @@ export interface CreateExerciseActions {
     videoUrl: string,
     videoSource: ExerciseVideoSource,
   ) => Promise<ActionResult>;
+  replaceExercisePhotosAction: (
+    id: string,
+    photos: { storagePath: string; caption: string }[],
+  ) => Promise<ActionResult>;
   /** Optional — powers the "+ Add category" affordance inside the create
    * exercise modal's category combobox. */
   createCategoryAction?: (input: {

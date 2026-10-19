@@ -1,6 +1,7 @@
 "use client";
 
 import type { FormRow, FormSummary } from "@hooper/db";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ListToolbar, matchesSearch } from "../ui/ListToolbar";
 import { PageHeader } from "../ui/PageHeader";
@@ -65,6 +66,7 @@ export function FormsListShell({
   updateAction,
   deleteAction,
 }: FormsListShellProps) {
+  const router = useRouter();
   const { showError } = useToast();
   const { items: localForms, mutate } = useOptimisticList(forms);
   const [createOpen, setCreateOpen] = useState(initialCreateOpen);
@@ -75,13 +77,13 @@ export function FormsListShell({
   );
 
   async function handleCreate(data: FormCreateFormData) {
-    const result = await mutate<FormRow>(
-      (prev) => prev,
-      () => createAction(data),
-      (prev, row) => [{ ...row, questionCount: 0, programCount: 0 }, ...prev],
-    );
-    if (result.ok) setCreateOpen(false);
-    else showError(result.error ?? "Failed to create form.");
+    const result = await createAction(data);
+    if (result.ok && result.data) {
+      router.push(`/forms/${result.data.id}`);
+      return true;
+    }
+    showError(result.error ?? "Failed to create form.");
+    return false;
   }
 
   async function handleSave(data: FormEditFormData) {

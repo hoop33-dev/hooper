@@ -80,6 +80,7 @@ function blockExercise(
       categories: [],
       unitTypes: ["Reps", "Weight"],
       unitTypeIds: [],
+      photos: [],
       defaultStyle: null,
       variants: [],
     },

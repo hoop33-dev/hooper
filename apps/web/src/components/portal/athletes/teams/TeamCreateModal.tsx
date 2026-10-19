@@ -59,12 +59,11 @@ export function TeamCreateModal({ onClose, onCreate }: TeamCreateModalProps) {
       description: description.trim() || undefined,
       avatarFile,
     });
+    // On success the shell navigates to the new item, so stay on the saving
+    // state until that page replaces this one.
+    if (result.ok) return;
     setSaving(false);
-    if (result.ok) {
-      onClose();
-    } else {
-      setError(result.error ?? "Failed to create team.");
-    }
+    setError(result.error ?? "Failed to create team.");
   }
 
   return (

@@ -64,6 +64,7 @@ function makeExercise(id: string, name: string) {
     categories: [],
     unitTypes: ["Reps"],
     unitTypeIds: [],
+    photos: [],
     defaultStyle: null,
     variants: [],
   };

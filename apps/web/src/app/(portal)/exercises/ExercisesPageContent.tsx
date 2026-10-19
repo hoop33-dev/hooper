@@ -12,6 +12,7 @@ import { Suspense } from "react";
 import {
   createExerciseAction,
   deleteExerciseAction,
+  replaceExercisePhotosAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
 } from "./actions";
@@ -83,11 +84,11 @@ async function ExerciseLibraryData({
       profileId={profileId}
       searchQuery=""
       selectedCategoryId=""
-      initialEditExerciseId={editExerciseId}
       createAction={wrappedCreate}
       updateAction={updateExerciseAction}
       deleteAction={deleteExerciseAction}
       updateVideoUrlAction={updateExerciseVideoUrlAction}
+      replacePhotosAction={replaceExercisePhotosAction}
       createCategoryAction={createCategoryAction}
       createStyleAction={createStyleAction}
       createUnitTypeAction={createUnitTypeAction}

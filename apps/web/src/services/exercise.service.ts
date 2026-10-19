@@ -357,8 +357,8 @@ export async function updateExerciseVideoUrl(
 
 export type ExercisePhotoInput = { storagePath: string; caption: string };
 
-/** Replaces an exercise's photo rows wholesale (delete + re-insert, like
- * unit types — there's no UPDATE policy). The files are already uploaded
+/** Replaces an exercise's photo rows wholesale (atomic delete + re-insert
+ * via RPC — there's no UPDATE policy). The files are already uploaded
  * by the browser; the public URL is derived here from the storage path, and
  * the path must sit in this exercise's folder ({profileId}/{exerciseId}/…)
  * so a caller can't attach someone else's object. */
@@ -381,23 +381,18 @@ export async function replaceExercisePhotos(
     }
 
     const supabase = await createClient();
-    const { error: deleteError } = await supabase
-      .from("exercise_photos")
-      .delete()
-      .eq("exercise_id", exerciseId);
-    if (deleteError) return err(deleteError.message);
-    if (photos.length === 0) return ok(undefined);
-
-    const rows = photos.map((p, position) => ({
-      exercise_id: exerciseId,
-      position,
-      storage_path: p.storagePath,
-      url: supabase.storage
-        .from(EXERCISE_PHOTOS_BUCKET)
-        .getPublicUrl(p.storagePath).data.publicUrl,
-      caption: p.caption.trim(),
-    }));
-    const { error } = await supabase.from("exercise_photos").insert(rows);
+    // Delete + insert run in one transaction (replace_exercise_photos), so a
+    // failed insert can't leave the exercise with its old photos gone.
+    const { error } = await supabase.rpc("replace_exercise_photos", {
+      p_exercise_id: exerciseId,
+      p_photos: photos.map((p) => ({
+        storage_path: p.storagePath,
+        url: supabase.storage
+          .from(EXERCISE_PHOTOS_BUCKET)
+          .getPublicUrl(p.storagePath).data.publicUrl,
+        caption: p.caption.trim(),
+      })),
+    });
     if (error) return err(error.message);
     return ok(undefined);
   } catch (e) {

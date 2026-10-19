@@ -927,6 +927,13 @@ export type Database = {
         Args: { p_package_id: string };
         Returns: undefined;
       };
+      replace_exercise_photos: {
+        Args: {
+          p_exercise_id: string;
+          p_photos: { storage_path: string; url: string; caption: string }[];
+        };
+        Returns: undefined;
+      };
       get_public_package: {
         Args: { p_slug: string };
         Returns: PublicPackage | null;

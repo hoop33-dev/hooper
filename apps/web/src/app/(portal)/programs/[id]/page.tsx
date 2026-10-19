@@ -28,6 +28,7 @@ import {
 } from "../../blocks/actions";
 import {
   createExerciseAction,
+  replaceExercisePhotosAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
 } from "../../exercises/actions";
@@ -238,6 +239,7 @@ async function ProgramCanvasData({ id }: { id: string }) {
       createExerciseAction={wrappedCreateExercise}
       updateExerciseAction={updateExerciseAction}
       updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+      replaceExercisePhotosAction={replaceExercisePhotosAction}
       createCategoryAction={createCategoryAction}
       createStyleAction={createStyleAction}
       createUnitTypeAction={createUnitTypeAction}

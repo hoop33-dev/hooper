@@ -96,6 +96,7 @@ export function ExerciseLibraryShelfBody({
   createExerciseAction,
   updateExerciseAction,
   updateExerciseVideoUrlAction,
+  replaceExercisePhotosAction,
   createCategoryAction,
   createStyleAction,
   createUnitTypeAction,
@@ -144,6 +145,7 @@ export function ExerciseLibraryShelfBody({
           createExerciseAction={createExerciseAction}
           updateExerciseAction={updateExerciseAction}
           updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
+          replaceExercisePhotosAction={replaceExercisePhotosAction}
           createCategoryAction={createCategoryAction}
           createStyleAction={createStyleAction}
           createUnitTypeAction={createUnitTypeAction}

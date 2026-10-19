@@ -335,6 +335,19 @@ export type ExerciseUnitTypeRow = {
   position: number;
 };
 
+/** One of up to 5 captioned photos on an exercise, shown after the demo
+ * video in `position` order. `storage_path` is the object path in the
+ * exercise-photos bucket (kept so a removed photo's file can be deleted). */
+export type ExercisePhotoRow = {
+  id: string;
+  exercise_id: string;
+  position: number;
+  url: string;
+  storage_path: string;
+  caption: string;
+  created_at: string;
+};
+
 export type ProgramStatus = "draft" | "active";
 
 export type ProgramRow = {
@@ -712,6 +725,13 @@ export type Database = {
         Row: ExerciseUnitTypeRow;
         Insert: ExerciseUnitTypeRow;
         Update: Partial<ExerciseUnitTypeRow>;
+        Relationships: [];
+      };
+      exercise_photos: {
+        Row: ExercisePhotoRow;
+        Insert: Omit<ExercisePhotoRow, "id" | "created_at"> &
+          Partial<Pick<ExercisePhotoRow, "id" | "created_at">>;
+        Update: Partial<ExercisePhotoRow>;
         Relationships: [];
       };
       exercise_styles: {

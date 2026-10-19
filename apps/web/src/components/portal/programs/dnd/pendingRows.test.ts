@@ -21,6 +21,7 @@ const exercise = {
   categories: [],
   unitTypes: [],
   unitTypeIds: [],
+  photos: [],
   defaultStyle: null,
   variants: [],
 };

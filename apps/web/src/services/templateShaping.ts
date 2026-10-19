@@ -14,7 +14,7 @@ import type {
 import { toExerciseWithDetails, type RawExercise } from "./exercise.service";
 
 export const TEMPLATE_BLOCK_EXERCISE_SELECT =
-  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type_id, position)), block_template_exercise_measurements(*)";
+  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type_id, position), exercise_photos(*)), block_template_exercise_measurements(*)";
 
 const TEMPLATE_BLOCK_SELECT = `*, block_template_exercises(${TEMPLATE_BLOCK_EXERCISE_SELECT})`;
 

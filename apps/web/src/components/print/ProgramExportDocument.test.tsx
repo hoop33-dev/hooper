@@ -28,6 +28,7 @@ function exercise(
     categories: [],
     unitTypes: ["Reps", "Weight"],
     unitTypeIds: [],
+    photos: [],
     defaultStyle: null,
     variants: [],
     ...extra,

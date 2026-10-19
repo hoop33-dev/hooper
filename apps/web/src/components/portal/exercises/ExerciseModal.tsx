@@ -14,10 +14,12 @@ import { PortalInput, PortalTextarea } from "../ui/PortalInput";
 import { useModalDismiss } from "../ui/useModalDismiss";
 import { CategoryCombobox } from "./CategoryCombobox";
 import { ParentExerciseSelect } from "./ParentExerciseSelect";
+import { PhotosField } from "./PhotosField";
 import { StyleSelect } from "./StyleSelect";
 import { UnitTypeSelect } from "./UnitTypeSelect";
 import { VideoField } from "./VideoField";
 import type { ActionResult, ExerciseModalProps } from "./exerciseModalTypes";
+import type { PhotoDraft, PhotoRowErrors } from "./photoFieldState";
 import { useExerciseModalForm } from "./useExerciseModalForm";
 import type { VideoFieldState } from "./videoDecision";
 
@@ -98,6 +100,9 @@ export function ExerciseModal(props: ExerciseModalProps) {
       videoUrl={exercise?.video_url}
       videoSource={exercise?.video_source}
       onVideoChange={form.setVideoState}
+      photos={form.photos}
+      onPhotosChange={form.setPhotos}
+      photoErrors={form.photoErrors}
       baseExercises={baseExercises}
       parentId={form.parentId}
       onParentChange={form.setParentId}
@@ -139,6 +144,9 @@ type ModalLayoutProps = {
   videoUrl?: string | null;
   videoSource?: ExerciseVideoSource | null;
   onVideoChange: (value: VideoFieldState) => void;
+  photos: PhotoDraft[];
+  onPhotosChange: (photos: PhotoDraft[]) => void;
+  photoErrors?: Record<string, PhotoRowErrors>;
   baseExercises: ExerciseWithDetails[];
   parentId: string;
   onParentChange: (id: string) => void;
@@ -178,6 +186,9 @@ function ModalLayout({
   videoUrl,
   videoSource,
   onVideoChange,
+  photos,
+  onPhotosChange,
+  photoErrors,
   baseExercises,
   parentId,
   onParentChange,
@@ -203,7 +214,7 @@ function ModalLayout({
     <div
       onClick={onBackdropClick}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-portal-card flex h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl shadow-2xl">
+      <div className="bg-portal-card flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl shadow-2xl">
         <ModalHeader mode={mode} onClose={onClose} />
         <ModalColumnBody
           name={name}
@@ -219,6 +230,9 @@ function ModalLayout({
           videoUrl={videoUrl}
           videoSource={videoSource}
           onVideoChange={onVideoChange}
+          photos={photos}
+          onPhotosChange={onPhotosChange}
+          photoErrors={photoErrors}
           baseExercises={baseExercises}
           parentId={parentId}
           onParentChange={onParentChange}
@@ -395,23 +409,34 @@ type ModalColumnBodyProps = ModalMainColumnProps & {
   videoUrl?: string | null;
   videoSource?: ExerciseVideoSource | null;
   onVideoChange: (value: VideoFieldState) => void;
+  photos: PhotoDraft[];
+  onPhotosChange: (photos: PhotoDraft[]) => void;
+  photoErrors?: Record<string, PhotoRowErrors>;
 };
 
 function ModalColumnBody({
   videoUrl,
   videoSource,
   onVideoChange,
+  photos,
+  onPhotosChange,
+  photoErrors,
   ...mainColumnProps
 }: ModalColumnBodyProps) {
   return (
     <div className="flex flex-1 overflow-hidden">
       <ModalMainColumn {...mainColumnProps} />
 
-      <div className="flex w-72 flex-shrink-0 flex-col gap-5 overflow-y-auto p-6">
+      <div className="flex w-96 flex-shrink-0 flex-col gap-6 overflow-y-auto p-6">
         <VideoField
           existingUrl={videoUrl}
           existingSource={videoSource}
           onChange={onVideoChange}
+        />
+        <PhotosField
+          photos={photos}
+          onChange={onPhotosChange}
+          errors={photoErrors}
         />
       </div>
     </div>

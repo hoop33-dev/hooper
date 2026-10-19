@@ -101,13 +101,9 @@ export function ExerciseLibraryPanel({
   selectedIndex,
   onSelectedIndexChange,
   onQuickAdd,
-  profileId,
-  createExerciseAction,
-  updateExerciseAction,
-  updateExerciseVideoUrlAction,
-  createCategoryAction,
-  createStyleAction,
-  createUnitTypeAction,
+  // profileId + the create/update exercise actions, forwarded as-is to
+  // CreateExerciseButton.
+  ...exerciseActions
 }: ExerciseLibraryPanelProps) {
   const [previewExercise, setPreviewExercise] =
     useState<ExerciseWithDetails | null>(null);
@@ -150,13 +146,7 @@ export function ExerciseLibraryPanel({
           styles={styles}
           unitTypes={unitTypes}
           baseExercises={baseExercises}
-          profileId={profileId}
-          createExerciseAction={createExerciseAction}
-          updateExerciseAction={updateExerciseAction}
-          updateExerciseVideoUrlAction={updateExerciseVideoUrlAction}
-          createCategoryAction={createCategoryAction}
-          createStyleAction={createStyleAction}
-          createUnitTypeAction={createUnitTypeAction}
+          {...exerciseActions}
           onPendingChange={setCreating}
           className="border-portal-border text-portal-text2 hover:bg-portal-orange-soft hover:text-portal-text1 flex w-full items-center gap-2 border-b border-dashed px-3.5 py-2.5 text-left text-xs font-semibold"
         />

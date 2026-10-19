@@ -1,3 +1,8 @@
+import {
+  EXERCISE_PHOTO_CAPTION_MAX,
+  EXERCISE_PHOTOS_BUCKET,
+  EXERCISE_PHOTOS_MAX,
+} from "@/src/lib/exercisePhotos";
 import type { Result } from "@/src/lib/result";
 import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
@@ -5,6 +10,7 @@ import { isYoutubeUrl } from "@/src/lib/videoEmbed";
 import { computeVideoOrientation } from "@/src/lib/videoOrientation";
 import type {
   ExerciseCategoryRow,
+  ExercisePhotoRow,
   ExerciseRow,
   ExerciseStyleRow,
   ExerciseVideoSource,
@@ -42,6 +48,10 @@ export type UpdateExerciseInput = {
 export type RawExercise = ExerciseRow & {
   exercise_category_links: { category_id: string }[];
   exercise_unit_types: { unit_type_id: string; position: number }[];
+  /** Optional so a select that leaves photos out still shapes — every
+   * select that feeds the edit modal must include it, though, or saving
+   * would wipe the exercise's photos. */
+  exercise_photos?: ExercisePhotoRow[];
 };
 
 export function toExerciseWithDetails(
@@ -64,8 +74,13 @@ export function toExerciseWithDetails(
     .filter(Boolean) as string[];
   const defaultStyle =
     allStyles.find((s) => s.id === raw.default_style_id) ?? null;
+  const { exercise_photos, ...rest } = raw;
+  const photos = [...(exercise_photos ?? [])].sort(
+    (a, b) => a.position - b.position,
+  );
   return {
-    ...raw,
+    ...rest,
+    photos,
     categories,
     unitTypes,
     unitTypeIds,
@@ -99,7 +114,7 @@ export async function listExercises(
     let query = supabase
       .from("exercises")
       .select(
-        "*, exercise_category_links(category_id), exercise_unit_types(unit_type_id, position)",
+        "*, exercise_category_links(category_id), exercise_unit_types(unit_type_id, position), exercise_photos(*)",
       )
       .order("name");
 
@@ -333,6 +348,56 @@ export async function updateExerciseVideoUrl(
         video_thumbnail_url: thumbnailUrl ?? null,
       })
       .eq("id", id);
+    if (error) return err(error.message);
+    return ok(undefined);
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
+export type ExercisePhotoInput = { storagePath: string; caption: string };
+
+/** Replaces an exercise's photo rows wholesale (delete + re-insert, like
+ * unit types — there's no UPDATE policy). The files are already uploaded
+ * by the browser; the public URL is derived here from the storage path, and
+ * the path must sit in this exercise's folder ({profileId}/{exerciseId}/…)
+ * so a caller can't attach someone else's object. */
+export async function replaceExercisePhotos(
+  exerciseId: string,
+  photos: ExercisePhotoInput[],
+): Promise<Result<void>> {
+  try {
+    if (photos.length > EXERCISE_PHOTOS_MAX)
+      return err(`An exercise can have at most ${EXERCISE_PHOTOS_MAX} photos.`);
+    for (const p of photos) {
+      const caption = p.caption.trim();
+      if (!caption) return err("Each photo needs a caption.");
+      if (caption.length > EXERCISE_PHOTO_CAPTION_MAX)
+        return err(
+          `Photo captions must be ${EXERCISE_PHOTO_CAPTION_MAX} characters or fewer.`,
+        );
+      if (p.storagePath.split("/")[1] !== exerciseId)
+        return err("Invalid photo upload.");
+    }
+
+    const supabase = await createClient();
+    const { error: deleteError } = await supabase
+      .from("exercise_photos")
+      .delete()
+      .eq("exercise_id", exerciseId);
+    if (deleteError) return err(deleteError.message);
+    if (photos.length === 0) return ok(undefined);
+
+    const rows = photos.map((p, position) => ({
+      exercise_id: exerciseId,
+      position,
+      storage_path: p.storagePath,
+      url: supabase.storage
+        .from(EXERCISE_PHOTOS_BUCKET)
+        .getPublicUrl(p.storagePath).data.publicUrl,
+      caption: p.caption.trim(),
+    }));
+    const { error } = await supabase.from("exercise_photos").insert(rows);
     if (error) return err(error.message);
     return ok(undefined);
   } catch (e) {

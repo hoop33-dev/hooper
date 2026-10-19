@@ -43,6 +43,7 @@ function exercise(
       categories: [],
       unitTypes: ["Reps"],
       unitTypeIds: [],
+      photos: [],
       defaultStyle: null,
       variants: [],
     },

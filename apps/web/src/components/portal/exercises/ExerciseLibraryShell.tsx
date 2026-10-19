@@ -14,7 +14,7 @@ import { filterExercises } from "../programs/exerciseFilter";
 import { ListToolbar } from "../ui/ListToolbar";
 import { PortalButton } from "../ui/PortalButton";
 import { ExerciseCard } from "./ExerciseCard";
-import type { ExerciseFormData } from "./ExerciseModal";
+import type { ExerciseFormData, ExerciseModalProps } from "./ExerciseModal";
 import { ExerciseModal } from "./ExerciseModal";
 
 type ActionResult = { ok: boolean; error?: string; id?: string };
@@ -36,6 +36,7 @@ interface ExerciseLibraryShellProps {
     videoSource: ExerciseVideoSource,
     thumbnailUrl?: string | null,
   ) => Promise<ActionResult>;
+  replacePhotosAction: ExerciseModalProps["replacePhotosAction"];
   createCategoryAction?: (input: {
     name: string;
     created_by: string;
@@ -325,6 +326,7 @@ export function ExerciseLibraryShell({
   updateAction,
   deleteAction,
   updateVideoUrlAction,
+  replacePhotosAction,
   createCategoryAction,
   createStyleAction,
   createUnitTypeAction,
@@ -388,6 +390,7 @@ export function ExerciseLibraryShell({
           updateAction={updateAction}
           deleteAction={deleteAction}
           updateVideoUrlAction={updateVideoUrlAction}
+          replacePhotosAction={replacePhotosAction}
           createCategoryAction={createCategoryAction}
           createStyleAction={createStyleAction}
           createUnitTypeAction={createUnitTypeAction}

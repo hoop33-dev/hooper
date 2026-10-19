@@ -19,6 +19,7 @@ function makeExercise(
     categories: [],
     unitTypes: ["Reps"],
     unitTypeIds: [],
+    photos: [],
     defaultStyle: null,
     variants: [],
     ...overrides,

@@ -7,6 +7,7 @@ export type {
   BlockRow,
   ExerciseCategoryLinkRow,
   ExerciseCategoryRow,
+  ExercisePhotoRow,
   ExerciseRow,
   ExerciseStyleRow,
   ExerciseUnitTypeRow,
@@ -85,6 +86,7 @@ export type ParentPlayerLink = {
 
 import type {
   ExerciseCategoryRow,
+  ExercisePhotoRow,
   ExerciseRow,
   ExerciseStyleRow,
 } from "./schema";
@@ -110,6 +112,8 @@ export type ExerciseWithDetails = ExerciseRow & {
    * position) — used to pre-select the edit modal's UnitTypeSelect. */
   unitTypeIds: string[];
   defaultStyle: ExerciseStyleRow | null;
+  /** Up to 5 captioned photos, sorted by position. */
+  photos: ExercisePhotoRow[];
   variants: ExerciseWithDetails[];
 };
 

@@ -34,6 +34,7 @@ function ex(
     categories: [],
     unitTypes: ["Reps", "Weight"],
     unitTypeIds: [],
+    photos: [],
     defaultStyle: null,
     variants: [],
     ...extra,

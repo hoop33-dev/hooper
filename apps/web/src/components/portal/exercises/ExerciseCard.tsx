@@ -1,6 +1,7 @@
 import { cn } from "@/src/lib/cn";
 import type { ExerciseWithDetails } from "@hooper/db";
 import { PortalBadge } from "../ui/PortalBadge";
+import { ImageIcon } from "../ui/icons";
 import { ExerciseVideoThumbnail } from "./ExerciseVideoThumbnail";
 
 interface ExerciseCardProps {
@@ -87,6 +88,14 @@ export function ExerciseCard({
           <span className="text-portal-text1 text-sm font-semibold">
             {exercise.name}
           </span>
+          {exercise.photos.length > 0 && (
+            <span
+              title={`${exercise.photos.length} photo${exercise.photos.length === 1 ? "" : "s"}`}
+              className="text-portal-text3 inline-flex items-center gap-1 text-xs font-semibold">
+              <ImageIcon size={12} />
+              {exercise.photos.length}
+            </span>
+          )}
         </div>
       </td>
       <td className="py-3 pr-4">

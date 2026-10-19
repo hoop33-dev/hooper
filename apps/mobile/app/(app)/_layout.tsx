@@ -37,6 +37,10 @@ export default function AppLayout() {
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen
+        name="training/preview"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
         name="training/pre-form"
         options={{ animation: "slide_from_right" }}
       />

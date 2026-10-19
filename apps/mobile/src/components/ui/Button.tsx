@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import {
   Pressable,
   Text,
+  View,
   type PressableProps,
   type StyleProp,
   type ViewStyle,
@@ -17,6 +18,8 @@ type ButtonProps = Omit<PressableProps, "children" | "style"> & {
   disabled?: boolean;
   className?: string;
   style?: StyleProp<ViewStyle>;
+  /** Rendered before a string label, e.g. a play glyph. */
+  icon?: ReactNode;
   children?: ReactNode;
 };
 
@@ -62,12 +65,41 @@ function variantTextColor(variant: ButtonVariant, disabled: boolean): string {
   }
 }
 
+function ButtonLabel({
+  label,
+  icon,
+  size,
+  color,
+}: {
+  label: string;
+  icon: ReactNode;
+  size: ButtonSize;
+  color: string;
+}) {
+  return (
+    <>
+      {icon ? <View className="mr-2">{icon}</View> : null}
+      <Text
+        style={{
+          fontFamily: bodyFont("700"),
+          fontSize: sizeText[size],
+          letterSpacing: sizeText[size] * 0.08,
+          textTransform: "uppercase",
+          color,
+        }}>
+        {label}
+      </Text>
+    </>
+  );
+}
+
 export function Button({
   variant = "primary",
   size = "md",
   disabled = false,
   className = "",
   style,
+  icon,
   children,
   ...rest
 }: ButtonProps) {
@@ -121,16 +153,12 @@ export function Button({
       ]}
       {...rest}>
       {typeof children === "string" ? (
-        <Text
-          style={{
-            fontFamily: bodyFont("700"),
-            fontSize: sizeText[size],
-            letterSpacing: sizeText[size] * 0.08,
-            textTransform: "uppercase",
-            color: variantTextColor(variant, disabled),
-          }}>
-          {children}
-        </Text>
+        <ButtonLabel
+          label={children}
+          icon={icon}
+          size={size}
+          color={variantTextColor(variant, disabled)}
+        />
       ) : (
         children
       )}

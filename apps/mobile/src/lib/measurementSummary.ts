@@ -1,6 +1,6 @@
 import { sortByUnitTypePriority } from "@/src/constants/unitTypes";
 import type { AthleteBlockExercise, AthleteSessionDetail } from "@hooper/api";
-import type { BlockExerciseMeasurementRow } from "@hooper/db";
+import type { BlockExerciseMeasurementRow, EnteredBy } from "@hooper/db";
 
 import { groupSetsByVariant } from "./blockExerciseDisplay";
 
@@ -18,10 +18,10 @@ const DEFAULT_UNIT: Record<string, string> = {
 // Shots, Makes) is just the bare number.
 const HUGGING_UNIT_TYPES = new Set(["% 1RM", "Time", "Distance"]);
 
+// Units live per set, so a slot can mix them ("1000m→1km").
 type GroupedMeasurement = {
   unitType: string;
-  unit: string;
-  values: (number | null)[];
+  values: { value: number | null; unit: string; enteredBy: EnteredBy }[];
 };
 
 function displayUnit(unitType: string, valueUnit: string | null): string {
@@ -45,26 +45,59 @@ function groupByUnitType(
     const sorted = [...list].sort((a, b) => a.set_index - b.set_index);
     return {
       unitType,
-      unit: displayUnit(unitType, sorted[0]!.value_unit),
-      values: sorted.map((r) => r.value),
+      values: sorted.map((r) => ({
+        value: r.value,
+        unit: displayUnit(unitType, r.value_unit),
+        enteredBy: r.value_entered_by,
+      })),
     };
   });
 }
 
-/** A null value is one the athlete logs themselves — shown as a dash. */
-function formatValue(value: number | null, m: GroupedMeasurement): string {
-  if (value == null) return "—";
-  if (!m.unit) return `${value}`;
-  const hug = HUGGING_UNIT_TYPES.has(m.unitType) || m.unit === "/side";
-  return hug ? `${value}${m.unit}` : `${value} ${m.unit}`;
+/** The coach's value for a set, or null when the athlete logs it themselves
+ * — either no value at all, or one left over after the slot was switched to
+ * athlete-entered (matches apps/web/src/lib/programExport.ts). */
+function coachValue(v: GroupedMeasurement["values"][number]): number | null {
+  return v.enteredBy === "athlete" ? null : v.value;
 }
 
-/** The slot's value when every set shares it ("60 kg"), else a first→last
- * range for a pyramid/wave ("40 kg→75 kg"). */
+/** An athlete-entered value is shown as a dash. */
+function formatValue(
+  v: GroupedMeasurement["values"][number],
+  unitType: string,
+): string {
+  const value = coachValue(v);
+  const { unit } = v;
+  if (value == null) return "—";
+  if (!unit) return `${value}`;
+  const hug = HUGGING_UNIT_TYPES.has(unitType) || unit === "/side";
+  return hug ? `${value}${unit}` : `${value} ${unit}`;
+}
+
+/** Whether the values only ever rise or only ever fall. A dash (athlete-
+ * entered) has no direction, so only the known values are judged. */
+function isOneWay(values: (number | null)[]): boolean {
+  const nums = values.filter((v): v is number => v != null);
+  const rising = nums.every((v, i) => i === 0 || v >= nums[i - 1]!);
+  const falling = nums.every((v, i) => i === 0 || v <= nums[i - 1]!);
+  return rising || falling;
+}
+
+/** The slot's value when every set shares it ("60 kg"); a first→last range
+ * for a pyramid that only moves one way ("40 kg→75 kg"); otherwise every
+ * value in order, repeats collapsed, so a wave's turn isn't hidden
+ * ("40 kg→75 kg→40 kg"). */
 function measurementPart(m: GroupedMeasurement): string {
-  const rendered = m.values.map((v) => formatValue(v, m));
-  if (new Set(rendered).size <= 1) return rendered[0] ?? "—";
-  return `${rendered[0]}→${rendered[rendered.length - 1]}`;
+  const steps: { text: string; value: number | null }[] = [];
+  for (const v of m.values) {
+    const text = formatValue(v, m.unitType);
+    if (steps[steps.length - 1]?.text !== text)
+      steps.push({ text, value: coachValue(v) });
+  }
+  if (steps.length <= 1) return steps[0]?.text ?? "—";
+  if (isOneWay(steps.map((s) => s.value)))
+    return `${steps[0]!.text}→${steps[steps.length - 1]!.text}`;
+  return steps.map((s) => s.text).join("→");
 }
 
 function isComboUniform(

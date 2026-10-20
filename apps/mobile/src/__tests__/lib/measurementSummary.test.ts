@@ -112,6 +112,51 @@ describe("formatPrescription", () => {
     expect(formatPrescription(be, [0, 1], false)).toBe("2 × 12→6");
   });
 
+  it("keeps a one-way pyramid as first→last", () => {
+    const be = makeBlockExercise({
+      sets: 3,
+      measurements: [
+        m(0, "Weight", 40),
+        m(1, "Weight", 60),
+        m(2, "Weight", 75),
+      ],
+    });
+    expect(formatPrescription(be, [0, 1, 2], false)).toBe("3 × 40 kg→75 kg");
+  });
+
+  it("spells out a wave that turns back", () => {
+    const be = makeBlockExercise({
+      sets: 3,
+      measurements: [
+        m(0, "Weight", 40),
+        m(1, "Weight", 75),
+        m(2, "Weight", 40),
+      ],
+    });
+    expect(formatPrescription(be, [0, 1, 2], false)).toBe(
+      "3 × 40 kg→75 kg→40 kg",
+    );
+  });
+
+  it("collapses repeated values within a wave", () => {
+    const be = makeBlockExercise({
+      sets: 6,
+      measurements: [5, 5, 3, 3, 5, 5].map((v, i) => m(i, "Reps", v)),
+    });
+    expect(formatPrescription(be, [0, 1, 2, 3, 4, 5], false)).toBe("6 × 5→3→5");
+  });
+
+  it("dashes an athlete-entered slot even with a leftover value", () => {
+    const be = makeBlockExercise({
+      sets: 2,
+      measurements: [0, 1].flatMap((i) => [
+        m(i, "Reps", 8),
+        { ...m(i, "Weight", 60), value_entered_by: "athlete" as const },
+      ]),
+    });
+    expect(formatPrescription(be, [0, 1], false)).toBe("2 × 8, —");
+  });
+
   it("dashes athlete-entered values and shows per-side reps", () => {
     const be = makeBlockExercise({
       measurements: uniform(4, [

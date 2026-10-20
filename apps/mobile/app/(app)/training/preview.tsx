@@ -33,17 +33,19 @@ import {
   type AthleteExercise,
   type AthleteSessionDetail,
 } from "@/src/services/program.service";
+import { getInProgressCompletion } from "@/src/services/sessionCompletion.service";
 import { useAuthStore } from "@/src/stores/auth.store";
 import type { ProgramRow } from "@hooper/db";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 type PreviewData = {
   session: AthleteSessionDetail;
   program: ProgramRow;
-  /** Question count of the program's check-in form, null without one. */
+  /** Question count of the program's check-in form, null without one (an
+   * empty form counts as none — pre-form skips it). */
   formQuestionCount: number | null;
 };
 
@@ -69,7 +71,7 @@ function usePreviewData(sessionId: string, programId: string) {
         setData({
           session,
           program,
-          formQuestionCount: form ? form.questions.length : null,
+          formQuestionCount: form?.questions.length || null,
         });
       } catch (e) {
         if (cancelled) return;
@@ -85,6 +87,36 @@ function usePreviewData(sessionId: string, programId: string) {
   }, [sessionId, programId, reloadKey]);
 
   return { data, loadError, retry: () => setReloadKey((k) => k + 1) };
+}
+
+/** Whether the athlete has an unfinished attempt at this session, so the
+ * footer can say "Resume" before the tap. Re-checked on focus, since coming
+ * back from the player can start or finish one. Only a hint for the label —
+ * the launcher re-checks on tap — so a failed lookup just reads as false. */
+function useHasInProgress(sessionId: string, athleteProfileId?: string) {
+  const [hasInProgress, setHasInProgress] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!sessionId || !athleteProfileId) return;
+      let cancelled = false;
+      async function check() {
+        try {
+          const row = await getInProgressCompletion(
+            sessionId,
+            athleteProfileId!,
+          );
+          if (!cancelled) setHasInProgress(row != null);
+        } catch {
+          if (!cancelled) setHasInProgress(false);
+        }
+      }
+      check();
+      return () => {
+        cancelled = true;
+      };
+    }, [sessionId, athleteProfileId]),
+  );
+  return hasInProgress;
 }
 
 function StatsStrip({ session }: { session: AthleteSessionDetail }) {
@@ -225,26 +257,36 @@ function CheckInIcon() {
   );
 }
 
-/** Sticky CTA. With a check-in form, says so before the athlete taps. */
+/** Sticky CTA. Says before the tap what it will do: resume an unfinished
+ * attempt (the tap offers Continue/Restart), go through the check-in form
+ * first, or start straight away. */
 function PreviewFooter({
   formQuestionCount,
+  hasInProgress,
   starting,
   onStart,
 }: {
   formQuestionCount: number | null;
+  hasInProgress: boolean;
   starting: boolean;
   onStart: () => void;
 }) {
-  const hasForm = formQuestionCount !== null;
+  const caption = hasInProgress
+    ? "You have an unfinished attempt at this session"
+    : formQuestionCount
+      ? `Quick check-in first, ${formQuestionCount} question${formQuestionCount === 1 ? "" : "s"}`
+      : null;
+  const label = hasInProgress
+    ? "Resume session"
+    : formQuestionCount
+      ? "Continue"
+      : "Start session";
   return (
     <View className="border-border-subtle bg-surface border-t px-5 pt-3 pb-8">
-      {formQuestionCount ? (
+      {caption ? (
         <View className="mb-2.5 flex-row items-center justify-center gap-1.5">
-          <CheckInIcon />
-          <Caption>
-            Quick check-in first, {formQuestionCount} question
-            {formQuestionCount === 1 ? "" : "s"}
-          </Caption>
+          {hasInProgress ? null : <CheckInIcon />}
+          <Caption>{caption}</Caption>
         </View>
       ) : null}
       <Button
@@ -253,13 +295,7 @@ function PreviewFooter({
         disabled={starting}
         icon={<PlayIcon size={12} color="#fff" />}
         onPress={onStart}>
-        {starting ? (
-          <ActivityIndicator color="#fff" />
-        ) : hasForm ? (
-          "Continue"
-        ) : (
-          "Start session"
-        )}
+        {starting ? <ActivityIndicator color="#fff" /> : label}
       </Button>
     </View>
   );
@@ -292,9 +328,11 @@ export default function SessionPreviewScreen() {
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
   const { data, loadError, retry } = usePreviewData(sessionId, programId);
+  const hasInProgress = useHasInProgress(sessionId, profile?.id);
   const launcher = useSessionLauncher(
     sessionId,
     data?.program ?? null,
+    data?.formQuestionCount != null,
     profile?.id,
   );
 
@@ -326,6 +364,7 @@ export default function SessionPreviewScreen() {
           <PreviewBody data={data} />
           <PreviewFooter
             formQuestionCount={data.formQuestionCount}
+            hasInProgress={hasInProgress}
             starting={launcher.starting}
             onStart={launcher.start}
           />

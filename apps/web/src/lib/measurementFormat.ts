@@ -72,8 +72,12 @@ export function convertUnit(
  * placement's flat per-set measurement rows. */
 type GroupedMeasurement = {
   unit_type: string;
-  value_unit: string | null;
-  values: { value: number | null; value_entered_by: EnteredBy }[];
+  // Units live per set, so a slot can mix them ("1000m→1km").
+  values: {
+    value: number | null;
+    value_entered_by: EnteredBy;
+    value_unit: string | null;
+  }[];
 };
 
 /** Groups flat per-set measurement rows by unit-type slot, each slot's
@@ -95,10 +99,10 @@ function groupByUnitType(measurements: Measurement[]): GroupedMeasurement[] {
     );
     return {
       unit_type: unitType,
-      value_unit: rows[0].value_unit,
       values: rows.map((r) => ({
         value: r.value,
         value_entered_by: r.value_entered_by,
+        value_unit: r.value_unit,
       })),
     };
   });
@@ -106,9 +110,9 @@ function groupByUnitType(measurements: Measurement[]): GroupedMeasurement[] {
 
 /** The unit to display/store alongside a value: whatever was explicitly
  * chosen, falling back to the unit type's default, or "%" for % 1RM. */
-function displayUnit(m: GroupedMeasurement): string {
-  if (m.unit_type === "% 1RM") return "%";
-  return m.value_unit ?? defaultUnitFor(m.unit_type) ?? "";
+function displayUnit(unitType: string, valueUnit: string | null): string {
+  if (unitType === "% 1RM") return "%";
+  return valueUnit ?? defaultUnitFor(unitType) ?? "";
 }
 
 // "%", "sec"/"min"/"hr", and "m"/"km" hug the number ("75%", "20sec",
@@ -132,37 +136,62 @@ function formatSetValue(
   return formatWithUnit(value, unit, hug);
 }
 
-/** A unit-type slot's values across every set, collapsed to one string: the
- * plain value when every set shares it ("60 kg"), or a first→last range
- * once they diverge ("40 kg→75 kg") — the full session view has the room
- * to spell out the unit on both ends. */
-function measurementPart(m: GroupedMeasurement): string {
-  const unit = displayUnit(m);
+type Step = { value: number | null; unit: string; text: string };
+
+/** A slot's per-set values rendered in set order, with consecutive repeats
+ * collapsed — [40, 40, 75] becomes two steps, "40 kg" then "75 kg". */
+function renderSteps(m: GroupedMeasurement): Step[] {
   const hug = HUGGING_UNIT_TYPES.has(m.unit_type);
-  const rendered = m.values.map((v) => formatSetValue(v.value, unit, hug));
-  const uniform = new Set(rendered).size <= 1;
-  if (uniform) return rendered[0] ?? "—";
-  return `${rendered[0]}→${rendered[rendered.length - 1]}`;
+  const steps: Step[] = [];
+  for (const v of m.values) {
+    const unit = displayUnit(m.unit_type, v.value_unit);
+    const text = formatSetValue(v.value, unit, hug);
+    if (steps[steps.length - 1]?.text !== text)
+      steps.push({ value: v.value, unit, text });
+  }
+  return steps;
+}
+
+/** Whether the steps only ever rise or only ever fall — a plain pyramid,
+ * which a first/last range describes fully; a wave (40→75→40) doesn't. A
+ * pending "—" has no direction, so only the known values are judged. */
+function isOneWay(steps: Step[]): boolean {
+  const nums = steps.flatMap((s) => (s.value == null ? [] : [s.value]));
+  const rising = nums.every((v, i) => i === 0 || v >= nums[i - 1]!);
+  const falling = nums.every((v, i) => i === 0 || v <= nums[i - 1]!);
+  return rising || falling;
+}
+
+/** A unit-type slot's values across every set, collapsed to one string: the
+ * plain value when every set shares it ("60 kg"), a first→last range for a
+ * pyramid that only moves one way ("40 kg→75 kg"), or every value in order
+ * for a wave ("40 kg→75 kg→40 kg") — the full session view has the room to
+ * spell out the unit on each value. */
+function measurementPart(m: GroupedMeasurement): string {
+  const steps = renderSteps(m);
+  if (steps.length <= 1) return steps[0]?.text ?? "—";
+  const shown = isOneWay(steps) ? [steps[0]!, steps[steps.length - 1]!] : steps;
+  return shown.map((s) => s.text).join("→");
 }
 
 /** The compact sibling of measurementPart: a pyramid/wave measurement
- * becomes a terse "12-5kg"/"60-30sec"/"3-5" range — first value bare, unit
- * only on the last — instead of repeating the unit on both ends, since the
- * dense program-canvas row doesn't have room for that. */
+ * becomes a terse "12-5kg"/"60-30sec"/"3-5"/"40-75-40kg" range — values
+ * bare, unit only on the last — instead of repeating the unit on each,
+ * since the dense program-canvas row doesn't have room for that. Every value
+ * keeps its unit when the slot mixes units ("1000m-1km"). */
 function measurementPartCompact(m: GroupedMeasurement): string {
-  const unit = displayUnit(m);
-  const hug = HUGGING_UNIT_TYPES.has(m.unit_type);
-  const rendered = m.values.map((v) => formatSetValue(v.value, unit, hug));
-  const uniform = new Set(rendered).size <= 1;
-  if (uniform) return rendered[0] ?? "—";
-  const first = m.values[0]?.value;
-  const firstText = first == null ? "—" : `${first}`;
-  const lastText = formatSetValue(
-    m.values[m.values.length - 1]?.value ?? null,
-    unit,
-    hug,
-  );
-  return `${firstText}-${lastText}`;
+  const steps = renderSteps(m);
+  if (steps.length <= 1) return steps[0]?.text ?? "—";
+  const shown = isOneWay(steps) ? [steps[0]!, steps[steps.length - 1]!] : steps;
+  const last = shown[shown.length - 1]!;
+  const mixedUnits = shown.some((s) => s.unit !== last.unit);
+  return shown
+    .map((s, i) =>
+      i === shown.length - 1 || mixedUnits || s.value == null
+        ? s.text
+        : `${s.value}`,
+    )
+    .join("-");
 }
 
 /** Each set's ordered list of unit types, built from the flat measurement

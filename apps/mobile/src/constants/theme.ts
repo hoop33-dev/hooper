@@ -19,6 +19,9 @@ export const colors = {
   surface: "#1A1718",
   surface2: "#2D2829",
   surface3: "#3D3738",
+  /** Exercise media viewer — black behind the media, near-black panel. */
+  mediaBackdrop: "#000000",
+  mediaPanel: "#111111",
 
   // Borders
   borderSubtle: "rgba(255,255,255,0.08)",

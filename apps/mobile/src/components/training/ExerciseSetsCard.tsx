@@ -8,15 +8,11 @@ import {
   resolveGroupStyle,
   resolveSetStyle,
 } from "@/src/lib/blockExerciseDisplay";
-import { getVideoThumbnailUrl } from "@/src/lib/videoThumbnail";
-import type { AthleteBlockExercise } from "@hooper/api";
-import type {
-  BlockExerciseMeasurementRow,
-  ExerciseVideoOrientation,
-  ExerciseVideoSource,
-} from "@hooper/db";
-import { useEffect, useRef, useState } from "react";
-import { Image, Pressable, View } from "react-native";
+import { exerciseMediaItems } from "@/src/lib/exerciseMedia";
+import type { AthleteBlockExercise, AthleteExercise } from "@hooper/api";
+import type { BlockExerciseMeasurementRow } from "@hooper/db";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, View } from "react-native";
 import Animated, {
   Easing,
   interpolateColor,
@@ -29,9 +25,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { Path, Svg } from "react-native-svg";
 
-import { NoteIcon, PlayIcon } from "./icons";
+import { ExerciseMediaThumbnail, mediaSummary } from "./ExerciseMediaThumbnail";
+import { NoteIcon } from "./icons";
 import { useOpenValueEditor } from "./ValueEditorHost";
-import { VideoPlayerModal } from "./videoPlayer/VideoPlayerModal";
+import { ExerciseMediaViewer } from "./videoPlayer/ExerciseMediaViewer";
 
 const EASE_OUT = Easing.out(Easing.cubic);
 
@@ -359,56 +356,6 @@ type ExerciseSetsCardProps = {
   onSetManyDone: (targets: GroupSetTarget[], done: boolean) => void;
 };
 
-export function VideoThumbnail({
-  videoUrl,
-  videoSource,
-  videoOrientation,
-  videoThumbnailUrl,
-  title,
-  faded,
-}: {
-  videoUrl: string;
-  videoSource: ExerciseVideoSource | null;
-  videoOrientation: ExerciseVideoOrientation | null;
-  /** Captured client-side at upload time (apps/web/src/lib/videoThumbnailCapture.ts)
-   * — only ever set for "upload" videos. YouTube links derive their
-   * thumbnail from the URL instead (getVideoThumbnailUrl below). */
-  videoThumbnailUrl: string | null;
-  title: string;
-  faded?: boolean;
-}) {
-  const [playerOpen, setPlayerOpen] = useState(false);
-  const thumbnailUrl =
-    videoSource === "link" ? getVideoThumbnailUrl(videoUrl) : videoThumbnailUrl;
-  return (
-    <>
-      <Pressable
-        onPress={() => setPlayerOpen(true)}
-        className="h-16 w-16 items-center justify-center overflow-hidden rounded-xl"
-        style={{ backgroundColor: "#16261F", opacity: faded ? 0.4 : 1 }}>
-        {thumbnailUrl ? (
-          <Image
-            source={{ uri: thumbnailUrl }}
-            className="absolute h-16 w-16"
-            resizeMode="cover"
-          />
-        ) : null}
-        <View className="h-9 w-9 items-center justify-center rounded-full bg-black/35">
-          <PlayIcon size={14} color="#fff" />
-        </View>
-      </Pressable>
-      <VideoPlayerModal
-        visible={playerOpen}
-        onClose={() => setPlayerOpen(false)}
-        videoUrl={videoUrl}
-        videoSource={videoSource ?? "upload"}
-        videoOrientation={videoOrientation}
-        title={title}
-      />
-    </>
-  );
-}
-
 function CoachNotes({ notes }: { notes: string }) {
   const [open, setOpen] = useState(true);
   return (
@@ -432,11 +379,7 @@ function CoachNotes({ notes }: { notes: string }) {
 }
 
 function ExerciseHeader({
-  name,
-  videoUrl,
-  videoSource,
-  videoOrientation,
-  videoThumbnailUrl,
+  exercise,
   notes,
   setsLabel,
   doneCount,
@@ -444,11 +387,7 @@ function ExerciseHeader({
   allDone,
   onTickAll,
 }: {
-  name: string;
-  videoUrl: string | null;
-  videoSource: ExerciseVideoSource | null;
-  videoOrientation: ExerciseVideoOrientation | null;
-  videoThumbnailUrl: string | null;
+  exercise: AthleteExercise;
   notes: string | null;
   /** Only set when the whole group shares one style — e.g. "Warmup · 4
    * sets". There's no plain "4 sets" fallback; per-set style subheadings
@@ -459,24 +398,27 @@ function ExerciseHeader({
   allDone: boolean;
   onTickAll: () => void;
 }) {
+  const media = useMemo(() => exerciseMediaItems(exercise), [exercise]);
+  const [viewerStart, setViewerStart] = useState<number | null>(null);
   return (
     <View className="bg-surface-2 border-border-subtle border px-4 py-3">
       <View className="flex-row items-start gap-3">
-        {videoUrl ? (
-          <VideoThumbnail
-            videoUrl={videoUrl}
-            videoSource={videoSource}
-            videoOrientation={videoOrientation}
-            videoThumbnailUrl={videoThumbnailUrl}
-            title={name}
-          />
-        ) : null}
+        <ExerciseMediaThumbnail items={media} onOpen={setViewerStart} />
         <View className="flex-1">
           <Title
             className={allDone ? "text-text-secondary" : "text-text-primary"}>
-            {name}
+            {exercise.name}
           </Title>
           {setsLabel ? <Meta className="mt-0.5">{setsLabel}</Meta> : null}
+          {media.length > 1 ? (
+            <Pressable
+              onPress={() => setViewerStart(0)}
+              hitSlop={6}
+              className="mt-1.5 flex-row items-center gap-1 self-start">
+              <Meta className="text-text-secondary">{mediaSummary(media)}</Meta>
+              <ChevronIcon size={12} color={colors.textSecondary} />
+            </Pressable>
+          ) : null}
         </View>
         <View className="items-end gap-1.5">
           <View className="flex-row items-baseline">
@@ -492,6 +434,13 @@ function ExerciseHeader({
         </View>
       </View>
       {notes ? <CoachNotes notes={notes} /> : null}
+      <ExerciseMediaViewer
+        startIndex={viewerStart}
+        onClose={() => setViewerStart(null)}
+        items={media}
+        title={exercise.name}
+        cue={exercise.description}
+      />
     </View>
   );
 }
@@ -793,11 +742,7 @@ function ExerciseVariantGroup({
       className="mb-3 overflow-hidden rounded-2xl"
       style={{ opacity: allDone ? 0.8 : 1 }}>
       <ExerciseHeader
-        name={group.exercise.name}
-        videoUrl={group.exercise.video_url}
-        videoSource={group.exercise.video_source}
-        videoOrientation={group.exercise.video_orientation}
-        videoThumbnailUrl={group.exercise.video_thumbnail_url}
+        exercise={group.exercise}
         notes={groupIndex === 0 ? notes : null}
         setsLabel={setsLabel}
         doneCount={doneCount}

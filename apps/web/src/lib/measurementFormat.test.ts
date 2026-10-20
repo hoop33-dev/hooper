@@ -132,6 +132,45 @@ describe("formatMeasurementSummary", () => {
     ).toBe("3 sets × 10m");
   });
 
+  it("spells out a wave that turns back instead of a first→last range", () => {
+    const fields = {
+      sets: 3,
+      measurements: measurementRows("Weight", [40, 75, 40]),
+    };
+    expect(formatMeasurementSummary(fields)).toBe("3 sets × 40 kg→75 kg→40 kg");
+    expect(formatMeasurementCompact(fields)).toBe("3×40-75-40 kg");
+  });
+
+  it("collapses repeats in a wave and keeps a one-way pyramid as a range", () => {
+    expect(
+      formatMeasurementSummary({
+        sets: 6,
+        measurements: measurementRows("Reps", [5, 5, 3, 3, 5, 5]),
+      }),
+    ).toBe("6 sets × 5→3→5");
+    expect(
+      formatMeasurementSummary({
+        sets: 3,
+        measurements: measurementRows("Weight", [40, 60, 75]),
+      }),
+    ).toBe("3 sets × 40 kg→75 kg");
+  });
+
+  it("keeps each set's own unit when a slot mixes units", () => {
+    const fields = {
+      sets: 2,
+      measurements: [
+        ...measurementRows("Distance", [1000]),
+        ...measurementRows("Distance", [1], { value_unit: "km" }).map((r) => ({
+          ...r,
+          set_index: 1,
+        })),
+      ],
+    };
+    expect(formatMeasurementSummary(fields)).toBe("2 sets × 1000m→1km");
+    expect(formatMeasurementCompact(fields)).toBe("2×1000m-1km");
+  });
+
   it("formats % 1RM, RPE, and other plain-number types", () => {
     expect(
       formatMeasurementSummary({

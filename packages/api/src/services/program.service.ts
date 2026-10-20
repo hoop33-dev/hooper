@@ -2,6 +2,7 @@ import type {
   BlockExerciseMeasurementRow,
   BlockExerciseRow,
   BlockRow,
+  ExercisePhotoRow,
   ExerciseRow,
   ExerciseStyleRow,
   ProgramRow,
@@ -17,17 +18,21 @@ import { getClient } from "../client";
 // needs the exercise itself, its planned measurements, its resolved style,
 // and its per-set variant/style overrides.
 const BLOCK_EXERCISE_SELECT =
-  "*, exercise:exercises(*), block_exercise_measurements(*), style:exercise_styles(*), block_exercise_set_variants(set_index, exercise:exercises(*)), block_exercise_set_styles(set_index, style:exercise_styles(*))";
+  "*, exercise:exercises(*, exercise_photos(*)), block_exercise_measurements(*), style:exercise_styles(*), block_exercise_set_variants(set_index, exercise:exercises(*, exercise_photos(*))), block_exercise_set_styles(set_index, style:exercise_styles(*))";
 const BLOCK_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
 const SESSION_SELECT = `*, blocks(${BLOCK_SELECT})`;
 
+/** An exercise as the session player sees it — its captioned photos
+ * (up to 5, sorted by position) ride along for the media viewer. */
+export type AthleteExercise = ExerciseRow & { photos: ExercisePhotoRow[] };
+
 export type AthleteBlockExercise = BlockExerciseRow & {
-  exercise: ExerciseRow;
+  exercise: AthleteExercise;
   measurements: BlockExerciseMeasurementRow[];
   style: ExerciseStyleRow | null;
   /** Sparse, keyed by set_index — only sets whose exercise differs from
    * exercise_id have an entry. */
-  setVariants: Record<number, ExerciseRow>;
+  setVariants: Record<number, AthleteExercise>;
   /** Sparse, keyed by set_index — a null entry means that set explicitly
    * has no style; a missing key means it inherits `style`. */
   setStyles: Record<number, ExerciseStyleRow | null>;
@@ -35,11 +40,12 @@ export type AthleteBlockExercise = BlockExerciseRow & {
 export type AthleteBlock = BlockRow & { exercises: AthleteBlockExercise[] };
 export type AthleteSessionDetail = SessionRow & { blocks: AthleteBlock[] };
 
+type RawExercise = ExerciseRow & { exercise_photos: ExercisePhotoRow[] };
 type RawBlockExercise = BlockExerciseRow & {
-  exercise: ExerciseRow;
+  exercise: RawExercise;
   block_exercise_measurements: BlockExerciseMeasurementRow[];
   style: ExerciseStyleRow | null;
-  block_exercise_set_variants: { set_index: number; exercise: ExerciseRow }[];
+  block_exercise_set_variants: { set_index: number; exercise: RawExercise }[];
   block_exercise_set_styles: {
     set_index: number;
     style: ExerciseStyleRow | null;
@@ -47,6 +53,18 @@ type RawBlockExercise = BlockExerciseRow & {
 };
 type RawBlock = BlockRow & { block_exercises: RawBlockExercise[] };
 type RawSession = SessionRow & { blocks: RawBlock[] };
+
+function shapeExercise({
+  exercise_photos,
+  ...exercise
+}: RawExercise): AthleteExercise {
+  return {
+    ...exercise,
+    photos: [...(exercise_photos ?? [])].sort(
+      (a, b) => a.position - b.position,
+    ),
+  };
+}
 
 function shapeSession(raw: RawSession): AthleteSessionDetail {
   const { blocks, ...session } = raw;
@@ -60,19 +78,21 @@ function shapeSession(raw: RawSession): AthleteSessionDetail {
           .sort((a, b) => a.position - b.position)
           .map(
             ({
+              exercise,
               block_exercise_measurements,
               block_exercise_set_variants,
               block_exercise_set_styles,
               ...blockExercise
             }) => ({
               ...blockExercise,
+              exercise: shapeExercise(exercise),
               measurements: [...block_exercise_measurements].sort(
                 (a, b) => a.position - b.position || a.set_index - b.set_index,
               ),
               setVariants: Object.fromEntries(
                 block_exercise_set_variants.map((v) => [
                   v.set_index,
-                  v.exercise,
+                  shapeExercise(v.exercise),
                 ]),
               ),
               setStyles: Object.fromEntries(

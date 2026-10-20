@@ -2,27 +2,22 @@ import { CheckIcon, ChevronIcon } from "@/src/components/dashboard/icons";
 import { Meta, MicroLabel, Title } from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
 import type { AthleteSessionListItem } from "@hooper/api";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { ClockIcon, PlayIcon } from "./icons";
 
 type SessionRowProps = {
   session: AthleteSessionListItem;
-  isStarting?: boolean;
   onPress: () => void;
 };
 
 function TrailingAffordance({
   highlighted,
   active,
-  isStarting,
 }: {
   highlighted: boolean;
   active: boolean;
-  isStarting: boolean;
 }) {
-  if (isStarting)
-    return <ActivityIndicator size="small" color={colors.brandOrange} />;
   if (highlighted) {
     return (
       <View className="bg-brand-orange rounded px-2 py-1">
@@ -127,16 +122,12 @@ function SessionMeta({
   return (
     <Meta className="mt-1">
       {blocksLabel}
-      {dur ? ` · ${dur}` : ""}
+      {dur ? `, ${dur}` : ""}
     </Meta>
   );
 }
 
-export function SessionRow({
-  session,
-  isStarting = false,
-  onPress,
-}: SessionRowProps) {
+export function SessionRow({ session, onPress }: SessionRowProps) {
   const {
     name,
     blockCount,
@@ -153,7 +144,6 @@ export function SessionRow({
   return (
     <Pressable
       onPress={onPress}
-      disabled={isStarting}
       className="mb-3 flex-row items-center gap-3.5 rounded-2xl border px-4 py-4"
       style={cardStyle(highlighted, done)}>
       <StatusBadge done={done} highlighted={highlighted} position={position} />
@@ -171,11 +161,7 @@ export function SessionRow({
         />
       </View>
 
-      <TrailingAffordance
-        highlighted={highlighted}
-        active={active}
-        isStarting={isStarting}
-      />
+      <TrailingAffordance highlighted={highlighted} active={active} />
     </Pressable>
   );
 }

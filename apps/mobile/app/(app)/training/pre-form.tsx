@@ -206,8 +206,9 @@ function usePreSessionForm(
       try {
         const programForm = await getProgramForm(programId);
         if (cancelled) return;
-        if (!programForm) {
-          // No check-in form attached — start the session directly.
+        if (!programForm || programForm.questions.length === 0) {
+          // No check-in form attached (or one with no questions to ask) —
+          // start the session directly.
           await startOrResumeSession(sessionId, athleteProfileId!);
           if (cancelled) return;
           router.replace({

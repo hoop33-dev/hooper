@@ -1,4 +1,4 @@
-import { CalendarIcon } from "@/src/components/icons";
+import { CalendarIcon, UsersIcon } from "@/src/components/icons";
 import { Avatar, Money } from "@/src/components/ui/primitives";
 import {
   billingLine,
@@ -22,8 +22,66 @@ function CardLabel({ children }: { children: ReactNode }) {
   );
 }
 
-/** The checkout summary column: package name + price, programs, coaches and
- * the "Total today" footer (NZD, GST inclusive). */
+function ProgramsSection({
+  programs,
+}: {
+  programs: PublicPackage["programs"];
+}) {
+  if (programs.length === 0) return null;
+  return (
+    <div className="border-b border-white/10 px-[18px] py-4 md:px-[22px] md:py-[18px]">
+      <CardLabel>
+        {programs.length === 1 ? "Program" : `${programs.length} programs`}
+      </CardLabel>
+      <ul className="flex flex-col gap-3">
+        {programs.map((p) => (
+          <li key={p.name} className="flex items-start gap-[11px]">
+            <div className="bg-orange/15 text-orange flex size-7 shrink-0 items-center justify-center rounded-[7px]">
+              <CalendarIcon size={14} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[13.5px] leading-[1.3] font-bold text-white">
+                {p.name}
+              </div>
+              <div className="text-xs text-white/40">{programMeta(p)}</div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function TeamsSection({ teams }: { teams: PublicPackage["teams"] }) {
+  if (teams.length === 0) return null;
+  return (
+    <div className="border-b border-white/10 px-[18px] py-4 md:px-[22px] md:py-[18px]">
+      <CardLabel>
+        {teams.length === 1 ? "Team" : `${teams.length} teams`}
+      </CardLabel>
+      <ul className="flex flex-col gap-3">
+        {teams.map((t) => (
+          <li key={t.name} className="flex items-start gap-[11px]">
+            <div className="bg-orange/15 text-orange flex size-7 shrink-0 items-center justify-center rounded-[7px]">
+              <UsersIcon size={14} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[13.5px] leading-[1.3] font-bold text-white">
+                {t.name}
+              </div>
+              <div className="text-xs text-white/40">
+                {t.member_count} athlete{t.member_count === 1 ? "" : "s"}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** The checkout summary column: package name + price, programs, teams,
+ * coaches and the "Total today" footer (NZD, GST inclusive). */
 export function PackageCard({
   pkg,
   forWho,
@@ -51,30 +109,9 @@ export function PackageCard({
         <div className="mt-1 text-xs text-white/40">{billingLine(pkg)}</div>
       </div>
 
-      {pkg.programs.length > 0 && (
-        <div className="border-b border-white/10 px-[18px] py-4 md:px-[22px] md:py-[18px]">
-          <CardLabel>
-            {pkg.programs.length === 1
-              ? "Program"
-              : `${pkg.programs.length} programs`}
-          </CardLabel>
-          <ul className="flex flex-col gap-3">
-            {pkg.programs.map((p) => (
-              <li key={p.name} className="flex items-start gap-[11px]">
-                <div className="bg-orange/15 text-orange flex size-7 shrink-0 items-center justify-center rounded-[7px]">
-                  <CalendarIcon size={14} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[13.5px] leading-[1.3] font-bold text-white">
-                    {p.name}
-                  </div>
-                  <div className="text-xs text-white/40">{programMeta(p)}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <ProgramsSection programs={pkg.programs} />
+
+      <TeamsSection teams={pkg.teams} />
 
       {pkg.coaches.length > 0 && (
         <div className="border-b border-white/10 px-[18px] py-4 md:px-[22px] md:py-[18px]">

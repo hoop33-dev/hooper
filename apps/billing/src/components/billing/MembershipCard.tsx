@@ -19,6 +19,16 @@ const BILLING: Record<string, string> = {
   year: "Yearly",
 };
 
+/** A "Coach: A and B" detail row, or nothing when there are no names. */
+function namesRow(
+  one: string,
+  many: string,
+  names: string[],
+): [string, string][] {
+  if (names.length === 0) return [];
+  return [[names.length > 1 ? many : one, nameList(names)]];
+}
+
 function details(p: MyPackagePurchase): [string, string][] {
   const subscription = p.kind === "subscription";
   const periodEnd = p.current_period_end
@@ -40,12 +50,10 @@ function details(p: MyPackagePurchase): [string, string][] {
         : "One-off payment",
     ],
   ];
-  if (p.coach_names.length > 0) {
-    rows.push([
-      p.coach_names.length > 1 ? "Coaches" : "Coach",
-      nameList(p.coach_names),
-    ]);
-  }
+  rows.push(
+    ...namesRow("Team", "Teams", p.team_names),
+    ...namesRow("Coach", "Coaches", p.coach_names),
+  );
   rows.push(["Member since", memberSince(p)]);
   return rows;
 }

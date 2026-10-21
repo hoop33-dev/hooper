@@ -5,8 +5,8 @@ import { createClient as createBrowserClient } from "@/src/lib/supabase/client";
 /**
  * Uploads directly from the browser (not a server action) so the request
  * carries the user's real session cookies — the avatars bucket's team
- * policies check get_auth_profile_id() against teams.created_by, which
- * needs an authenticated request.
+ * policies check is_coach() for the signed-in profile, which needs an
+ * authenticated request.
  */
 export async function uploadTeamAvatar(
   teamId: string,

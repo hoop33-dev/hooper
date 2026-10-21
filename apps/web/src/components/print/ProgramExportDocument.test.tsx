@@ -53,6 +53,7 @@ const program: ProgramWithSessions = {
   weeks: 2,
   status: "active",
   created_by: "c",
+  updated_by: null,
   form_id: null,
   created_at: "",
   updated_at: "",

@@ -8,11 +8,17 @@ import { formatProgramSub, formatShortDate, plural } from "@/src/lib/format";
 import type {
   AssignedProgramRef,
   AthleteDetail,
+  AthleteTeam,
   ProgramProgressStats,
   ProgramSummary,
   TeamSummary,
 } from "@hooper/db";
 import { useMemo, useState } from "react";
+import {
+  MembershipTrail,
+  PackageBadge,
+  withoutManual,
+} from "../packages/ViaPackage";
 import {
   DetailError,
   DetailListCard,
@@ -49,13 +55,13 @@ type AthleteDetailActions = {
   ) => Promise<ActionResult>;
 };
 
-type AthleteLinks = { programs: AssignedProgramRef[]; teams: TeamSummary[] };
+type AthleteLinks = { programs: AssignedProgramRef[]; teams: AthleteTeam[] };
 
 /** Direct programs + team memberships, edited optimistically. Adding a team
  * pulls its programs in from the `allTeams` row straight away. */
 function useAthleteLinks(
   athlete: AthleteDetail,
-  teams: TeamSummary[],
+  teams: AthleteTeam[],
   allPrograms: ProgramSummary[],
   allTeams: TeamSummary[],
   actions: AthleteDetailActions,
@@ -90,7 +96,11 @@ function useAthleteLinks(
     addTeam: async (teamId: string) => {
       const team = allTeams.find((t) => t.id === teamId);
       if (!team) return { ok: false, error: "Team not found." };
-      const joined = { ...team, memberCount: team.memberCount + 1 };
+      const joined: AthleteTeam = {
+        ...team,
+        memberCount: team.memberCount + 1,
+        via: { manual: true, packages: [] },
+      };
       return mutate(
         (prev) => ({ ...prev, teams: [...prev.teams, joined] }),
         () => actions.addToTeamAction(id, teamId),
@@ -100,7 +110,7 @@ function useAthleteLinks(
       void mutate(
         (prev) => ({
           ...prev,
-          teams: prev.teams.filter((t) => t.id !== teamId),
+          teams: withoutManual(prev.teams, (t) => t.id === teamId),
         }),
         () => actions.removeFromTeamAction(id, teamId),
       ),
@@ -210,6 +220,49 @@ function ProgramRow({
   );
 }
 
+function AthleteTeamsCard({
+  teams,
+  onAdd,
+  onRemove,
+}: {
+  teams: AthleteTeam[];
+  onAdd: () => void;
+  onRemove: (teamId: string) => void;
+}) {
+  return (
+    <DetailListCard
+      title="Teams"
+      count={teams.length}
+      onAdd={onAdd}
+      emptyLabel="Not on any teams."
+      emptyCta="Add to team">
+      {teams.map((t) => (
+        <DetailRow
+          key={t.id}
+          href={`/teams/${t.id}`}
+          lead={<TeamTile team={t} size={34} />}
+          title={t.name}
+          sub={
+            <>
+              <span className="flex-shrink-0">
+                {plural(t.memberCount, "athlete")}
+              </span>
+              <PackageBadge packages={t.via.packages} />
+            </>
+          }
+          trail={
+            <MembershipTrail
+              via={t.via}
+              label={t.name}
+              onRemove={() => onRemove(t.id)}
+            />
+          }
+        />
+      ))}
+    </DetailListCard>
+  );
+}
+
 function AthletePickers({
   picker,
   athleteLabel,
@@ -303,8 +356,8 @@ export function AthleteDetailShell({
   ...actions
 }: AthleteDetailActions & {
   athlete: AthleteDetail;
-  /** Teams this athlete is on. */
-  teams: TeamSummary[];
+  /** Teams this athlete is on, and how (by hand and/or via a package). */
+  teams: AthleteTeam[];
   allPrograms: ProgramSummary[];
   allTeams: TeamSummary[];
   /** Per-program progress keyed by program id — see
@@ -347,28 +400,11 @@ export function AthleteDetailShell({
         <div className="grid items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
           <div className="flex flex-col gap-5">
             <ProfileCard athlete={athlete} />
-            <DetailListCard
-              title="Teams"
-              count={links.local.teams.length}
+            <AthleteTeamsCard
+              teams={links.local.teams}
               onAdd={() => setPicker("team")}
-              emptyLabel="Not on any teams."
-              emptyCta="Add to team">
-              {links.local.teams.map((t) => (
-                <DetailRow
-                  key={t.id}
-                  href={`/teams/${t.id}`}
-                  lead={<TeamTile team={t} size={34} />}
-                  title={t.name}
-                  sub={plural(t.memberCount, "athlete")}
-                  trail={
-                    <RemoveButton
-                      label={t.name}
-                      onClick={() => links.removeTeam(t.id)}
-                    />
-                  }
-                />
-              ))}
-            </DetailListCard>
+              onRemove={links.removeTeam}
+            />
           </div>
 
           <DetailListCard

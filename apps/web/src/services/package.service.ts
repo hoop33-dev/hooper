@@ -9,6 +9,7 @@ import type {
   PackageProgramRef,
   PackageRow,
   PackageSummary,
+  PackageTeamRef,
 } from "@hooper/db";
 
 const COACH_COLUMNS = "id, first_name, last_name, username, avatar_url";
@@ -96,15 +97,16 @@ export async function getPackageBySlug(
     const { data, error } = await supabase
       .from("packages")
       .select(
-        `*, package_programs(programs(id, name, weeks, sessions(week_number))), package_coaches(profiles(${COACH_COLUMNS}))`,
+        `*, package_programs(programs(id, name, weeks, sessions(week_number))), package_coaches(profiles(${COACH_COLUMNS})), package_teams(teams(id, name, avatar_url))`,
       )
       .eq("slug", slug)
       .single();
     if (error) return err(error.message);
 
-    const { package_programs, package_coaches, ...row } =
+    const { package_programs, package_coaches, package_teams, ...row } =
       data as unknown as Omit<PackageJoinRow, "package_programs"> & {
         package_programs: DetailProgramJoin[] | null;
+        package_teams: { teams: PackageTeamRef | null }[] | null;
       };
 
     const programs: PackageProgramRef[] = (package_programs ?? [])
@@ -118,10 +120,16 @@ export async function getPackageBySlug(
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
+    const teams = (package_teams ?? [])
+      .map((pt) => pt.teams)
+      .filter((t): t is PackageTeamRef => t !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
     return ok({
       ...row,
       programs,
       coaches: coachesOf(package_coaches),
+      teams,
     });
   } catch (e) {
     return err(toErrorMessage(e));
@@ -279,6 +287,40 @@ export async function removePackageProgram(
       .delete()
       .eq("package_id", packageId)
       .eq("program_id", programId);
+    if (error) return err(error.message);
+    return ok(undefined);
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
+export async function addPackageTeam(
+  packageId: string,
+  teamId: string,
+): Promise<Result<void>> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("package_teams")
+      .insert({ package_id: packageId, team_id: teamId });
+    if (error) return err(error.message);
+    return ok(undefined);
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
+export async function removePackageTeam(
+  packageId: string,
+  teamId: string,
+): Promise<Result<void>> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("package_teams")
+      .delete()
+      .eq("package_id", packageId)
+      .eq("team_id", teamId);
     if (error) return err(error.message);
     return ok(undefined);
   } catch (e) {

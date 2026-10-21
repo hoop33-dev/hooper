@@ -132,8 +132,9 @@ export type AthleteSessionListItem = {
   durationSeconds: number | null;
 };
 
-/** program_athletes ∪ (program_teams via the athlete's team_members) ∪
- * programs in a package the athlete has bought — there is no single
+/** program_athletes ∪ (program_teams via the athlete's team_memberships —
+ * manual adds plus teams in a package they've bought) ∪ programs in a
+ * package the athlete has bought — there is no single
  * "assignment" row, access can come from any path (or several at once), so
  * this is a union of ids, not a join. Purchased access comes from the
  * package_program_ids() RPC, which only answers for the caller or their
@@ -146,7 +147,7 @@ async function assignedProgramIds(athleteProfileId: string): Promise<string[]> {
       .select("program_id")
       .eq("profile_id", athleteProfileId),
     client
-      .from("team_members")
+      .from("team_memberships")
       .select("team_id")
       .eq("profile_id", athleteProfileId),
     client.rpc("package_program_ids", {
@@ -160,7 +161,7 @@ async function assignedProgramIds(athleteProfileId: string): Promise<string[]> {
   const ids = new Set((direct.data ?? []).map((r) => r.program_id));
   for (const id of purchased.data ?? []) ids.add(id);
 
-  const teamIds = (teams.data ?? []).map((r) => r.team_id);
+  const teamIds = [...new Set((teams.data ?? []).map((r) => r.team_id))];
   if (teamIds.length > 0) {
     const { data: viaTeams, error } = await client
       .from("program_teams")

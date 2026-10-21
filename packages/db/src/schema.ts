@@ -113,6 +113,18 @@ export type TeamMemberRow = {
   created_at: string;
 };
 
+/** view: team_memberships — manual team_members rows ∪ athletes holding an
+ * active purchase of a package that includes the team. An athlete can
+ * appear once per source, so dedupe by profile_id. */
+export type TeamMembershipRow = {
+  team_id: string;
+  profile_id: string;
+  joined_at: string;
+  source: "manual" | "package";
+  package_id: string | null;
+  package_name: string | null;
+};
+
 export type ProgramAthleteRow = {
   program_id: string;
   profile_id: string;
@@ -151,6 +163,12 @@ export type PackageRow = {
 export type PackageProgramRow = {
   package_id: string;
   program_id: string;
+  created_at: string;
+};
+
+export type PackageTeamRow = {
+  package_id: string;
+  team_id: string;
   created_at: string;
 };
 
@@ -212,6 +230,7 @@ export type PublicPackage = {
   access_weeks: number | null;
   programs: { name: string; weeks: number; session_count: number }[];
   coaches: { first_name: string | null; last_name: string | null }[];
+  teams: { name: string; member_count: number }[];
 };
 
 /** my_package_purchases() — purchases the caller paid for or receives,
@@ -244,6 +263,7 @@ export type MyPackagePurchase = Pick<
   athlete_username: string | null;
   program_names: string[];
   coach_names: string[];
+  team_names: string[];
 };
 
 /** my_children() — the caller's actively linked children. */
@@ -358,6 +378,9 @@ export type ProgramRow = {
   weeks: number;
   status: ProgramStatus;
   created_by: string;
+  /** Profile that last edited the program or anything in it. Null only if
+   * that profile has since been deleted. */
+  updated_by: string | null;
   /** At most one form per program; the same form may be attached to many
    * programs (see FormRow) — null when no form is attached. */
   form_id: string | null;
@@ -673,6 +696,13 @@ export type Database = {
         Update: Partial<PackageProgramRow>;
         Relationships: [];
       };
+      package_teams: {
+        Row: PackageTeamRow;
+        Insert: Partial<PackageTeamRow> &
+          Pick<PackageTeamRow, "package_id" | "team_id">;
+        Update: Partial<PackageTeamRow>;
+        Relationships: [];
+      };
       package_coaches: {
         Row: PackageCoachRow;
         Insert: Partial<PackageCoachRow> &
@@ -899,6 +929,10 @@ export type Database = {
       };
       team_recency: {
         Row: TeamRecencyRow;
+        Relationships: [];
+      };
+      team_memberships: {
+        Row: TeamMembershipRow;
         Relationships: [];
       };
       form_recency: {

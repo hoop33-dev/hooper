@@ -11,6 +11,11 @@ import type {
 } from "@hooper/db";
 import { useEffect, useMemo, useState } from "react";
 import {
+  MembershipTrail,
+  PackageBadge,
+  withoutManual,
+} from "../../packages/ViaPackage";
+import {
   DetailError,
   DetailListCard,
   DetailRow,
@@ -80,6 +85,7 @@ function useTeamLinks(
       const member: TeamMember = {
         ...athlete,
         joined_at: new Date().toISOString(),
+        via: { manual: true, packages: [] },
       };
       return mutate(
         (prev) => ({ ...prev, members: [...prev.members, member] }),
@@ -90,7 +96,7 @@ function useTeamLinks(
       void mutate(
         (prev) => ({
           ...prev,
-          members: prev.members.filter((m) => m.id !== profileId),
+          members: withoutManual(prev.members, (m) => m.id === profileId),
         }),
         () => actions.removeTeamMemberAction(id, profileId),
       ),
@@ -151,11 +157,17 @@ function TeamCards({
             href={`/athletes/${m.id}`}
             lead={<AthleteAvatar profile={m} />}
             title={athleteName(m)}
-            sub={memberSub(m)}
+            sub={
+              <>
+                <span className="truncate">{memberSub(m)}</span>
+                <PackageBadge packages={m.via.packages} />
+              </>
+            }
             trail={
-              <RemoveButton
+              <MembershipTrail
+                via={m.via}
                 label={athleteName(m)}
-                onClick={() => links.removeMember(m.id)}
+                onRemove={() => links.removeMember(m.id)}
               />
             }
           />

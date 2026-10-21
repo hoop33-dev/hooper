@@ -25,6 +25,7 @@ export type {
   PackagePurchaseRow,
   PackagePurchaseStatus,
   PackageRow,
+  PackageTeamRow,
   ProfileWithVerificationRow,
   ProgramAthleteRow,
   ProgramRow,
@@ -35,6 +36,7 @@ export type {
   RegionRow,
   SessionRow,
   TeamMemberRow,
+  TeamMembershipRow,
   TeamRow,
   UnitTypeRow,
 } from "./schema";
@@ -181,9 +183,8 @@ export type SessionTemplateSummary = SessionTemplateRow & {
 
 // Full depth: the program canvas renders real blocks + placed exercises
 // inline, not a count summary, so this needs the whole tree.
-// updatedByName is the creator's display name — only `created_by` can ever
-// write to a program (see programs_update_own RLS), so "last edited by"
-// and "created by" are always the same person.
+// updatedByName is the display name of programs.updated_by: whoever last
+// edited the program or anything in it. Any coach can edit any program.
 export type ProgramWithSessions = ProgramRow & {
   sessions: SessionWithBlocks[];
   updatedByName: string | null;
@@ -255,13 +256,25 @@ export type TeamSummary = TeamRow & {
   programs: AssignedProgramRef[];
 };
 
-// joined_at is the team_members row's created_at — when this profile was
-// added to the team, not the profile's own created_at.
+// How an athlete is on a team: added by hand (a team_members row), and/or
+// through an active purchase of a package that includes the team. Package
+// membership ends with the plan, so coaches can only remove the manual part.
+export type TeamMembershipVia = {
+  manual: boolean;
+  packages: { id: string; name: string }[];
+};
+
+// joined_at is the earliest team_memberships row — when this profile was
+// added to the team (or bought in), not the profile's own created_at.
 // last_sign_in_at comes from the coach-only get_athlete_last_sign_ins RPC.
 export type TeamMember = ProfileRow & {
   joined_at: string;
   last_sign_in_at: string | null;
+  via: TeamMembershipVia;
 };
+
+/** A team on the athlete detail page, with how that athlete is on it. */
+export type AthleteTeam = TeamSummary & { via: TeamMembershipVia };
 
 export type TeamDetail = TeamRow & {
   programs: AssignedProgramRef[];
@@ -322,7 +335,15 @@ export type PackageProgramRef = AssignedProgramRef & {
   sessionsPerWeek: [min: number, max: number] | null;
 };
 
+// Buyers are members of these teams while their plan is active.
+export type PackageTeamRef = {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+};
+
 export type PackageDetail = PackageRow & {
   programs: PackageProgramRef[];
   coaches: PackageCoachRef[];
+  teams: PackageTeamRef[];
 };

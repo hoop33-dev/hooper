@@ -131,7 +131,7 @@ async function fetchDirectProgramAthletes(
 }
 
 /** program_id -> set of athlete ids reachable via a team assigned to that
- * program (program_teams -> team_members), scoped to the given program ids. */
+ * program (program_teams -> team_memberships, so package buyers count), scoped to the given program ids. */
 async function fetchTeamProgramAthletes(
   programIds: string[],
 ): Promise<Result<Map<string, Set<string>>>> {
@@ -146,7 +146,7 @@ async function fetchTeamProgramAthletes(
   if (teamIds.length === 0) return ok(new Map());
 
   const { data: members, error: membersError } = await supabase
-    .from("team_members")
+    .from("team_memberships")
     .select("team_id, profile_id")
     .in("team_id", teamIds);
   if (membersError) return err(membersError.message);
@@ -171,7 +171,7 @@ async function fetchTeamProgramAthletes(
 
 /** Distinct athletes who can see each program, deduped across direct
  * assignment (program_athletes) and team-based assignment (program_teams ->
- * team_members) — an athlete reachable both ways counts once. Scoped to the
+ * team_memberships) — an athlete reachable both ways counts once. Scoped to the
  * given program ids (the dashboard's 6 shown rows), so this never scans the
  * full assignment tables. */
 async function fetchProgramAccessCounts(
@@ -275,9 +275,9 @@ export async function getProgramById(
     const raw = data as unknown as RawProgram;
 
     // The lookup tables are cached per-render (shared with listExercises /
-    // listStyles / listUnitTypes on the same page); the creator lookup runs in
-    // the same round-trip group rather than after it.
-    const [allCategories, allStyles, allUnitTypes, { data: creator }] =
+    // listStyles / listUnitTypes on the same page); the last-editor lookup
+    // runs in the same round-trip group rather than after it.
+    const [allCategories, allStyles, allUnitTypes, { data: editor }] =
       await Promise.all([
         getExerciseCategoriesRaw(),
         getExerciseStylesRaw(),
@@ -285,7 +285,7 @@ export async function getProgramById(
         supabase
           .from("profiles")
           .select("first_name, last_name")
-          .eq("id", raw.created_by)
+          .eq("id", raw.updated_by ?? raw.created_by)
           .single(),
       ]);
 
@@ -304,7 +304,7 @@ export async function getProgramById(
     return ok({
       ...raw,
       sessions,
-      updatedByName: formatProfileName(creator),
+      updatedByName: formatProfileName(editor),
     });
   } catch (e) {
     return err(toErrorMessage(e));

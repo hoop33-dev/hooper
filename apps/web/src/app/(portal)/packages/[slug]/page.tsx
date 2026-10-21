@@ -1,13 +1,16 @@
 import { PackageDetailShell } from "@/src/components/portal/packages/PackageDetailShell";
 import { getPackageBySlug, listCoaches } from "@/src/services/package.service";
 import { listPrograms } from "@/src/services/program.service";
+import { listTeams } from "@/src/services/team.service";
 import { notFound } from "next/navigation";
 import {
   addPackageCoachAction,
   addPackageProgramAction,
+  addPackageTeamAction,
   deletePackageAction,
   removePackageCoachAction,
   removePackageProgramAction,
+  removePackageTeamAction,
   updatePackageAction,
 } from "../actions";
 
@@ -17,11 +20,13 @@ export default async function PackageDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [packageResult, programsResult, coachesResult] = await Promise.all([
-    getPackageBySlug(slug),
-    listPrograms(),
-    listCoaches(),
-  ]);
+  const [packageResult, programsResult, coachesResult, teamsResult] =
+    await Promise.all([
+      getPackageBySlug(slug),
+      listPrograms(),
+      listCoaches(),
+      listTeams(),
+    ]);
 
   // RLS hides soft-deleted packages, so a deleted slug lands here too.
   if (!packageResult.ok) notFound();
@@ -31,12 +36,15 @@ export default async function PackageDetailPage({
       pkg={packageResult.data}
       allPrograms={programsResult.ok ? programsResult.data : []}
       allCoaches={coachesResult.ok ? coachesResult.data : []}
+      allTeams={teamsResult.ok ? teamsResult.data : []}
       updateAction={updatePackageAction}
       deleteAction={deletePackageAction}
       addProgramAction={addPackageProgramAction}
       removeProgramAction={removePackageProgramAction}
       addCoachAction={addPackageCoachAction}
       removeCoachAction={removePackageCoachAction}
+      addTeamAction={addPackageTeamAction}
+      removeTeamAction={removePackageTeamAction}
     />
   );
 }

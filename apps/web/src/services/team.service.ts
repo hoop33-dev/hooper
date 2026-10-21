@@ -4,10 +4,13 @@ import { createClient } from "@/src/lib/supabase/server";
 import { fetchLastSignIns } from "@/src/services/athlete.service";
 import type {
   AssignedProgramRef,
+  AthleteTeam,
   ProfileRow,
   TeamDashboardRow,
   TeamDetail,
   TeamMember,
+  TeamMembershipRow,
+  TeamMembershipVia,
   TeamRow,
   TeamSummary,
 } from "@hooper/db";
@@ -41,6 +44,75 @@ async function fetchAssignedPrograms(
   return ok(byTeam);
 }
 
+type MembershipRef = Pick<
+  TeamMembershipRow,
+  | "team_id"
+  | "profile_id"
+  | "joined_at"
+  | "source"
+  | "package_id"
+  | "package_name"
+>;
+
+const MEMBERSHIP_COLUMNS =
+  "team_id, profile_id, joined_at, source, package_id, package_name";
+
+/** team_id -> distinct athlete count. Reads team_memberships, so package
+ * buyers count, and an athlete on a team by hand and via a package (or
+ * via two packages) counts once. */
+async function fetchMemberCounts(
+  teamIds: string[],
+): Promise<Result<Map<string, number>>> {
+  if (teamIds.length === 0) return ok(new Map());
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("team_memberships")
+    .select("team_id, profile_id")
+    .in("team_id", teamIds);
+  if (error) return err(error.message);
+
+  const byTeam = new Map<string, Set<string>>();
+  for (const row of data ?? []) {
+    const set = byTeam.get(row.team_id) ?? new Set<string>();
+    set.add(row.profile_id);
+    byTeam.set(row.team_id, set);
+  }
+  return ok(new Map([...byTeam].map(([id, set]) => [id, set.size])));
+}
+
+/** Folds one athlete's team_memberships rows (for one team) into how they're
+ * on it, plus the earliest join. */
+function foldMembership(rows: MembershipRef[]): {
+  via: TeamMembershipVia;
+  joined_at: string;
+} {
+  const via: TeamMembershipVia = { manual: false, packages: [] };
+  let joined_at = rows[0].joined_at;
+  for (const row of rows) {
+    if (row.joined_at < joined_at) joined_at = row.joined_at;
+    if (row.source === "manual") via.manual = true;
+    else if (
+      row.package_id &&
+      !via.packages.some((p) => p.id === row.package_id)
+    ) {
+      via.packages.push({ id: row.package_id, name: row.package_name ?? "" });
+    }
+  }
+  via.packages.sort((a, b) => a.name.localeCompare(b.name));
+  return { via, joined_at };
+}
+
+function groupBy<T>(rows: T[], key: (row: T) => string): Map<string, T[]> {
+  const out = new Map<string, T[]>();
+  for (const row of rows) {
+    const list = out.get(key(row)) ?? [];
+    list.push(row);
+    out.set(key(row), list);
+  }
+  return out;
+}
+
 export type CreateTeamInput = {
   name: string;
   description?: string;
@@ -58,26 +130,25 @@ export async function listTeams(): Promise<Result<TeamSummary[]>> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("teams")
-      .select("*, team_members(count)")
+      .select("*")
       .order("name");
     if (error) return err(error.message);
 
     const teamIds = (data ?? []).map((row) => row.id);
-    const programsResult = await fetchAssignedPrograms(teamIds);
+    const [programsResult, countsResult] = await Promise.all([
+      fetchAssignedPrograms(teamIds),
+      fetchMemberCounts(teamIds),
+    ]);
     if (!programsResult.ok) return err(programsResult.error);
+    if (!countsResult.ok) return err(countsResult.error);
 
-    const rows = (data ?? []).map((row) => {
-      const memberCount = Array.isArray(row.team_members)
-        ? ((row.team_members[0] as { count: number } | undefined)?.count ?? 0)
-        : 0;
-      return {
-        ...row,
-        memberCount,
-        programs: programsResult.data.get(row.id) ?? [],
-      };
-    });
+    const rows: TeamSummary[] = (data ?? []).map((row) => ({
+      ...row,
+      memberCount: countsResult.data.get(row.id) ?? 0,
+      programs: programsResult.data.get(row.id) ?? [],
+    }));
 
-    return ok(rows as unknown as TeamSummary[]);
+    return ok(rows);
   } catch (e) {
     return err(toErrorMessage(e));
   }
@@ -100,31 +171,24 @@ export const listRecentTeams = cache(
       const orderedIds = (recency ?? []).map((row) => row.team_id);
       if (orderedIds.length === 0) return ok([]);
 
-      const [teamsResult, programsResult] = await Promise.all([
-        supabase
-          .from("teams")
-          .select("*, team_members(count)")
-          .in("id", orderedIds),
+      const [teamsResult, programsResult, countsResult] = await Promise.all([
+        supabase.from("teams").select("*").in("id", orderedIds),
         fetchAssignedPrograms(orderedIds),
+        fetchMemberCounts(orderedIds),
       ]);
       if (teamsResult.error) return err(teamsResult.error.message);
       if (!programsResult.ok) return err(programsResult.error);
+      if (!countsResult.ok) return err(countsResult.error);
 
       const byId = new Map(teamsResult.data.map((row) => [row.id, row]));
       const rows = orderedIds
         .map((id) => byId.get(id))
         .filter((row): row is NonNullable<typeof row> => row !== undefined)
-        .map((row) => {
-          const memberCount = Array.isArray(row.team_members)
-            ? ((row.team_members[0] as { count: number } | undefined)?.count ??
-              0)
-            : 0;
-          return {
-            ...row,
-            memberCount,
-            programs: programsResult.data.get(row.id) ?? [],
-          };
-        });
+        .map((row) => ({
+          ...row,
+          memberCount: countsResult.data.get(row.id) ?? 0,
+          programs: programsResult.data.get(row.id) ?? [],
+        }));
 
       return ok(rows as unknown as TeamDashboardRow[]);
     } catch (e) {
@@ -133,44 +197,40 @@ export const listRecentTeams = cache(
   },
 );
 
-/** The teams an athlete is on, in the same shape as `listTeams` — for the
- * athlete detail page's Teams card and its team-assigned programs. */
+/** The teams an athlete is on, in the same shape as `listTeams` plus how
+ * they're on each (by hand and/or via a package) — for the athlete detail
+ * page's Teams card and its team-assigned programs. */
 export async function listTeamsForAthlete(
   profileId: string,
-): Promise<Result<TeamSummary[]>> {
+): Promise<Result<AthleteTeam[]>> {
   try {
     const supabase = await createClient();
     const { data: memberRows, error: memberError } = await supabase
-      .from("team_members")
-      .select("team_id")
+      .from("team_memberships")
+      .select(MEMBERSHIP_COLUMNS)
       .eq("profile_id", profileId);
     if (memberError) return err(memberError.message);
 
-    const teamIds = (memberRows ?? []).map((row) => row.team_id);
+    const byTeam = groupBy(memberRows ?? [], (row) => row.team_id);
+    const teamIds = [...byTeam.keys()];
     if (teamIds.length === 0) return ok([]);
 
-    const [teamsResult, programsResult] = await Promise.all([
-      supabase
-        .from("teams")
-        .select("*, team_members(count)")
-        .in("id", teamIds)
-        .order("name"),
+    const [teamsResult, programsResult, countsResult] = await Promise.all([
+      supabase.from("teams").select("*").in("id", teamIds).order("name"),
       fetchAssignedPrograms(teamIds),
+      fetchMemberCounts(teamIds),
     ]);
     if (teamsResult.error) return err(teamsResult.error.message);
     if (!programsResult.ok) return err(programsResult.error);
+    if (!countsResult.ok) return err(countsResult.error);
 
-    const rows = teamsResult.data.map((row) => {
-      const memberCount = Array.isArray(row.team_members)
-        ? ((row.team_members[0] as { count: number } | undefined)?.count ?? 0)
-        : 0;
-      return {
-        ...row,
-        memberCount,
-        programs: programsResult.data.get(row.id) ?? [],
-      };
-    });
-    return ok(rows as unknown as TeamSummary[]);
+    const rows: AthleteTeam[] = teamsResult.data.map((row) => ({
+      ...row,
+      memberCount: countsResult.data.get(row.id) ?? 0,
+      programs: programsResult.data.get(row.id) ?? [],
+      via: foldMembership(byTeam.get(row.id) ?? []).via,
+    }));
+    return ok(rows);
   } catch (e) {
     return err(toErrorMessage(e));
   }
@@ -188,26 +248,29 @@ export async function getTeamById(id: string): Promise<Result<TeamDetail>> {
     if (teamError) return err(teamError.message);
 
     const { data: memberRows, error: membersError } = await supabase
-      .from("team_members")
-      .select("created_at, profiles(*)")
+      .from("team_memberships")
+      .select(MEMBERSHIP_COLUMNS)
       .eq("team_id", id);
     if (membersError) return err(membersError.message);
 
-    const members = (
-      (memberRows ?? []) as unknown as {
-        created_at: string;
-        profiles: ProfileRow | null;
-      }[]
-    )
-      .filter((row) => row.profiles !== null)
-      .map(
-        (row) =>
-          ({
-            ...row.profiles!,
-            joined_at: row.created_at,
-            last_sign_in_at: null,
-          }) as TeamMember,
-      );
+    const byProfile = groupBy(memberRows ?? [], (row) => row.profile_id);
+    let profiles: ProfileRow[] = [];
+    if (byProfile.size > 0) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", [...byProfile.keys()]);
+      if (error) return err(error.message);
+      profiles = data ?? [];
+    }
+
+    const members: TeamMember[] = profiles
+      .map((profile) => ({
+        ...profile,
+        ...foldMembership(byProfile.get(profile.id)!),
+        last_sign_in_at: null,
+      }))
+      .sort((a, b) => a.joined_at.localeCompare(b.joined_at));
 
     const [programsResult, lastSignInsResult] = await Promise.all([
       fetchAssignedPrograms([id]),

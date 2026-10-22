@@ -8,6 +8,7 @@ import { formatProgramSub, formatShortDate, plural } from "@/src/lib/format";
 import type {
   AssignedProgramRef,
   AthleteDetail,
+  AthletePackageProgram,
   AthleteTeam,
   ProgramProgressStats,
   ProgramSummary,
@@ -208,16 +209,19 @@ function ProgramRow({
       sub={
         <>
           <span className="flex-shrink-0">{progressLabel(stats)}</span>
-          {entry.viaTeam && <TeamBadge name={entry.viaTeam} />}
+          {entry.via.kind === "package" && (
+            <PackageBadge packages={[entry.via.package]} />
+          )}
+          {entry.via.kind === "team" && <TeamBadge name={entry.via.team} />}
         </>
       }
       trail={
-        entry.viaTeam ? (
-          <span className="text-portal-text3 text-[11px] whitespace-nowrap">
-            Via team
-          </span>
-        ) : (
+        entry.via.kind === "direct" ? (
           <RemoveButton label={entry.name} onClick={onRemove} />
+        ) : (
+          <span className="text-portal-text3 text-[11px] whitespace-nowrap">
+            {entry.via.kind === "package" ? "Via package" : "Via team"}
+          </span>
         )
       }
     />
@@ -354,6 +358,7 @@ function pickerItems(
 export function AthleteDetailShell({
   athlete,
   teams,
+  packagePrograms,
   allPrograms,
   allTeams,
   programStats,
@@ -362,6 +367,9 @@ export function AthleteDetailShell({
   athlete: AthleteDetail;
   /** Teams this athlete is on, and how (by hand and/or via a package). */
   teams: AthleteTeam[];
+  /** Programs from the athlete's active package purchases — read-only
+   * here, since they end with the plan. */
+  packagePrograms: AthletePackageProgram[];
   allPrograms: ProgramSummary[];
   allTeams: TeamSummary[];
   /** Per-program progress keyed by program id — see
@@ -373,13 +381,16 @@ export function AthleteDetailShell({
   const name = athleteName(athlete);
   const programs = mergeAthletePrograms(
     links.local.programs,
+    packagePrograms,
     links.local.teams,
   );
+  // A program can be listed once per source; the header counts it once.
+  const programIds = new Set(programs.map((p) => p.id));
 
   const { programItems, teamItems } = pickerItems(
     allPrograms,
     allTeams,
-    new Set(programs.map((p) => p.id)),
+    programIds,
     // Package-only teams stay pickable so a coach can keep the athlete on
     // them after their plan ends.
     new Set(links.local.teams.filter((t) => t.via.manual).map((t) => t.id)),
@@ -391,7 +402,7 @@ export function AthleteDetailShell({
         title={name}
         subtitle={headerSubtitle(
           athlete,
-          programs.length,
+          programIds.size,
           links.local.teams.length,
         )}
         backHref="/athletes"
@@ -422,7 +433,7 @@ export function AthleteDetailShell({
             emptyCta="Assign program">
             {programs.map((entry) => (
               <ProgramRow
-                key={entry.id}
+                key={entry.key}
                 entry={entry}
                 stats={programStats[entry.id]}
                 onRemove={() => links.unassignProgram(entry.id)}

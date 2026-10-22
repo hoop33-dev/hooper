@@ -6,6 +6,7 @@ import type {
   AssignedProgramRef,
   AthleteDashboardRow,
   AthleteDetail,
+  AthletePackageProgram,
   AthleteSummary,
 } from "@hooper/db";
 import { cache } from "react";
@@ -210,6 +211,33 @@ export async function getAthleteById(
       regionName,
       programs: programsResult.data.get(id) ?? [],
     });
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
+/** Programs an athlete gets through their active package purchases, one
+ * entry per (package, program) — see the package_program_access view. */
+export async function listPackageProgramsForAthlete(
+  profileId: string,
+): Promise<Result<AthletePackageProgram[]>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("package_program_access")
+      .select("program_id, program_name, package_id, package_name")
+      .eq("profile_id", profileId)
+      .order("package_name")
+      .order("program_name");
+    if (error) return err(error.message);
+
+    return ok(
+      (data ?? []).map((row) => ({
+        id: row.program_id,
+        name: row.program_name,
+        package: { id: row.package_id, name: row.package_name },
+      })),
+    );
   } catch (e) {
     return err(toErrorMessage(e));
   }

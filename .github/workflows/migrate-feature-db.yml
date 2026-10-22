@@ -1,0 +1,33 @@
+name: Migrate Feature DB
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/seed.sql"
+  workflow_dispatch:
+
+concurrency:
+  group: migrate-feature-db-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migrate-and-seed:
+    if: >-
+      !(github.head_ref == 'dev' && github.base_ref == 'main') &&
+      !(github.head_ref == 'main' && github.base_ref == 'dev')
+    runs-on: ubuntu-latest
+    environment: feature
+    env:
+      SUPABASE_DB_CONNECTION_STRING: ${{ secrets.SUPABASE_DB_CONNECTION_STRING }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Push migrations to feature DB
+        run: supabase db push --db-url "$SUPABASE_DB_CONNECTION_STRING"
+
+      # - name: Seed feature DB
+      #   run: psql -v ON_ERROR_STOP=1 "$SUPABASE_DB_CONNECTION_STRING" -f supabase/seed.sql

@@ -54,3 +54,16 @@ export function withoutManual<T extends { via: TeamMembershipVia }>(
     return [{ ...row, via: { ...row.via, manual: false } }];
   });
 }
+
+/** Optimistic add of a manual membership: marks an existing package-only
+ * row as manual too, or appends `added` when they weren't on the team. */
+export function withManual<T extends { via: TeamMembershipVia }>(
+  rows: T[],
+  match: (row: T) => boolean,
+  added: T,
+): T[] {
+  if (!rows.some(match)) return [...rows, added];
+  return rows.map((row) =>
+    match(row) ? { ...row, via: { ...row.via, manual: true } } : row,
+  );
+}

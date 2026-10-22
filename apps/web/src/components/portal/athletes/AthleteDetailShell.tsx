@@ -17,6 +17,7 @@ import { useMemo, useState } from "react";
 import {
   MembershipTrail,
   PackageBadge,
+  withManual,
   withoutManual,
 } from "../packages/ViaPackage";
 import {
@@ -102,7 +103,10 @@ function useAthleteLinks(
         via: { manual: true, packages: [] },
       };
       return mutate(
-        (prev) => ({ ...prev, teams: [...prev.teams, joined] }),
+        (prev) => ({
+          ...prev,
+          teams: withManual(prev.teams, (t) => t.id === teamId, joined),
+        }),
         () => actions.addToTeamAction(id, teamId),
       );
     },
@@ -376,7 +380,9 @@ export function AthleteDetailShell({
     allPrograms,
     allTeams,
     new Set(programs.map((p) => p.id)),
-    new Set(links.local.teams.map((t) => t.id)),
+    // Package-only teams stay pickable so a coach can keep the athlete on
+    // them after their plan ends.
+    new Set(links.local.teams.filter((t) => t.via.manual).map((t) => t.id)),
   );
 
   return (

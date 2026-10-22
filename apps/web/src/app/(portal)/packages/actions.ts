@@ -100,12 +100,18 @@ export async function removePackageProgramAction(
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }
 
-/** Buyers' team memberships change with the package's teams, so the team
- * pages (rosters, member counts) are revalidated too. */
+/** Buyers' team memberships change with the package's teams, so everything
+ * that reads team_memberships is revalidated too: team rosters and counts,
+ * buyers' athlete pages (team list, team-assigned programs), the dashboard
+ * and program access counts. */
 function revalidatePackageTeams() {
   revalidatePackages();
   revalidatePath("/teams");
   revalidatePath("/teams/[id]", "page");
+  revalidatePath("/athletes/[id]", "page");
+  revalidatePath("/dashboard");
+  revalidatePath("/programs");
+  revalidatePath("/programs/[id]", "page");
 }
 
 export async function addPackageTeamAction(

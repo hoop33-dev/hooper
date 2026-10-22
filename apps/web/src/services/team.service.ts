@@ -57,9 +57,9 @@ type MembershipRef = Pick<
 const MEMBERSHIP_COLUMNS =
   "team_id, profile_id, joined_at, source, package_id, package_name";
 
-/** team_id -> distinct athlete count. Reads team_memberships, so package
- * buyers count, and an athlete on a team by hand and via a package (or
- * via two packages) counts once. */
+/** team_id -> distinct athlete count, from the team_member_counts view
+ * (over team_memberships), so package buyers count, and an athlete on a
+ * team by hand and via a package (or via two packages) counts once. */
 async function fetchMemberCounts(
   teamIds: string[],
 ): Promise<Result<Map<string, number>>> {
@@ -67,18 +67,14 @@ async function fetchMemberCounts(
 
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("team_memberships")
-    .select("team_id, profile_id")
+    .from("team_member_counts")
+    .select("team_id, member_count")
     .in("team_id", teamIds);
   if (error) return err(error.message);
 
-  const byTeam = new Map<string, Set<string>>();
-  for (const row of data ?? []) {
-    const set = byTeam.get(row.team_id) ?? new Set<string>();
-    set.add(row.profile_id);
-    byTeam.set(row.team_id, set);
-  }
-  return ok(new Map([...byTeam].map(([id, set]) => [id, set.size])));
+  return ok(
+    new Map((data ?? []).map((row) => [row.team_id, row.member_count])),
+  );
 }
 
 /** Folds one athlete's team_memberships rows (for one team) into how they're
@@ -101,16 +97,6 @@ function foldMembership(rows: MembershipRef[]): {
   }
   via.packages.sort((a, b) => a.name.localeCompare(b.name));
   return { via, joined_at };
-}
-
-function groupBy<T>(rows: T[], key: (row: T) => string): Map<string, T[]> {
-  const out = new Map<string, T[]>();
-  for (const row of rows) {
-    const list = out.get(key(row)) ?? [];
-    list.push(row);
-    out.set(key(row), list);
-  }
-  return out;
 }
 
 export type CreateTeamInput = {
@@ -211,7 +197,7 @@ export async function listTeamsForAthlete(
       .eq("profile_id", profileId);
     if (memberError) return err(memberError.message);
 
-    const byTeam = groupBy(memberRows ?? [], (row) => row.team_id);
+    const byTeam = Map.groupBy(memberRows ?? [], (row) => row.team_id);
     const teamIds = [...byTeam.keys()];
     if (teamIds.length === 0) return ok([]);
 
@@ -240,53 +226,47 @@ export async function getTeamById(id: string): Promise<Result<TeamDetail>> {
   try {
     const supabase = await createClient();
 
-    const { data: team, error: teamError } = await supabase
-      .from("teams")
-      .select("*")
-      .eq("id", id)
-      .single();
-    if (teamError) return err(teamError.message);
+    const [teamResult, membersResult, programsResult] = await Promise.all([
+      supabase.from("teams").select("*").eq("id", id).single(),
+      supabase
+        .from("team_memberships")
+        .select(MEMBERSHIP_COLUMNS)
+        .eq("team_id", id),
+      fetchAssignedPrograms([id]),
+    ]);
+    if (teamResult.error) return err(teamResult.error.message);
+    if (membersResult.error) return err(membersResult.error.message);
+    if (!programsResult.ok) return err(programsResult.error);
+    const team = teamResult.data;
 
-    const { data: memberRows, error: membersError } = await supabase
-      .from("team_memberships")
-      .select(MEMBERSHIP_COLUMNS)
-      .eq("team_id", id);
-    if (membersError) return err(membersError.message);
-
-    const byProfile = groupBy(memberRows ?? [], (row) => row.profile_id);
-    let profiles: ProfileRow[] = [];
-    if (byProfile.size > 0) {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("id", [...byProfile.keys()]);
-      if (error) return err(error.message);
-      profiles = data ?? [];
-    }
+    const byProfile = Map.groupBy(
+      membersResult.data ?? [],
+      (row) => row.profile_id,
+    );
+    const profileIds = [...byProfile.keys()];
+    const [profilesResult, lastSignInsResult] = await Promise.all([
+      profileIds.length > 0
+        ? supabase.from("profiles").select("*").in("id", profileIds)
+        : Promise.resolve({ data: [] as ProfileRow[], error: null }),
+      profileIds.length > 0
+        ? fetchLastSignIns(profileIds)
+        : Promise.resolve(ok(new Map<string, string | null>())),
+    ]);
+    if (profilesResult.error) return err(profilesResult.error.message);
+    if (!lastSignInsResult.ok) return err(lastSignInsResult.error);
+    const profiles: ProfileRow[] = profilesResult.data ?? [];
 
     const members: TeamMember[] = profiles
       .map((profile) => ({
         ...profile,
         ...foldMembership(byProfile.get(profile.id)!),
-        last_sign_in_at: null,
+        last_sign_in_at: lastSignInsResult.data.get(profile.id) ?? null,
       }))
       .sort((a, b) => a.joined_at.localeCompare(b.joined_at));
 
-    const [programsResult, lastSignInsResult] = await Promise.all([
-      fetchAssignedPrograms([id]),
-      members.length > 0
-        ? fetchLastSignIns(members.map((m) => m.id))
-        : Promise.resolve(ok(new Map<string, string | null>())),
-    ]);
-    if (!programsResult.ok) return err(programsResult.error);
-    if (!lastSignInsResult.ok) return err(lastSignInsResult.error);
-
     return ok({
       ...team,
-      members: members.map((m) => ({
-        ...m,
-        last_sign_in_at: lastSignInsResult.data.get(m.id) ?? null,
-      })),
+      members,
       programs: programsResult.data.get(id) ?? [],
     });
   } catch (e) {

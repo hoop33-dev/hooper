@@ -30,6 +30,7 @@ export function purchase(
     program_names: ["Shooting Mechanics"],
     coach_names: ["Marcus Davis"],
     team_names: [],
+    leaving_team_names: [],
     ...over,
   };
 }

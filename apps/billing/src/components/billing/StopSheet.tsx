@@ -41,7 +41,7 @@ export function StopSheet({
   const end = p.current_period_end ? formatDate(p.current_period_end) : null;
   const when = failed || !end ? "today" : `on ${end}`;
   const programs = p.program_names;
-  const teams = p.team_names;
+  const teams = p.leaving_team_names;
   const app = whose === "Your" ? "your" : whose;
 
   return (

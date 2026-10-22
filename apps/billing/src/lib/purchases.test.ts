@@ -35,6 +35,7 @@ const base: MyPackagePurchase = {
   program_names: [],
   coach_names: [],
   team_names: [],
+  leaving_team_names: [],
 };
 
 const sub: MyPackagePurchase = {

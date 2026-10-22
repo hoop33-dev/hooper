@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   MembershipTrail,
   PackageBadge,
+  withManual,
   withoutManual,
 } from "../../packages/ViaPackage";
 import {
@@ -88,7 +89,10 @@ function useTeamLinks(
         via: { manual: true, packages: [] },
       };
       return mutate(
-        (prev) => ({ ...prev, members: [...prev.members, member] }),
+        (prev) => ({
+          ...prev,
+          members: withManual(prev.members, (m) => m.id === profileId, member),
+        }),
         () => actions.addTeamMemberAction(id, profileId),
       );
     },
@@ -222,7 +226,11 @@ function TeamPickers({
   onClose: () => void;
 }) {
   if (picker === "athlete") {
-    const memberIds = new Set(links.local.members.map((m) => m.id));
+    // Package-only members stay pickable so a coach can keep them on the
+    // team after their plan ends.
+    const memberIds = new Set(
+      links.local.members.filter((m) => m.via.manual).map((m) => m.id),
+    );
     const items: SearchPickerItem[] = athletes
       .filter((a) => !memberIds.has(a.id))
       .map((a) => ({

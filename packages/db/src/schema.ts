@@ -125,6 +125,13 @@ export type TeamMembershipRow = {
   package_name: string | null;
 };
 
+/** view: team_member_counts (security_invoker) — distinct athletes per
+ * team over team_memberships. Teams with no members have no row. */
+export type TeamMemberCountRow = {
+  team_id: string;
+  member_count: number;
+};
+
 export type ProgramAthleteRow = {
   program_id: string;
   profile_id: string;
@@ -264,6 +271,9 @@ export type MyPackagePurchase = Pick<
   program_names: string[];
   coach_names: string[];
   team_names: string[];
+  /** The team_names this purchase alone keeps the athlete on — what
+   * stopping it would remove them from. */
+  leaving_team_names: string[];
 };
 
 /** my_children() — the caller's actively linked children. */
@@ -933,6 +943,10 @@ export type Database = {
       };
       team_memberships: {
         Row: TeamMembershipRow;
+        Relationships: [];
+      };
+      team_member_counts: {
+        Row: TeamMemberCountRow;
         Relationships: [];
       };
       form_recency: {

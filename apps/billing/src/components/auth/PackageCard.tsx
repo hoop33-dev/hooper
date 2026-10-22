@@ -60,8 +60,8 @@ function TeamsSection({ teams }: { teams: PublicPackage["teams"] }) {
         {teams.length === 1 ? "Team" : `${teams.length} teams`}
       </CardLabel>
       <ul className="flex flex-col gap-3">
-        {teams.map((t) => (
-          <li key={t.name} className="flex items-start gap-[11px]">
+        {teams.map((t, i) => (
+          <li key={`${t.name}-${i}`} className="flex items-start gap-[11px]">
             <div className="bg-orange/15 text-orange flex size-7 shrink-0 items-center justify-center rounded-[7px]">
               <UsersIcon size={14} />
             </div>

@@ -20,6 +20,7 @@ export type {
   PackageBillingInterval,
   PackageBillingType,
   PackageCoachRow,
+  PackageProgramAccessRow,
   PackageProgramRow,
   PackagePurchaseKind,
   PackagePurchaseRow,
@@ -271,6 +272,11 @@ export type TeamMember = ProfileRow & {
   joined_at: string;
   last_sign_in_at: string | null;
   via: TeamMembershipVia;
+};
+
+/** A program an athlete gets through an active package purchase. */
+export type AthletePackageProgram = AssignedProgramRef & {
+  package: { id: string; name: string };
 };
 
 /** A team on the athlete detail page, with how that athlete is on it. */

@@ -1,35 +1,49 @@
-import type { AssignedProgramRef } from "@hooper/db";
+import type { AssignedProgramRef, AthletePackageProgram } from "@hooper/db";
+
+/** How the athlete gets a program: assigned directly (and so removable
+ * here), through a package they've bought, or through a team they're on. */
+export type AthleteProgramVia =
+  | { kind: "direct" }
+  | { kind: "package"; package: { id: string; name: string } }
+  | { kind: "team"; team: string };
 
 export type AthleteProgramEntry = AssignedProgramRef & {
-  /** Name of the team the program comes through, or null when it's
-   * assigned to the athlete directly (and so removable here). */
-  viaTeam: string | null;
+  /** Unique per row — the same program can appear once per source. */
+  key: string;
+  via: AthleteProgramVia;
 };
 
 /**
- * Every program an athlete can see: direct assignments first, then those
- * that come through a team they're on. A program that's both direct and via
- * a team is listed once, as direct — removing the direct assignment is the
- * only thing the athlete page can do with it. A program on several teams
- * credits the first team.
+ * Every program an athlete can see, one row per way they get it: direct
+ * assignments first, then package programs, then team programs. Nothing is
+ * de-duped, so a program that's direct and via a team (or via two
+ * packages) is listed once for each.
  */
 export function mergeAthletePrograms(
   direct: AssignedProgramRef[],
-  teams: { name: string; programs: AssignedProgramRef[] }[],
+  packagePrograms: AthletePackageProgram[],
+  teams: { id: string; name: string; programs: AssignedProgramRef[] }[],
 ): AthleteProgramEntry[] {
-  const seen = new Set<string>();
-  const entries: AthleteProgramEntry[] = [];
-  for (const program of direct) {
-    if (seen.has(program.id)) continue;
-    seen.add(program.id);
-    entries.push({ ...program, viaTeam: null });
-  }
-  for (const team of teams) {
-    for (const program of team.programs) {
-      if (seen.has(program.id)) continue;
-      seen.add(program.id);
-      entries.push({ ...program, viaTeam: team.name });
-    }
-  }
-  return entries;
+  return [
+    ...direct.map((p) => ({
+      id: p.id,
+      name: p.name,
+      key: `direct-${p.id}`,
+      via: { kind: "direct" } as const,
+    })),
+    ...packagePrograms.map((p) => ({
+      id: p.id,
+      name: p.name,
+      key: `package-${p.package.id}-${p.id}`,
+      via: { kind: "package", package: p.package } as const,
+    })),
+    ...teams.flatMap((team) =>
+      team.programs.map((p) => ({
+        id: p.id,
+        name: p.name,
+        key: `team-${team.id}-${p.id}`,
+        via: { kind: "team", team: team.name } as const,
+      })),
+    ),
+  ];
 }

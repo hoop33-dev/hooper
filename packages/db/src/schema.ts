@@ -179,6 +179,16 @@ export type PackageTeamRow = {
   created_at: string;
 };
 
+/** view: package_program_access — programs an athlete gets through an
+ * active package purchase, one row per (purchase, program). */
+export type PackageProgramAccessRow = {
+  profile_id: string;
+  program_id: string;
+  program_name: string;
+  package_id: string;
+  package_name: string;
+};
+
 export type PackageCoachRow = {
   package_id: string;
   profile_id: string;
@@ -947,6 +957,10 @@ export type Database = {
       };
       team_member_counts: {
         Row: TeamMemberCountRow;
+        Relationships: [];
+      };
+      package_program_access: {
+        Row: PackageProgramAccessRow;
         Relationships: [];
       };
       form_recency: {

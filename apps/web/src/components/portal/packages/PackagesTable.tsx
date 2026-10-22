@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/src/lib/cn";
 import { formatPackagePriceCell } from "@/src/lib/packages";
 import type { PackageSummary } from "@hooper/db";
 import { AppLink } from "@hooper/shared/next";
@@ -91,9 +92,17 @@ export function PackagesTable({ packages }: { packages: PackageSummary[] }) {
                 </div>
               </td>
               <td className="py-3.5 pr-6 text-[13px]">
-                {/* Purchases arrive in a later billing phase. */}
-                <span className="text-portal-text3 inline-flex items-center gap-1.5 font-semibold">
-                  <UsersIcon size={14} />0
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 font-semibold",
+                    pkg.activeBuyers > 0
+                      ? "text-portal-text1"
+                      : "text-portal-text3",
+                  )}>
+                  <span className="text-portal-text3">
+                    <UsersIcon size={14} />
+                  </span>
+                  {pkg.activeBuyers}
                 </span>
               </td>
               <td className="py-3.5 text-right">

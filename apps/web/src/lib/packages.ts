@@ -1,8 +1,10 @@
 import type {
   PackageBillingInterval,
   PackageBillingType,
+  PackageBuyerRow,
   PackageRow,
 } from "@hooper/db";
+import { formatShortDate } from "./format";
 
 export const PACKAGE_SLUG_MAX = 40;
 export const PACKAGE_SLUG_MIN = 3;
@@ -216,4 +218,54 @@ export function pickPricing(pkg: PackageRow): PackagePricing {
     billing_interval: pkg.billing_interval,
     access_weeks: pkg.access_weeks,
   };
+}
+
+/** The Buyers table's headers ("Access" reads "Renewal" on a recurring
+ * package); shared with its loading skeleton. */
+export const BUYER_COLUMNS = ["Athlete", "Status", "Purchased", "Access", ""];
+
+export type BuyerStatus = "active" | "past_due" | "cancelling" | "ended";
+
+type BuyerDates = Pick<
+  PackageBuyerRow,
+  | "kind"
+  | "status"
+  | "is_active"
+  | "cancel_at_period_end"
+  | "current_period_end"
+  | "access_until"
+  | "canceled_at"
+>;
+
+/** A purchase's state as the Buyers tab shows it. `is_active` (from the
+ * view) wins over the raw status, so a one-off whose access ran out reads
+ * as ended even before anything marks it expired. */
+export function buyerStatus(buyer: BuyerDates): BuyerStatus {
+  if (!buyer.is_active) return "ended";
+  if (buyer.status === "past_due") return "past_due";
+  if (buyer.cancel_at_period_end) return "cancelling";
+  return "active";
+}
+
+/** The Buyers tab's renewal / access column: "Renews Oct 30, 2026",
+ * "Ends …", "Ended …", or "Unlimited access" for a one-off with no expiry. */
+export function buyerAccessLabel(buyer: BuyerDates): string {
+  const status = buyerStatus(buyer);
+  const dated = (prefix: string, iso: string | null) =>
+    iso ? `${prefix} ${formatShortDate(iso)}` : prefix;
+
+  if (buyer.kind === "one_time") {
+    if (status === "ended") {
+      return dated("Ended", buyer.access_until ?? buyer.canceled_at);
+    }
+    return buyer.access_until
+      ? dated("Ends", buyer.access_until)
+      : "Unlimited access";
+  }
+  if (status === "ended") {
+    return dated("Ended", buyer.canceled_at ?? buyer.current_period_end);
+  }
+  if (status === "past_due") return "Payment overdue";
+  if (status === "cancelling") return dated("Ends", buyer.current_period_end);
+  return dated("Renews", buyer.current_period_end);
 }

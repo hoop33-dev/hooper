@@ -235,6 +235,28 @@ export type PackagePurchaseRow = {
   updated_at: string;
 };
 
+/** view: package_buyers — coach-only, one row per purchase of a package
+ * (abandoned 'incomplete' checkouts excluded) with the athlete's profile. */
+export type PackageBuyerRow = {
+  purchase_id: string;
+  package_id: string;
+  profile_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  kind: PackagePurchaseKind;
+  status: PackagePurchaseStatus;
+  /** Currently has access — same rule as package_program_ids(). */
+  is_active: boolean;
+  created_at: string;
+  paid_at: string | null;
+  current_period_end: string | null;
+  access_until: string | null;
+  canceled_at: string | null;
+  cancel_at_period_end: boolean;
+};
+
 /** get_public_package(slug) — the anon-readable checkout view of a package. */
 export type PublicPackage = {
   id: string;
@@ -961,6 +983,10 @@ export type Database = {
       };
       package_program_access: {
         Row: PackageProgramAccessRow;
+        Relationships: [];
+      };
+      package_buyers: {
+        Row: PackageBuyerRow;
         Relationships: [];
       };
       form_recency: {

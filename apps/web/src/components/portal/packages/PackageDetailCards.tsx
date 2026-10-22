@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/src/lib/cn";
+import { plural } from "@/src/lib/format";
 import {
   draftToPricing,
   PACKAGE_LINK_PREFIX,
@@ -11,6 +12,7 @@ import {
   type PackagePricing,
   type PackagePricingDraft,
 } from "@/src/lib/packages";
+import type { PackageBillingType } from "@hooper/db";
 import { useEffect, useRef, useState } from "react";
 import { CheckIcon, CopyIcon, LockIcon } from "../ui/icons";
 import { PortalButton } from "../ui/PortalButton";
@@ -88,8 +90,13 @@ export function PackageLinkCard({ slug }: { slug: string }) {
   );
 }
 
-/** Purchases arrive in a later billing phase — always zero for now. */
-export function ActiveBuyersCard() {
+export function ActiveBuyersCard({
+  count,
+  billingType,
+}: {
+  count: number;
+  billingType: PackageBillingType;
+}) {
   return (
     <div
       className={cn(
@@ -99,19 +106,33 @@ export function ActiveBuyersCard() {
       <div className="text-portal-text3 text-[11px] font-semibold tracking-widest uppercase">
         Active buyers
       </div>
-      <div className="font-title text-portal-text3 text-5xl leading-none font-black">
-        0
+      <div
+        className={cn(
+          "font-title text-5xl leading-none font-black",
+          count > 0 ? "text-portal-orange" : "text-portal-text3",
+        )}>
+        {count}
       </div>
-      <div className="text-portal-text3 text-xs">No active purchases yet</div>
+      <div className="text-portal-text3 text-xs">
+        {count === 0
+          ? "No active purchases yet"
+          : billingType === "recurring"
+            ? "Current subscriptions"
+            : "Within their access period"}
+      </div>
     </div>
   );
 }
 
 export function PricingCard({
   pricing,
+  activeBuyers,
   onSave,
 }: {
   pricing: PackagePricing;
+  /** Existing buyers keep the price they bought at — checkout fixes the
+   * Stripe price per purchase — so a change only reaches new buyers. */
+  activeBuyers: number;
   onSave: (pricing: PackagePricing) => Promise<ActionResult>;
 }) {
   const [draft, setDraft] = useState<PackagePricingDraft>(() =>
@@ -151,6 +172,12 @@ export function PricingCard({
         />
         {!parsed.ok && <p className="text-xs text-red-500">{parsed.error}</p>}
         {error && <p className="text-xs text-red-500">{error}</p>}
+        {dirty && activeBuyers > 0 && (
+          <p className="text-portal-text2 text-xs leading-normal">
+            Applies to new purchases. {plural(activeBuyers, "active buyer")}{" "}
+            keep their current price.
+          </p>
+        )}
         <div className="flex justify-end gap-2">
           {dirty ? (
             <>

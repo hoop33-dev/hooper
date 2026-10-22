@@ -93,7 +93,7 @@ describe("listAssignedPrograms", () => {
       ) // program_athletes
       .mockReturnValueOnce(
         makeEqBuilder({ data: [{ team_id: "team1" }], error: null }),
-      ) // team_members
+      ) // team_memberships
       .mockReturnValueOnce(
         makeInBuilder({ data: [{ program_id: "prog1" }], error: null }),
       ) // program_teams (same prog)
@@ -110,13 +110,15 @@ describe("listAssignedPrograms", () => {
     expect(result).toHaveLength(1);
     expect(result[0].program.id).toBe("prog1");
     expect(result[0].totalSessions).toBe(0);
+    // Team access reads the membership view, so package teams count too.
+    expect(mockFrom).toHaveBeenCalledWith("team_memberships");
   });
 
   it("includes programs from purchased packages, scoped to the athlete", async () => {
     mockRpc.mockResolvedValueOnce({ data: ["prog2"], error: null });
     mockFrom
       .mockReturnValueOnce(makeEqBuilder({ data: [], error: null })) // program_athletes
-      .mockReturnValueOnce(makeEqBuilder({ data: [], error: null })) // team_members
+      .mockReturnValueOnce(makeEqBuilder({ data: [], error: null })) // team_memberships
       .mockReturnValueOnce(
         makeProgramsListBuilder({
           data: [{ id: "prog2", name: "Bought", status: "active" }],

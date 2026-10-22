@@ -34,6 +34,8 @@ const base: MyPackagePurchase = {
   created_at: "2026-10-01T00:00:00Z",
   program_names: [],
   coach_names: [],
+  team_names: [],
+  leaving_team_names: [],
 };
 
 const sub: MyPackagePurchase = {

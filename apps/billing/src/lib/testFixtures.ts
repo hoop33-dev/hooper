@@ -29,6 +29,8 @@ export function purchase(
     created_at: "2026-10-01T00:00:00Z",
     program_names: ["Shooting Mechanics"],
     coach_names: ["Marcus Davis"],
+    team_names: [],
+    leaving_team_names: [],
     ...over,
   };
 }

@@ -4,11 +4,13 @@ import { MIN_PRICE_CENTS, validatePackageSlug } from "@/src/lib/packages";
 import {
   addPackageCoach,
   addPackageProgram,
+  addPackageTeam,
   createPackage,
   deletePackage,
   isPackageSlugAvailable,
   removePackageCoach,
   removePackageProgram,
+  removePackageTeam,
   SLUG_IN_USE,
   updatePackage,
   type CreatePackageInput,
@@ -95,6 +97,38 @@ export async function removePackageProgramAction(
 ): Promise<ActionResult> {
   const result = await removePackageProgram(packageId, programId);
   if (result.ok) revalidatePackages();
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+/** Buyers' team memberships change with the package's teams, so everything
+ * that reads team_memberships is revalidated too: team rosters and counts,
+ * buyers' athlete pages (team list, team-assigned programs), the dashboard
+ * and program access counts. */
+function revalidatePackageTeams() {
+  revalidatePackages();
+  revalidatePath("/teams");
+  revalidatePath("/teams/[id]", "page");
+  revalidatePath("/athletes/[id]", "page");
+  revalidatePath("/dashboard");
+  revalidatePath("/programs");
+  revalidatePath("/programs/[id]", "page");
+}
+
+export async function addPackageTeamAction(
+  packageId: string,
+  teamId: string,
+): Promise<ActionResult> {
+  const result = await addPackageTeam(packageId, teamId);
+  if (result.ok) revalidatePackageTeams();
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+export async function removePackageTeamAction(
+  packageId: string,
+  teamId: string,
+): Promise<ActionResult> {
+  const result = await removePackageTeam(packageId, teamId);
+  if (result.ok) revalidatePackageTeams();
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }
 

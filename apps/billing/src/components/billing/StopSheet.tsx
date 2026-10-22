@@ -6,6 +6,7 @@ import { Label } from "@/src/components/ui/primitives";
 import { Sheet } from "@/src/components/ui/Sheet";
 import { cn } from "@/src/lib/cn";
 import { formatDate } from "@/src/lib/format";
+import { nameList } from "@/src/lib/purchases";
 import type { MyPackagePurchase } from "@hooper/db";
 import { useState } from "react";
 
@@ -40,6 +41,7 @@ export function StopSheet({
   const end = p.current_period_end ? formatDate(p.current_period_end) : null;
   const when = failed || !end ? "today" : `on ${end}`;
   const programs = p.program_names;
+  const teams = p.leaving_team_names;
   const app = whose === "Your" ? "your" : whose;
 
   return (
@@ -80,6 +82,9 @@ export function StopSheet({
           programs.length > 0
             ? `${programs.join(", ")} ${programs.length > 1 ? "leave" : "leaves"} ${app} app ${when}`
             : `Access ends ${when}`,
+          ...(teams.length > 0
+            ? [`Removed from ${nameList(teams)} ${when}`]
+            : []),
           "Logged sessions and progress stay on the account",
           "You can buy it again from your coach's link any time",
         ]}

@@ -11,6 +11,12 @@ import type {
 } from "@hooper/db";
 import { useEffect, useMemo, useState } from "react";
 import {
+  MembershipTrail,
+  PackageBadge,
+  withManual,
+  withoutManual,
+} from "../../packages/ViaPackage";
+import {
   DetailError,
   DetailListCard,
   DetailRow,
@@ -80,9 +86,13 @@ function useTeamLinks(
       const member: TeamMember = {
         ...athlete,
         joined_at: new Date().toISOString(),
+        via: { manual: true, packages: [] },
       };
       return mutate(
-        (prev) => ({ ...prev, members: [...prev.members, member] }),
+        (prev) => ({
+          ...prev,
+          members: withManual(prev.members, (m) => m.id === profileId, member),
+        }),
         () => actions.addTeamMemberAction(id, profileId),
       );
     },
@@ -90,7 +100,7 @@ function useTeamLinks(
       void mutate(
         (prev) => ({
           ...prev,
-          members: prev.members.filter((m) => m.id !== profileId),
+          members: withoutManual(prev.members, (m) => m.id === profileId),
         }),
         () => actions.removeTeamMemberAction(id, profileId),
       ),
@@ -151,11 +161,17 @@ function TeamCards({
             href={`/athletes/${m.id}`}
             lead={<AthleteAvatar profile={m} />}
             title={athleteName(m)}
-            sub={memberSub(m)}
+            sub={
+              <>
+                <span className="truncate">{memberSub(m)}</span>
+                <PackageBadge packages={m.via.packages} />
+              </>
+            }
             trail={
-              <RemoveButton
+              <MembershipTrail
+                via={m.via}
                 label={athleteName(m)}
-                onClick={() => links.removeMember(m.id)}
+                onRemove={() => links.removeMember(m.id)}
               />
             }
           />
@@ -210,7 +226,11 @@ function TeamPickers({
   onClose: () => void;
 }) {
   if (picker === "athlete") {
-    const memberIds = new Set(links.local.members.map((m) => m.id));
+    // Package-only members stay pickable so a coach can keep them on the
+    // team after their plan ends.
+    const memberIds = new Set(
+      links.local.members.filter((m) => m.via.manual).map((m) => m.id),
+    );
     const items: SearchPickerItem[] = athletes
       .filter((a) => !memberIds.has(a.id))
       .map((a) => ({

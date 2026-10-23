@@ -258,7 +258,7 @@ describe("buyerStatus / buyerAccessLabel", () => {
     status: "active" as const,
     is_active: true,
     cancel_at_period_end: false,
-    current_period_end: "2026-11-30T12:00:00",
+    current_period_end: "2026-11-30T00:00:00Z",
     access_until: null,
     canceled_at: null,
   };
@@ -266,7 +266,7 @@ describe("buyerStatus / buyerAccessLabel", () => {
     ...sub,
     kind: "one_time" as const,
     current_period_end: null,
-    access_until: "2026-12-15T12:00:00",
+    access_until: "2026-12-15T00:00:00Z",
   };
 
   it("renews an active subscription", () => {
@@ -291,7 +291,7 @@ describe("buyerStatus / buyerAccessLabel", () => {
       ...sub,
       status: "canceled" as const,
       is_active: false,
-      canceled_at: "2026-10-01T12:00:00",
+      canceled_at: "2026-10-01T00:00:00Z",
     };
     expect(buyerStatus(b)).toBe("ended");
     expect(buyerAccessLabel(b)).toBe("Ended Oct 1, 2026");
@@ -308,5 +308,16 @@ describe("buyerStatus / buyerAccessLabel", () => {
     const b = { ...oneOff, is_active: false };
     expect(buyerStatus(b)).toBe("ended");
     expect(buyerAccessLabel(b)).toBe("Ended Dec 15, 2026");
+  });
+
+  it("dates a one-off cancelled before its access ran out by the cancellation", () => {
+    const b = {
+      ...oneOff,
+      status: "canceled" as const,
+      is_active: false,
+      canceled_at: "2026-10-01T00:00:00Z",
+    };
+    expect(buyerStatus(b)).toBe("ended");
+    expect(buyerAccessLabel(b)).toBe("Ended Oct 1, 2026");
   });
 });

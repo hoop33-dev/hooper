@@ -11,10 +11,13 @@ export default async function PackageBuyersPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  // Both cache()'d — on a full load the layout already fetched them.
-  const packageResult = await getPackageBySlug(slug);
+  // getPackageBySlug is cache()'d, so on a full load this reuses the
+  // layout's fetch; on a tab switch both queries run together.
+  const [packageResult, buyersResult] = await Promise.all([
+    getPackageBySlug(slug),
+    listPackageBuyers(slug),
+  ]);
   if (!packageResult.ok) notFound();
-  const buyersResult = await listPackageBuyers(packageResult.data.id);
 
   return (
     <>

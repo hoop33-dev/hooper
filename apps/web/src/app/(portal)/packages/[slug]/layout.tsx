@@ -1,12 +1,9 @@
+import { PackageDetailFallback } from "@/src/components/portal/packages/PackageDetailFallback";
 import { PackageDetailShell } from "@/src/components/portal/packages/PackageDetailShell";
 import {
-  PackageHeaderSkeleton,
-  PackageOverviewSkeleton,
-} from "@/src/components/portal/packages/PackageDetailSkeleton";
-import {
+  getPackageBuyerCounts,
   getPackageBySlug,
   listCoaches,
-  listPackageBuyers,
 } from "@/src/services/package.service";
 import { listPrograms } from "@/src/services/program.service";
 import { listTeams } from "@/src/services/team.service";
@@ -31,13 +28,7 @@ export default function PackageDetailLayout(props: Props) {
   // Streams behind its own boundary so opening a package shows the detail
   // skeleton rather than the packages list's loading.tsx.
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-full flex-col overflow-hidden">
-          <PackageHeaderSkeleton />
-          <PackageOverviewSkeleton />
-        </div>
-      }>
+    <Suspense fallback={<PackageDetailFallback />}>
       <PackageDetailContent {...props} />
     </Suspense>
   );
@@ -45,19 +36,18 @@ export default function PackageDetailLayout(props: Props) {
 
 async function PackageDetailContent({ params, children }: Props) {
   const { slug } = await params;
-  const packageResult = await getPackageBySlug(slug);
-  // RLS hides soft-deleted packages, so a deleted slug lands here too.
-  if (!packageResult.ok) notFound();
-  const pkg = packageResult.data;
-
-  const [programsResult, coachesResult, teamsResult, buyersResult] =
+  // Everything is keyed by slug, so nothing waits on the package's id.
+  const [packageResult, programsResult, coachesResult, teamsResult, counts] =
     await Promise.all([
+      getPackageBySlug(slug),
       listPrograms(),
       listCoaches(),
       listTeams(),
-      listPackageBuyers(pkg.id),
+      getPackageBuyerCounts(slug),
     ]);
-  const buyers = buyersResult.ok ? buyersResult.data : [];
+  // RLS hides soft-deleted packages, so a deleted slug lands here too.
+  if (!packageResult.ok) notFound();
+  const pkg = packageResult.data;
 
   return (
     <PackageDetailShell
@@ -65,12 +55,7 @@ async function PackageDetailContent({ params, children }: Props) {
       allPrograms={programsResult.ok ? programsResult.data : []}
       allCoaches={coachesResult.ok ? coachesResult.data : []}
       allTeams={teamsResult.ok ? teamsResult.data : []}
-      buyers={{
-        active: new Set(
-          buyers.filter((b) => b.is_active).map((b) => b.profile_id),
-        ).size,
-        total: buyers.length,
-      }}
+      buyers={counts.ok ? counts.data : null}
       updateAction={updatePackageAction}
       deleteAction={deletePackageAction}
       addProgramAction={addPackageProgramAction}

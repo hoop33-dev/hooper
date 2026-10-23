@@ -94,7 +94,8 @@ export function ActiveBuyersCard({
   count,
   billingType,
 }: {
-  count: number;
+  /** Null when the counts failed to load. */
+  count: number | null;
   billingType: PackageBillingType;
 }) {
   return (
@@ -109,16 +110,18 @@ export function ActiveBuyersCard({
       <div
         className={cn(
           "font-title text-5xl leading-none font-black",
-          count > 0 ? "text-portal-orange" : "text-portal-text3",
+          count ? "text-portal-orange" : "text-portal-text3",
         )}>
-        {count}
+        {count ?? "—"}
       </div>
       <div className="text-portal-text3 text-xs">
-        {count === 0
-          ? "No active purchases yet"
-          : billingType === "recurring"
-            ? "Current subscriptions"
-            : "Within their access period"}
+        {count === null
+          ? "Couldn't load buyers"
+          : count === 0
+            ? "No active purchases yet"
+            : billingType === "recurring"
+              ? "Current subscriptions"
+              : "Within their access period"}
       </div>
     </div>
   );
@@ -131,8 +134,9 @@ export function PricingCard({
 }: {
   pricing: PackagePricing;
   /** Existing buyers keep the price they bought at — checkout fixes the
-   * Stripe price per purchase — so a change only reaches new buyers. */
-  activeBuyers: number;
+   * Stripe price per purchase — so a change only reaches new buyers. Null
+   * when the counts failed to load: the note still shows, without a number. */
+  activeBuyers: number | null;
   onSave: (pricing: PackagePricing) => Promise<ActionResult>;
 }) {
   const [draft, setDraft] = useState<PackagePricingDraft>(() =>
@@ -172,9 +176,12 @@ export function PricingCard({
         />
         {!parsed.ok && <p className="text-xs text-red-500">{parsed.error}</p>}
         {error && <p className="text-xs text-red-500">{error}</p>}
-        {dirty && activeBuyers > 0 && (
+        {dirty && activeBuyers !== 0 && (
           <p className="text-portal-text2 text-xs leading-normal">
-            Applies to new purchases. {plural(activeBuyers, "active buyer")}{" "}
+            Applies to new purchases.{" "}
+            {activeBuyers === null
+              ? "Existing buyers"
+              : plural(activeBuyers, "active buyer")}{" "}
             keep their current price.
           </p>
         )}

@@ -19,6 +19,7 @@ export type {
   MyPackagePurchase,
   PackageBillingInterval,
   PackageBillingType,
+  PackageBuyerCountRow,
   PackageBuyerRow,
   PackageCoachRow,
   PackageProgramAccessRow,

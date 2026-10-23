@@ -255,6 +255,18 @@ export type PackageBuyerRow = {
   access_until: string | null;
   canceled_at: string | null;
   cancel_at_period_end: boolean;
+  package_slug: string;
+};
+
+/** view: package_buyer_counts — coach-only, one row per live package with
+ * at least one purchase. */
+export type PackageBuyerCountRow = {
+  package_id: string;
+  package_slug: string;
+  /** Distinct athletes with access right now. */
+  active_buyers: number;
+  /** Every purchase, ended ones included. */
+  purchases: number;
 };
 
 /** get_public_package(slug) — the anon-readable checkout view of a package. */
@@ -987,6 +999,10 @@ export type Database = {
       };
       package_buyers: {
         Row: PackageBuyerRow;
+        Relationships: [];
+      };
+      package_buyer_counts: {
+        Row: PackageBuyerCountRow;
         Relationships: [];
       };
       form_recency: {

@@ -1,7 +1,11 @@
 "use client";
 
 import { formatProgramSub, formatShortDate, plural } from "@/src/lib/format";
-import { formatPackagePrice, type PackagePricing } from "@/src/lib/packages";
+import {
+  formatPackagePrice,
+  type PackageBuyerCounts,
+  type PackagePricing,
+} from "@/src/lib/packages";
 import type {
   PackageCoachRef,
   PackageDetail,
@@ -261,17 +265,10 @@ function pickerItems(
   return { programItems, coachItems, teamItems };
 }
 
-/** Buyer numbers for the header tab and the Overview card. */
-export type PackageBuyerCounts = {
-  /** Distinct athletes with access right now. */
-  active: number;
-  /** Every purchase, ended ones included — the Buyers tab's row count. */
-  total: number;
-};
-
 type PackageDetailContextValue = {
   state: PackageDetailState;
-  buyers: PackageBuyerCounts;
+  /** Null when the counts failed to load — shown as unknown, not zero. */
+  buyers: PackageBuyerCounts | null;
   /** Team id → member count, for the Teams card. */
   memberCounts: Map<string, number>;
   /** `/packages/<slug>` — the Overview tab; other tabs hang off it. */
@@ -313,7 +310,7 @@ export function PackageDetailShell({
   allPrograms: ProgramSummary[];
   allCoaches: PackageCoachRef[];
   allTeams: TeamSummary[];
-  buyers: PackageBuyerCounts;
+  buyers: PackageBuyerCounts | null;
   children: ReactNode;
 }) {
   const state = usePackageDetail(
@@ -373,7 +370,7 @@ export function PackageDetailShell({
             {
               label: "Buyers",
               href: buyersPath,
-              count: buyers.total,
+              count: buyers?.total,
             },
           ]}
           tabsAction={

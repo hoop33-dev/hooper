@@ -64,7 +64,7 @@ export function PackageOverviewTab() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_240px]">
         <PackageLinkCard slug={local.slug} />
         <ActiveBuyersCard
-          count={buyers.active}
+          count={buyers?.active ?? null}
           billingType={local.billing_type}
         />
       </div>
@@ -72,7 +72,7 @@ export function PackageOverviewTab() {
       <div className="grid items-start gap-5 lg:grid-cols-2">
         <PricingCard
           pricing={pickPricing(local)}
-          activeBuyers={buyers.active}
+          activeBuyers={buyers?.active ?? null}
           onSave={state.savePricing}
         />
         <IncludedCard />

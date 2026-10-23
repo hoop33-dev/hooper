@@ -220,6 +220,14 @@ export function pickPricing(pkg: PackageRow): PackagePricing {
   };
 }
 
+/** Buyer numbers for the detail header's tab and the Overview cards. */
+export type PackageBuyerCounts = {
+  /** Distinct athletes with access right now. */
+  active: number;
+  /** Every purchase, ended ones included — the Buyers tab's row count. */
+  total: number;
+};
+
 /** The Buyers table's headers ("Access" reads "Renewal" on a recurring
  * package); shared with its loading skeleton. */
 export const BUYER_COLUMNS = ["Athlete", "Status", "Purchased", "Access", ""];
@@ -247,6 +255,11 @@ export function buyerStatus(buyer: BuyerDates): BuyerStatus {
   return "active";
 }
 
+function earliest(a: string | null, b: string | null): string | null {
+  if (!a || !b) return a ?? b;
+  return new Date(a) <= new Date(b) ? a : b;
+}
+
 /** The Buyers tab's renewal / access column: "Renews Oct 30, 2026",
  * "Ends …", "Ended …", or "Unlimited access" for a one-off with no expiry. */
 export function buyerAccessLabel(buyer: BuyerDates): string {
@@ -255,8 +268,10 @@ export function buyerAccessLabel(buyer: BuyerDates): string {
     iso ? `${prefix} ${formatShortDate(iso)}` : prefix;
 
   if (buyer.kind === "one_time") {
+    // Cancelled or refunded before access ran out ends at the cancellation;
+    // otherwise access ran out at access_until. Whichever came first.
     if (status === "ended") {
-      return dated("Ended", buyer.access_until ?? buyer.canceled_at);
+      return dated("Ended", earliest(buyer.access_until, buyer.canceled_at));
     }
     return buyer.access_until
       ? dated("Ends", buyer.access_until)

@@ -5,12 +5,18 @@ export function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-/** "Sep 30, 2026". */
+/** Dates are shown in NZ time wherever they render. Formatting in the
+ * runtime's zone would make the server (UTC) and the browser disagree on
+ * the day near midnight, a hydration mismatch in client components. */
+export const PORTAL_TIME_ZONE = "Pacific/Auckland";
+
+/** "Sep 30, 2026", in NZ time. */
 export function formatShortDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: PORTAL_TIME_ZONE,
   });
 }
 

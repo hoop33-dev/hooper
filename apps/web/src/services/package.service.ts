@@ -1,4 +1,4 @@
-import type { PackagePricing } from "@/src/lib/packages";
+import type { PackageBuyerCounts, PackagePricing } from "@/src/lib/packages";
 import type { Result } from "@/src/lib/result";
 import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
@@ -65,23 +65,16 @@ export type CreatePackageInput = PackagePricing & {
 
 export type UpdatePackageInput = Partial<PackagePricing> & { name?: string };
 
-/** Distinct athletes with active access, per package id. */
+/** Distinct athletes with active access, per package id — grouped in the
+ * database, so it's one row per package rather than per purchase. */
 async function activeBuyerCounts(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<Result<Map<string, number>>> {
   const { data, error } = await supabase
-    .from("package_buyers")
-    .select("package_id, profile_id")
-    .eq("is_active", true);
+    .from("package_buyer_counts")
+    .select("package_id, active_buyers");
   if (error) return err(error.message);
-
-  const athletes = new Map<string, Set<string>>();
-  for (const row of data ?? []) {
-    const set = athletes.get(row.package_id) ?? new Set<string>();
-    set.add(row.profile_id);
-    athletes.set(row.package_id, set);
-  }
-  return ok(new Map([...athletes].map(([id, set]) => [id, set.size])));
+  return ok(new Map((data ?? []).map((r) => [r.package_id, r.active_buyers])));
 }
 
 export async function listPackages(): Promise<Result<PackageSummary[]>> {
@@ -97,7 +90,11 @@ export async function listPackages(): Promise<Result<PackageSummary[]>> {
       activeBuyerCounts(supabase),
     ]);
     if (error) return err(error.message);
-    if (!counts.ok) return counts;
+    // A secondary stat — list the packages without it rather than fail.
+    if (!counts.ok) {
+      console.error("Failed to load package buyer counts:", counts.error);
+    }
+    const activeBuyers = counts.ok ? counts.data : new Map<string, number>();
 
     const rows = ((data ?? []) as unknown as PackageJoinRow[]).map(
       ({ package_programs, package_coaches, ...row }) => ({
@@ -106,7 +103,7 @@ export async function listPackages(): Promise<Result<PackageSummary[]>> {
           .map((pp) => pp.programs)
           .filter((p): p is AssignedProgramRef => p !== null),
         coaches: coachesOf(package_coaches),
-        activeBuyers: counts.data.get(row.id) ?? 0,
+        activeBuyers: activeBuyers.get(row.id) ?? 0,
       }),
     );
     return ok(rows);
@@ -164,17 +161,17 @@ export const getPackageBySlug = cache(async function getPackageBySlug(
 });
 
 /** Everyone who has bought a package, one row per purchase: people with
- * access first, then newest purchase first. `cache()`d so the detail layout
- * (buyer counts) and the Buyers tab share one fetch. */
+ * access first, then newest purchase first. Keyed by slug so the Buyers tab
+ * can run it alongside `getPackageBySlug` rather than after it. */
 export const listPackageBuyers = cache(async function listPackageBuyers(
-  packageId: string,
+  slug: string,
 ): Promise<Result<PackageBuyerRow[]>> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("package_buyers")
       .select("*")
-      .eq("package_id", packageId)
+      .eq("package_slug", slug)
       .order("is_active", { ascending: false })
       .order("created_at", { ascending: false });
     if (error) return err(error.message);
@@ -183,6 +180,28 @@ export const listPackageBuyers = cache(async function listPackageBuyers(
     return err(toErrorMessage(e));
   }
 });
+
+/** The detail header's buyer numbers, counted in the database. A package
+ * nobody has bought has no row, which reads as zero. */
+export async function getPackageBuyerCounts(
+  slug: string,
+): Promise<Result<PackageBuyerCounts>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("package_buyer_counts")
+      .select("active_buyers, purchases")
+      .eq("package_slug", slug)
+      .maybeSingle();
+    if (error) return err(error.message);
+    return ok({
+      active: data?.active_buyers ?? 0,
+      total: data?.purchases ?? 0,
+    });
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
 
 /** Every coach profile — the "Add coach" picker's candidates. */
 export async function listCoaches(): Promise<Result<PackageCoachRef[]>> {

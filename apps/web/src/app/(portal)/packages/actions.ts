@@ -29,7 +29,7 @@ const PRICE_TOO_LOW = "Minimum price is $0.50";
  * revalidate every package detail page rather than look the slug up. */
 function revalidatePackages() {
   revalidatePath("/packages");
-  revalidatePath("/packages/[slug]", "page");
+  revalidatePath("/packages/[slug]", "layout");
 }
 
 /** null when the slug is free; otherwise the message to show under the

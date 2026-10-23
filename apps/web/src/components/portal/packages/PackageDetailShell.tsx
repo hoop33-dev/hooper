@@ -3,7 +3,7 @@
 import { formatProgramSub, formatShortDate, plural } from "@/src/lib/format";
 import {
   formatPackagePrice,
-  pickPricing,
+  type PackageBuyerCounts,
   type PackagePricing,
 } from "@/src/lib/packages";
 import type {
@@ -15,16 +15,11 @@ import type {
   ProgramSummary,
   TeamSummary,
 } from "@hooper/db";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { TeamTile } from "../athletes/AthleteAvatar";
-import {
-  DetailError,
-  DetailListCard,
-  DetailRow,
-  RemoveButton,
-} from "../ui/DetailListCard";
 import { LetterTile } from "../ui/LetterTile";
+import { SearchInput } from "../ui/ListToolbar";
 import { PageHeader } from "../ui/PageHeader";
 import { PortalButton } from "../ui/PortalButton";
 import {
@@ -33,17 +28,12 @@ import {
 } from "../ui/SearchPickerModal";
 import { useOptimisticDetail } from "../ui/useOptimisticDetail";
 import { CoachAvatar, coachName } from "./PackageAtoms";
-import {
-  ActiveBuyersCard,
-  PackageLinkCard,
-  PricingCard,
-} from "./PackageDetailCards";
 import { PackageEditDrawer } from "./PackageEditDrawer";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
 type Modal = "program" | "coach" | "team" | "edit" | null;
 
-type PackageDetailActions = {
+export type PackageDetailActions = {
   updateAction: (
     id: string,
     data: Partial<PackagePricing> & { name?: string },
@@ -164,150 +154,8 @@ function usePackageDetail(
 
 type PackageDetailState = ReturnType<typeof usePackageDetail>;
 
-function coachSub(coach: PackageCoachRef): string | undefined {
+export function coachSub(coach: PackageCoachRef): string | undefined {
   return coach.username ? `@${coach.username}` : undefined;
-}
-
-function ProgramsCard({
-  state,
-  onAdd,
-}: {
-  state: PackageDetailState;
-  onAdd: () => void;
-}) {
-  const { programs } = state.local;
-  return (
-    <DetailListCard
-      title="Programs"
-      count={programs.length}
-      onAdd={onAdd}
-      emptyLabel="No programs in this package."
-      emptyCta="Add program">
-      {programs.map((p) => (
-        <DetailRow
-          key={p.id}
-          href={`/programs/${p.id}`}
-          lead={<LetterTile name={p.name} />}
-          title={p.name}
-          sub={formatProgramSub(p)}
-          trail={
-            <RemoveButton
-              label={p.name}
-              onClick={() => state.removeProgram(p.id)}
-            />
-          }
-        />
-      ))}
-    </DetailListCard>
-  );
-}
-
-function CoachesCard({
-  state,
-  onAdd,
-}: {
-  state: PackageDetailState;
-  onAdd: () => void;
-}) {
-  const { coaches } = state.local;
-  return (
-    <DetailListCard
-      title="Coaches"
-      count={coaches.length}
-      onAdd={onAdd}
-      emptyLabel="No coaches on this package."
-      emptyCta="Add coach">
-      {coaches.map((c) => (
-        <DetailRow
-          key={c.id}
-          lead={<CoachAvatar coach={c} size={34} />}
-          title={coachName(c)}
-          sub={coachSub(c)}
-          trail={
-            <RemoveButton
-              label={coachName(c)}
-              onClick={() => state.removeCoach(c.id)}
-            />
-          }
-        />
-      ))}
-    </DetailListCard>
-  );
-}
-
-/** Buyers join these teams while their plan is active. */
-function TeamsCard({
-  state,
-  memberCounts,
-  onAdd,
-}: {
-  state: PackageDetailState;
-  memberCounts: Map<string, number>;
-  onAdd: () => void;
-}) {
-  const { teams } = state.local;
-  return (
-    <DetailListCard
-      title="Teams"
-      count={teams.length}
-      onAdd={onAdd}
-      emptyLabel="Buyers join these teams while their plan is active."
-      emptyCta="Add team">
-      {teams.map((t) => (
-        <DetailRow
-          key={t.id}
-          href={`/teams/${t.id}`}
-          lead={<TeamTile team={t} size={34} />}
-          title={t.name}
-          sub={plural(memberCounts.get(t.id) ?? 0, "athlete")}
-          trail={
-            <RemoveButton
-              label={t.name}
-              onClick={() => state.removeTeam(t.id)}
-            />
-          }
-        />
-      ))}
-    </DetailListCard>
-  );
-}
-
-function PackageDetailBody({
-  state,
-  memberCounts,
-  onOpen,
-}: {
-  state: PackageDetailState;
-  memberCounts: Map<string, number>;
-  onOpen: (modal: Modal) => void;
-}) {
-  const { local } = state;
-  return (
-    <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-7">
-      <DetailError error={state.error} />
-
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_240px]">
-        <PackageLinkCard slug={local.slug} />
-        <ActiveBuyersCard />
-      </div>
-
-      <div className="grid items-start gap-5 lg:grid-cols-3">
-        <div className="flex flex-col gap-5">
-          <PricingCard
-            pricing={pickPricing(local)}
-            onSave={state.savePricing}
-          />
-          <CoachesCard state={state} onAdd={() => onOpen("coach")} />
-        </div>
-        <ProgramsCard state={state} onAdd={() => onOpen("program")} />
-        <TeamsCard
-          state={state}
-          memberCounts={memberCounts}
-          onAdd={() => onOpen("team")}
-        />
-      </div>
-    </div>
-  );
 }
 
 function PackagePickers({
@@ -417,17 +265,53 @@ function pickerItems(
   return { programItems, coachItems, teamItems };
 }
 
+type PackageDetailContextValue = {
+  state: PackageDetailState;
+  /** Null when the counts failed to load — shown as unknown, not zero. */
+  buyers: PackageBuyerCounts | null;
+  /** Team id → member count, for the Teams card. */
+  memberCounts: Map<string, number>;
+  /** `/packages/<slug>` — the Overview tab; other tabs hang off it. */
+  basePath: string;
+  /** The Buyers tab's search, whose input sits on the header's tab row. */
+  buyerSearch: string;
+  openModal: (modal: Exclude<Modal, null>) => void;
+};
+
+const PackageDetailContext = createContext<PackageDetailContextValue | null>(
+  null,
+);
+
+/** The package's optimistic state and modal launcher, for the tab pages
+ * rendered inside `PackageDetailShell`. */
+export function usePackageDetailContext(): PackageDetailContextValue {
+  const value = useContext(PackageDetailContext);
+  if (!value) {
+    throw new Error(
+      "usePackageDetailContext must be inside PackageDetailShell",
+    );
+  }
+  return value;
+}
+
+/** Header, tabs and pickers shared by every package tab. Rendered by the
+ * `[slug]` layout, so its optimistic state survives switching tabs; the tab
+ * pages read it through `usePackageDetailContext`. */
 export function PackageDetailShell({
   pkg,
   allPrograms,
   allCoaches,
   allTeams,
+  buyers,
+  children,
   ...actions
 }: PackageDetailActions & {
   pkg: PackageDetail;
   allPrograms: ProgramSummary[];
   allCoaches: PackageCoachRef[];
   allTeams: TeamSummary[];
+  buyers: PackageBuyerCounts | null;
+  children: ReactNode;
 }) {
   const state = usePackageDetail(
     pkg,
@@ -438,11 +322,15 @@ export function PackageDetailShell({
   );
   const { local } = state;
   const [modal, setModal] = useState<Modal>(null);
+  const [buyerSearch, setBuyerSearch] = useState("");
+  const pathname = usePathname();
   const summary = `${formatPackagePrice(local)} with ${plural(local.programs.length, "program")} and ${plural(
     local.coaches.length,
     "coach",
     "coaches",
   )}. Created ${formatShortDate(local.created_at)}`;
+  const basePath = `/packages/${local.slug}`;
+  const buyersPath = `${basePath}/buyers`;
 
   const { programItems, coachItems, teamItems } = pickerItems(
     local,
@@ -453,36 +341,60 @@ export function PackageDetailShell({
   const memberCounts = new Map(allTeams.map((t) => [t.id, t.memberCount]));
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <PageHeader
-        title={local.name}
-        subtitle={summary}
-        backHref="/packages"
-        breadcrumbs={[
-          { label: "Packages", href: "/packages" },
-          { label: local.name },
-        ]}
-        action={
-          <PortalButton variant="secondary" onClick={() => setModal("edit")}>
-            Edit package
-          </PortalButton>
-        }
-      />
+    <PackageDetailContext.Provider
+      value={{
+        state,
+        buyers,
+        memberCounts,
+        basePath,
+        buyerSearch,
+        openModal: setModal,
+      }}>
+      <div className="flex h-full flex-col overflow-hidden">
+        <PageHeader
+          title={local.name}
+          subtitle={summary}
+          backHref="/packages"
+          breadcrumbs={[
+            { label: "Packages", href: "/packages" },
+            { label: local.name },
+          ]}
+          action={
+            <PortalButton variant="secondary" onClick={() => setModal("edit")}>
+              Edit package
+            </PortalButton>
+          }
+          tabs={[
+            { label: "Overview", href: basePath },
+            { label: "Contents", href: `${basePath}/contents` },
+            {
+              label: "Buyers",
+              href: buyersPath,
+              count: buyers?.total,
+            },
+          ]}
+          tabsAction={
+            pathname === buyersPath && (
+              <SearchInput
+                value={buyerSearch}
+                onChange={setBuyerSearch}
+                placeholder="Search buyers…"
+              />
+            )
+          }
+        />
 
-      <PackageDetailBody
-        state={state}
-        memberCounts={memberCounts}
-        onOpen={setModal}
-      />
+        {children}
 
-      <PackagePickers
-        modal={modal}
-        state={state}
-        programItems={programItems}
-        coachItems={coachItems}
-        teamItems={teamItems}
-        onClose={() => setModal(null)}
-      />
-    </div>
+        <PackagePickers
+          modal={modal}
+          state={state}
+          programItems={programItems}
+          coachItems={coachItems}
+          teamItems={teamItems}
+          onClose={() => setModal(null)}
+        />
+      </div>
+    </PackageDetailContext.Provider>
   );
 }

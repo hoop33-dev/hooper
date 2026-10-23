@@ -1,9 +1,10 @@
-import type { PackagePricing } from "@/src/lib/packages";
+import type { PackageBuyerCounts, PackagePricing } from "@/src/lib/packages";
 import type { Result } from "@/src/lib/result";
 import { err, ok, toErrorMessage } from "@/src/lib/result";
 import { createClient } from "@/src/lib/supabase/server";
 import type {
   AssignedProgramRef,
+  PackageBuyerRow,
   PackageCoachRef,
   PackageDetail,
   PackageProgramRef,
@@ -11,6 +12,7 @@ import type {
   PackageSummary,
   PackageTeamRef,
 } from "@hooper/db";
+import { cache } from "react";
 
 const COACH_COLUMNS = "id, first_name, last_name, username, avatar_url";
 
@@ -63,16 +65,36 @@ export type CreatePackageInput = PackagePricing & {
 
 export type UpdatePackageInput = Partial<PackagePricing> & { name?: string };
 
+/** Distinct athletes with active access, per package id — grouped in the
+ * database, so it's one row per package rather than per purchase. */
+async function activeBuyerCounts(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<Result<Map<string, number>>> {
+  const { data, error } = await supabase
+    .from("package_buyer_counts")
+    .select("package_id, active_buyers");
+  if (error) return err(error.message);
+  return ok(new Map((data ?? []).map((r) => [r.package_id, r.active_buyers])));
+}
+
 export async function listPackages(): Promise<Result<PackageSummary[]>> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("packages")
-      .select(
-        `*, package_programs(programs(id, name)), package_coaches(profiles(${COACH_COLUMNS}))`,
-      )
-      .order("created_at", { ascending: false });
+    const [{ data, error }, counts] = await Promise.all([
+      supabase
+        .from("packages")
+        .select(
+          `*, package_programs(programs(id, name)), package_coaches(profiles(${COACH_COLUMNS}))`,
+        )
+        .order("created_at", { ascending: false }),
+      activeBuyerCounts(supabase),
+    ]);
     if (error) return err(error.message);
+    // A secondary stat — list the packages without it rather than fail.
+    if (!counts.ok) {
+      console.error("Failed to load package buyer counts:", counts.error);
+    }
+    const activeBuyers = counts.ok ? counts.data : new Map<string, number>();
 
     const rows = ((data ?? []) as unknown as PackageJoinRow[]).map(
       ({ package_programs, package_coaches, ...row }) => ({
@@ -81,6 +103,7 @@ export async function listPackages(): Promise<Result<PackageSummary[]>> {
           .map((pp) => pp.programs)
           .filter((p): p is AssignedProgramRef => p !== null),
         coaches: coachesOf(package_coaches),
+        activeBuyers: activeBuyers.get(row.id) ?? 0,
       }),
     );
     return ok(rows);
@@ -89,7 +112,8 @@ export async function listPackages(): Promise<Result<PackageSummary[]>> {
   }
 }
 
-export async function getPackageBySlug(
+/** `cache()`d so the detail layout and the Buyers tab share one fetch. */
+export const getPackageBySlug = cache(async function getPackageBySlug(
   slug: string,
 ): Promise<Result<PackageDetail>> {
   try {
@@ -130,6 +154,49 @@ export async function getPackageBySlug(
       programs,
       coaches: coachesOf(package_coaches),
       teams,
+    });
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+});
+
+/** Everyone who has bought a package, one row per purchase: people with
+ * access first, then newest purchase first. Keyed by slug so the Buyers tab
+ * can run it alongside `getPackageBySlug` rather than after it. */
+export const listPackageBuyers = cache(async function listPackageBuyers(
+  slug: string,
+): Promise<Result<PackageBuyerRow[]>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("package_buyers")
+      .select("*")
+      .eq("package_slug", slug)
+      .order("is_active", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (error) return err(error.message);
+    return ok(data ?? []);
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+});
+
+/** The detail header's buyer numbers, counted in the database. A package
+ * nobody has bought has no row, which reads as zero. */
+export async function getPackageBuyerCounts(
+  slug: string,
+): Promise<Result<PackageBuyerCounts>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("package_buyer_counts")
+      .select("active_buyers, purchases")
+      .eq("package_slug", slug)
+      .maybeSingle();
+    if (error) return err(error.message);
+    return ok({
+      active: data?.active_buyers ?? 0,
+      total: data?.purchases ?? 0,
     });
   } catch (e) {
     return err(toErrorMessage(e));

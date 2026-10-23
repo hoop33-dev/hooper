@@ -2,6 +2,7 @@ import { cn } from "@/src/lib/cn";
 import { AppLink } from "@hooper/shared/next";
 import type { ReactNode } from "react";
 import { ArrowLeftIcon } from "./icons";
+import { PageTabs, type PageTab } from "./PageTabs";
 
 export interface Breadcrumb {
   label: string;
@@ -28,6 +29,10 @@ interface PageHeaderProps {
   /** Sits the subtitle on the title's baseline instead of stacked beneath
    * it — for short, stat-style subtitles ("1 week · 2 sessions/week"). */
   inlineSubtitle?: boolean;
+  /** Route tabs along the bottom of the header — see `PageTabs`. */
+  tabs?: PageTab[];
+  /** Right-aligned control on the tab row — see `PageTabs`. */
+  tabsAction?: ReactNode;
   className?: string;
 }
 
@@ -68,6 +73,8 @@ export function PageHeader({
   breadcrumbs,
   hideMiddle,
   inlineSubtitle,
+  tabs,
+  tabsAction,
   className,
 }: PageHeaderProps) {
   const crumbs = breadcrumbs?.length ? breadcrumbs : [{ label: title }];
@@ -99,7 +106,11 @@ export function PageHeader({
       </div>
 
       {!hideMiddle && (
-        <div className="flex items-center justify-between px-7 py-4">
+        <div
+          className={cn(
+            "flex items-center justify-between px-7 py-4",
+            tabs && "border-portal-border border-b",
+          )}>
           <div
             className={cn(
               inlineSubtitle && "flex flex-wrap items-baseline gap-x-2.5",
@@ -120,6 +131,8 @@ export function PageHeader({
           {action && <div className="flex items-center gap-2">{action}</div>}
         </div>
       )}
+
+      {tabs && <PageTabs tabs={tabs} action={tabsAction} />}
     </div>
   );
 }

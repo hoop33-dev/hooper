@@ -73,7 +73,10 @@ export function PackagesListShell({
     const result = await mutate<PackageRow>(
       (prev) => prev,
       () => createAction(data),
-      (prev, row) => [{ ...row, programs: [], coaches: [] }, ...prev],
+      (prev, row) => [
+        { ...row, programs: [], coaches: [], activeBuyers: 0 },
+        ...prev,
+      ],
     );
     if (!result.ok || !result.data) {
       return { ok: false, error: result.error };

@@ -15,11 +15,13 @@ describe("plural", () => {
 });
 
 describe("formatShortDate", () => {
-  it("formats as short month, day, year in local time", () => {
-    // Built in local time: a fixed UTC instant lands on a different day in
-    // some zones (noon UTC is already Oct 1 in NZ).
-    const iso = new Date(2026, 8, 30, 12).toISOString();
-    expect(formatShortDate(iso)).toBe("Sep 30, 2026");
+  it("formats as short month, day, year in NZ time", () => {
+    expect(formatShortDate("2026-09-30T00:00:00Z")).toBe("Sep 30, 2026");
+  });
+
+  it("uses the NZ day whatever the runtime's zone", () => {
+    // 20:00 UTC on Nov 30 is already Dec 1 in Auckland.
+    expect(formatShortDate("2026-11-30T20:00:00Z")).toBe("Dec 1, 2026");
   });
 });
 

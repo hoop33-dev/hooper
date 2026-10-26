@@ -19,6 +19,8 @@ export type {
   MyPackagePurchase,
   PackageBillingInterval,
   PackageBillingType,
+  PackageBuyerCountRow,
+  PackageBuyerRow,
   PackageCoachRow,
   PackageProgramAccessRow,
   PackageProgramRow,
@@ -328,10 +330,11 @@ export type PackageCoachRef = {
 };
 
 // List row: the package plus the programs and coaches attached to it.
-// Active-buyer counts arrive with purchases in a later billing phase.
 export type PackageSummary = PackageRow & {
   programs: AssignedProgramRef[];
   coaches: PackageCoachRef[];
+  /** Distinct athletes with access through the package right now. */
+  activeBuyers: number;
 };
 
 // Detail programs carry the same week/session shape as ProgramSummary so the

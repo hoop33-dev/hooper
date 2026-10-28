@@ -1054,6 +1054,36 @@ export type Database = {
         Args: Record<string, never>;
         Returns: MyChild[];
       };
+      coach_athlete_account: {
+        Args: { p_profile_id: string };
+        Returns: {
+          email: string | null;
+          has_real_email: boolean;
+          joined_at: string;
+          last_sign_in_at: string | null;
+          parent_name: string | null;
+        }[];
+      };
+      coach_athlete_programs: {
+        Args: { p_profile_ids: string[] };
+        Returns: {
+          profile_id: string;
+          programs: { id: string; name: string }[];
+        }[];
+      };
+      coach_update_athlete_profile: {
+        Args: {
+          p_profile_id: string;
+          p_first_name: string;
+          p_last_name: string;
+          p_username: string;
+          p_mobile: string | null;
+          p_date_of_birth: string | null;
+          p_region_id: string | null;
+          p_bio: string | null;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       user_role: UserRoleEnum;

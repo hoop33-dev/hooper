@@ -1,7 +1,7 @@
 import { cn } from "@/src/lib/cn";
 import { ArrowLeftIcon } from "./icons";
 
-function CardSkeleton({ rows }: { rows: number }) {
+export function CardSkeleton({ rows }: { rows: number }) {
   return (
     <div className="border-portal-border bg-portal-card rounded-xl border">
       <div className="border-portal-border border-b px-5 py-4">

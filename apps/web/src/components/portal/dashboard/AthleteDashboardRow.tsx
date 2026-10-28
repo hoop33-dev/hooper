@@ -45,7 +45,7 @@ export function AthleteDashboardRow({
           {athlete.regionName ?? "—"}
         </div>
       </div>
-      <ProgramBadge programs={athlete.programs} />
+      <ProgramBadge programs={athlete.programs} className="max-w-[45%]" />
       <div className="text-portal-text3 w-16 flex-shrink-0 text-right text-xs">
         {formatLastLogin(athlete.last_sign_in_at)}
       </div>

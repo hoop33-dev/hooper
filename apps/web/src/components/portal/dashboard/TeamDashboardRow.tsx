@@ -30,7 +30,7 @@ export function TeamDashboardRow({ team }: { team: TeamDashboardRowData }) {
           {team.memberCount}
         </div>
       </div>
-      <ProgramBadge programs={team.programs} />
+      <ProgramBadge programs={team.programs} className="max-w-[45%]" />
     </AppLink>
   );
 }

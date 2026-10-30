@@ -88,8 +88,9 @@ export async function sendAthletePasswordResetAction(
 export async function retryAthletePaymentAction(
   profileId: string,
   purchaseId: string,
+  invoiceId: string,
 ): Promise<ActionResult> {
-  const result = await retryAthletePayment(profileId, purchaseId);
+  const result = await retryAthletePayment(profileId, purchaseId, invoiceId);
   // Revalidated either way: a decline still changes the invoice's attempts.
   revalidatePath(`/athletes/${profileId}/billing`);
   return result.ok ? { ok: true } : { ok: false, error: result.error };

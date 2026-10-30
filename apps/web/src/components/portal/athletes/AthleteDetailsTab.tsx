@@ -7,7 +7,11 @@ import type {
 } from "@/src/services/athlete.service";
 import type { AthleteDetail, RegionRow } from "@hooper/db";
 import { useState, type ReactNode } from "react";
-import { detailCardClass } from "../ui/DetailListCard";
+import {
+  DetailCardHead,
+  detailCardClass,
+  detailLabelClass,
+} from "../ui/DetailListCard";
 import { LockIcon, MailIcon } from "../ui/icons";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalInput, PortalTextarea } from "../ui/PortalInput";
@@ -15,9 +19,6 @@ import { useToast } from "../ui/Toast";
 import { useAthleteDetailContext } from "./AthleteDetailShell";
 
 type ActionResult = { ok: boolean; error?: string };
-
-const labelClass =
-  "text-portal-text3 text-[11px] font-semibold tracking-widest uppercase";
 
 function fieldsFrom(athlete: AthleteDetail): AthleteProfileFields {
   return {
@@ -29,15 +30,6 @@ function fieldsFrom(athlete: AthleteDetail): AthleteProfileFields {
     regionId: athlete.region_id,
     bio: athlete.bio,
   };
-}
-
-function CardHead({ title, right }: { title: string; right?: ReactNode }) {
-  return (
-    <div className="border-portal-border flex min-h-[52px] items-center justify-between gap-3 border-b px-5 py-3">
-      <h2 className="text-portal-text1 text-sm font-bold">{title}</h2>
-      {right}
-    </div>
-  );
 }
 
 function ReadField({
@@ -53,7 +45,7 @@ function ReadField({
 }) {
   return (
     <div className={wide ? "sm:col-span-2" : undefined}>
-      <div className={labelClass}>{label}</div>
+      <div className={detailLabelClass}>{label}</div>
       <div className="text-portal-text1 mt-1 text-sm leading-relaxed whitespace-pre-line">
         {value || <span className="text-portal-text3">—</span>}
       </div>
@@ -265,7 +257,7 @@ function AthleteProfileForm({ regions }: { regions: RegionRow[] }) {
 
   return (
     <div className={detailCardClass}>
-      <CardHead
+      <DetailCardHead
         title="Profile"
         right={
           form.editing ? (
@@ -332,7 +324,7 @@ function AthleteAccountCard() {
 
   return (
     <div className={detailCardClass}>
-      <CardHead title="Account" />
+      <DetailCardHead title="Account" />
       <div className="flex flex-col gap-4 p-5">
         {facts.map(([label, value]) => (
           <ReadField key={label} label={label} value={value} />

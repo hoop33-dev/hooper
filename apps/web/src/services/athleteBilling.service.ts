@@ -70,16 +70,18 @@ export const getAthleteBilling = cache(
   },
 );
 
-/** Retries one of the athlete's past_due memberships against the card on
- * file. Only collects what's already owing. */
+/** Retries one unpaid invoice of the athlete's past_due membership against
+ * the card on file. Only collects what's already owing. */
 export async function retryAthletePayment(
   athleteId: string,
   purchaseId: string,
+  invoiceId: string,
 ): Promise<Result<void>> {
   const result = await invokeFunction("coach-athlete", {
     action: "retry_payment",
     athleteId,
     purchaseId,
+    invoiceId,
   });
   return result.ok ? ok(undefined) : err(result.error);
 }

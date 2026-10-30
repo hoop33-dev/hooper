@@ -27,7 +27,6 @@ export async function listInvoices(
   admin: SupabaseClient,
   customer: string,
   callerId: string,
-  onlyPurchaseIds?: string[],
 ): Promise<InvoiceRow[]> {
   const [invoices, intents] = await Promise.all([
     stripe.invoices.list({ customer, limit: 50 }),
@@ -37,23 +36,56 @@ export async function listInvoices(
       expand: ["data.latest_charge"],
     }),
   ]);
+  return invoiceRows(admin, invoices.data, intents.data, callerId);
+}
 
-  // A parent's Customer also carries their children's charges; the coach
-  // view of one athlete keeps only that athlete's purchases.
-  const keep = (purchaseId: string | undefined) =>
-    !onlyPurchaseIds || (!!purchaseId && onlyPurchaseIds.includes(purchaseId));
-  const subInvoices = invoices.data.filter(
-    (i) =>
-      i.status !== "draft" &&
-      i.status !== "void" &&
-      i.total > 0 &&
-      keep(i.parent?.subscription_details?.metadata?.purchase_id),
+export type PurchaseRef = {
+  stripe_subscription_id: string | null;
+  stripe_payment_intent_id: string | null;
+};
+
+/** One athlete's charges, fetched per purchase rather than from the payer's
+ * Customer: a parent's Customer also carries their other children's
+ * charges, which would crowd this athlete's out of a page. */
+export async function listPurchaseInvoices(
+  admin: SupabaseClient,
+  purchases: PurchaseRef[],
+  callerId: string,
+): Promise<InvoiceRow[]> {
+  const subIds = purchases
+    .map((p) => p.stripe_subscription_id)
+    .filter((id): id is string => !!id);
+  const intentIds = purchases
+    .map((p) => p.stripe_payment_intent_id)
+    .filter((id): id is string => !!id);
+  const [invoices, intents] = await Promise.all([
+    Promise.all(
+      subIds.map((subscription) =>
+        stripe.invoices
+          .list({ subscription, limit: 100 })
+          .autoPagingToArray({ limit: 1000 }),
+      ),
+    ),
+    Promise.all(
+      intentIds.map((id) =>
+        stripe.paymentIntents.retrieve(id, { expand: ["latest_charge"] }),
+      ),
+    ),
+  ]);
+  return invoiceRows(admin, invoices.flat(), intents, callerId);
+}
+
+async function invoiceRows(
+  admin: SupabaseClient,
+  invoices: Stripe.Invoice[],
+  intents: Stripe.PaymentIntent[],
+  callerId: string,
+): Promise<InvoiceRow[]> {
+  const subInvoices = invoices.filter(
+    (i) => i.status !== "draft" && i.status !== "void" && i.total > 0,
   );
-  const oneOffs = intents.data.filter(
-    (pi) =>
-      pi.metadata?.kind === "one_time" &&
-      pi.status === "succeeded" &&
-      keep(pi.metadata.purchase_id),
+  const oneOffs = intents.filter(
+    (pi) => pi.metadata?.kind === "one_time" && pi.status === "succeeded",
   );
 
   const purchaseIds = [
@@ -166,15 +198,18 @@ type RetryPurchase = {
   athlete_profile_id: string;
 };
 
-/** Retries a past_due membership's open invoice, then syncs the row so the
- * portal updates without waiting for the webhook. `allowed` decides who may
- * retry it (the payer in the billing portal, any coach for that athlete in
- * the coach portal); `declineHint` follows the bank's message on a decline. */
+/** Retries a past_due membership's unpaid invoice, then syncs the row so
+ * the portal updates without waiting for the webhook. `allowed` decides who
+ * may retry it (the payer in the billing portal, any coach for that athlete
+ * in the coach portal); `declineHint` follows the bank's message on a
+ * decline. `invoiceId` charges that invoice — it must belong to this
+ * membership — rather than the subscription's latest one. */
 export async function retryMembership(
   admin: SupabaseClient,
   purchaseId: string,
   allowed: (row: RetryPurchase) => boolean,
   declineHint: string,
+  invoiceId?: string,
 ) {
   const { data: row, error } = await admin
     .from("package_purchases")
@@ -195,20 +230,34 @@ export async function retryMembership(
   }
 
   const sub = await stripe.subscriptions.retrieve(row.stripe_subscription_id);
-  const invoiceId =
-    typeof sub.latest_invoice === "string"
+  const targetId =
+    invoiceId ??
+    (typeof sub.latest_invoice === "string"
       ? sub.latest_invoice
-      : sub.latest_invoice?.id;
-  if (!invoiceId) {
+      : sub.latest_invoice?.id);
+  if (!targetId) {
     return json(409, { ok: false, error: "No unpaid invoice found." });
+  }
+
+  const invoice = await stripe.invoices.retrieve(targetId);
+  const invoiceSub = invoice.parent?.subscription_details?.subscription;
+  const invoiceSubId =
+    typeof invoiceSub === "string" ? invoiceSub : invoiceSub?.id;
+  if (invoiceSubId !== sub.id) {
+    return json(404, { ok: false, error: "Invoice not found" });
+  }
+  if (invoice.status === "void" || invoice.status === "draft") {
+    return json(409, {
+      ok: false,
+      error: "This invoice can't be charged.",
+    });
   }
 
   // Stripe's own retry may already have collected it (and the webhook not
   // landed yet) — then there's nothing to charge, just resync the row.
-  const invoice = await stripe.invoices.retrieve(invoiceId);
   if (invoice.status !== "paid") {
     try {
-      await stripe.invoices.pay(invoiceId);
+      await stripe.invoices.pay(targetId);
     } catch (err) {
       if (err instanceof Stripe.errors.StripeCardError) {
         return json(402, {

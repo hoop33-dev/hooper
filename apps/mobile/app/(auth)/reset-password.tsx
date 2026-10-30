@@ -22,17 +22,33 @@ import {
 } from "@/src/components/ui";
 import { shadows } from "@/src/constants/theme";
 import { validatePassword } from "@/src/lib/passwordRules";
-import { exchangeResetCode, updatePassword } from "@/src/services/auth.service";
+import {
+  exchangeResetCode,
+  setResetSession,
+  updatePassword,
+} from "@/src/services/auth.service";
 
 const StyledSafeAreaView = styled(SafeAreaView);
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
-  const { code } = useLocalSearchParams<{ code?: string }>();
+  // "Forgot password" in the app sends a PKCE `?code=`. A reset a coach
+  // sends from the portal is started server-side, so it can't be PKCE (this
+  // device has no code verifier) and arrives as `#access_token=…` instead —
+  // expo-router hands the fragment over as the "#" param.
+  const { code, "#": hash } = useLocalSearchParams<{
+    code?: string;
+    "#"?: string;
+  }>();
+  const fragment = new URLSearchParams(hash ?? "");
+  const accessToken = fragment.get("access_token");
+  const refreshToken = fragment.get("refresh_token");
+  const linkError = fragment.get("error");
+  const hasLink = !!code || !!(accessToken && refreshToken);
   const confirmPasswordRef = useRef<RNTextInput>(null);
 
   const [exchangeError, setExchangeError] = useState("");
-  const [isExchanging, setIsExchanging] = useState(!!code);
+  const [isExchanging, setIsExchanging] = useState(hasLink);
   const [sessionReady, setSessionReady] = useState(false);
 
   const [password, setPassword] = useState("");
@@ -44,15 +60,20 @@ export default function ResetPasswordScreen() {
   const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
-    if (!code) {
+    if (!hasLink) {
       setExchangeError(
-        "No reset code found. Please use the link from your email.",
+        linkError
+          ? "Reset link is invalid or expired."
+          : "No reset code found. Please use the link from your email.",
       );
       return;
     }
     let cancelled = false;
     setIsExchanging(true);
-    exchangeResetCode(code).then((result) => {
+    const verify = code
+      ? exchangeResetCode(code)
+      : setResetSession(accessToken!, refreshToken!);
+    verify.then((result) => {
       if (cancelled) return;
       setIsExchanging(false);
       if (!result.ok) {
@@ -64,7 +85,7 @@ export default function ResetPasswordScreen() {
     return () => {
       cancelled = true;
     };
-  }, [code]);
+  }, [code, accessToken, refreshToken, hasLink, linkError]);
 
   function validate(): boolean {
     let valid = true;

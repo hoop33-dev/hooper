@@ -10,8 +10,12 @@ import type {
   AthleteMembership,
   AthletePayer,
 } from "@/src/services/athleteBilling.service";
-import { useState, type ReactNode } from "react";
-import { detailCardClass } from "../ui/DetailListCard";
+import { useState } from "react";
+import {
+  DetailCardHead,
+  detailCardClass,
+  detailLabelClass,
+} from "../ui/DetailListCard";
 import { ExternalLinkIcon } from "../ui/icons";
 import { Modal, ModalFooter } from "../ui/Modal";
 import { PortalBadge } from "../ui/PortalBadge";
@@ -22,23 +26,11 @@ import { PackageStatusBadge, PackageTile } from "./AthleteTrainingTab";
 
 type ActionResult = { ok: boolean; error?: string };
 
-const labelClass =
-  "text-portal-text3 text-[11px] font-semibold tracking-widest uppercase";
-
 const INVOICE_BADGE = {
   paid: { variant: "green", label: "Paid" },
   failed: { variant: "red", label: "Failed" },
   due: { variant: "orange", label: "Due" },
 } as const;
-
-function CardHead({ title, right }: { title: string; right?: ReactNode }) {
-  return (
-    <div className="border-portal-border flex items-center justify-between gap-3 border-b px-5 py-3.5">
-      <h2 className="text-portal-text1 text-sm font-bold">{title}</h2>
-      {right}
-    </div>
-  );
-}
 
 /** Brand tile for a saved card — read-only; coaches can't change cards. */
 function CardMark({ brand }: { brand: string }) {
@@ -89,7 +81,7 @@ function MembershipsCard({
 }) {
   return (
     <div className={detailCardClass}>
-      <CardHead title="Memberships" />
+      <DetailCardHead title="Memberships" />
       {memberships.length === 0 ? (
         <p className="text-portal-text3 p-7 text-center text-[13px]">
           No packages bought yet.
@@ -140,7 +132,7 @@ function MembershipsCard({
 function PaymentMethodCard({ payers }: { payers: AthletePayer[] }) {
   return (
     <div className={detailCardClass}>
-      <CardHead title="Payment method" />
+      <DetailCardHead title="Payment method" />
       {payers.length === 0 ? (
         <p className="text-portal-text3 p-7 text-center text-[13px]">
           No card on file.
@@ -275,7 +267,7 @@ function InvoiceSummary({
     <>
       <div className="flex items-end justify-between">
         <div>
-          <div className={labelClass}>Amount</div>
+          <div className={detailLabelClass}>Amount</div>
           <div className="font-title text-portal-text1 text-[40px] leading-tight font-black tracking-wide">
             {money(invoice.amountCents)}
           </div>
@@ -318,7 +310,7 @@ function InvoiceModal({
   membership: AthleteMembership | undefined;
   card: AthleteCard | null;
   onClose: () => void;
-  onRetry: (purchaseId: string) => Promise<ActionResult>;
+  onRetry: (purchaseId: string, invoiceId: string) => Promise<ActionResult>;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [retrying, setRetrying] = useState(false);
@@ -330,7 +322,7 @@ function InvoiceModal({
     if (!membership) return;
     setRetrying(true);
     setError(null);
-    const result = await onRetry(membership.id);
+    const result = await onRetry(membership.id, invoice.id);
     setRetrying(false);
     setConfirming(false);
     if (result.ok) onClose();
@@ -404,7 +396,11 @@ export function AthleteBillingTab({
 }: {
   billing: AthleteBilling | null;
   error: string | null;
-  retryAction: (profileId: string, purchaseId: string) => Promise<ActionResult>;
+  retryAction: (
+    profileId: string,
+    purchaseId: string,
+    invoiceId: string,
+  ) => Promise<ActionResult>;
 }) {
   const { athlete } = useAthleteDetailContext();
   const toast = useToast();
@@ -439,7 +435,7 @@ export function AthleteBillingTab({
       </div>
 
       <div className={detailCardClass}>
-        <CardHead
+        <DetailCardHead
           title={`Invoices (${invoices.length})`}
           right={
             <span className="text-portal-text3 text-xs">
@@ -462,8 +458,8 @@ export function AthleteBillingTab({
           membership={membershipFor(open)}
           card={cardFor(open)}
           onClose={() => setOpen(null)}
-          onRetry={async (purchaseId) => {
-            const result = await retryAction(athlete.id, purchaseId);
+          onRetry={async (purchaseId, invoiceId) => {
+            const result = await retryAction(athlete.id, purchaseId, invoiceId);
             if (result.ok) toast.showSuccess("Payment collected");
             return result;
           }}

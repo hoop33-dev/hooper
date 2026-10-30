@@ -471,23 +471,6 @@ export function MailIcon({ size = 14 }: { size?: number }) {
   );
 }
 
-export function CreditCardIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round">
-      <rect x="2" y="5" width="20" height="14" rx="2" />
-      <path d="M2 10h20" />
-    </svg>
-  );
-}
-
 /** A link that opens somewhere else (e.g. Stripe), in a new tab. */
 export function ExternalLinkIcon({ size = 13 }: { size?: number }) {
   return (

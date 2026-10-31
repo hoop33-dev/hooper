@@ -1,40 +1,38 @@
 "use client";
 
-import {
-  mergeAthletePrograms,
-  type AthleteProgramEntry,
-} from "@/src/lib/athletePrograms";
+import { mergeAthletePrograms } from "@/src/lib/athletePrograms";
 import { formatProgramSub, formatShortDate, plural } from "@/src/lib/format";
+import type {
+  AthleteAccount,
+  AthletePackage,
+  AthleteProfileFields,
+} from "@/src/services/athlete.service";
 import type {
   AssignedProgramRef,
   AthleteDetail,
   AthletePackageProgram,
   AthleteTeam,
-  ProgramProgressStats,
   ProgramSummary,
   TeamSummary,
 } from "@hooper/db";
-import { useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
-  MembershipTrail,
-  PackageBadge,
-  withManual,
-  withoutManual,
-} from "../packages/ViaPackage";
-import {
-  DetailError,
-  DetailListCard,
-  DetailRow,
-  RemoveButton,
-  detailCardClass,
-} from "../ui/DetailListCard";
-import { UsersIcon } from "../ui/icons";
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { withManual, withoutManual } from "../packages/ViaPackage";
+import { MailIcon, PlusIcon, UsersIcon } from "../ui/icons";
 import { LetterTile } from "../ui/LetterTile";
 import { PageHeader } from "../ui/PageHeader";
+import { PortalButton } from "../ui/PortalButton";
 import {
   SearchPickerModal,
   type SearchPickerItem,
 } from "../ui/SearchPickerModal";
+import { useToast } from "../ui/Toast";
 import { useOptimisticDetail } from "../ui/useOptimisticDetail";
 import { AthleteAvatar, TeamTile, athleteName } from "./AthleteAvatar";
 
@@ -54,6 +52,11 @@ type AthleteDetailActions = {
   removeFromTeamAction: (
     profileId: string,
     teamId: string,
+  ) => Promise<ActionResult>;
+  sendPasswordResetAction: (profileId: string) => Promise<ActionResult>;
+  updateProfileAction: (
+    profileId: string,
+    fields: AthleteProfileFields,
   ) => Promise<ActionResult>;
 };
 
@@ -122,153 +125,65 @@ function useAthleteLinks(
   };
 }
 
-function ProfileField({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-portal-text3 text-[11px] font-semibold tracking-widest uppercase">
-        {label}
-      </div>
-      <div className="text-portal-text1 mt-1 text-sm">{value}</div>
-    </div>
-  );
+/** The athlete's profile, edited optimistically: the header and Details
+ * tab show a save straight away, then the refresh brings the server's
+ * copy (normalised username, trimmed fields). */
+function useAthleteProfile(
+  athlete: AthleteDetail,
+  action: AthleteDetailActions["updateProfileAction"],
+) {
+  const { local, mutate } = useOptimisticDetail(athlete);
+  return {
+    local,
+    save: (fields: AthleteProfileFields) =>
+      mutate(
+        (prev) => ({
+          ...prev,
+          first_name: fields.firstName,
+          last_name: fields.lastName,
+          username: fields.username,
+          mobile: fields.mobile,
+          date_of_birth: fields.dateOfBirth,
+          region_id: fields.regionId,
+          bio: fields.bio,
+        }),
+        () => action(athlete.id, fields),
+      ),
+  };
 }
 
-function ProfileCard({ athlete }: { athlete: AthleteDetail }) {
-  const fields = [
-    [
-      "Date of birth",
-      athlete.date_of_birth && formatShortDate(athlete.date_of_birth),
-    ],
-    ["Mobile", athlete.mobile],
-    ["Location", athlete.regionName],
-    ["Bio", athlete.bio],
-  ].filter((f): f is [string, string] => !!f[1]);
+/** Sends the athlete a reset link, toasting the outcome. Child accounts
+ * can't — their parent sets the password. */
+function usePasswordReset(
+  athleteId: string,
+  account: AthleteAccount | null,
+  action: AthleteDetailActions["sendPasswordResetAction"],
+) {
+  const toast = useToast();
+  const [sending, setSending] = useState(false);
+  const blockedReason = !account
+    ? "Account details couldn't be loaded."
+    : !account.hasRealEmail
+      ? account.parentName
+        ? `Child account: ${account.parentName} sets their password.`
+        : "Child account: their parent sets their password."
+      : null;
 
-  return (
-    <div className={detailCardClass}>
-      <div className="flex items-center gap-3.5 p-5">
-        <AthleteAvatar profile={athlete} size={56} />
-        <div className="min-w-0">
-          <div className="text-portal-text1 truncate text-[15px] font-bold">
-            {athleteName(athlete)}
-          </div>
-          {athlete.username && (
-            <div className="text-portal-text3 mt-0.5 text-xs">
-              @{athlete.username}
-            </div>
-          )}
-        </div>
-      </div>
-      {fields.length > 0 && (
-        <div className="border-portal-border flex flex-col gap-4 border-t p-5">
-          {fields.map(([label, value]) => (
-            <ProfileField key={label} label={label} value={value} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TeamBadge({ name }: { name: string }) {
-  return (
-    <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-[rgba(0,71,186,0.09)] px-[7px] py-px text-[10px] font-bold tracking-[0.06em] text-[#0047BA] uppercase">
-      <UsersIcon size={10} />
-      <span className="truncate">{name}</span>
-    </span>
-  );
-}
-
-function progressLabel(stats: ProgramProgressStats | undefined): string {
-  if (!stats || stats.sessionsComplete === 0) return "Not started";
-  return [
-    stats.week !== null ? `Week ${stats.week}` : null,
-    `${plural(stats.sessionsComplete, "session")} done`,
-    stats.lastCompletedAt
-      ? `last ${formatShortDate(stats.lastCompletedAt)}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-}
-
-function ProgramRow({
-  entry,
-  stats,
-  onRemove,
-}: {
-  entry: AthleteProgramEntry;
-  stats: ProgramProgressStats | undefined;
-  onRemove: () => void;
-}) {
-  return (
-    <DetailRow
-      href={`/programs/${entry.id}`}
-      lead={<LetterTile name={entry.name} />}
-      title={entry.name}
-      sub={
-        <>
-          <span className="flex-shrink-0">{progressLabel(stats)}</span>
-          {entry.via.kind === "package" && (
-            <PackageBadge packages={[entry.via.package]} />
-          )}
-          {entry.via.kind === "team" && <TeamBadge name={entry.via.team} />}
-        </>
+  return {
+    sending,
+    blockedReason,
+    send: async () => {
+      if (sending || blockedReason) return;
+      setSending(true);
+      const result = await action(athleteId);
+      setSending(false);
+      if (result.ok) {
+        toast.showSuccess(`Password reset sent to ${account?.email}`);
+      } else {
+        toast.showError(result.error ?? "Couldn't send the reset email.");
       }
-      trail={
-        entry.via.kind === "direct" ? (
-          <RemoveButton label={entry.name} onClick={onRemove} />
-        ) : (
-          <span className="text-portal-text3 text-[11px] whitespace-nowrap">
-            {entry.via.kind === "package" ? "Via package" : "Via team"}
-          </span>
-        )
-      }
-    />
-  );
-}
-
-function AthleteTeamsCard({
-  teams,
-  onAdd,
-  onRemove,
-}: {
-  teams: AthleteTeam[];
-  onAdd: () => void;
-  onRemove: (teamId: string) => void;
-}) {
-  return (
-    <DetailListCard
-      title="Teams"
-      count={teams.length}
-      onAdd={onAdd}
-      emptyLabel="Not on any teams."
-      emptyCta="Add to team">
-      {teams.map((t) => (
-        <DetailRow
-          key={t.id}
-          href={`/teams/${t.id}`}
-          lead={<TeamTile team={t} size={34} />}
-          title={t.name}
-          sub={
-            <>
-              <span className="flex-shrink-0">
-                {plural(t.memberCount, "athlete")}
-              </span>
-              <PackageBadge packages={t.via.packages} />
-            </>
-          }
-          trail={
-            <MembershipTrail
-              via={t.via}
-              label={t.name}
-              onRemove={() => onRemove(t.id)}
-            />
-          }
-        />
-      ))}
-    </DetailListCard>
-  );
+    },
+  };
 }
 
 function AthletePickers({
@@ -317,14 +232,13 @@ function AthletePickers({
 
 function headerSubtitle(
   athlete: AthleteDetail,
-  programCount: number,
-  teamCount: number,
+  counts: { programs: number; teams: number; packages: number },
 ): string {
-  const handle = athlete.username ? `@${athlete.username} · ` : "";
+  const handle = athlete.username ? `@${athlete.username}, ` : "";
   const lastLogin = athlete.last_sign_in_at
     ? formatShortDate(athlete.last_sign_in_at)
     : "never";
-  return `${handle}${plural(programCount, "program")} and ${plural(teamCount, "team")}. Last login ${lastLogin}`;
+  return `${handle}${plural(counts.programs, "program")}, ${plural(counts.teams, "team")}, ${plural(counts.packages, "package")}. Last login ${lastLogin}`;
 }
 
 /** Picker candidates: programs the athlete doesn't already see (directly or
@@ -355,30 +269,156 @@ function pickerItems(
   };
 }
 
-export function AthleteDetailShell({
+function actionTab(pathname: string, basePath: string) {
+  if (pathname === basePath) return "training";
+  if (pathname === `${basePath}/details`) return "details";
+  return null;
+}
+
+/** The tab row's buttons: assign/add on Programs & teams, the password
+ * reset on Details, nothing on Billing. */
+function AthleteTabAction({
+  tab,
+  onPick,
+  passwordReset,
+}: {
+  tab: "training" | "details" | null;
+  onPick: (picker: Exclude<Picker, null>) => void;
+  passwordReset: ReturnType<typeof usePasswordReset>;
+}) {
+  if (tab === "training") {
+    return (
+      <div className="flex gap-2">
+        <PortalButton onClick={() => onPick("team")}>
+          <UsersIcon size={14} /> Add to team
+        </PortalButton>
+        <PortalButton variant="primary" onClick={() => onPick("program")}>
+          <PlusIcon size={14} /> Assign program
+        </PortalButton>
+      </div>
+    );
+  }
+  if (tab === "details") {
+    return (
+      <PortalButton
+        onClick={passwordReset.send}
+        disabled={passwordReset.sending || !!passwordReset.blockedReason}
+        title={passwordReset.blockedReason ?? undefined}>
+        <MailIcon size={14} />
+        {passwordReset.sending ? "Sending…" : "Send password reset"}
+      </PortalButton>
+    );
+  }
+  return null;
+}
+
+/** Avatar, name, counts and the tab strip. */
+function AthleteHeader({
   athlete,
+  basePath,
+  counts,
+  action,
+}: {
+  athlete: AthleteDetail;
+  basePath: string;
+  counts: { programs: number; teams: number; packages: number };
+  action: ReactNode;
+}) {
+  const name = athleteName(athlete);
+  return (
+    <PageHeader
+      title={name}
+      leading={<AthleteAvatar profile={athlete} size={52} />}
+      subtitle={headerSubtitle(athlete, counts)}
+      backHref="/athletes"
+      breadcrumbs={[{ label: "Athletes", href: "/athletes" }, { label: name }]}
+      tabs={[
+        { label: "Programs & teams", href: basePath },
+        { label: "Details", href: `${basePath}/details` },
+        { label: "Billing", href: `${basePath}/billing` },
+      ]}
+      tabsAction={action}
+    />
+  );
+}
+
+type AthleteDetailContextValue = {
+  athlete: AthleteDetail;
+  /** Null when the coach_athlete_account RPC failed. */
+  account: AthleteAccount | null;
+  links: ReturnType<typeof useAthleteLinks>;
+  packagePrograms: AthletePackageProgram[];
+  /** Packages the athlete has access to right now. */
+  packages: AthletePackage[];
+  /** `/athletes/<id>` — the Programs & teams tab; other tabs hang off it. */
+  basePath: string;
+  openPicker: (picker: Exclude<Picker, null>) => void;
+  passwordReset: ReturnType<typeof usePasswordReset>;
+  saveProfile: ReturnType<typeof useAthleteProfile>["save"];
+};
+
+const AthleteDetailContext = createContext<AthleteDetailContextValue | null>(
+  null,
+);
+
+/** The athlete's optimistic state and shared actions, for the tab pages
+ * rendered inside `AthleteDetailShell`. */
+export function useAthleteDetailContext(): AthleteDetailContextValue {
+  const value = useContext(AthleteDetailContext);
+  if (!value) {
+    throw new Error(
+      "useAthleteDetailContext must be inside AthleteDetailShell",
+    );
+  }
+  return value;
+}
+
+/** Header, tabs and pickers shared by every athlete tab. Rendered by the
+ * `[id]` layout, so optimistic program/team edits survive switching tabs;
+ * the tab pages read them through `useAthleteDetailContext`. */
+export function AthleteDetailShell({
+  athlete: serverAthlete,
+  account,
   teams,
   packagePrograms,
+  packages,
   allPrograms,
   allTeams,
-  programStats,
+  children,
   ...actions
 }: AthleteDetailActions & {
   athlete: AthleteDetail;
+  account: AthleteAccount | null;
   /** Teams this athlete is on, and how (by hand and/or via a package). */
   teams: AthleteTeam[];
   /** Programs from the athlete's active package purchases — read-only
    * here, since they end with the plan. */
   packagePrograms: AthletePackageProgram[];
+  packages: AthletePackage[];
   allPrograms: ProgramSummary[];
   allTeams: TeamSummary[];
-  /** Per-program progress keyed by program id — see
-   * `getAthleteProgramProgress`. */
-  programStats: Record<string, ProgramProgressStats>;
+  children: ReactNode;
 }) {
-  const links = useAthleteLinks(athlete, teams, allPrograms, allTeams, actions);
+  const links = useAthleteLinks(
+    serverAthlete,
+    teams,
+    allPrograms,
+    allTeams,
+    actions,
+  );
+  const profile = useAthleteProfile(serverAthlete, actions.updateProfileAction);
+  const athlete = profile.local;
+  const passwordReset = usePasswordReset(
+    athlete.id,
+    account,
+    actions.sendPasswordResetAction,
+  );
   const [picker, setPicker] = useState<Picker>(null);
+  const pathname = usePathname();
   const name = athleteName(athlete);
+  const basePath = `/athletes/${athlete.id}`;
+  const activePackages = packages.filter((p) => p.isActive);
+
   const programs = mergeAthletePrograms(
     links.local.programs,
     packagePrograms,
@@ -397,60 +437,47 @@ export function AthleteDetailShell({
   );
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <PageHeader
-        title={name}
-        subtitle={headerSubtitle(
-          athlete,
-          programIds.size,
-          links.local.teams.length,
-        )}
-        backHref="/athletes"
-        breadcrumbs={[
-          { label: "Athletes", href: "/athletes" },
-          { label: name },
-        ]}
-      />
-
-      <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-7">
-        <DetailError error={links.error} />
-        <div className="grid items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <div className="flex flex-col gap-5">
-            <ProfileCard athlete={athlete} />
-            <AthleteTeamsCard
-              teams={links.local.teams}
-              onAdd={() => setPicker("team")}
-              onRemove={links.removeTeam}
+    <AthleteDetailContext.Provider
+      value={{
+        athlete,
+        account,
+        links,
+        packagePrograms,
+        packages: activePackages,
+        basePath,
+        openPicker: setPicker,
+        passwordReset,
+        saveProfile: profile.save,
+      }}>
+      <div className="flex h-full flex-col overflow-hidden">
+        <AthleteHeader
+          athlete={athlete}
+          basePath={basePath}
+          counts={{
+            programs: programIds.size,
+            teams: links.local.teams.length,
+            packages: activePackages.length,
+          }}
+          action={
+            <AthleteTabAction
+              tab={actionTab(pathname, basePath)}
+              onPick={setPicker}
+              passwordReset={passwordReset}
             />
-          </div>
+          }
+        />
 
-          <DetailListCard
-            title="Programs"
-            count={programs.length}
-            onAdd={() => setPicker("program")}
-            addLabel="Assign"
-            emptyLabel="No programs assigned."
-            emptyCta="Assign program">
-            {programs.map((entry) => (
-              <ProgramRow
-                key={entry.key}
-                entry={entry}
-                stats={programStats[entry.id]}
-                onRemove={() => links.unassignProgram(entry.id)}
-              />
-            ))}
-          </DetailListCard>
-        </div>
+        {children}
+
+        <AthletePickers
+          picker={picker}
+          athleteLabel={name}
+          programItems={programItems}
+          teamItems={teamItems}
+          links={links}
+          onClose={() => setPicker(null)}
+        />
       </div>
-
-      <AthletePickers
-        picker={picker}
-        athleteLabel={name}
-        programItems={programItems}
-        teamItems={teamItems}
-        links={links}
-        onClose={() => setPicker(null)}
-      />
-    </div>
+    </AthleteDetailContext.Provider>
   );
 }

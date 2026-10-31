@@ -122,3 +122,24 @@ export function cardSummary(pm: Stripe.PaymentMethod): CardSummary | null {
     expired,
   };
 }
+
+/** The Customer's invoice default, falling back to the most recently added
+ * card (a subscription-only checkout saves the card on the subscription,
+ * not the Customer). */
+export async function defaultPaymentMethod(
+  customerId: string,
+): Promise<Stripe.PaymentMethod | null> {
+  const customer = await stripe.customers.retrieve(customerId, {
+    expand: ["invoice_settings.default_payment_method"],
+  });
+  if (!customer.deleted) {
+    const pm = customer.invoice_settings?.default_payment_method;
+    if (pm && typeof pm !== "string") return pm;
+  }
+  const cards = await stripe.paymentMethods.list({
+    customer: customerId,
+    type: "card",
+    limit: 1,
+  });
+  return cards.data[0] ?? null;
+}

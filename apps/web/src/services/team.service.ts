@@ -186,7 +186,7 @@ export const listRecentTeams = cache(
 /** The teams an athlete is on, in the same shape as `listTeams` plus how
  * they're on each (by hand and/or via a package) — for the athlete detail
  * page's Teams card and its team-assigned programs. */
-export async function listTeamsForAthlete(
+export const listTeamsForAthlete = cache(async function listTeamsForAthlete(
   profileId: string,
 ): Promise<Result<AthleteTeam[]>> {
   try {
@@ -220,7 +220,7 @@ export async function listTeamsForAthlete(
   } catch (e) {
     return err(toErrorMessage(e));
   }
-}
+});
 
 export async function getTeamById(id: string): Promise<Result<TeamDetail>> {
   try {

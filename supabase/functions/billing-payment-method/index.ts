@@ -19,8 +19,8 @@ import {
 } from "../_shared/http.ts";
 import {
   cardSummary,
+  defaultPaymentMethod,
   ensureCustomer,
-  Stripe,
   stripe,
 } from "../_shared/stripe.ts";
 
@@ -132,25 +132,4 @@ async function makeDefault(customer: string, paymentMethodId: string) {
       ),
   );
   return json(200, { ok: true, card: cardSummary(pm) });
-}
-
-/** The Customer's invoice default, falling back to the most recently added
- * card (a subscription-only checkout saves the card on the subscription,
- * not the Customer). */
-async function defaultPaymentMethod(
-  customerId: string,
-): Promise<Stripe.PaymentMethod | null> {
-  const customer = await stripe.customers.retrieve(customerId, {
-    expand: ["invoice_settings.default_payment_method"],
-  });
-  if (!customer.deleted) {
-    const pm = customer.invoice_settings?.default_payment_method;
-    if (pm && typeof pm !== "string") return pm;
-  }
-  const cards = await stripe.paymentMethods.list({
-    customer: customerId,
-    type: "card",
-    limit: 1,
-  });
-  return cards.data[0] ?? null;
 }

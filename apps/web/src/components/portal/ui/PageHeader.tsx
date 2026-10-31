@@ -13,6 +13,8 @@ export interface Breadcrumb {
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
+  /** Sits left of the title, e.g. an athlete's avatar. */
+  leading?: ReactNode;
   action?: ReactNode;
   /** Target of the "← BACK" link in the rail above the title. Set on detail
    * and nested pages; omit on the top-level nav pages (the rail still renders,
@@ -68,6 +70,7 @@ function BreadcrumbTrail({ items }: { items: Breadcrumb[] }) {
 export function PageHeader({
   title,
   subtitle,
+  leading,
   action,
   backHref,
   breadcrumbs,
@@ -111,22 +114,26 @@ export function PageHeader({
             "flex items-center justify-between px-7 py-4",
             tabs && "border-portal-border border-b",
           )}>
-          <div
-            className={cn(
-              inlineSubtitle && "flex flex-wrap items-baseline gap-x-2.5",
-            )}>
-            <h1 className="font-title text-portal-text1 text-[22px] font-extrabold tracking-wide">
-              {title}
-            </h1>
-            {subtitle && (
-              <p
-                className={cn(
-                  "text-portal-text2 text-sm",
-                  !inlineSubtitle && "mt-0.5",
-                )}>
-                {subtitle}
-              </p>
-            )}
+          <div className="flex min-w-0 items-center gap-4">
+            {leading}
+            <div
+              className={cn(
+                "min-w-0",
+                inlineSubtitle && "flex flex-wrap items-baseline gap-x-2.5",
+              )}>
+              <h1 className="font-title text-portal-text1 text-[22px] font-extrabold tracking-wide">
+                {title}
+              </h1>
+              {subtitle && (
+                <p
+                  className={cn(
+                    "text-portal-text2 text-sm",
+                    !inlineSubtitle && "mt-0.5",
+                  )}>
+                  {subtitle}
+                </p>
+              )}
+            </div>
           </div>
           {action && <div className="flex items-center gap-2">{action}</div>}
         </div>

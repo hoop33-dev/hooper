@@ -245,6 +245,8 @@ export type ProgramProgressStats = {
 // session — see the migration comment), gated to coach callers only.
 export type AthleteSummary = ProfileRow & {
   last_sign_in_at: string | null;
+  /** Every program the athlete sees — direct, package and team, direct
+   * first — from the coach_athlete_programs RPC. */
   programs: AssignedProgramRef[];
 };
 
@@ -304,6 +306,8 @@ export type ProgramDashboardRow = ProgramRow & {
 export type AthleteDashboardRow = ProfileRow & {
   last_sign_in_at: string | null;
   regionName: string | null;
+  /** Every program the athlete sees, like AthleteSummary — unlike
+   * AthleteDetail.programs, which is direct assignments only. */
   programs: AssignedProgramRef[];
 };
 

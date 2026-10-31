@@ -149,6 +149,20 @@ export async function exchangeResetCode(
   return { ok: true };
 }
 
+/** A coach-sent reset link uses Supabase's implicit flow, so it carries the
+ * session itself (in the URL fragment) rather than a PKCE code. */
+export async function setResetSession(
+  accessToken: string,
+  refreshToken: string,
+): Promise<PasswordResetResult> {
+  const { error } = await getClient().auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (error) return { ok: false, error: "Reset link is invalid or expired." };
+  return { ok: true };
+}
+
 export async function updatePassword(
   newPassword: string,
 ): Promise<PasswordResetResult> {

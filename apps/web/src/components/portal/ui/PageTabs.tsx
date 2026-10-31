@@ -29,9 +29,13 @@ export function PageTabs({
   const pathname = usePathname();
   return (
     <div className="flex h-[60px] items-center gap-4 px-7">
+      {/* The nav, not each link, hangs 1px past the row so the active
+          underline covers the header's bottom border. With the overhang on
+          the links they overflowed the nav, whose overflow-x:auto forces
+          overflow-y:auto too, so it scrolled vertically by that 1px. */}
       <nav
         aria-label="Page sections"
-        className="flex h-full min-w-0 flex-1 gap-7 overflow-x-auto">
+        className="-mb-px flex h-[calc(100%+1px)] min-w-0 flex-1 gap-7 overflow-x-auto overflow-y-hidden">
         {tabs.map((tab) => {
           const active = pathname === tab.href;
           return (
@@ -40,7 +44,7 @@ export function PageTabs({
               href={tab.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "-mb-px flex flex-shrink-0 items-center border-y-2 border-t-transparent text-[13px] whitespace-nowrap transition-colors duration-200",
+                "flex flex-shrink-0 items-center border-y-2 border-t-transparent text-[13px] whitespace-nowrap transition-colors duration-200",
                 active
                   ? "text-portal-text1 border-b-portal-orange font-bold"
                   : "text-portal-text3 hover:text-portal-text1 border-b-transparent font-medium",

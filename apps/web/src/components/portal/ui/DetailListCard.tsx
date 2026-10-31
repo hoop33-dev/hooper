@@ -9,6 +9,27 @@ import { PortalButton } from "./PortalButton";
 export const detailCardClass =
   "border-portal-border bg-portal-card overflow-hidden rounded-xl border";
 
+/** Small uppercase label over a read-only value in a detail card. */
+export const detailLabelClass =
+  "text-portal-text3 text-[11px] font-semibold tracking-widest uppercase";
+
+/** A detail card's title bar, with an optional action on the right. Held to
+ * one height so cards with and without a button line up side by side. */
+export function DetailCardHead({
+  title,
+  right,
+}: {
+  title: string;
+  right?: ReactNode;
+}) {
+  return (
+    <div className="border-portal-border flex min-h-[52px] items-center justify-between gap-3 border-b px-5 py-3">
+      <h2 className="text-portal-text1 text-sm font-bold">{title}</h2>
+      {right}
+    </div>
+  );
+}
+
 /** A titled card listing things attached to the page's entity (programs,
  * coaches, athletes, teams…): header with a count and an optional "+ Add"
  * link, `DetailRow` children, and an empty state with a call to action. */

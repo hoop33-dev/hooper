@@ -3,7 +3,13 @@
 import {
   assignProgramToAthlete,
   unassignProgramFromAthlete,
+  updateAthleteProfile,
+  type AthleteProfileFields,
 } from "@/src/services/athlete.service";
+import {
+  retryAthletePayment,
+  sendAthletePasswordReset,
+} from "@/src/services/athleteBilling.service";
 import { addTeamMember, removeTeamMember } from "@/src/services/team.service";
 import { revalidatePath } from "next/cache";
 
@@ -16,7 +22,7 @@ export async function assignProgramToAthleteAction(
   const result = await assignProgramToAthlete(profileId, programId);
   if (result.ok) {
     revalidatePath("/athletes");
-    revalidatePath(`/athletes/${profileId}`);
+    revalidateAthletePage();
   }
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }
@@ -28,7 +34,7 @@ export async function unassignProgramFromAthleteAction(
   const result = await unassignProgramFromAthlete(profileId, programId);
   if (result.ok) {
     revalidatePath("/athletes");
-    revalidatePath(`/athletes/${profileId}`);
+    revalidateAthletePage();
   }
   return result.ok ? { ok: true } : { ok: false, error: result.error };
 }
@@ -55,7 +61,45 @@ export async function removeAthleteFromTeamAction(
 
 function revalidateMembership(profileId: string, teamId: string) {
   revalidatePath("/athletes");
-  revalidatePath(`/athletes/${profileId}`);
+  revalidateAthletePage();
   revalidatePath("/teams");
   revalidatePath(`/teams/${teamId}`);
+}
+
+export async function updateAthleteProfileAction(
+  profileId: string,
+  fields: AthleteProfileFields,
+): Promise<ActionResult> {
+  const result = await updateAthleteProfile(profileId, fields);
+  if (result.ok) {
+    revalidatePath("/athletes");
+    revalidateAthletePage();
+  }
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+export async function sendAthletePasswordResetAction(
+  profileId: string,
+): Promise<ActionResult> {
+  const result = await sendAthletePasswordReset(profileId);
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+export async function retryAthletePaymentAction(
+  profileId: string,
+  purchaseId: string,
+  invoiceId: string,
+): Promise<ActionResult> {
+  const result = await retryAthletePayment(profileId, purchaseId, invoiceId);
+  // Revalidated either way: a decline still changes the invoice's attempts.
+  revalidatePath(`/athletes/${profileId}/billing`);
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+/** The athlete page's header, tabs and context load in the `[id]` layout,
+ * so edits refresh that layout. A "layout" revalidation matches the route
+ * pattern, not a concrete `/athletes/<id>` URL — this refreshes every
+ * athlete's page, which is cheap. */
+function revalidateAthletePage() {
+  revalidatePath("/athletes/[id]", "layout");
 }

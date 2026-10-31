@@ -165,7 +165,8 @@ export function samePricing(a: PackagePricing, b: PackagePricing): boolean {
   );
 }
 
-function money(cents: number): string {
+/** "$49", or "$49.50" with cents. */
+export function money(cents: number): string {
   return `$${centsToDollars(cents)}`;
 }
 

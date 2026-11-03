@@ -146,6 +146,8 @@ async function onOneOffInvoicePaid(
 }
 
 async function onInvoiceFailed(admin: SupabaseClient, invoice: Stripe.Invoice) {
+  // A failure delivered after a successful retry (or a void) is stale.
+  if (invoice.status === "paid" || invoice.status === "void") return;
   const subId = invoiceSubscriptionId(invoice);
   if (!subId) {
     // A coach-started one-off whose scheduled charge was declined.

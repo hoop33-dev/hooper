@@ -404,6 +404,9 @@ async function addMembership(
   };
   const customerId = customer.stripe_customer_id;
   let invoiceId: string | null = null;
+  // Set once Stripe has a live subscription or has taken the money, after
+  // which the claim must never be released (see the catch below).
+  let committed: Record<string, unknown> | null = null;
 
   try {
     const price = await ensurePrice(pkg);
@@ -432,12 +435,13 @@ async function addMembership(
         0,
         ...sub.items.data.map((i) => i.current_period_end ?? 0),
       );
-      await updatePurchase(admin, purchase.id, {
+      committed = {
         stripe_subscription_id: sub.id,
         status,
         current_period_end: periodEnd ? iso(periodEnd) : null,
         paid_at: billingAt ? null : now.toISOString(),
-      });
+      };
+      await updatePurchase(admin, purchase.id, committed);
       return purchase.id;
     }
 
@@ -447,7 +451,8 @@ async function addMembership(
       {
         customer: customerId,
         collection_method: "charge_automatically",
-        default_payment_method: pm.id,
+        // No invoice-level card: it falls back to the customer's default,
+        // so a card replaced in the portal before the billing day is used.
         pending_invoice_items_behavior: "exclude",
         auto_advance: !!billingAt,
         ...(billingAt ? { automatically_finalizes_at: unix(billingAt) } : {}),
@@ -482,12 +487,29 @@ async function addMembership(
       if (paid.status !== "paid") {
         throw new Refusal(402, `The card was declined. ${DECLINE_HINT}`);
       }
-      await updatePurchase(admin, purchase.id, {
+      committed = {
+        stripe_invoice_id: invoiceId,
+        status: "active",
         paid_at: now.toISOString(),
-      });
+      };
+      await updatePurchase(admin, purchase.id, committed);
     }
     return purchase.id;
   } catch (err) {
+    if (committed) {
+      // Stripe already holds a live subscription or the payment, so keep the
+      // claim (and its idempotency keys) rather than inviting a second
+      // charge on retry. Best-effort record it again: a one-off's invoice is
+      // already linked so invoice.paid can finish it, but the webhook only
+      // finds a subscription by the id written here.
+      console.error("coach-athlete: purchase update after charge failed", err);
+      try {
+        await updatePurchase(admin, purchase.id, committed);
+      } catch (retryErr) {
+        console.error("coach-athlete: couldn't record charge", retryErr);
+      }
+      throw err;
+    }
     if (invoiceId) await discardInvoice(invoiceId);
     // Release the claim so the coach can try again.
     await admin.from("package_purchases").delete().eq("id", purchase.id);

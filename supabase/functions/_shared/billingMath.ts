@@ -159,7 +159,8 @@ export function dayToTimestamp(
   now: Date,
   anchor: Date | null = null,
 ): Date | null {
-  if (date <= zonedDate(now)) return null;
+  // A still-future anchor wins even when it falls later today.
   if (anchor && anchor > now && zonedDate(anchor) === date) return anchor;
+  if (date <= zonedDate(now)) return null;
   return zonedMidnight(date);
 }

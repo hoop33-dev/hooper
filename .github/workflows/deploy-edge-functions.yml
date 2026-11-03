@@ -42,5 +42,5 @@ jobs:
             if [ "$fn" = "signin-with-username" ] || [ "$fn" = "send-account-exists-email" ] || [ "$fn" = "stripe-webhook" ]; then
               extra_flags="--no-verify-jwt"
             fi
-            supabase functions deploy "$fn" --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" $extra_flags
+            supabase functions deploy "$fn" --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" --yes $extra_flags
           done

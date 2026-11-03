@@ -1,0 +1,136 @@
+name: Auto Dev Build
+
+# Pushes to `dev` are already auto-published as OTA updates
+# (auto-development-update.yml), which testers' existing installs pick up
+# automatically because runtimeVersion.policy is "fingerprint". That only
+# works while the native fingerprint is unchanged. This workflow detects
+# native-affecting pushes (new native deps, config-plugin changes, SDK
+# bumps) and cuts a fresh `dev`-profile build so a build is always current,
+# per platform, without someone remembering to run `eas build` by hand.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [dev]
+    types: [completed]
+
+jobs:
+  build:
+    name: Rebuild (${{ matrix.platform }}) if fingerprint changed
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        platform: [android, ios]
+      fail-fast: false
+    # Separate concurrency group per platform so an android rebuild can't
+    # cancel/block an ios one (or vice versa); cancel-in-progress off since
+    # an in-flight EAS build shouldn't be abandoned by a newer dev push —
+    # EAS will just queue the next one.
+    concurrency:
+      group: development-build-${{ matrix.platform }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Verify SHA is current dev tip
+        id: tip_check
+        shell: bash
+        run: |
+          git fetch origin dev --depth=1
+          CURRENT_TIP=$(git rev-parse origin/dev)
+          HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
+          if [ "$HEAD_SHA" = "$CURRENT_TIP" ]; then
+            echo "is_tip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_tip=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping: $HEAD_SHA is not the current tip of dev (tip is $CURRENT_TIP)"
+          fi
+
+      - name: Setup Node
+        if: steps.tip_check.outputs.is_tip == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.tip_check.outputs.is_tip == 'true'
+        run: npm ci
+
+      - name: Setup Expo and EAS
+        if: steps.tip_check.outputs.is_tip == 'true'
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Compare fingerprint against latest dev build
+        if: steps.tip_check.outputs.is_tip == 'true'
+        id: fingerprint
+        working-directory: apps/mobile
+        shell: bash
+        run: |
+          CURRENT_HASH=$(eas fingerprint:generate --build-profile dev --platform ${{ matrix.platform }} --non-interactive --json 2>/dev/null | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).hash')
+          LAST_HASH=$(eas build:list --profile dev --platform ${{ matrix.platform }} --status finished --limit 1 --non-interactive --json 2>/dev/null | node -pe 'const b=JSON.parse(require("fs").readFileSync(0,"utf8"))[0]; b ? b.fingerprint.hash : ""')
+
+          echo "current=$CURRENT_HASH" >> "$GITHUB_OUTPUT"
+          echo "last=$LAST_HASH" >> "$GITHUB_OUTPUT"
+
+          if [ -z "$LAST_HASH" ] || [ "$CURRENT_HASH" != "$LAST_HASH" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report fingerprint status
+        if: steps.tip_check.outputs.is_tip == 'true'
+        shell: bash
+        run: |
+          if [ "${{ steps.fingerprint.outputs.changed }}" = "true" ]; then
+            echo "Fingerprint changed for ${{ matrix.platform }} (${{ steps.fingerprint.outputs.last }} -> ${{ steps.fingerprint.outputs.current }}); starting a new dev build."
+          else
+            echo "Fingerprint unchanged for ${{ matrix.platform }} (${{ steps.fingerprint.outputs.current }}); no rebuild needed, OTA update covers this push."
+          fi
+
+      - name: Check for existing build on this commit
+        # CI can complete twice for the same commit (e.g. both a `push` and
+        # a `pull_request` run finish for the same SHA when a PR merges into
+        # dev), firing this workflow twice with an identical head_sha. The
+        # tip check above only guards against *stale* commits, not this
+        # same-commit race, so also check EAS directly for a build already
+        # queued/running for this exact commit+profile+platform before
+        # triggering another one.
+        if: steps.tip_check.outputs.is_tip == 'true' && steps.fingerprint.outputs.changed == 'true'
+        id: dedupe
+        working-directory: apps/mobile
+        shell: bash
+        run: |
+          EXISTS=$(eas build:list \
+            --profile dev \
+            --platform ${{ matrix.platform }} \
+            --git-commit-hash ${{ github.event.workflow_run.head_sha }} \
+            --non-interactive --json --limit 10 2>/dev/null | \
+            node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).some(b => ["new","in-queue","in-progress","pending-cancel"].includes(b.status))')
+
+          echo "exists=$EXISTS" >> "$GITHUB_OUTPUT"
+          if [ "$EXISTS" = "true" ]; then
+            echo "A dev build for ${{ matrix.platform }} on commit ${{ github.event.workflow_run.head_sha }} is already queued/running; skipping duplicate trigger."
+          fi
+
+      - name: Trigger dev build
+        if: steps.tip_check.outputs.is_tip == 'true' && steps.fingerprint.outputs.changed == 'true' && steps.dedupe.outputs.exists == 'false'
+        working-directory: apps/mobile
+        run: |
+          eas build \
+            --profile dev \
+            --platform ${{ matrix.platform }} \
+            --message "[dev ${{ github.event.workflow_run.head_sha }}] auto-build: native fingerprint changed" \
+            --non-interactive \
+            --no-wait

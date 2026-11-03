@@ -7,8 +7,11 @@ import {
   type AthleteProfileFields,
 } from "@/src/services/athlete.service";
 import {
+  changeAthleteMembership,
+  keepAthleteMembership,
   retryAthletePayment,
   sendAthletePasswordReset,
+  type MembershipChange,
 } from "@/src/services/athleteBilling.service";
 import { addTeamMember, removeTeamMember } from "@/src/services/team.service";
 import { revalidatePath } from "next/cache";
@@ -94,6 +97,41 @@ export async function retryAthletePaymentAction(
   // Revalidated either way: a decline still changes the invoice's attempts.
   revalidatePath(`/athletes/${profileId}/billing`);
   return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+export async function changeAthleteMembershipAction(
+  profileId: string,
+  change: MembershipChange,
+): Promise<ActionResult> {
+  const result = await changeAthleteMembership(profileId, change);
+  // Revalidated either way: a switch whose cancel step failed has still
+  // added the new package.
+  revalidateMemberships();
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+export async function keepAthleteMembershipAction(
+  profileId: string,
+  purchaseId: string,
+): Promise<ActionResult> {
+  const result = await keepAthleteMembership(profileId, purchaseId);
+  if (result.ok) revalidateMemberships();
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+/** A membership change moves the athlete's packages and everything that
+ * reads package access: buyer counts, team rosters, the dashboard and
+ * program access — the same reach as editing a package's teams. */
+function revalidateMemberships() {
+  revalidateAthletePage();
+  revalidatePath("/athletes");
+  revalidatePath("/packages");
+  revalidatePath("/packages/[slug]", "layout");
+  revalidatePath("/teams");
+  revalidatePath("/teams/[id]", "page");
+  revalidatePath("/dashboard");
+  revalidatePath("/programs");
+  revalidatePath("/programs/[id]", "page");
 }
 
 /** The athlete page's header, tabs and context load in the `[id]` layout,

@@ -42,6 +42,8 @@ export async function listInvoices(
 export type PurchaseRef = {
   stripe_subscription_id: string | null;
   stripe_payment_intent_id: string | null;
+  /** A coach-started one-off, charged by invoice. */
+  stripe_invoice_id?: string | null;
 };
 
 /** One athlete's charges, fetched per purchase rather than from the payer's
@@ -58,7 +60,10 @@ export async function listPurchaseInvoices(
   const intentIds = purchases
     .map((p) => p.stripe_payment_intent_id)
     .filter((id): id is string => !!id);
-  const [invoices, intents] = await Promise.all([
+  const invoiceIds = purchases
+    .map((p) => p.stripe_invoice_id)
+    .filter((id): id is string => !!id);
+  const [invoices, oneOffInvoices, intents] = await Promise.all([
     Promise.all(
       subIds.map((subscription) =>
         stripe.invoices
@@ -66,13 +71,42 @@ export async function listPurchaseInvoices(
           .autoPagingToArray({ limit: 1000 }),
       ),
     ),
+    Promise.all(invoiceIds.map(retrieveInvoice)),
     Promise.all(
       intentIds.map((id) =>
         stripe.paymentIntents.retrieve(id, { expand: ["latest_charge"] }),
       ),
     ),
   ]);
-  return invoiceRows(admin, invoices.flat(), intents, callerId);
+  return invoiceRows(
+    admin,
+    [
+      ...invoices.flat(),
+      ...oneOffInvoices.filter((i): i is Stripe.Invoice => !!i),
+    ],
+    intents,
+    callerId,
+  );
+}
+
+/** A one-off's invoice, or null if it's gone: a cancelled scheduled
+ * one-off deletes its draft. */
+async function retrieveInvoice(id: string): Promise<Stripe.Invoice | null> {
+  try {
+    return await stripe.invoices.retrieve(id);
+  } catch (err) {
+    if ((err as { code?: string }).code !== "resource_missing") throw err;
+    return null;
+  }
+}
+
+/** The purchase an invoice was charged for: a subscription's carries it on
+ * the subscription, a coach-started one-off on the invoice itself. */
+function invoicePurchaseId(i: Stripe.Invoice): string | undefined {
+  return (
+    i.parent?.subscription_details?.metadata?.purchase_id ??
+    i.metadata?.purchase_id
+  );
 }
 
 async function invoiceRows(
@@ -89,9 +123,7 @@ async function invoiceRows(
   );
 
   const purchaseIds = [
-    ...subInvoices.map(
-      (i) => i.parent?.subscription_details?.metadata?.purchase_id,
-    ),
+    ...subInvoices.map(invoicePurchaseId),
     ...oneOffs.map((pi) => pi.metadata.purchase_id),
   ].filter((id): id is string => typeof id === "string");
   const labels = await purchaseLabels(admin, purchaseIds, callerId);
@@ -149,7 +181,7 @@ function invoiceRow(
   i: Stripe.Invoice,
   labels: Map<string, string>,
 ): InvoiceRow {
-  const purchaseId = i.parent?.subscription_details?.metadata?.purchase_id;
+  const purchaseId = invoicePurchaseId(i);
   const status: InvoiceRow["status"] =
     i.status === "paid"
       ? "paid"
@@ -214,12 +246,16 @@ export async function retryMembership(
   const { data: row, error } = await admin
     .from("package_purchases")
     .select(
-      "id, payer_profile_id, athlete_profile_id, status, stripe_subscription_id",
+      "id, payer_profile_id, athlete_profile_id, status, stripe_subscription_id, stripe_invoice_id",
     )
     .eq("id", purchaseId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!row || !allowed(row) || !row.stripe_subscription_id) {
+  if (
+    !row ||
+    !allowed(row) ||
+    (!row.stripe_subscription_id && !row.stripe_invoice_id)
+  ) {
     return json(404, { ok: false, error: "Membership not found" });
   }
   if (row.status !== "past_due") {
@@ -227,6 +263,16 @@ export async function retryMembership(
       ok: false,
       error: "Nothing is owing on this membership.",
     });
+  }
+
+  if (!row.stripe_subscription_id) {
+    return retryOneOffInvoice(
+      admin,
+      row.id,
+      row.stripe_invoice_id,
+      declineHint,
+      invoiceId,
+    );
   }
 
   const sub = await stripe.subscriptions.retrieve(row.stripe_subscription_id);
@@ -285,4 +331,39 @@ export async function retryMembership(
     .eq("status", "past_due");
   if (updateError) throw new Error(updateError.message);
   return json(200, { ok: true, status });
+}
+
+/** A coach-started one-off is a single invoice: charge it again, then mark
+ * the purchase paid without waiting for the webhook. */
+async function retryOneOffInvoice(
+  admin: SupabaseClient,
+  purchaseId: string,
+  ownInvoiceId: string,
+  declineHint: string,
+  invoiceId?: string,
+) {
+  if (invoiceId && invoiceId !== ownInvoiceId) {
+    return json(404, { ok: false, error: "Invoice not found" });
+  }
+  const invoice = await stripe.invoices.retrieve(ownInvoiceId);
+  if (invoice.status === "void" || invoice.status === "draft") {
+    return json(409, { ok: false, error: "This invoice can't be charged." });
+  }
+  if (invoice.status !== "paid") {
+    try {
+      await stripe.invoices.pay(ownInvoiceId, { off_session: true });
+    } catch (err) {
+      if (err instanceof Stripe.errors.StripeCardError) {
+        return json(402, { ok: false, error: `${err.message} ${declineHint}` });
+      }
+      throw err;
+    }
+  }
+  const { error } = await admin
+    .from("package_purchases")
+    .update({ status: "active", paid_at: new Date().toISOString() })
+    .eq("id", purchaseId)
+    .eq("status", "past_due");
+  if (error) throw new Error(error.message);
+  return json(200, { ok: true, status: "active" });
 }

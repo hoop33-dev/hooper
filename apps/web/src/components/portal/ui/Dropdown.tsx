@@ -174,6 +174,8 @@ export function DropdownList({ children }: { children: ReactNode }) {
 
 interface DropdownListItemProps {
   label: string;
+  /** Optional second line under the label. */
+  sub?: string;
   selected: boolean;
   /** "checkbox" for multi-select lists, "checkmark" for single-select. */
   variant: "checkbox" | "checkmark";
@@ -186,6 +188,7 @@ interface DropdownListItemProps {
 
 export function DropdownListItem({
   label,
+  sub,
   selected,
   variant,
   hasChildren = false,
@@ -214,7 +217,18 @@ export function DropdownListItem({
           {selected && "✓"}
         </span>
       )}
-      <span className="text-portal-text1 flex-1 text-sm">{label}</span>
+      {sub ? (
+        <span className="min-w-0 flex-1">
+          <span className="text-portal-text1 block truncate text-sm">
+            {label}
+          </span>
+          <span className="text-portal-text3 block truncate text-[11px]">
+            {sub}
+          </span>
+        </span>
+      ) : (
+        <span className="text-portal-text1 flex-1 text-sm">{label}</span>
+      )}
       {hasChildren && (
         <button
           type="button"

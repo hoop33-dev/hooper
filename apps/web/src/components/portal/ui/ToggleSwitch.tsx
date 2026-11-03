@@ -2,15 +2,19 @@
 
 import { cn } from "@/src/lib/cn";
 
-/** Labeled pill switch — label to the left, track to the right. */
+/** Labeled pill switch — label to the left, track to the right.
+ * `hideLabel` keeps the label for screen readers only, for a switch whose
+ * meaning the surrounding heading already shows. */
 export function ToggleSwitch({
   label,
   checked,
   onChange,
+  hideLabel = false,
 }: {
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
+  hideLabel?: boolean;
 }) {
   return (
     <button
@@ -19,7 +23,11 @@ export function ToggleSwitch({
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className="flex flex-shrink-0 items-center gap-2">
-      <span className="text-portal-text2 text-xs font-semibold whitespace-nowrap">
+      <span
+        className={cn(
+          "text-portal-text2 text-xs font-semibold whitespace-nowrap",
+          hideLabel && "sr-only",
+        )}>
         {label}
       </span>
       <span

@@ -6,6 +6,7 @@ import { cn } from "@/src/lib/cn";
 import { formatDate, formatMoney } from "@/src/lib/format";
 import {
   isEnding,
+  isUpcoming,
   memberSince,
   nameList,
   statusTag,
@@ -42,6 +43,9 @@ function details(p: MyPackagePurchase): [string, string][] {
       ? ["Access until", periodEnd]
       : ["Next charge", periodEnd];
   const rows: [string, string][] = [
+    ...(isUpcoming(p)
+      ? [["Starts", formatDate(p.starts_at!)] as [string, string]]
+      : []),
     first,
     [
       "Billing",

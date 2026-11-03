@@ -8,6 +8,7 @@ import { useModalDismiss } from "./useModalDismiss";
 const WIDTHS = {
   md: "max-w-lg",
   lg: "max-w-xl",
+  xl: "max-w-[860px]",
 } as const;
 
 /** Centered modal card with the portal's standard header (title, optional

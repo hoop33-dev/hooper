@@ -36,6 +36,7 @@ const base: MyPackagePurchase = {
   coach_names: [],
   team_names: [],
   leaving_team_names: [],
+  starts_at: null,
 };
 
 const sub: MyPackagePurchase = {
@@ -67,6 +68,7 @@ describe("accessLine", () => {
         ...base,
         kind: "subscription",
         current_period_end: "2026-11-01T00:00:00Z",
+        paid_at: "2026-10-01T00:00:00Z",
       }),
     ).toMatch(/^Renews /);
   });
@@ -88,6 +90,29 @@ describe("visiblePurchases", () => {
       { ...base, id: "new", status: "active", paid_at: paid },
     ]);
     expect(rows.map((r) => r.id)).toEqual(["old", "new"]);
+  });
+  it("shows a coach-started package that hasn't been charged yet", () => {
+    const rows = visiblePurchases([
+      { ...base, id: "later", status: "active", paid_at: null },
+    ]);
+    expect(rows.map((r) => r.id)).toEqual(["later"]);
+  });
+});
+
+describe("coach-started packages", () => {
+  it("tags and describes one that starts later", () => {
+    const p = {
+      ...sub,
+      paid_at: null,
+      starts_at: "2999-03-04T00:00:00Z",
+    };
+    expect(statusTag(p)?.label).toMatch(/^Starts /);
+    expect(accessLine(p)).toMatch(/^Starts /);
+  });
+  it("calls the first billing date a first charge, not a renewal", () => {
+    const p = { ...sub, paid_at: null, starts_at: "2000-01-01T00:00:00Z" };
+    expect(statusTag(p)).toBeNull();
+    expect(accessLine(p)).toMatch(/^First charge /);
   });
 });
 

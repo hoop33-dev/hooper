@@ -134,18 +134,6 @@ describe("buildTimeline", () => {
       cardLabel: null,
     });
     expect(ends.day).toBe(today);
-    expect(ends.sub).toBe("Access ends now, no refund");
-  });
-  it("says nothing is charged when removing an unstarted package", () => {
-    const [ends] = buildTimeline({
-      cancel: { ...academy, when: "now", unstarted: true },
-      add: null,
-      start: today,
-      billing: today,
-      today,
-      cardLabel: null,
-    });
-    expect(ends.sub).toBe("Removed before it starts, nothing charged");
   });
 });
 

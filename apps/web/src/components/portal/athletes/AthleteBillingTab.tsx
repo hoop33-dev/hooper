@@ -82,7 +82,7 @@ function subscriptionSub(m: AthleteMembership): string {
     return "Last payment failed. Stripe retries automatically.";
   }
   if (m.cancelAtPeriodEnd) {
-    return end ? `Access ends ${end}, no further charges` : "Cancelling";
+    return end ? `Access ends ${end}` : "Cancelling";
   }
   const since = formatShortDate(m.startsAt ?? m.createdAt);
   const charge = pendingFirstCharge(m);
@@ -97,12 +97,10 @@ function subscriptionSub(m: AthleteMembership): string {
 /** A cancelled or lapsed membership. A cancel before the period was up
  * leaves its period end in the future, so that isn't when it ended. */
 function endedSub(m: AthleteMembership): string {
-  if (m.status === "canceled" && isUpcoming(m.startsAt)) {
-    return "Cancelled before it started, nothing charged";
-  }
   const end = m.kind === "one_time" ? m.accessUntil : m.currentPeriodEnd;
-  if (!end) return m.status === "canceled" ? "Cancelled" : "Ended";
-  if (new Date(end) > new Date()) return "Cancelled early, access ended";
+  if (!end || new Date(end) > new Date()) {
+    return m.status === "canceled" ? "Cancelled" : "Ended";
+  }
   return `Ended ${formatShortDate(end)}`;
 }
 
@@ -273,12 +271,6 @@ function PaymentMethodCard({ payers }: { payers: AthletePayer[] }) {
             ) : (
               <div className="text-portal-text3 text-sm">No card on file</div>
             )}
-            <div className="text-portal-text3 text-xs leading-relaxed">
-              {p.isSelf
-                ? "Paid by the athlete."
-                : `Paid by ${p.name}, their parent.`}{" "}
-              Only the card holder can change it, from the billing portal.
-            </div>
           </div>
         ))
       )}

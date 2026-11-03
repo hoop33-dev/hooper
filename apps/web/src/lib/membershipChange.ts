@@ -58,8 +58,6 @@ export type CancelSide = {
   when: CancelWhen;
   /** When its paid period runs out (and the next charge would have been). */
   periodEnd: string | null;
-  /** It hasn't started or been charged, so ending it removes it outright. */
-  unstarted?: boolean;
 };
 
 /** The package being added. */
@@ -97,7 +95,7 @@ export type TimelineEvent = {
   day: Day;
   tone: "red" | "green" | "orange";
   title: string;
-  sub: string;
+  sub?: string;
 };
 
 function cancelEvent(cancel: CancelSide, today: Day): TimelineEvent {
@@ -106,11 +104,6 @@ function cancelEvent(cancel: CancelSide, today: Day): TimelineEvent {
     day: now ? today : renewalDay(cancel, today),
     tone: "red",
     title: `${cancel.name} ends`,
-    sub: cancel.unstarted
-      ? "Removed before it starts, nothing charged"
-      : now
-        ? "Access ends now, no refund"
-        : "Access until then, no further charges",
   };
 }
 

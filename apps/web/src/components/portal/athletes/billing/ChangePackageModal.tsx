@@ -188,7 +188,6 @@ function useCancelDraft(cancellable: AthleteMembership[], init: ChangeInit) {
           name: old.packageName,
           when,
           periodEnd: old.currentPeriodEnd,
-          unstarted: forcedNow && old.status !== "past_due",
         }
       : null;
   return {
@@ -336,22 +335,9 @@ function OldPackageSummary({
 }
 
 function EndsChoice({ draft }: { draft: ChangeDraft }) {
-  const { cancel, add, dates, today } = draft;
-  if (!cancel.old) return null;
-  if (cancel.forcedNow) {
-    return (
-      <p className="text-portal-text3 text-xs leading-relaxed">
-        {cancel.old.status === "past_due"
-          ? "Its last payment failed, so it ends now."
-          : "It hasn't started or been charged yet, so it's removed now with nothing charged."}
-      </p>
-    );
-  }
+  const { cancel, dates, today } = draft;
+  if (!cancel.old || cancel.forcedNow) return null;
   const renewal = cancel.side ? renewalDay(cancel.side, today) : null;
-  const carryOver =
-    add.on && renewal
-      ? `, but billing the new package from ${formatDay(renewal, today)} carries them over`
-      : "";
   return (
     <div className="flex flex-col gap-1.5">
       <span className={labelClass}>Ends</span>
@@ -369,11 +355,6 @@ function EndsChoice({ draft }: { draft: ChangeDraft }) {
           ["now", "Immediately"],
         ]}
       />
-      {cancel.when === "now" && (
-        <p className="text-portal-text3 text-xs leading-relaxed">
-          Access ends now. Unused days aren&apos;t refunded{carryOver}.
-        </p>
-      )}
     </div>
   );
 }
@@ -609,9 +590,11 @@ function Timeline({ draft }: { draft: ChangeDraft }) {
                   <div className="text-portal-text1 mt-0.5 text-[13px] font-semibold">
                     {e.title}
                   </div>
-                  <div className="text-portal-text3 mt-0.5 text-xs leading-snug">
-                    {e.sub}
-                  </div>
+                  {e.sub && (
+                    <div className="text-portal-text3 mt-0.5 text-xs leading-snug">
+                      {e.sub}
+                    </div>
+                  )}
                 </div>
               </li>
             );

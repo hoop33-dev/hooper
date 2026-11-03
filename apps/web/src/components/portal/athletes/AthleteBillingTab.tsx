@@ -2,6 +2,7 @@
 
 import { cn } from "@/src/lib/cn";
 import { formatShortDate } from "@/src/lib/format";
+import { changeSuccessMessage, isUpcoming } from "@/src/lib/membershipChange";
 import { money } from "@/src/lib/packages";
 import type {
   AthleteBilling,
@@ -9,6 +10,7 @@ import type {
   AthleteInvoice,
   AthleteMembership,
   AthletePayer,
+  MembershipChange,
 } from "@/src/services/athleteBilling.service";
 import { useState } from "react";
 import {
@@ -16,13 +18,21 @@ import {
   detailCardClass,
   detailLabelClass,
 } from "../ui/DetailListCard";
-import { ExternalLinkIcon } from "../ui/icons";
+import { ExternalLinkIcon, PlusIcon } from "../ui/icons";
 import { Modal, ModalFooter } from "../ui/Modal";
 import { PortalBadge } from "../ui/PortalBadge";
 import { PortalButton } from "../ui/PortalButton";
 import { useToast } from "../ui/Toast";
+import { athleteName } from "./AthleteAvatar";
 import { useAthleteDetailContext } from "./AthleteDetailShell";
 import { PackageStatusBadge, PackageTile } from "./AthleteTrainingTab";
+import { CardMark, cardExpiry, cardLabel } from "./billing/cards";
+import {
+  ChangePackageModal,
+  cancellableMemberships,
+  type ChangeInit,
+} from "./billing/ChangePackageModal";
+import type { PackageOption } from "./billing/PackageSearchSelect";
 
 type ActionResult = { ok: boolean; error?: string };
 
@@ -32,59 +42,151 @@ const INVOICE_BADGE = {
   due: { variant: "orange", label: "Due" },
 } as const;
 
-/** Brand tile for a saved card — read-only; coaches can't change cards. */
-function CardMark({ brand }: { brand: string }) {
-  const label =
-    brand === "mastercard" ? "MC" : brand === "amex" ? "AMEX" : brand;
-  return (
-    <div className="font-title flex h-[30px] w-11 flex-shrink-0 items-center justify-center rounded-[5px] bg-[#1A1718] text-[13px] font-black tracking-wide text-white uppercase italic">
-      {label.slice(0, 4)}
-    </div>
-  );
+/** The first charge's date while it's still ahead (coach-started packages
+ * can bill later than they start). */
+function pendingFirstCharge(m: AthleteMembership): string | null {
+  return !m.paidAt && m.billingStartsAt
+    ? formatShortDate(m.billingStartsAt)
+    : null;
 }
 
-function cardLabel(card: AthleteCard): string {
-  const brand = card.brand.charAt(0).toUpperCase() + card.brand.slice(1);
-  return `${brand} •••• ${card.last4}`;
+function accessLabel(m: AthleteMembership): string {
+  return m.accessUntil
+    ? `access until ${formatShortDate(m.accessUntil)}`
+    : "unlimited access";
 }
 
-function cardExpiry(card: AthleteCard): string {
-  return `${String(card.exp_month).padStart(2, "0")}/${String(card.exp_year).slice(-2)}`;
+function upcomingSub(m: AthleteMembership): string {
+  const starts = `Starts ${formatShortDate(m.startsAt!)}`;
+  const charge = pendingFirstCharge(m);
+  if (!charge) return starts;
+  const verb = m.kind === "one_time" ? "charged" : "first charge";
+  return `${starts}, ${verb} ${money(m.amountCents)} on ${charge}`;
 }
 
-function membershipSub(m: AthleteMembership): string {
-  if (m.kind === "one_time") {
-    const paid = m.paidAt ? `Paid ${formatShortDate(m.paidAt)}` : "Paid";
-    return m.accessUntil
-      ? `${paid}, access until ${formatShortDate(m.accessUntil)}`
-      : `${paid}, unlimited access`;
+function oneOffSub(m: AthleteMembership): string {
+  if (m.status === "past_due") {
+    return "Charge failed. Retry it from the invoice below.";
   }
+  const charge = pendingFirstCharge(m);
+  if (charge && m.status === "active") {
+    return `Charged ${money(m.amountCents)} on ${charge}, ${accessLabel(m)}`;
+  }
+  const paid = m.paidAt ? `Paid ${formatShortDate(m.paidAt)}` : "Paid";
+  return `${paid}, ${accessLabel(m)}`;
+}
+
+function subscriptionSub(m: AthleteMembership): string {
   const end = m.currentPeriodEnd && formatShortDate(m.currentPeriodEnd);
   if (m.status === "past_due") {
     return "Last payment failed. Stripe retries automatically.";
   }
-  if (m.status === "canceled" || m.status === "expired") {
-    return end ? `Ended ${end}` : "Ended";
-  }
   if (m.cancelAtPeriodEnd) {
     return end ? `Access ends ${end}, no further charges` : "Cancelling";
   }
+  const since = formatShortDate(m.startsAt ?? m.createdAt);
+  const charge = pendingFirstCharge(m);
+  if (charge) {
+    return `First charge ${money(m.amountCents)} on ${charge}, since ${since}`;
+  }
   return end
-    ? `Next charge ${money(m.amountCents)} on ${end}, since ${formatShortDate(m.createdAt)}`
-    : `Since ${formatShortDate(m.createdAt)}`;
+    ? `Next charge ${money(m.amountCents)} on ${end}, since ${since}`
+    : `Since ${since}`;
+}
+
+/** A cancelled or lapsed membership. A cancel before the period was up
+ * leaves its period end in the future, so that isn't when it ended. */
+function endedSub(m: AthleteMembership): string {
+  if (m.status === "canceled" && isUpcoming(m.startsAt)) {
+    return "Cancelled before it started, nothing charged";
+  }
+  const end = m.kind === "one_time" ? m.accessUntil : m.currentPeriodEnd;
+  if (!end) return m.status === "canceled" ? "Cancelled" : "Ended";
+  if (new Date(end) > new Date()) return "Cancelled early, access ended";
+  return `Ended ${formatShortDate(end)}`;
+}
+
+function membershipSub(m: AthleteMembership): string {
+  if (m.status === "canceled" || m.status === "expired") return endedSub(m);
+  if (m.status === "active" && isUpcoming(m.startsAt)) return upcomingSub(m);
+  return m.kind === "one_time" ? oneOffSub(m) : subscriptionSub(m);
+}
+
+function MembershipActions({
+  membership: m,
+  cancellable,
+  onChange,
+  onKeep,
+}: {
+  membership: AthleteMembership;
+  cancellable: boolean;
+  onChange: (init: ChangeInit) => void;
+  onKeep: (purchaseId: string) => Promise<ActionResult>;
+}) {
+  const [keeping, setKeeping] = useState(false);
+  if (m.cancelAtPeriodEnd && m.status === "active") {
+    return (
+      <PortalButton
+        size="sm"
+        disabled={keeping}
+        onClick={async () => {
+          setKeeping(true);
+          await onKeep(m.id);
+          setKeeping(false);
+        }}>
+        {keeping ? "Keeping…" : "Keep membership"}
+      </PortalButton>
+    );
+  }
+  if (!cancellable) return null;
+  const scheduled = isUpcoming(m.startsAt) || m.kind === "one_time";
+  return (
+    <div className="flex gap-2">
+      {!scheduled && m.status === "active" && (
+        <PortalButton
+          size="sm"
+          onClick={() => onChange({ cancelId: m.id, add: true })}>
+          Switch
+        </PortalButton>
+      )}
+      <PortalButton
+        size="sm"
+        className="text-red-600"
+        onClick={() => onChange({ cancelId: m.id, add: false })}>
+        Cancel
+      </PortalButton>
+    </div>
+  );
 }
 
 function MembershipsCard({
   memberships,
+  onChange,
+  onKeep,
 }: {
   memberships: AthleteMembership[];
+  onChange: (init: ChangeInit) => void;
+  onKeep: (purchaseId: string) => Promise<ActionResult>;
 }) {
+  const cancellable = new Set(
+    cancellableMemberships(memberships).map((m) => m.id),
+  );
   return (
     <div className={detailCardClass}>
-      <DetailCardHead title="Memberships" />
+      <DetailCardHead
+        title="Memberships"
+        right={
+          <button
+            type="button"
+            onClick={() => onChange({ cancelId: null, add: true })}
+            className="text-portal-orange flex items-center gap-1 text-[13px] font-semibold">
+            <PlusIcon size={14} /> Add package
+          </button>
+        }
+      />
       {memberships.length === 0 ? (
         <p className="text-portal-text3 p-7 text-center text-[13px]">
-          No packages bought yet.
+          No packages yet.
         </p>
       ) : (
         memberships.map((m) => {
@@ -92,7 +194,7 @@ function MembershipsCard({
           return (
             <div
               key={m.id}
-              className="border-portal-border flex items-center gap-3.5 border-b px-5 py-4 last:border-b-0">
+              className="border-portal-border flex flex-wrap items-center gap-3.5 border-b px-5 py-4 last:border-b-0">
               <PackageTile size={40} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -103,6 +205,7 @@ function MembershipsCard({
                     status={m.status}
                     recurring={m.kind === "subscription"}
                     cancelAtPeriodEnd={m.cancelAtPeriodEnd}
+                    startsAt={m.startsAt}
                   />
                 </div>
                 <div className="text-portal-text3 mt-0.5 text-xs">
@@ -121,6 +224,12 @@ function MembershipsCard({
                   </span>
                 )}
               </div>
+              <MembershipActions
+                membership={m}
+                cancellable={cancellable.has(m.id)}
+                onChange={onChange}
+                onKeep={onKeep}
+              />
             </div>
           );
         })
@@ -386,23 +495,120 @@ function InvoiceModal({
   );
 }
 
+function InvoicesCard({
+  invoices,
+  onOpen,
+}: {
+  invoices: AthleteInvoice[];
+  onOpen: (invoice: AthleteInvoice) => void;
+}) {
+  const paidToDate = invoices
+    .filter((i) => i.status === "paid")
+    .reduce((sum, i) => sum + i.amountCents, 0);
+  return (
+    <div className={detailCardClass}>
+      <DetailCardHead
+        title={`Invoices (${invoices.length})`}
+        right={
+          <span className="text-portal-text3 text-xs">
+            {money(paidToDate)} paid to date
+          </span>
+        }
+      />
+      {invoices.length === 0 ? (
+        <p className="text-portal-text3 p-7 text-center text-[13px]">
+          No invoices yet.
+        </p>
+      ) : (
+        <InvoiceTable invoices={invoices} onOpen={onOpen} />
+      )}
+    </div>
+  );
+}
+
+/** The change-package modal, while the shell has one open. Packages the
+ * athlete already holds live are left out: they can hold at most one live
+ * purchase of each. */
+function BillingChangeModal({
+  billing,
+  packages,
+  changeAction,
+}: {
+  billing: AthleteBilling;
+  packages: PackageOption[];
+  changeAction: (
+    profileId: string,
+    change: MembershipChange,
+  ) => Promise<ActionResult>;
+}) {
+  const { athlete, packageChange } = useAthleteDetailContext();
+  const toast = useToast();
+  if (!packageChange.init) return null;
+
+  const held = new Set(
+    billing.memberships
+      .filter((m) => m.status === "active" || m.status === "past_due")
+      .map((m) => m.packageId),
+  );
+  return (
+    <ChangePackageModal
+      athleteName={athleteName(athlete)}
+      memberships={billing.memberships}
+      // Before coach-athlete returned `billable`, fall back to the existing
+      // payers with a usable card; the edge function re-checks the payer.
+      billable={
+        billing.billable ??
+        billing.payers.filter((p) => p.card && !p.card.expired)
+      }
+      packages={packages.filter((p) => !held.has(p.id))}
+      init={packageChange.init}
+      onClose={packageChange.close}
+      onSubmit={async (change) => {
+        const result = await changeAction(athlete.id, change);
+        if (result.ok) {
+          toast.showSuccess(
+            changeSuccessMessage(
+              !!change.cancel,
+              !!change.add,
+              change.cancel?.when ?? "now",
+            ),
+          );
+        }
+        return result;
+      }}
+    />
+  );
+}
+
 /** The Billing tab, read live from Stripe through the coach-athlete edge
- * function. Coaches can look, open invoices and retry a failed membership
- * charge — never change the card, cancel or buy anything. */
+ * function. Coaches can open invoices, retry a failed membership charge,
+ * and cancel, add or switch packages — a new package is charged to a card
+ * the payer saved themselves. Coaches never see or change the card, and
+ * nothing here refunds. */
 export function AthleteBillingTab({
   billing,
   error,
+  packages,
   retryAction,
+  changeAction,
+  keepAction,
 }: {
   billing: AthleteBilling | null;
   error: string | null;
+  /** Every live package, for the add side of the change modal. */
+  packages: PackageOption[];
   retryAction: (
     profileId: string,
     purchaseId: string,
     invoiceId: string,
   ) => Promise<ActionResult>;
+  changeAction: (
+    profileId: string,
+    change: MembershipChange,
+  ) => Promise<ActionResult>;
+  keepAction: (profileId: string, purchaseId: string) => Promise<ActionResult>;
 }) {
-  const { athlete } = useAthleteDetailContext();
+  const { athlete, packageChange } = useAthleteDetailContext();
   const toast = useToast();
   const [open, setOpen] = useState<AthleteInvoice | null>(null);
 
@@ -417,9 +623,6 @@ export function AthleteBillingTab({
   }
 
   const { memberships, payers, invoices } = billing;
-  const paidToDate = invoices
-    .filter((i) => i.status === "paid")
-    .reduce((sum, i) => sum + i.amountCents, 0);
   const membershipFor = (inv: AthleteInvoice) =>
     memberships.find((m) => m.id === inv.purchaseId);
   const cardFor = (inv: AthleteInvoice) => {
@@ -430,27 +633,26 @@ export function AthleteBillingTab({
   return (
     <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-7">
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <MembershipsCard memberships={memberships} />
+        <MembershipsCard
+          memberships={memberships}
+          onChange={packageChange.open}
+          onKeep={async (purchaseId) => {
+            const result = await keepAction(athlete.id, purchaseId);
+            if (result.ok) toast.showSuccess("Membership kept");
+            else toast.showError(result.error ?? "Couldn't keep it.");
+            return result;
+          }}
+        />
         <PaymentMethodCard payers={payers} />
       </div>
 
-      <div className={detailCardClass}>
-        <DetailCardHead
-          title={`Invoices (${invoices.length})`}
-          right={
-            <span className="text-portal-text3 text-xs">
-              {money(paidToDate)} paid to date
-            </span>
-          }
-        />
-        {invoices.length === 0 ? (
-          <p className="text-portal-text3 p-7 text-center text-[13px]">
-            No invoices yet.
-          </p>
-        ) : (
-          <InvoiceTable invoices={invoices} onOpen={setOpen} />
-        )}
-      </div>
+      <InvoicesCard invoices={invoices} onOpen={setOpen} />
+
+      <BillingChangeModal
+        billing={billing}
+        packages={packages}
+        changeAction={changeAction}
+      />
 
       {open && (
         <InvoiceModal

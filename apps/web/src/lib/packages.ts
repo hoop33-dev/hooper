@@ -233,7 +233,12 @@ export type PackageBuyerCounts = {
  * package); shared with its loading skeleton. */
 export const BUYER_COLUMNS = ["Athlete", "Status", "Purchased", "Access", ""];
 
-export type BuyerStatus = "active" | "past_due" | "cancelling" | "ended";
+export type BuyerStatus =
+  | "scheduled"
+  | "active"
+  | "past_due"
+  | "cancelling"
+  | "ended";
 
 type BuyerDates = Pick<
   PackageBuyerRow,
@@ -244,13 +249,22 @@ type BuyerDates = Pick<
   | "current_period_end"
   | "access_until"
   | "canceled_at"
+  | "starts_at"
 >;
 
 /** A purchase's state as the Buyers tab shows it. `is_active` (from the
  * view) wins over the raw status, so a one-off whose access ran out reads
  * as ended even before anything marks it expired. */
 export function buyerStatus(buyer: BuyerDates): BuyerStatus {
-  if (!buyer.is_active) return "ended";
+  if (!buyer.is_active) {
+    // A coach-started package that hasn't reached its start date isn't
+    // live yet either, but it hasn't ended.
+    const pending =
+      (buyer.status === "active" || buyer.status === "past_due") &&
+      !!buyer.starts_at &&
+      new Date(buyer.starts_at) > new Date();
+    return pending ? "scheduled" : "ended";
+  }
   if (buyer.status === "past_due") return "past_due";
   if (buyer.cancel_at_period_end) return "cancelling";
   return "active";
@@ -267,6 +281,7 @@ export function buyerAccessLabel(buyer: BuyerDates): string {
   const status = buyerStatus(buyer);
   const dated = (prefix: string, iso: string | null) =>
     iso ? `${prefix} ${formatShortDate(iso)}` : prefix;
+  if (status === "scheduled") return dated("Starts", buyer.starts_at);
 
   if (buyer.kind === "one_time") {
     // Cancelled or refunded before access ran out ends at the cancellation;

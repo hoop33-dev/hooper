@@ -22,6 +22,18 @@ function isExpired(p: MyPackagePurchase, now = new Date()) {
   );
 }
 
+/** Set up ahead by a coach and not started yet: no access until starts_at
+ * (and, for a subscription, no charge until its first billing date). */
+export function isUpcoming(p: MyPackagePurchase, now = new Date()): boolean {
+  return p.status === "active" && !!p.starts_at && new Date(p.starts_at) > now;
+}
+
+/** A coach-started subscription that hasn't taken its first payment —
+ * current_period_end is the first charge rather than a renewal. */
+function awaitingFirstCharge(p: MyPackagePurchase): boolean {
+  return p.kind === "subscription" && p.status === "active" && !p.paid_at;
+}
+
 /** Stopped by the payer but still running until the period ends. */
 export function isEnding(p: MyPackagePurchase): boolean {
   return p.status === "active" && p.cancel_at_period_end;
@@ -29,6 +41,9 @@ export function isEnding(p: MyPackagePurchase): boolean {
 
 /** The status tag for a purchase, or null when it's simply active. */
 export function statusTag(p: MyPackagePurchase): Status | null {
+  if (isUpcoming(p)) {
+    return { label: `Starts ${formatDate(p.starts_at!)}`, tone: "blue" };
+  }
   if (isExpired(p)) return STATUS.expired;
   if (isEnding(p)) return CANCELLED;
   return STATUS[p.status];
@@ -40,9 +55,15 @@ export function accessLine(p: MyPackagePurchase): string {
     const ended = p.canceled_at ?? p.current_period_end;
     return ended ? `Ended ${formatDate(ended)}` : "Cancelled";
   }
+  if (isUpcoming(p)) return `Starts ${formatDate(p.starts_at!)}`;
   if (p.kind === "subscription") {
     if (!p.current_period_end) return "Monthly";
-    return `${isEnding(p) ? "Access until" : "Renews"} ${formatDate(p.current_period_end)}`;
+    const label = isEnding(p)
+      ? "Access until"
+      : awaitingFirstCharge(p)
+        ? "First charge"
+        : "Renews";
+    return `${label} ${formatDate(p.current_period_end)}`;
   }
   if (!p.access_until) return "Ongoing access";
   const ended = new Date(p.access_until) < new Date();
@@ -51,9 +72,13 @@ export function accessLine(p: MyPackagePurchase): string {
 
 /** Abandoned checkouts (incomplete, or expired without paying) aren't
  * purchases from the user's point of view. Paid one-offs that have run out
- * stay, labelled "Ended". */
+ * stay, labelled "Ended". A live package a coach set up to bill later has
+ * no payment yet but is shown. */
 export function visiblePurchases(purchases: MyPackagePurchase[]) {
-  return purchases.filter((p) => p.paid_at !== null);
+  return purchases.filter(
+    (p) =>
+      p.paid_at !== null || p.status === "active" || p.status === "past_due",
+  );
 }
 
 /** Purchases whose access belongs to the given profile. */
@@ -94,8 +119,11 @@ export function packageInitials(name: string): string {
 
 /** "Oct 2026" — when the membership started. */
 export function memberSince(p: MyPackagePurchase): string {
-  return new Date(p.paid_at ?? p.created_at).toLocaleDateString("en-NZ", {
-    month: "short",
-    year: "numeric",
-  });
+  return new Date(p.starts_at ?? p.paid_at ?? p.created_at).toLocaleDateString(
+    "en-NZ",
+    {
+      month: "short",
+      year: "numeric",
+    },
+  );
 }

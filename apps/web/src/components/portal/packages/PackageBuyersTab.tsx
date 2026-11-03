@@ -15,6 +15,7 @@ import { matchesSearch } from "../ui/ListToolbar";
 import { usePackageDetailContext } from "./PackageDetailShell";
 
 const STATUS: Record<BuyerStatus, { label: string; className: string }> = {
+  scheduled: { label: "Scheduled", className: "text-[#0047BA]" },
   active: { label: "Active", className: "text-[#38A169]" },
   past_due: { label: "Past due", className: "text-amber-600" },
   cancelling: { label: "Cancelling", className: "text-amber-600" },

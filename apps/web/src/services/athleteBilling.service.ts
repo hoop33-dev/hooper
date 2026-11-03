@@ -9,6 +9,7 @@ import { invokeFunction } from "./_invoke";
 
 export type AthleteMembership = {
   id: string;
+  packageId: string;
   packageName: string;
   kind: "subscription" | "one_time";
   status: "active" | "past_due" | "canceled" | "expired";
@@ -22,6 +23,11 @@ export type AthleteMembership = {
   accessUntil: string | null;
   createdAt: string;
   payerProfileId: string;
+  /** When access starts, for a package a coach scheduled ahead; null =
+   * from creation. */
+  startsAt: string | null;
+  /** The first charge, when it's later than creation. */
+  billingStartsAt: string | null;
 };
 
 export type AthleteCard = {
@@ -56,8 +62,23 @@ export type AthleteInvoice = {
 
 export type AthleteBilling = {
   memberships: AthleteMembership[];
+  /** Whoever pays for the athlete's existing packages. */
   payers: AthletePayer[];
+  /** Who a new package can be charged to: the athlete or an actively
+   * linked parent, with an unexpired saved card. */
+  billable: AthletePayer[];
   invoices: AthleteInvoice[];
+};
+
+export type MembershipChange = {
+  cancel?: { purchaseId: string; when: "period_end" | "now" };
+  add?: {
+    packageId: string;
+    payerProfileId: string;
+    /** NZ calendar days, YYYY-MM-DD. */
+    startDate: string;
+    billingDate: string;
+  };
 };
 
 export const getAthleteBilling = cache(
@@ -94,6 +115,34 @@ export async function sendAthletePasswordReset(
   const result = await invokeFunction("coach-athlete", {
     action: "send_password_reset",
     athleteId,
+  });
+  return result.ok ? ok(undefined) : err(result.error);
+}
+
+/** Cancels a package, starts one on the payer's saved card, or both (a
+ * switch). The edge function adds first, so a declined card leaves the old
+ * package untouched. */
+export async function changeAthleteMembership(
+  athleteId: string,
+  change: MembershipChange,
+): Promise<Result<void>> {
+  const result = await invokeFunction("coach-athlete", {
+    action: "change_membership",
+    athleteId,
+    ...change,
+  });
+  return result.ok ? ok(undefined) : err(result.error);
+}
+
+/** Undoes a pending end-of-period cancel. */
+export async function keepAthleteMembership(
+  athleteId: string,
+  purchaseId: string,
+): Promise<Result<void>> {
+  const result = await invokeFunction("coach-athlete", {
+    action: "keep_membership",
+    athleteId,
+    purchaseId,
   });
   return result.ok ? ok(undefined) : err(result.error);
 }

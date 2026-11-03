@@ -4,6 +4,7 @@ import { cn } from "@/src/lib/cn";
 import type { PackagePricingDraft } from "@/src/lib/packages";
 import type { PackageBillingInterval, PackageBillingType } from "@hooper/db";
 import { useId } from "react";
+import { SegmentedControl } from "../ui/SegmentedControl";
 import { ToggleSwitch } from "../ui/ToggleSwitch";
 import {
   packageFieldClass,
@@ -25,33 +26,6 @@ const INTERVAL_OPTIONS: [PackageBillingInterval, string][] = [
 
 const numberInputClass =
   "min-w-0 flex-1 bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-
-function BillingToggle({
-  value,
-  onChange,
-}: {
-  value: PackageBillingType;
-  onChange: (v: PackageBillingType) => void;
-}) {
-  return (
-    <div className="border-portal-border bg-portal-bg flex gap-0.5 rounded-lg border p-[3px]">
-      {BILLING_OPTIONS.map(([v, label]) => (
-        <button
-          key={v}
-          type="button"
-          onClick={() => onChange(v)}
-          className={cn(
-            "flex-1 cursor-pointer rounded-md border px-2.5 py-1.5 text-xs font-semibold",
-            value === v
-              ? "border-portal-border bg-portal-card text-portal-text1"
-              : "text-portal-text3 border-transparent",
-          )}>
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 /** Weeks of access for a one-off package, or unlimited. A div rather than a
  * <label> wrapper so clicking the switch doesn't also focus the input. */
@@ -112,7 +86,8 @@ export function PackagePriceFields({
     <div className="flex flex-col gap-4">
       <div>
         <span className={packageLabelClass}>Billing</span>
-        <BillingToggle
+        <SegmentedControl
+          options={BILLING_OPTIONS}
           value={value.billing_type}
           onChange={(billing_type) => onChange({ billing_type })}
         />

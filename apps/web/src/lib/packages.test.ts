@@ -261,6 +261,7 @@ describe("buyerStatus / buyerAccessLabel", () => {
     current_period_end: "2026-11-30T00:00:00Z",
     access_until: null,
     canceled_at: null,
+    starts_at: null,
   };
   const oneOff = {
     ...sub,
@@ -268,6 +269,12 @@ describe("buyerStatus / buyerAccessLabel", () => {
     current_period_end: null,
     access_until: "2026-12-15T00:00:00Z",
   };
+
+  it("reads a package that hasn't started yet as scheduled", () => {
+    const b = { ...sub, is_active: false, starts_at: "2099-01-05T00:00:00Z" };
+    expect(buyerStatus(b)).toBe("scheduled");
+    expect(buyerAccessLabel(b)).toBe("Starts Jan 5, 2099");
+  });
 
   it("renews an active subscription", () => {
     expect(buyerStatus(sub)).toBe("active");

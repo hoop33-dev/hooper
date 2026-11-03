@@ -1,10 +1,13 @@
 // Deploy: supabase functions deploy coach-athlete
 //
 // Authenticated, coaches only. The coach portal's athlete page:
-//   { action: "summary", athleteId } → { memberships, payers, invoices }
+//   { action: "summary", athleteId }
+//     → { memberships, payers, billable, invoices }
 //     The athlete's packages, the card on file for whoever pays for them
 //     (brand/last4/expiry only) and the Stripe invoices/receipts for this
 //     athlete's purchases — a parent's other children are filtered out.
+//     `billable` is who a new package can be charged to: the athlete and
+//     their actively linked parents, with the card each has saved.
 //   { action: "send_password_reset", athleteId } → { ok }
 //     Emails the athlete Supabase's own reset link, to the address already
 //     on their account. Refused for child accounts (their parent sets the
@@ -13,11 +16,17 @@
 //     → { ok, status }
 //     Retries that unpaid invoice of one of this athlete's past_due
 //     memberships against the card already on file.
+//   { action: "change_membership", athleteId, cancel?, add? } → { ok }
+//     cancel: { purchaseId, when: "period_end" | "now" }
+//     add:    { packageId, payerProfileId, startDate, billingDate }
+//     Cancels a package, starts one on the payer's saved card, or both (a
+//     switch) — see ./memberships.ts.
+//   { action: "keep_membership", athleteId, purchaseId } → { ok }
+//     Undoes a pending end-of-period cancel.
 //
-// Deliberately read-mostly: there is no path here to start a checkout,
-// attach or change a card, cancel, refund or create any new charge — a
-// coach can only collect what an athlete already owes. Every write lands
-// in coach_audit_log. The writes refuse coach profiles as the target, like
+// A coach can never see, attach or change a card, or refund: new charges
+// only go to a card the payer saved themselves. Every write lands in
+// coach_audit_log. The writes refuse coach profiles as the target, like
 // coach_update_athlete_profile does.
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
@@ -32,9 +41,16 @@ import {
   type CardSummary,
   defaultPaymentMethod,
 } from "../_shared/stripe.ts";
+import {
+  changeMembership,
+  keepMembership,
+  parseAdd,
+  parseCancel,
+} from "./memberships.ts";
 
 type Membership = {
   id: string;
+  packageId: string;
   packageName: string;
   kind: "subscription" | "one_time";
   status: "active" | "past_due" | "canceled" | "expired";
@@ -47,6 +63,10 @@ type Membership = {
   accessUntil: string | null;
   createdAt: string;
   payerProfileId: string;
+  /** When access starts; null = from creation. */
+  startsAt: string | null;
+  /** First charge; null = charged at creation. */
+  billingStartsAt: string | null;
 };
 
 type Payer = {
@@ -80,6 +100,8 @@ Deno.serve(async (req: Request) => {
       athleteId?: unknown;
       purchaseId?: unknown;
       invoiceId?: unknown;
+      cancel?: unknown;
+      add?: unknown;
     };
     try {
       body = await req.json();
@@ -97,7 +119,9 @@ Deno.serve(async (req: Request) => {
 
     if (
       body.action === "send_password_reset" ||
-      body.action === "retry_payment"
+      body.action === "retry_payment" ||
+      body.action === "change_membership" ||
+      body.action === "keep_membership"
     ) {
       const { data: targetRole, error: targetError } = await admin
         .from("user_roles")
@@ -149,6 +173,44 @@ Deno.serve(async (req: Request) => {
       return res;
     }
 
+    if (body.action === "change_membership") {
+      const cancel = parseCancel(body.cancel);
+      const add = parseAdd(body.add);
+      if (cancel === false || add === false || (!cancel && !add)) {
+        return json(400, { ok: false, error: "Invalid membership change" });
+      }
+      if (!(await throttle(admin, `coach-membership:${athleteId}`, 20, 3600))) {
+        return json(429, {
+          ok: false,
+          error: "Too many changes. Please wait a while and try again.",
+        });
+      }
+      const { response, details } = await changeMembership(
+        admin,
+        athleteId,
+        caller.profileId,
+        cancel,
+        add,
+      );
+      await audit(admin, caller.profileId, athleteId, "change_membership", {
+        ...details,
+        ok: response.ok,
+      });
+      return response;
+    }
+
+    if (body.action === "keep_membership") {
+      if (typeof body.purchaseId !== "string") {
+        return json(400, { ok: false, error: "Missing membership" });
+      }
+      const res = await keepMembership(admin, athleteId, body.purchaseId);
+      await audit(admin, caller.profileId, athleteId, "keep_membership", {
+        purchase_id: body.purchaseId,
+        ok: res.ok,
+      });
+      return res;
+    }
+
     return json(400, { ok: false, error: "Unknown action" });
   } catch (err) {
     console.error("coach-athlete: unhandled error", err);
@@ -160,7 +222,7 @@ async function summary(admin: SupabaseClient, athleteId: string) {
   const { data, error } = await admin
     .from("package_purchases")
     .select(
-      "id, kind, status, amount_cents, currency, current_period_end, cancel_at_period_end, paid_at, access_until, created_at, payer_profile_id, stripe_subscription_id, stripe_payment_intent_id, packages(name, billing_interval), payer:profiles!package_purchases_payer_profile_id_fkey(first_name, last_name)",
+      "id, package_id, kind, status, amount_cents, currency, current_period_end, cancel_at_period_end, paid_at, access_until, created_at, payer_profile_id, starts_at, billing_starts_at, stripe_subscription_id, stripe_payment_intent_id, stripe_invoice_id, packages(name, billing_interval)",
     )
     .eq("athlete_profile_id", athleteId)
     .neq("status", "incomplete")
@@ -169,6 +231,7 @@ async function summary(admin: SupabaseClient, athleteId: string) {
 
   const rows = (data ?? []) as unknown as Array<{
     id: string;
+    package_id: string;
     kind: Membership["kind"];
     status: Membership["status"];
     amount_cents: number;
@@ -179,14 +242,17 @@ async function summary(admin: SupabaseClient, athleteId: string) {
     access_until: string | null;
     created_at: string;
     payer_profile_id: string;
+    starts_at: string | null;
+    billing_starts_at: string | null;
     stripe_subscription_id: string | null;
     stripe_payment_intent_id: string | null;
+    stripe_invoice_id: string | null;
     packages: { name: string; billing_interval: string | null } | null;
-    payer: { first_name: string | null; last_name: string | null } | null;
   }>;
 
   const memberships: Membership[] = rows.map((r) => ({
     id: r.id,
+    packageId: r.package_id,
     packageName: r.packages?.name ?? "Package",
     kind: r.kind,
     status: r.status,
@@ -200,34 +266,60 @@ async function summary(admin: SupabaseClient, athleteId: string) {
     accessUntil: r.access_until,
     createdAt: r.created_at,
     payerProfileId: r.payer_profile_id,
+    startsAt: r.starts_at,
+    billingStartsAt: r.billing_starts_at,
   }));
 
   // Usually one payer (the athlete, or their parent), but an athlete who
   // bought one package themselves and had another bought for them has two.
   const payerIds = [...new Set(rows.map((r) => r.payer_profile_id))];
-  const { data: customers, error: custError } = payerIds.length
-    ? await admin
-        .from("billing_customers")
-        .select("profile_id, stripe_customer_id")
-        .in("profile_id", payerIds)
-    : { data: [], error: null };
+
+  // Who a new package could be charged to: the athlete and their actively
+  // linked parents.
+  const { data: links, error: linkError } = await admin
+    .from("parent_player_links")
+    .select("parent_profile_id")
+    .eq("player_profile_id", athleteId)
+    .eq("status", "active");
+  if (linkError) throw new Error(linkError.message);
+  const billableIds = [
+    ...new Set([athleteId, ...(links ?? []).map((l) => l.parent_profile_id)]),
+  ];
+
+  const profileIds = [...new Set([...payerIds, ...billableIds])];
+  const [
+    { data: customers, error: custError },
+    { data: people, error: peopleError },
+  ] = await Promise.all([
+    admin
+      .from("billing_customers")
+      .select("profile_id, stripe_customer_id")
+      .in("profile_id", profileIds),
+    admin
+      .from("profiles")
+      .select("id, first_name, last_name")
+      .in("id", profileIds),
+  ]);
   if (custError) throw new Error(custError.message);
+  if (peopleError) throw new Error(peopleError.message);
   const customerOf = new Map(
     (customers ?? []).map((c) => [c.profile_id, c.stripe_customer_id]),
   );
+  const nameOf = new Map(
+    (people ?? []).map((p) => [
+      p.id,
+      [p.first_name, p.last_name].filter(Boolean).join(" ") || "Unknown",
+    ]),
+  );
 
-  const [payers, invoices] = await Promise.all([
+  const [everyone, invoices] = await Promise.all([
     Promise.all(
-      payerIds.map(async (id): Promise<Payer> => {
-        const row = rows.find((r) => r.payer_profile_id === id)!;
+      profileIds.map(async (id): Promise<Payer> => {
         const customer = customerOf.get(id);
         const pm = customer ? await defaultPaymentMethod(customer) : null;
         return {
           profileId: id,
-          name:
-            [row.payer?.first_name, row.payer?.last_name]
-              .filter(Boolean)
-              .join(" ") || "Unknown",
+          name: nameOf.get(id) ?? "Unknown",
           isSelf: id === athleteId,
           card: pm ? cardSummary(pm) : null,
         };
@@ -237,7 +329,11 @@ async function summary(admin: SupabaseClient, athleteId: string) {
     // "caller" keeps descriptions to just the package name.
     listPurchaseInvoices(admin, rows, athleteId),
   ]);
-  return { memberships, payers, invoices };
+  const payers = everyone.filter((p) => payerIds.includes(p.profileId));
+  const billable = everyone.filter(
+    (p) => billableIds.includes(p.profileId) && p.card && !p.card.expired,
+  );
+  return { memberships, payers, billable, invoices };
 }
 
 async function sendPasswordReset(

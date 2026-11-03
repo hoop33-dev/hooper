@@ -91,8 +91,9 @@ function toIso(unixSeconds: number | null | undefined): string | null {
 }
 
 async function onInvoicePaid(admin: SupabaseClient, invoice: Stripe.Invoice) {
+  if (invoice.status !== "paid") return;
   const subId = invoiceSubscriptionId(invoice);
-  if (!subId || invoice.status !== "paid") return;
+  if (!subId) return onOneOffInvoicePaid(admin, invoice);
   const periodEnd = Math.max(
     0,
     ...invoice.lines.data.map((l) => l.period?.end ?? 0),
@@ -116,7 +117,9 @@ async function onInvoicePaid(admin: SupabaseClient, invoice: Stripe.Invoice) {
     .update({
       status: "active",
       current_period_end: toIso(periodEnd),
-      paid_at: row.paid_at ?? paidAt,
+      // A coach-started subscription's trial opens with a $0 invoice; that
+      // isn't a payment.
+      paid_at: row.paid_at ?? (invoice.amount_paid > 0 ? paidAt : null),
     })
     .eq("id", row.id)
     // Never resurrect a cancelled purchase from a late invoice event.
@@ -124,9 +127,36 @@ async function onInvoicePaid(admin: SupabaseClient, invoice: Stripe.Invoice) {
   if (error) throw new Error(error.message);
 }
 
+/** A coach-started one-off is charged by a standalone invoice. Its row is
+ * already 'active' (access runs from the start date), so this records the
+ * payment and clears a past_due left by an earlier failed attempt. */
+async function onOneOffInvoicePaid(
+  admin: SupabaseClient,
+  invoice: Stripe.Invoice,
+) {
+  const paidAt =
+    toIso(invoice.status_transitions?.paid_at) ?? new Date().toISOString();
+  const { error } = await admin
+    .from("package_purchases")
+    .update({ status: "active", paid_at: paidAt })
+    .eq("stripe_invoice_id", invoice.id!)
+    .in("status", ["active", "past_due"])
+    .is("paid_at", null);
+  if (error) throw new Error(error.message);
+}
+
 async function onInvoiceFailed(admin: SupabaseClient, invoice: Stripe.Invoice) {
   const subId = invoiceSubscriptionId(invoice);
-  if (!subId) return;
+  if (!subId) {
+    // A coach-started one-off whose scheduled charge was declined.
+    const { error } = await admin
+      .from("package_purchases")
+      .update({ status: "past_due" })
+      .eq("stripe_invoice_id", invoice.id!)
+      .eq("status", "active");
+    if (error) throw new Error(error.message);
+    return;
+  }
   // Only a renewal failure moves to past_due; a failed first payment stays
   // incomplete (the user sees the decline inline and can retry).
   const { error } = await admin

@@ -2,6 +2,7 @@
 
 import { mergeAthletePrograms } from "@/src/lib/athletePrograms";
 import { formatProgramSub, formatShortDate, plural } from "@/src/lib/format";
+import { isUpcoming } from "@/src/lib/membershipChange";
 import type {
   AthleteAccount,
   AthletePackage,
@@ -35,6 +36,7 @@ import {
 import { useToast } from "../ui/Toast";
 import { useOptimisticDetail } from "../ui/useOptimisticDetail";
 import { AthleteAvatar, TeamTile, athleteName } from "./AthleteAvatar";
+import type { ChangeInit } from "./billing/ChangePackageModal";
 
 type ActionResult = { ok: boolean; error?: string };
 type Picker = "program" | "team" | null;
@@ -272,20 +274,30 @@ function pickerItems(
 function actionTab(pathname: string, basePath: string) {
   if (pathname === basePath) return "training";
   if (pathname === `${basePath}/details`) return "details";
+  if (pathname === `${basePath}/billing`) return "billing";
   return null;
 }
 
 /** The tab row's buttons: assign/add on Programs & teams, the password
- * reset on Details, nothing on Billing. */
+ * reset on Details, add package on Billing. */
 function AthleteTabAction({
   tab,
   onPick,
+  onAddPackage,
   passwordReset,
 }: {
-  tab: "training" | "details" | null;
+  tab: ReturnType<typeof actionTab>;
   onPick: (picker: Exclude<Picker, null>) => void;
+  onAddPackage: () => void;
   passwordReset: ReturnType<typeof usePasswordReset>;
 }) {
+  if (tab === "billing") {
+    return (
+      <PortalButton variant="primary" onClick={onAddPackage}>
+        <PlusIcon size={14} /> Add package
+      </PortalButton>
+    );
+  }
   if (tab === "training") {
     return (
       <div className="flex gap-2">
@@ -342,19 +354,37 @@ function AthleteHeader({
   );
 }
 
+/** Packages the athlete has now, plus ones that start later. */
+function currentPackages(packages: AthletePackage[]): AthletePackage[] {
+  return packages.filter(
+    (p) =>
+      p.isActive ||
+      ((p.status === "active" || p.status === "past_due") &&
+        isUpcoming(p.startsAt)),
+  );
+}
+
+function usePackageChange() {
+  const [init, setInit] = useState<ChangeInit | null>(null);
+  return { init, open: setInit, close: () => setInit(null) };
+}
+
 type AthleteDetailContextValue = {
   athlete: AthleteDetail;
   /** Null when the coach_athlete_account RPC failed. */
   account: AthleteAccount | null;
   links: ReturnType<typeof useAthleteLinks>;
   packagePrograms: AthletePackageProgram[];
-  /** Packages the athlete has access to right now. */
+  /** Packages the athlete has access to now, or that start later. */
   packages: AthletePackage[];
   /** `/athletes/<id>` — the Programs & teams tab; other tabs hang off it. */
   basePath: string;
   openPicker: (picker: Exclude<Picker, null>) => void;
   passwordReset: ReturnType<typeof usePasswordReset>;
   saveProfile: ReturnType<typeof useAthleteProfile>["save"];
+  /** The Billing tab's change-package modal. Held here so the tab row's
+   * "Add package" button can open it; the Billing tab renders it. */
+  packageChange: ReturnType<typeof usePackageChange>;
 };
 
 const AthleteDetailContext = createContext<AthleteDetailContextValue | null>(
@@ -414,10 +444,11 @@ export function AthleteDetailShell({
     actions.sendPasswordResetAction,
   );
   const [picker, setPicker] = useState<Picker>(null);
+  const packageChange = usePackageChange();
   const pathname = usePathname();
   const name = athleteName(athlete);
   const basePath = `/athletes/${athlete.id}`;
-  const activePackages = packages.filter((p) => p.isActive);
+  const activePackages = currentPackages(packages);
 
   const programs = mergeAthletePrograms(
     links.local.programs,
@@ -448,6 +479,7 @@ export function AthleteDetailShell({
         openPicker: setPicker,
         passwordReset,
         saveProfile: profile.save,
+        packageChange,
       }}>
       <div className="flex h-full flex-col overflow-hidden">
         <AthleteHeader
@@ -462,6 +494,9 @@ export function AthleteDetailShell({
             <AthleteTabAction
               tab={actionTab(pathname, basePath)}
               onPick={setPicker}
+              onAddPackage={() =>
+                packageChange.open({ cancelId: null, add: true })
+              }
               passwordReset={passwordReset}
             />
           }

@@ -222,6 +222,8 @@ export type PackagePurchaseRow = {
   status: PackagePurchaseStatus;
   stripe_subscription_id: string | null;
   stripe_payment_intent_id: string | null;
+  /** A coach-started one-off, charged by a (possibly scheduled) invoice. */
+  stripe_invoice_id: string | null;
   amount_cents: number;
   currency: string;
   current_period_end: string | null;
@@ -231,6 +233,13 @@ export type PackagePurchaseRow = {
   /** Stopped by the payer; access runs to current_period_end, then ends. */
   cancel_at_period_end: boolean;
   cancel_reason: string | null;
+  /** When access starts; null = from creation. Only a coach-started
+   * package can start later than it was created. */
+  starts_at: string | null;
+  /** The first charge; null = charged at creation. */
+  billing_starts_at: string | null;
+  /** The coach who started it from the portal, if any. */
+  created_by_coach: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -247,7 +256,8 @@ export type PackageBuyerRow = {
   avatar_url: string | null;
   kind: PackagePurchaseKind;
   status: PackagePurchaseStatus;
-  /** Currently has access — same rule as package_program_ids(). */
+  /** Currently has access — purchase_is_live(), the same rule as
+   * package_program_ids(). False for a package that hasn't started yet. */
   is_active: boolean;
   created_at: string;
   paid_at: string | null;
@@ -256,6 +266,7 @@ export type PackageBuyerRow = {
   canceled_at: string | null;
   cancel_at_period_end: boolean;
   package_slug: string;
+  starts_at: string | null;
 };
 
 /** view: package_buyer_counts — coach-only, one row per live package with
@@ -303,6 +314,7 @@ export type MyPackagePurchase = Pick<
   | "created_at"
   | "payer_profile_id"
   | "athlete_profile_id"
+  | "starts_at"
 > & {
   package_name: string;
   package_slug: string;

@@ -387,6 +387,9 @@ export type AthletePackage = PackagePricing & {
   cancelAtPeriodEnd: boolean;
   paidAt: string | null;
   createdAt: string;
+  /** Set for a package that starts later than it was added; while it's
+   * ahead, isActive is false. */
+  startsAt: string | null;
 };
 
 export const listAthletePackages = cache(async function listAthletePackages(
@@ -434,6 +437,7 @@ export const listAthletePackages = cache(async function listAthletePackages(
             cancelAtPeriodEnd: b.cancel_at_period_end,
             paidAt: b.paid_at,
             createdAt: b.created_at,
+            startsAt: b.starts_at,
           },
         ];
       }),

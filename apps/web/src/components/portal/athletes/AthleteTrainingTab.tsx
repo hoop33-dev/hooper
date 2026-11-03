@@ -5,6 +5,7 @@ import {
   type AthleteProgramEntry,
 } from "@/src/lib/athletePrograms";
 import { formatShortDate, plural } from "@/src/lib/format";
+import { isUpcoming, startsLabel } from "@/src/lib/membershipChange";
 import { money } from "@/src/lib/packages";
 import type { AthletePackage } from "@/src/services/athlete.service";
 import type { AthleteTeam, ProgramProgressStats } from "@hooper/db";
@@ -42,16 +43,21 @@ export function PackageTile({ size = 34 }: { size?: number }) {
 }
 
 /** "Active" / "Past due" / "Cancelling" for a membership, "Paid" for a
- * one-off. */
+ * one-off, "Starts Nov 12" for either before its start date. */
 export function PackageStatusBadge({
   status,
   recurring,
   cancelAtPeriodEnd,
+  startsAt = null,
 }: {
   status: AthletePackage["status"];
   recurring: boolean;
   cancelAtPeriodEnd: boolean;
+  startsAt?: string | null;
 }) {
+  if (status === "active" && isUpcoming(startsAt)) {
+    return <PortalBadge variant="blue">{startsLabel(startsAt!)}</PortalBadge>;
+  }
   if (status === "past_due")
     return <PortalBadge variant="red">Past due</PortalBadge>;
   if (status === "canceled" || status === "expired") {
@@ -68,6 +74,13 @@ export function PackageStatusBadge({
 }
 
 function packageSub(p: AthletePackage): string {
+  if (isUpcoming(p.startsAt)) {
+    const price =
+      p.billing_type === "recurring"
+        ? `${money(p.price_cents)}/${p.billing_interval}`
+        : `${money(p.price_cents)} one-off`;
+    return `${price}, starts ${formatShortDate(p.startsAt!)}`;
+  }
   if (p.billing_type === "recurring") {
     const price = `${money(p.price_cents)}/${p.billing_interval}`;
     if (!p.currentPeriodEnd) return price;
@@ -211,6 +224,7 @@ function AthletePackagesCard({
                 status={p.status}
                 recurring={p.billing_type === "recurring"}
                 cancelAtPeriodEnd={p.cancelAtPeriodEnd}
+                startsAt={p.startsAt}
               />
             }
           />

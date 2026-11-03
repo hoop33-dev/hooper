@@ -31,6 +31,7 @@ export function purchase(
     coach_names: ["Marcus Davis"],
     team_names: [],
     leaving_team_names: [],
+    starts_at: null,
     ...over,
   };
 }

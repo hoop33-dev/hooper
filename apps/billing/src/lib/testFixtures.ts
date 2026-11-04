@@ -32,6 +32,7 @@ export function purchase(
     team_names: [],
     leaving_team_names: [],
     starts_at: null,
+    switched_to_package_name: null,
     ...over,
   };
 }

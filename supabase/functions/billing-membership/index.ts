@@ -108,9 +108,12 @@ Deno.serve(async (req: Request) => {
       await stripe.subscriptions.update(row.stripe_subscription_id, {
         cancel_at_period_end: false,
       });
+      // Kept, so a coach's switch away from it no longer applies.
       await update(admin, row.id, {
         cancel_at_period_end: false,
         cancel_reason: null,
+        switched_to_purchase_id: null,
+        switched_at: null,
       });
       return json(200, { ok: true });
     }

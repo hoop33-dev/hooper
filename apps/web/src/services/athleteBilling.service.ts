@@ -28,6 +28,9 @@ export type AthleteMembership = {
   startsAt: string | null;
   /** The first charge, when it's later than creation. */
   billingStartsAt: string | null;
+  /** The package a coach's switch replaced this one with. Optional until
+   * the coach-athlete function returning it is deployed. */
+  switchedToName?: string | null;
 };
 
 export type AthleteCard = {

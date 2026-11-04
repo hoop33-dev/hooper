@@ -46,6 +46,16 @@ export function isUpcoming(
   return !!startsAt && new Date(startsAt) > now;
 }
 
+/** "Switching to X" while a package a coach switched away from runs out,
+ * "Switched to X" once it has ended; null if it wasn't switched. */
+export function switchLabel(
+  switchedTo: string | null | undefined,
+  ended: boolean,
+): string | null {
+  if (!switchedTo) return null;
+  return `${ended ? "Switched" : "Switching"} to ${switchedTo}`;
+}
+
 /** "Starts Nov 12" (or "Starts Jan 4, 2027" in a later year) for a package
  * that hasn't reached its start date. */
 export function startsLabel(startsAt: string, now: Date = new Date()): string {

@@ -8,6 +8,7 @@ import {
   isUpcoming,
   renewalDay,
   startsLabel,
+  switchLabel,
   zonedDay,
   type AddSide,
   type CancelSide,
@@ -145,5 +146,15 @@ describe("changeCtaLabel", () => {
     expect(changeCtaLabel(true, false, "period_end")).toBe(
       "Cancel at period end",
     );
+  });
+});
+
+describe("switchLabel", () => {
+  it("reads Switching while it runs out and Switched once ended", () => {
+    expect(switchLabel("Elite", false)).toBe("Switching to Elite");
+    expect(switchLabel("Elite", true)).toBe("Switched to Elite");
+  });
+  it("is null when it wasn't switched", () => {
+    expect(switchLabel(null, true)).toBeNull();
   });
 });

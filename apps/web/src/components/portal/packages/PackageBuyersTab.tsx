@@ -2,6 +2,7 @@
 
 import { cn } from "@/src/lib/cn";
 import { formatShortDate } from "@/src/lib/format";
+import { switchLabel } from "@/src/lib/membershipChange";
 import {
   BUYER_COLUMNS,
   buyerAccessLabel,
@@ -23,7 +24,14 @@ const STATUS: Record<BuyerStatus, { label: string; className: string }> = {
 };
 
 function StatusCell({ buyer }: { buyer: PackageBuyerRow }) {
-  const { label, className } = STATUS[buyerStatus(buyer)];
+  const status = buyerStatus(buyer);
+  const { label: plain, className } = STATUS[status];
+  // A coach's switch away from it, while it runs out and once it's ended.
+  const switched =
+    status === "cancelling" || status === "ended"
+      ? switchLabel(buyer.switched_to_package_name, status === "ended")
+      : null;
+  const label = switched ?? plain;
   return (
     <span
       className={cn(

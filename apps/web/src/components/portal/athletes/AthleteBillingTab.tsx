@@ -204,6 +204,7 @@ function MembershipsCard({
                     recurring={m.kind === "subscription"}
                     cancelAtPeriodEnd={m.cancelAtPeriodEnd}
                     startsAt={m.startsAt}
+                    switchedTo={m.switchedToName}
                   />
                 </div>
                 <div className="text-portal-text3 mt-0.5 text-xs">

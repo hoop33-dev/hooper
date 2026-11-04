@@ -139,7 +139,7 @@ export async function changeMembership(
 
     if (old) {
       try {
-        await cancelMembership(admin, old, cancel!.when);
+        await cancelMembership(admin, old, cancel!.when, addedId);
       } catch (err) {
         if (!addedId) throw err;
         console.error("coach-athlete: cancel after add failed", err);
@@ -187,9 +187,13 @@ export async function keepMembership(
     await stripe.subscriptions.update(row.stripe_subscription_id, {
       cancel_at_period_end: false,
     });
+    // Kept, so it no longer counts as switched: any package it was being
+    // switched to stays, for the coach to cancel separately.
     await updatePurchase(admin, row.id, {
       cancel_at_period_end: false,
       cancel_reason: null,
+      switched_to_purchase_id: null,
+      switched_at: null,
     });
     return json(200, { ok: true });
   } catch (err) {
@@ -242,16 +246,25 @@ function checkCancellable(row: PurchaseRow, when: CancelWhen) {
   }
 }
 
+/** `switchedTo` is the purchase a switch added in this one's place. */
 async function cancelMembership(
   admin: SupabaseClient,
   row: PurchaseRow,
   when: CancelWhen,
+  switchedTo: string | null,
 ) {
+  const switched = switchedTo
+    ? {
+        switched_to_purchase_id: switchedTo,
+        switched_at: new Date().toISOString(),
+      }
+    : {};
   const endedNow = {
     status: "canceled",
     canceled_at: new Date().toISOString(),
     cancel_at_period_end: false,
     cancel_reason: CANCEL_REASON,
+    ...switched,
   };
 
   if (row.kind === "one_time") {
@@ -292,6 +305,7 @@ async function cancelMembership(
   await updatePurchase(admin, row.id, {
     cancel_at_period_end: true,
     cancel_reason: CANCEL_REASON,
+    ...switched,
   });
 }
 

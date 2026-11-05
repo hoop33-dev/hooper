@@ -12,6 +12,7 @@ import {
   statusTag,
 } from "@/src/lib/purchases";
 import type { MyPackagePurchase } from "@hooper/db";
+import { switchLabel } from "@hooper/shared";
 
 const BILLING: Record<string, string> = {
   week: "Weekly",
@@ -162,13 +163,14 @@ function AttentionBand({ purchase: p }: { purchase: MyPackagePurchase }) {
     );
   }
   if (!isEnding(p)) return null;
+  const switching = switchLabel(p.switched_to_package_name, false);
   const until = p.current_period_end ? formatDate(p.current_period_end) : "";
   return (
     <div className="border-bp-border bg-bp-bg text-bp-text2 flex items-center gap-2.5 border-t px-4 py-[11px] md:px-[22px]">
       <ClockIcon size={15} className="text-bp-text3 shrink-0" />
       <span className="min-w-0 flex-1 text-[12.5px] font-semibold">
-        {p.switched_to_package_name
-          ? `Switching to ${p.switched_to_package_name} — access until ${until}, no more charges for this package`
+        {switching
+          ? `${switching} — access until ${until}, no more charges for this package`
           : `Cancelled — access until ${until}, no more charges`}
       </span>
     </div>

@@ -188,12 +188,9 @@ async function onSubscriptionChanged(
   if (status === "canceled") {
     update.canceled_at = toIso(sub.canceled_at) ?? new Date().toISOString();
   }
-  // A pending switch is always cancel_at_period_end, so a subscription that
-  // is still running and not cancelling was kept (e.g. in the dashboard).
-  if (status !== "canceled" && !sub.cancel_at_period_end) {
-    update.switched_to_purchase_id = null;
-    update.switched_at = null;
-  }
+  // switched_to_purchase_id is left alone: it only shows while the row is
+  // ending or ended, so a subscription kept in the dashboard hides it
+  // anyway, and clearing it here would race the coach's switch writing it.
 
   let query = admin
     .from("package_purchases")

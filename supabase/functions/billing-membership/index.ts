@@ -84,6 +84,7 @@ Deno.serve(async (req: Request) => {
           canceled_at: new Date().toISOString(),
           cancel_at_period_end: false,
           cancel_reason: reason,
+          ...NOT_SWITCHED,
         });
       } else {
         await stripe.subscriptions.update(row.stripe_subscription_id, {
@@ -93,6 +94,7 @@ Deno.serve(async (req: Request) => {
         await update(admin, row.id, {
           cancel_at_period_end: true,
           cancel_reason: reason,
+          ...NOT_SWITCHED,
         });
       }
       return json(200, { ok: true });
@@ -112,8 +114,7 @@ Deno.serve(async (req: Request) => {
       await update(admin, row.id, {
         cancel_at_period_end: false,
         cancel_reason: null,
-        switched_to_purchase_id: null,
-        switched_at: null,
+        ...NOT_SWITCHED,
       });
       return json(200, { ok: true });
     }
@@ -127,6 +128,10 @@ Deno.serve(async (req: Request) => {
     });
   }
 });
+
+/** The payer's own cancel or keep is their choice, not a coach's switch;
+ * the webhook never clears this, so any stale link goes here. */
+const NOT_SWITCHED = { switched_to_purchase_id: null, switched_at: null };
 
 async function update(
   admin: ReturnType<typeof adminClient>,

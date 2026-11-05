@@ -1,5 +1,9 @@
+import type {
+  AthleteMembership,
+  MembershipChange,
+} from "@/src/services/athleteBilling.service";
 import { PORTAL_TIME_ZONE } from "./format";
-import { money } from "./packages";
+import { money, type PackagePricing } from "./packages";
 
 /** A calendar day in NZ time, "YYYY-MM-DD" — the value of a date input and
  * what the coach-athlete edge function takes for start and billing dates. */
@@ -44,16 +48,6 @@ export function isUpcoming(
   now: Date = new Date(),
 ): boolean {
   return !!startsAt && new Date(startsAt) > now;
-}
-
-/** "Switching to X" while a package a coach switched away from runs out,
- * "Switched to X" once it has ended; null if it wasn't switched. */
-export function switchLabel(
-  switchedTo: string | null | undefined,
-  ended: boolean,
-): string | null {
-  if (!switchedTo) return null;
-  return `${ended ? "Switched" : "Switching"} to ${switchedTo}`;
 }
 
 /** "Starts Nov 12" (or "Starts Jan 4, 2027" in a later year) for a package
@@ -188,4 +182,88 @@ export function changeSuccessMessage(
   if (cancelling && adding) return "Package switched";
   if (adding) return "Package added";
   return when === "now" ? "Package cancelled" : "Cancels at period end";
+}
+
+/** Marks a row `applyMembershipChange` made up for a package being added:
+ * it has no real id yet, so it gets no actions until the refresh. */
+export const PENDING_PREFIX = "pending:";
+
+/** A day's instant for display: the old package's period end when the day
+ * is its renewal day (the edge function lines a switch up to it), else
+ * midday UTC, which is the same NZ day. */
+function dayInstant(day: Day, anchor: string | null): string {
+  if (anchor && zonedDay(anchor) === day) return anchor;
+  return new Date(dayToUtc(day) + 12 * 3_600_000).toISOString();
+}
+
+/** The membership a change cancels, as it will read once cancelled. A
+ * failed charge, a package that hasn't started and a one-off all end now,
+ * as coach-athlete does. */
+function cancelledRow(
+  m: AthleteMembership,
+  when: CancelWhen,
+  switchedToName: string | null,
+  now: Date,
+): AthleteMembership {
+  const endsNow =
+    when === "now" ||
+    m.status === "past_due" ||
+    m.kind === "one_time" ||
+    isUpcoming(m.startsAt, now);
+  return endsNow
+    ? { ...m, status: "canceled", cancelAtPeriodEnd: false, switchedToName }
+    : { ...m, cancelAtPeriodEnd: true, switchedToName };
+}
+
+/** A stand-in row for the package a change adds, until the refresh brings
+ * the real one. `old` is the membership it replaces, if any. */
+function pendingRow(
+  add: NonNullable<MembershipChange["add"]>,
+  pkg: PackagePricing & { name: string },
+  old: AthleteMembership | undefined,
+  now: Date,
+): AthleteMembership {
+  const today = zonedDay(now);
+  const anchor = old?.currentPeriodEnd ?? null;
+  const recurring = pkg.billing_type === "recurring";
+  const billingAt = dayInstant(add.billingDate, anchor);
+  return {
+    id: `${PENDING_PREFIX}${add.packageId}`,
+    packageId: add.packageId,
+    packageName: pkg.name,
+    kind: recurring ? "subscription" : "one_time",
+    status: "active",
+    amountCents: pkg.price_cents,
+    currency: old?.currency ?? "nzd",
+    interval: recurring ? pkg.billing_interval : null,
+    currentPeriodEnd: recurring ? billingAt : null,
+    cancelAtPeriodEnd: false,
+    paidAt: null,
+    accessUntil: null,
+    createdAt: now.toISOString(),
+    payerProfileId: add.payerProfileId,
+    startsAt: add.startDate > today ? dayInstant(add.startDate, anchor) : null,
+    billingStartsAt: add.billingDate > today ? billingAt : null,
+    switchedToName: null,
+  };
+}
+
+/** The memberships list as it will read once `change` has gone through,
+ * shown while the server catches up. A switch links the old package to
+ * the new one, which is listed first (newest first, as the server does). */
+export function applyMembershipChange(
+  memberships: AthleteMembership[],
+  change: MembershipChange,
+  added: (PackagePricing & { name: string }) | undefined,
+  now: Date = new Date(),
+): AthleteMembership[] {
+  const { cancel, add } = change;
+  const old = cancel
+    ? memberships.find((m) => m.id === cancel.purchaseId)
+    : undefined;
+  const switchedToName = add && added ? added.name : null;
+  const rows = memberships.map((m) =>
+    m === old && cancel ? cancelledRow(m, cancel.when, switchedToName, now) : m,
+  );
+  return add && added ? [pendingRow(add, added, old, now), ...rows] : rows;
 }

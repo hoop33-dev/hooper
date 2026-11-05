@@ -139,7 +139,16 @@ export async function changeMembership(
 
     if (old) {
       try {
-        await cancelMembership(admin, old, cancel!.when, addedId);
+        // Linked before the cancel, so a cancel that fails and is retried
+        // on its own still reads as the switch. Readers only show the link
+        // once the old package is ending, so it's harmless until then.
+        if (addedId) {
+          await updatePurchase(admin, old.id, {
+            switched_to_purchase_id: addedId,
+            switched_at: new Date().toISOString(),
+          });
+        }
+        await cancelMembership(admin, old, cancel!.when);
       } catch (err) {
         if (!addedId) throw err;
         console.error("coach-athlete: cancel after add failed", err);
@@ -246,25 +255,16 @@ function checkCancellable(row: PurchaseRow, when: CancelWhen) {
   }
 }
 
-/** `switchedTo` is the purchase a switch added in this one's place. */
 async function cancelMembership(
   admin: SupabaseClient,
   row: PurchaseRow,
   when: CancelWhen,
-  switchedTo: string | null,
 ) {
-  const switched = switchedTo
-    ? {
-        switched_to_purchase_id: switchedTo,
-        switched_at: new Date().toISOString(),
-      }
-    : {};
   const endedNow = {
     status: "canceled",
     canceled_at: new Date().toISOString(),
     cancel_at_period_end: false,
     cancel_reason: CANCEL_REASON,
-    ...switched,
   };
 
   if (row.kind === "one_time") {
@@ -305,7 +305,6 @@ async function cancelMembership(
   await updatePurchase(admin, row.id, {
     cancel_at_period_end: true,
     cancel_reason: CANCEL_REASON,
-    ...switched,
   });
 }
 

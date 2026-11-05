@@ -1,14 +1,17 @@
+import type { AthleteMembership } from "@/src/services/athleteBilling.service";
+import { switchLabel } from "@hooper/shared";
 import { describe, expect, it } from "vitest";
 import {
+  applyMembershipChange,
   buildTimeline,
   changeCtaLabel,
   daysBetween,
   defaultDates,
   formatDay,
   isUpcoming,
+  PENDING_PREFIX,
   renewalDay,
   startsLabel,
-  switchLabel,
   zonedDay,
   type AddSide,
   type CancelSide,
@@ -156,5 +159,85 @@ describe("switchLabel", () => {
   });
   it("is null when it wasn't switched", () => {
     expect(switchLabel(null, true)).toBeNull();
+  });
+});
+
+describe("applyMembershipChange", () => {
+  const now = new Date("2026-11-02T00:00:00Z"); // 1pm NZDT
+  const periodEnd = "2026-11-12T10:00:00.000Z"; // 11pm Nov 12 NZDT
+  const old: AthleteMembership = {
+    id: "old",
+    packageId: "pkg-old",
+    packageName: "Academy",
+    kind: "subscription",
+    status: "active",
+    amountCents: 5000,
+    currency: "nzd",
+    interval: "month",
+    currentPeriodEnd: periodEnd,
+    cancelAtPeriodEnd: false,
+    paidAt: "2026-10-12T10:00:00.000Z",
+    accessUntil: null,
+    createdAt: "2026-09-12T10:00:00.000Z",
+    payerProfileId: "payer",
+    startsAt: null,
+    billingStartsAt: null,
+    switchedToName: null,
+  };
+  const elite = {
+    name: "Elite",
+    price_cents: 9000,
+    billing_type: "recurring" as const,
+    billing_interval: "month" as const,
+    access_weeks: null,
+  };
+  const add = {
+    packageId: "pkg-elite",
+    payerProfileId: "payer",
+    startDate: "2026-11-12",
+    billingDate: "2026-11-12",
+  };
+
+  it("a switch at period end links the old one and adds the new one first", () => {
+    const [ghost, kept] = applyMembershipChange(
+      [old],
+      { cancel: { purchaseId: "old", when: "period_end" }, add },
+      elite,
+      now,
+    );
+    expect(kept).toMatchObject({
+      cancelAtPeriodEnd: true,
+      status: "active",
+      switchedToName: "Elite",
+    });
+    expect(ghost.id.startsWith(PENDING_PREFIX)).toBe(true);
+    // Lined up with the old renewal to the second, like the edge function.
+    expect(ghost).toMatchObject({
+      packageName: "Elite",
+      startsAt: periodEnd,
+      billingStartsAt: periodEnd,
+      currentPeriodEnd: periodEnd,
+    });
+  });
+
+  it("cancelling now ends it straight away", () => {
+    const [row] = applyMembershipChange(
+      [old],
+      { cancel: { purchaseId: "old", when: "now" } },
+      undefined,
+      now,
+    );
+    expect(row).toMatchObject({ status: "canceled", switchedToName: null });
+  });
+
+  it("a package starting today has no future start", () => {
+    const [ghost] = applyMembershipChange(
+      [old],
+      { add: { ...add, startDate: "2026-11-02", billingDate: "2026-11-02" } },
+      elite,
+      now,
+    );
+    expect(ghost.startsAt).toBeNull();
+    expect(ghost.billingStartsAt).toBeNull();
   });
 });

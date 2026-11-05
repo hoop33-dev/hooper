@@ -2,7 +2,6 @@
 
 import { cn } from "@/src/lib/cn";
 import { formatShortDate } from "@/src/lib/format";
-import { switchLabel } from "@/src/lib/membershipChange";
 import {
   BUYER_COLUMNS,
   buyerAccessLabel,
@@ -10,6 +9,7 @@ import {
   type BuyerStatus,
 } from "@/src/lib/packages";
 import type { PackageBuyerRow } from "@hooper/db";
+import { switchLabel } from "@hooper/shared";
 import { AppLink } from "@hooper/shared/next";
 import { AthleteAvatar, athleteName } from "../athletes/AthleteAvatar";
 import { matchesSearch } from "../ui/ListToolbar";

@@ -5,16 +5,12 @@ import {
   type AthleteProgramEntry,
 } from "@/src/lib/athletePrograms";
 import { formatShortDate, plural } from "@/src/lib/format";
-import {
-  isUpcoming,
-  startsLabel,
-  switchLabel,
-} from "@/src/lib/membershipChange";
+import { isUpcoming, startsLabel } from "@/src/lib/membershipChange";
 import { money } from "@/src/lib/packages";
 import type { AthletePackage } from "@/src/services/athlete.service";
 import type { AthleteTeam, ProgramProgressStats } from "@hooper/db";
+import { switchLabel } from "@hooper/shared";
 import { AppLink } from "@hooper/shared/next";
-import { useRef, useState } from "react";
 import { MembershipTrail, PackageBadge } from "../packages/ViaPackage";
 import {
   DetailError,
@@ -47,44 +43,9 @@ export function PackageTile({ size = 34 }: { size?: number }) {
   );
 }
 
-/** A switch badge carries a package name, so it truncates. */
-function SwitchBadge({
-  label,
-  variant,
-}: {
-  label: string;
-  variant: "orange" | "neutral";
-}) {
-  const textRef = useRef<HTMLSpanElement>(null);
-  const [truncated, setTruncated] = useState(false);
-  return (
-    // Gives way before the package name beside it does: it shrinks much
-    // faster, down to a stub. Hovering shows the full text when it's cut.
-    <span
-      className="group relative inline-flex max-w-[160px] min-w-[72px] shrink-[100]"
-      onPointerEnter={() => {
-        const el = textRef.current;
-        setTruncated(!!el && el.scrollWidth > el.clientWidth);
-      }}>
-      <PortalBadge variant={variant} className="min-w-0">
-        <span ref={textRef} className="truncate">
-          {label}
-        </span>
-      </PortalBadge>
-      {truncated && (
-        <span
-          role="tooltip"
-          className="bg-portal-text1 pointer-events-none absolute right-0 bottom-full z-20 mb-1.5 rounded-md px-2 py-1 text-[11px] font-semibold whitespace-nowrap text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100">
-          {label}
-        </span>
-      )}
-    </span>
-  );
-}
-
-/** A status badge never wraps or gives way: the package name beside it
- * truncates instead. */
-const FIXED_BADGE = "shrink-0 whitespace-nowrap";
+/** A switch badge carries a package name, so it gives way before the
+ * package name beside it does: it shrinks much faster, down to a stub. */
+const SWITCH_BADGE = "max-w-[160px] min-w-[72px] shrink-[100]";
 
 /** "Active" / "Past due" / "Cancelling" for a membership, "Paid" for a
  * one-off, "Starts Nov 12" for either before its start date, and
@@ -105,44 +66,37 @@ export function PackageStatusBadge({
 }) {
   if (status === "canceled") {
     const switched = switchLabel(switchedTo, true);
-    if (switched) return <SwitchBadge label={switched} variant="neutral" />;
+    if (switched)
+      return (
+        <PortalBadge truncate className={SWITCH_BADGE}>
+          {switched}
+        </PortalBadge>
+      );
   }
   if (status === "active" && isUpcoming(startsAt)) {
-    return (
-      <PortalBadge className={FIXED_BADGE} variant="blue">
-        {startsLabel(startsAt!)}
-      </PortalBadge>
-    );
+    return <PortalBadge variant="blue">{startsLabel(startsAt!)}</PortalBadge>;
   }
   if (status === "past_due")
-    return (
-      <PortalBadge className={FIXED_BADGE} variant="red">
-        Past due
-      </PortalBadge>
-    );
+    return <PortalBadge variant="red">Past due</PortalBadge>;
   if (status === "canceled" || status === "expired") {
     return (
-      <PortalBadge className={FIXED_BADGE}>
+      <PortalBadge>
         {status === "canceled" ? "Cancelled" : "Expired"}
       </PortalBadge>
     );
   }
-  if (!recurring)
-    return <PortalBadge className={FIXED_BADGE}>Paid</PortalBadge>;
+  if (!recurring) return <PortalBadge>Paid</PortalBadge>;
   if (cancelAtPeriodEnd) {
     const switching = switchLabel(switchedTo, false);
-    if (switching) return <SwitchBadge label={switching} variant="orange" />;
-    return (
-      <PortalBadge className={FIXED_BADGE} variant="orange">
-        Cancelling
-      </PortalBadge>
-    );
+    if (switching)
+      return (
+        <PortalBadge truncate className={SWITCH_BADGE} variant="orange">
+          {switching}
+        </PortalBadge>
+      );
+    return <PortalBadge variant="orange">Cancelling</PortalBadge>;
   }
-  return (
-    <PortalBadge className={FIXED_BADGE} variant="green">
-      Active
-    </PortalBadge>
-  );
+  return <PortalBadge variant="green">Active</PortalBadge>;
 }
 
 function packageSub(p: AthletePackage): string {

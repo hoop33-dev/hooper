@@ -2,7 +2,12 @@
 
 import { cn } from "@/src/lib/cn";
 import { formatShortDate } from "@/src/lib/format";
-import { changeSuccessMessage, isUpcoming } from "@/src/lib/membershipChange";
+import {
+  PENDING_PREFIX,
+  applyMembershipChange,
+  changeSuccessMessage,
+  isUpcoming,
+} from "@/src/lib/membershipChange";
 import { money } from "@/src/lib/packages";
 import type {
   AthleteBilling,
@@ -23,6 +28,7 @@ import { Modal, ModalFooter } from "../ui/Modal";
 import { PortalBadge } from "../ui/PortalBadge";
 import { PortalButton } from "../ui/PortalButton";
 import { useToast } from "../ui/Toast";
+import { useOptimisticList } from "../ui/useOptimisticList";
 import { athleteName } from "./AthleteAvatar";
 import { useAthleteDetailContext } from "./AthleteDetailShell";
 import { PackageStatusBadge, PackageTile } from "./AthleteTrainingTab";
@@ -166,8 +172,11 @@ function MembershipsCard({
   onChange: (init: ChangeInit) => void;
   onKeep: (purchaseId: string) => Promise<ActionResult>;
 }) {
+  // A row for a package still being added has no real id to act on yet.
   const cancellable = new Set(
-    cancellableMemberships(memberships).map((m) => m.id),
+    cancellableMemberships(memberships)
+      .map((m) => m.id)
+      .filter((id) => !id.startsWith(PENDING_PREFIX)),
   );
   return (
     <div className={detailCardClass}>
@@ -525,17 +534,13 @@ function InvoicesCard({
 function BillingChangeModal({
   billing,
   packages,
-  changeAction,
+  onSubmit,
 }: {
   billing: AthleteBilling;
   packages: PackageOption[];
-  changeAction: (
-    profileId: string,
-    change: MembershipChange,
-  ) => Promise<ActionResult>;
+  onSubmit: (change: MembershipChange) => Promise<ActionResult>;
 }) {
   const { athlete, packageChange } = useAthleteDetailContext();
-  const toast = useToast();
   if (!packageChange.init) return null;
 
   const held = new Set(
@@ -556,21 +561,65 @@ function BillingChangeModal({
       packages={packages.filter((p) => !held.has(p.id))}
       init={packageChange.init}
       onClose={packageChange.close}
-      onSubmit={async (change) => {
-        const result = await changeAction(athlete.id, change);
-        if (result.ok) {
-          toast.showSuccess(
-            changeSuccessMessage(
-              !!change.cancel,
-              !!change.add,
-              change.cancel?.when ?? "now",
-            ),
-          );
-        }
-        return result;
-      }}
+      onSubmit={onSubmit}
     />
   );
+}
+
+const NO_MEMBERSHIPS: AthleteMembership[] = [];
+
+/** The memberships list, changed straight away by a switch, cancel, add or
+ * keep. The billing summary is read live from Stripe, so the refresh that
+ * confirms a change lags it by seconds. */
+function useMembershipMutations(
+  billing: AthleteBilling | null,
+  packages: PackageOption[],
+  changeAction: (
+    profileId: string,
+    change: MembershipChange,
+  ) => Promise<ActionResult>,
+  keepAction: (profileId: string, purchaseId: string) => Promise<ActionResult>,
+) {
+  const { athlete } = useAthleteDetailContext();
+  const toast = useToast();
+  const { items: memberships, mutate } = useOptimisticList(
+    billing?.memberships ?? NO_MEMBERSHIPS,
+  );
+
+  const submitChange = async (change: MembershipChange) => {
+    const added = packages.find((p) => p.id === change.add?.packageId);
+    const result = await mutate(
+      (prev) => applyMembershipChange(prev, change, added),
+      () => changeAction(athlete.id, change),
+    );
+    if (result.ok) {
+      toast.showSuccess(
+        changeSuccessMessage(
+          !!change.cancel,
+          !!change.add,
+          change.cancel?.when ?? "now",
+        ),
+      );
+    }
+    return result;
+  };
+
+  const keep = async (purchaseId: string) => {
+    const result = await mutate(
+      (prev) =>
+        prev.map((m) =>
+          m.id === purchaseId
+            ? { ...m, cancelAtPeriodEnd: false, switchedToName: null }
+            : m,
+        ),
+      () => keepAction(athlete.id, purchaseId),
+    );
+    if (result.ok) toast.showSuccess("Membership kept");
+    else toast.showError(result.error ?? "Couldn't keep it.");
+    return result;
+  };
+
+  return { memberships, submitChange, keep };
 }
 
 /** The Billing tab, read live from Stripe through the coach-athlete edge
@@ -604,6 +653,12 @@ export function AthleteBillingTab({
   const { athlete, packageChange } = useAthleteDetailContext();
   const toast = useToast();
   const [open, setOpen] = useState<AthleteInvoice | null>(null);
+  const { memberships, submitChange, keep } = useMembershipMutations(
+    billing,
+    packages,
+    changeAction,
+    keepAction,
+  );
 
   if (!billing) {
     return (
@@ -615,7 +670,7 @@ export function AthleteBillingTab({
     );
   }
 
-  const { memberships, payers, invoices } = billing;
+  const { payers, invoices } = billing;
   const membershipFor = (inv: AthleteInvoice) =>
     memberships.find((m) => m.id === inv.purchaseId);
   const cardFor = (inv: AthleteInvoice) => {
@@ -629,12 +684,7 @@ export function AthleteBillingTab({
         <MembershipsCard
           memberships={memberships}
           onChange={packageChange.open}
-          onKeep={async (purchaseId) => {
-            const result = await keepAction(athlete.id, purchaseId);
-            if (result.ok) toast.showSuccess("Membership kept");
-            else toast.showError(result.error ?? "Couldn't keep it.");
-            return result;
-          }}
+          onKeep={keep}
         />
         <PaymentMethodCard payers={payers} />
       </div>
@@ -644,7 +694,7 @@ export function AthleteBillingTab({
       <BillingChangeModal
         billing={billing}
         packages={packages}
-        changeAction={changeAction}
+        onSubmit={submitChange}
       />
 
       {open && (

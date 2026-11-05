@@ -240,6 +240,10 @@ export type PackagePurchaseRow = {
   billing_starts_at: string | null;
   /** The coach who started it from the portal, if any. */
   created_by_coach: string | null;
+  /** The purchase a coach's switch replaced this one with; cleared if this
+   * one is kept. */
+  switched_to_purchase_id: string | null;
+  switched_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -267,6 +271,8 @@ export type PackageBuyerRow = {
   cancel_at_period_end: boolean;
   package_slug: string;
   starts_at: string | null;
+  /** The package a switch replaced this one with. */
+  switched_to_package_name: string | null;
 };
 
 /** view: package_buyer_counts — coach-only, one row per live package with
@@ -330,6 +336,8 @@ export type MyPackagePurchase = Pick<
   /** The team_names this purchase alone keeps the athlete on — what
    * stopping it would remove them from. */
   leaving_team_names: string[];
+  /** The package a coach's switch replaced this one with. */
+  switched_to_package_name: string | null;
 };
 
 /** my_children() — the caller's actively linked children. */

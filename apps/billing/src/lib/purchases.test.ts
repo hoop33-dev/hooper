@@ -37,6 +37,7 @@ const base: MyPackagePurchase = {
   team_names: [],
   leaving_team_names: [],
   starts_at: null,
+  switched_to_package_name: null,
 };
 
 const sub: MyPackagePurchase = {
@@ -124,6 +125,21 @@ describe("cancelled memberships", () => {
   });
   it("plain active has no tag", () => {
     expect(statusTag(sub)).toBeNull();
+  });
+});
+
+describe("switched memberships", () => {
+  const to = { switched_to_package_name: "Elite" };
+  it("an ending one a coach switched away from reads 'Switching to'", () => {
+    const p = { ...sub, ...to, cancel_at_period_end: true };
+    expect(statusTag(p)?.label).toBe("Switching to Elite");
+  });
+  it("reads 'Switched to' once it has ended", () => {
+    const p = { ...sub, ...to, status: "canceled" as const };
+    expect(statusTag(p)?.label).toBe("Switched to Elite");
+  });
+  it("a kept one (no longer ending) has no switch tag", () => {
+    expect(statusTag({ ...sub, ...to })).toBeNull();
   });
 });
 

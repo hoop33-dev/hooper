@@ -1,5 +1,6 @@
 import type { TagTone } from "@/src/components/ui/primitives";
 import type { MyPackagePurchase, PackagePurchaseStatus } from "@hooper/db";
+import { switchLabel } from "@hooper/shared";
 import { formatDate } from "./format";
 
 type Status = { label: string; tone: TagTone };
@@ -39,8 +40,15 @@ export function isEnding(p: MyPackagePurchase): boolean {
   return p.status === "active" && p.cancel_at_period_end;
 }
 
-/** The status tag for a purchase, or null when it's simply active. */
+/** The status tag for a purchase, or null when it's simply active. A coach
+ * switch away from it reads "Switching to X", then "Switched to X". */
 export function statusTag(p: MyPackagePurchase): Status | null {
+  const ended = p.status === "canceled";
+  const switched =
+    ended || isEnding(p)
+      ? switchLabel(p.switched_to_package_name, ended)
+      : null;
+  if (switched) return { label: switched, tone: "neutral" };
   if (isUpcoming(p)) {
     return { label: `Starts ${formatDate(p.starts_at!)}`, tone: "blue" };
   }

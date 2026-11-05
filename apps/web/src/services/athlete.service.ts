@@ -390,6 +390,8 @@ export type AthletePackage = PackagePricing & {
   /** Set for a package that starts later than it was added; while it's
    * ahead, isActive is false. */
   startsAt: string | null;
+  /** The package a coach's switch replaced this one with. */
+  switchedToName: string | null;
 };
 
 export const listAthletePackages = cache(async function listAthletePackages(
@@ -438,6 +440,7 @@ export const listAthletePackages = cache(async function listAthletePackages(
             paidAt: b.paid_at,
             createdAt: b.created_at,
             startsAt: b.starts_at,
+            switchedToName: b.switched_to_package_name,
           },
         ];
       }),

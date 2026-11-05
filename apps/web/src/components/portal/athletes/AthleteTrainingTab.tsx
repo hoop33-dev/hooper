@@ -9,6 +9,7 @@ import { isUpcoming, startsLabel } from "@/src/lib/membershipChange";
 import { money } from "@/src/lib/packages";
 import type { AthletePackage } from "@/src/services/athlete.service";
 import type { AthleteTeam, ProgramProgressStats } from "@hooper/db";
+import { switchLabel } from "@hooper/shared";
 import { AppLink } from "@hooper/shared/next";
 import { MembershipTrail, PackageBadge } from "../packages/ViaPackage";
 import {
@@ -42,19 +43,36 @@ export function PackageTile({ size = 34 }: { size?: number }) {
   );
 }
 
+/** A switch badge carries a package name, so it gives way before the
+ * package name beside it does: it shrinks much faster, down to a stub. */
+const SWITCH_BADGE = "max-w-[160px] min-w-[72px] shrink-[100]";
+
 /** "Active" / "Past due" / "Cancelling" for a membership, "Paid" for a
- * one-off, "Starts Nov 12" for either before its start date. */
+ * one-off, "Starts Nov 12" for either before its start date, and
+ * "Switching to X" / "Switched to X" for one a coach switched away from. */
 export function PackageStatusBadge({
   status,
   recurring,
   cancelAtPeriodEnd,
   startsAt = null,
+  switchedTo = null,
 }: {
   status: AthletePackage["status"];
   recurring: boolean;
   cancelAtPeriodEnd: boolean;
   startsAt?: string | null;
+  /** The package a switch replaced this one with. */
+  switchedTo?: string | null;
 }) {
+  if (status === "canceled") {
+    const switched = switchLabel(switchedTo, true);
+    if (switched)
+      return (
+        <PortalBadge truncate className={SWITCH_BADGE}>
+          {switched}
+        </PortalBadge>
+      );
+  }
   if (status === "active" && isUpcoming(startsAt)) {
     return <PortalBadge variant="blue">{startsLabel(startsAt!)}</PortalBadge>;
   }
@@ -68,8 +86,16 @@ export function PackageStatusBadge({
     );
   }
   if (!recurring) return <PortalBadge>Paid</PortalBadge>;
-  if (cancelAtPeriodEnd)
+  if (cancelAtPeriodEnd) {
+    const switching = switchLabel(switchedTo, false);
+    if (switching)
+      return (
+        <PortalBadge truncate className={SWITCH_BADGE} variant="orange">
+          {switching}
+        </PortalBadge>
+      );
     return <PortalBadge variant="orange">Cancelling</PortalBadge>;
+  }
   return <PortalBadge variant="green">Active</PortalBadge>;
 }
 
@@ -225,6 +251,7 @@ function AthletePackagesCard({
                 recurring={p.billing_type === "recurring"}
                 cancelAtPeriodEnd={p.cancelAtPeriodEnd}
                 startsAt={p.startsAt}
+                switchedTo={p.switchedToName}
               />
             }
           />

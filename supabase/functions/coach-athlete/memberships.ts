@@ -139,6 +139,15 @@ export async function changeMembership(
 
     if (old) {
       try {
+        // Linked before the cancel, so a cancel that fails and is retried
+        // on its own still reads as the switch. Readers only show the link
+        // once the old package is ending, so it's harmless until then.
+        if (addedId) {
+          await updatePurchase(admin, old.id, {
+            switched_to_purchase_id: addedId,
+            switched_at: new Date().toISOString(),
+          });
+        }
         await cancelMembership(admin, old, cancel!.when);
       } catch (err) {
         if (!addedId) throw err;
@@ -187,9 +196,13 @@ export async function keepMembership(
     await stripe.subscriptions.update(row.stripe_subscription_id, {
       cancel_at_period_end: false,
     });
+    // Kept, so it no longer counts as switched: any package it was being
+    // switched to stays, for the coach to cancel separately.
     await updatePurchase(admin, row.id, {
       cancel_at_period_end: false,
       cancel_reason: null,
+      switched_to_purchase_id: null,
+      switched_at: null,
     });
     return json(200, { ok: true });
   } catch (err) {

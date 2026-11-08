@@ -67,6 +67,8 @@ type Membership = {
   startsAt: string | null;
   /** First charge; null = charged at creation. */
   billingStartsAt: string | null;
+  /** The package a switch replaced this one with. */
+  switchedToName: string | null;
 };
 
 type Payer = {
@@ -222,7 +224,7 @@ async function summary(admin: SupabaseClient, athleteId: string) {
   const { data, error } = await admin
     .from("package_purchases")
     .select(
-      "id, package_id, kind, status, amount_cents, currency, current_period_end, cancel_at_period_end, paid_at, access_until, created_at, payer_profile_id, starts_at, billing_starts_at, stripe_subscription_id, stripe_payment_intent_id, stripe_invoice_id, packages(name, billing_interval)",
+      "id, package_id, kind, status, amount_cents, currency, current_period_end, cancel_at_period_end, paid_at, access_until, created_at, payer_profile_id, starts_at, billing_starts_at, stripe_subscription_id, stripe_payment_intent_id, stripe_invoice_id, packages(name, billing_interval), switched_to_purchase_id",
     )
     .eq("athlete_profile_id", athleteId)
     .neq("status", "incomplete")
@@ -248,8 +250,11 @@ async function summary(admin: SupabaseClient, athleteId: string) {
     stripe_payment_intent_id: string | null;
     stripe_invoice_id: string | null;
     packages: { name: string; billing_interval: string | null } | null;
+    switched_to_purchase_id: string | null;
   }>;
 
+  // A switch's new purchase is the same athlete's, so it's among the rows.
+  const nameById = new Map(rows.map((r) => [r.id, r.packages?.name ?? null]));
   const memberships: Membership[] = rows.map((r) => ({
     id: r.id,
     packageId: r.package_id,
@@ -268,6 +273,9 @@ async function summary(admin: SupabaseClient, athleteId: string) {
     payerProfileId: r.payer_profile_id,
     startsAt: r.starts_at,
     billingStartsAt: r.billing_starts_at,
+    switchedToName: r.switched_to_purchase_id
+      ? (nameById.get(r.switched_to_purchase_id) ?? null)
+      : null,
   }));
 
   // Usually one payer (the athlete, or their parent), but an athlete who

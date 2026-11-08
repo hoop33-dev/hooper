@@ -188,6 +188,9 @@ async function onSubscriptionChanged(
   if (status === "canceled") {
     update.canceled_at = toIso(sub.canceled_at) ?? new Date().toISOString();
   }
+  // switched_to_purchase_id is left alone: it only shows while the row is
+  // ending or ended, so a subscription kept in the dashboard hides it
+  // anyway, and clearing it here would race the coach's switch writing it.
 
   let query = admin
     .from("package_purchases")

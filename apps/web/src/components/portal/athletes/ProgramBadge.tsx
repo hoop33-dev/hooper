@@ -1,4 +1,3 @@
-import { cn } from "@/src/lib/cn";
 import type { AssignedProgramRef } from "@hooper/db";
 import { PortalBadge } from "../ui/PortalBadge";
 
@@ -18,13 +17,12 @@ export function ProgramBadge({
   }
   return (
     <PortalBadge
+      truncate
       variant="orange"
-      className={cn("min-w-0 gap-1", className)}
-      title={programs.map((p) => p.name).join(", ")}>
-      <span className="truncate">{programs[0].name}</span>
-      {programs.length > 1 && (
-        <span className="flex-shrink-0">+{programs.length - 1}</span>
-      )}
+      className={className}
+      title={programs.map((p) => p.name).join(", ")}
+      suffix={programs.length > 1 ? `+${programs.length - 1}` : null}>
+      {programs[0].name}
     </PortalBadge>
   );
 }

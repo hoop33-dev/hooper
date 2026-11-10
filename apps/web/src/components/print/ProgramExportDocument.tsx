@@ -8,6 +8,7 @@ import {
 import { LOGO_PRINT_DATA_URI } from "@/src/lib/print/logoPrintDataUri";
 import {
   blockMetaLine,
+  buildSequenceTableModel,
   buildSetTableModel,
   countExercises,
   groupSessionsByWeek,
@@ -16,11 +17,14 @@ import {
   supersetLetter,
   thumbnailFor,
   weekCoverageLabel,
+  type SequenceTableCell,
 } from "@/src/lib/programExport";
+import { isSequencePlacement } from "@/src/lib/sequenceDisplay";
 import type {
   BlockExerciseWithDetails,
   BlockWithExercises,
   ExerciseStyleRow,
+  PlacedSequence,
   ProgramWithSessions,
   SessionWithBlocks,
 } from "@hooper/db";
@@ -106,6 +110,17 @@ table.sets .c-style{width:88px;font-size:10.5px;letter-spacing:0.04em;text-trans
 table.sets .c-ex{font-size:11px;font-weight:600}
 table.sets .c-log{width:30%;background:var(--fill)}
 .note{font-size:11px;color:var(--ink2);margin-top:5px;padding-left:9px;border-left:2px solid var(--hair)}
+.seqdesc{font-size:11.5px;color:var(--ink2);margin:-3px 0 8px}
+.seqstrip{display:grid;border:1.5px solid var(--ink);margin-bottom:10px}
+.seqstep{padding:6px 10px 7px;border-right:1px solid var(--hair);min-width:0}
+.seqstep:last-child{border-right:none}
+.seqlabel{display:flex;align-items:center;gap:6px;font-size:8.5px;font-weight:600;letter-spacing:0.11em;text-transform:uppercase;color:var(--ink3);margin-bottom:2px}
+.stepnum{display:inline-flex;flex-shrink:0;width:14px;height:14px;align-items:center;justify-content:center;background:var(--ink);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:0}
+.seqfirst{font-size:13px;font-weight:600}
+table.seqsets th .stepnum{margin-right:5px}
+table.seqsets td.step{font-size:11.5px}
+table.seqsets td.step.changed{font-weight:600;border-left:2px solid var(--ink);padding-left:8px}
+.exlink{text-decoration:underline;text-decoration-color:var(--ink3);text-underline-offset:3px}
 a{color:#000}
 /* In print, doc-page.js fixes the running header/footer to the page edge and
  * relies on ::slotted padding that reads var(--doc-page-margin) to inset
@@ -239,9 +254,7 @@ function SetTable({
       <thead>
         <tr>
           <th className="c-set">Set</th>
-          {model.showExerciseColumn && (
-            <th className="c-ex">{model.exerciseColumnLabel}</th>
-          )}
+          {model.showExerciseColumn && <th className="c-ex">Exercise</th>}
           {model.showStyleColumn && <th className="c-style">Style</th>}
           {model.unitColumns.map((u) => (
             <th key={u}>{u.toUpperCase()}</th>
@@ -309,7 +322,7 @@ function ExerciseRow({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={thumb} alt="" />
         ) : (
-          <div className="ph">{be.sequence ? "Sequence" : "Video frame"}</div>
+          <div className="ph">Video frame</div>
         )}
         {be.exercise?.video_url && (
           <a className="vlink" href={be.exercise.video_url}>
@@ -327,6 +340,118 @@ function ExerciseRow({
           {styleTag && <span className="tag">{styleTag}</span>}
         </div>
         <SetTable be={be} styles={styles} pos={pos} />
+        {be.notes && <div className="note">{be.notes}</div>}
+      </div>
+    </div>
+  );
+}
+
+/** An exercise name, linked to its demo video when it has one. */
+function ExerciseName({ cell }: { cell: SequenceTableCell }) {
+  return cell.videoUrl ? (
+    <a className="exlink" href={cell.videoUrl}>
+      {cell.name}
+    </a>
+  ) : (
+    <>{cell.name}</>
+  );
+}
+
+/** A sequence: its steps with set 1's exercises, then a set table with a
+ * column per step. Every cell is written out; a step that changes on a set
+ * is marked with a rule and, if it has a demo, linked. */
+function SequenceRow({
+  be,
+  letter,
+  pos,
+}: {
+  be: BlockExerciseWithDetails & { sequence: PlacedSequence };
+  letter: string | null;
+  pos: FieldPos;
+}) {
+  const model = buildSequenceTableModel(be);
+  const stepCount = model.steps.length;
+  return (
+    <div className="ex">
+      <div className="exbody">
+        <div className="exhead">
+          {letter && <span className="letter">{letter}</span>}
+          <span className="exname">{be.sequence.name}</span>
+          <span className="setcount">
+            {stepCount} step{stepCount === 1 ? "" : "s"}
+          </span>
+        </div>
+        {be.sequence.description && (
+          <div className="seqdesc">{be.sequence.description}</div>
+        )}
+        <div
+          className="seqstrip"
+          style={{ gridTemplateColumns: `repeat(${stepCount}, 1fr)` }}>
+          {model.steps.map((step, i) => (
+            <div key={i} className="seqstep">
+              <div className="seqlabel">
+                <span className="stepnum">{i + 1}</span>
+                {step.label}
+              </div>
+              <div className="seqfirst">
+                <ExerciseName cell={step.first} />
+              </div>
+            </div>
+          ))}
+        </div>
+        <table className="sets seqsets">
+          <thead>
+            <tr>
+              <th className="c-set">Set</th>
+              {model.steps.map((step, i) => (
+                <th key={i}>
+                  <span className="stepnum">{i + 1}</span>
+                  {step.label}
+                </th>
+              ))}
+              {model.unitColumns.map((u) => (
+                <th key={u}>{u.toUpperCase()}</th>
+              ))}
+              <th className="c-log">Logged</th>
+            </tr>
+          </thead>
+          <tbody>
+            {model.rows.map((row, setIndex) => {
+              const logField = logFieldName(
+                pos.weekNumber,
+                pos.sessionPosition,
+                pos.blockPosition,
+                pos.exercisePosition,
+                setIndex,
+              );
+              return (
+                <tr key={row.setLabel}>
+                  <td className="c-set">{row.setLabel}</td>
+                  {row.cells.map((cell, i) => (
+                    <td
+                      key={i}
+                      className={cn("step", cell.changed && "changed")}>
+                      {cell.changed ? <ExerciseName cell={cell} /> : cell.name}
+                    </td>
+                  ))}
+                  {model.unitColumns.map((u) => (
+                    <td key={u} className="num">
+                      {row.values[u]}
+                    </td>
+                  ))}
+                  <td className="c-log">
+                    <span className="ff-marker log l">
+                      {markerToken(logField, "L")}
+                    </span>
+                    <span className="ff-marker log r">
+                      {markerToken(logField, "R")}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
         {be.notes && <div className="note">{be.notes}</div>}
       </div>
     </div>
@@ -355,20 +480,26 @@ function BlockSection({
         </span>
       </div>
       <div className="exlist">
-        {block.exercises.map((be, i) => (
-          <ExerciseRow
-            key={be.id}
-            be={be}
-            letter={block.is_superset ? supersetLetter(i) : null}
-            styles={styles}
-            pos={{
-              weekNumber,
-              sessionPosition,
-              blockPosition: blockIndex,
-              exercisePosition: i,
-            }}
-          />
-        ))}
+        {block.exercises.map((be, i) => {
+          const letter = block.is_superset ? supersetLetter(i) : null;
+          const pos = {
+            weekNumber,
+            sessionPosition,
+            blockPosition: blockIndex,
+            exercisePosition: i,
+          };
+          return isSequencePlacement(be) ? (
+            <SequenceRow key={be.id} be={be} letter={letter} pos={pos} />
+          ) : (
+            <ExerciseRow
+              key={be.id}
+              be={be}
+              letter={letter}
+              styles={styles}
+              pos={pos}
+            />
+          );
+        })}
       </div>
     </section>
   );

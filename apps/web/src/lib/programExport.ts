@@ -7,9 +7,10 @@ import type {
   BlockExerciseWithDetails,
   ExerciseRow,
   ExerciseStyleRow,
+  PlacedSequence,
   SessionWithBlocks,
 } from "@hooper/db";
-import { sequenceChainNames } from "./sequenceDisplay";
+import { resolveStepPick } from "@hooper/shared";
 
 /** "%" for % 1RM, and Time/Distance units hug the number ("20sec", "100m");
  * Weight ("60 kg") and everything else keep a space. Mirrors
@@ -86,8 +87,6 @@ export type SetTableRow = {
 };
 
 export type SetTableModel = {
-  /** "Steps" for a sequence, "Exercise" otherwise. */
-  exerciseColumnLabel: string;
   /** Ordered unit-type column headers (canonical priority order). */
   unitColumns: string[];
   /** True when the sets don't all share one style — render a STYLE column. */
@@ -103,50 +102,120 @@ export type SetTableModel = {
  * measurement rows (no fabricated defaults). A cell is blank when that set
  * doesn't use the column's measure, an em dash when it does but the athlete
  * fills in the value. */
-export function buildSetTableModel(
-  be: BlockExerciseWithDetails,
-  allStyles: ExerciseStyleRow[],
-): SetTableModel {
+/** A column per unit type any set uses (canonical order), and each set's
+ * printed value per column. A cell is blank when that set doesn't use the
+ * column's measure, an em dash when the athlete fills it in. */
+function measurementColumns(be: BlockExerciseWithDetails): {
+  unitColumns: string[];
+  valuesFor: (setIndex: number) => Record<string, string>;
+} {
   const unitColumns = sortUnitTypes([
     ...new Set(be.measurements.map((m) => m.unit_type)),
   ]);
-
   const bySet = new Map<number, Map<string, BlockExerciseMeasurementRow>>();
   for (const m of be.measurements) {
     const forSet = bySet.get(m.set_index) ?? new Map();
     forSet.set(m.unit_type, m);
     bySet.set(m.set_index, forSet);
   }
-
-  const rows: SetTableRow[] = Array.from({ length: be.sets }, (_, setIndex) => {
-    const forSet = bySet.get(setIndex);
-    return {
-      setLabel: `${setIndex + 1}`,
-      styleName: setStyleName(be, allStyles, setIndex),
-      exerciseName: be.sequence
-        ? sequenceChainNames(be.sequence, setIndex).join(" → ")
-        : ((be.setVariants[setIndex] ?? be.exercise)?.name ?? ""),
-      values: Object.fromEntries(
+  return {
+    unitColumns,
+    valuesFor: (setIndex) => {
+      const forSet = bySet.get(setIndex);
+      return Object.fromEntries(
         unitColumns.map((unitType) => {
           const row = forSet?.get(unitType);
-          // No row for this unit in this set → the set doesn't use that
-          // measure at all: blank. A row that exists but has no coach value
-          // (athlete records it) → em dash, via formatMeasurementCell.
           return [unitType, row ? formatMeasurementCell(row) : ""];
         }),
-      ),
-    };
-  });
+      );
+    },
+  };
+}
+
+export function buildSetTableModel(
+  be: BlockExerciseWithDetails,
+  allStyles: ExerciseStyleRow[],
+): SetTableModel {
+  const { unitColumns, valuesFor } = measurementColumns(be);
+  const rows: SetTableRow[] = Array.from(
+    { length: be.sets },
+    (_, setIndex) => ({
+      setLabel: `${setIndex + 1}`,
+      styleName: setStyleName(be, allStyles, setIndex),
+      exerciseName: (be.setVariants[setIndex] ?? be.exercise)?.name ?? "",
+      values: valuesFor(setIndex),
+    }),
+  );
 
   const distinctStyles = new Set(rows.map((r) => r.styleName ?? ""));
   const distinctExercises = new Set(rows.map((r) => r.exerciseName));
   return {
     unitColumns,
     showStyleColumn: distinctStyles.size > 1,
-    // A sequence always lists its steps, since that's what each set runs.
-    showExerciseColumn: !!be.sequence || distinctExercises.size > 1,
-    exerciseColumnLabel: be.sequence ? "Steps" : "Exercise",
+    showExerciseColumn: distinctExercises.size > 1,
     rows,
+  };
+}
+
+export type SequenceTableCell = {
+  /** The step's exercise this set, or its label while it's still empty. */
+  name: string;
+  /** The exercise's demo video, if it has one. */
+  videoUrl: string | null;
+  /** Picked on this set rather than carried from the set before it. Always
+   * false on set 1, which defines the sequence. */
+  changed: boolean;
+};
+
+export type SequenceTableModel = {
+  /** Each step with its set 1 exercise, for the strip above the table. */
+  steps: { label: string; first: SequenceTableCell }[];
+  unitColumns: string[];
+  rows: {
+    setLabel: string;
+    cells: SequenceTableCell[];
+    values: Record<string, string>;
+  }[];
+};
+
+function sequenceCell(
+  step: PlacedSequence["steps"][number],
+  setIndex: number,
+): SequenceTableCell {
+  const resolved = resolveStepPick(
+    {
+      picks: Object.fromEntries(
+        Object.entries(step.picks).map(([i, e]) => [i, e.id]),
+      ),
+    },
+    setIndex,
+  );
+  const exercise = resolved.exerciseId ? step.picks[resolved.from] : undefined;
+  return {
+    name: exercise?.name ?? (step.label || "—"),
+    videoUrl: exercise?.video_url ?? null,
+    changed: setIndex > 0 && !!exercise && !resolved.inherited,
+  };
+}
+
+/** The printed layout for a sequence: a step strip, then a set table with a
+ * column per step (every cell spelled out) and the tracked units. */
+export function buildSequenceTableModel(
+  be: BlockExerciseWithDetails & { sequence: PlacedSequence },
+): SequenceTableModel {
+  const { unitColumns, valuesFor } = measurementColumns(be);
+  const { steps } = be.sequence;
+  return {
+    steps: steps.map((step) => ({
+      label: step.label,
+      first: sequenceCell(step, 0),
+    })),
+    unitColumns,
+    rows: Array.from({ length: be.sets }, (_, setIndex) => ({
+      setLabel: `${setIndex + 1}`,
+      cells: steps.map((step) => sequenceCell(step, setIndex)),
+      values: valuesFor(setIndex),
+    })),
   };
 }
 

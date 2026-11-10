@@ -18,6 +18,7 @@ import {
   shapeBlocksWithExercises,
   type RawBlock,
 } from "./programShaping";
+import { copySequenceSteps } from "./sequenceSteps";
 import { getUnitTypesRaw } from "./unitType.service";
 
 export type CreateSessionInput = {
@@ -286,6 +287,9 @@ async function insertCopiedBlockExercises(
     block.block_exercises.map((be) => ({
       block_id: newBlocks[i].id,
       exercise_id: be.exercise_id,
+      sequence_name: be.sequence_name,
+      sequence_description: be.sequence_description,
+      source_sequence_id: be.source_sequence_id,
       position: be.position,
       sets: be.sets,
       notes: be.notes,
@@ -304,6 +308,18 @@ async function insertCopiedBlockExercises(
   const sourceBlockExercises = sourceBlocks.flatMap(
     (block) => block.block_exercises,
   );
+
+  const stepsResult = await copySequenceSteps(
+    supabase,
+    "placement",
+    "placement",
+    sourceBlockExercises.flatMap((be, i) =>
+      be.exercise_id === null
+        ? [{ from: be.id, to: newBlockExercises[i].id, sets: be.sets }]
+        : [],
+    ),
+  );
+  if (!stepsResult.ok) return err(stepsResult.error);
 
   const measurementRows = sourceBlockExercises.flatMap((be, i) =>
     be.block_exercise_measurements.map((m) => ({

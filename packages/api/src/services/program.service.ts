@@ -17,8 +17,13 @@ import { getClient } from "../client";
 // variants list, since the session player doesn't browse the library, just
 // needs the exercise itself, its planned measurements, its resolved style,
 // and its per-set variant/style overrides.
+//
+// Sequences (exercise_id null) only bring their steps' set-1 names: the app
+// doesn't have a sequence UI yet, so it shows one as a plain exercise named
+// after the sequence, with its steps as the description (see
+// sequenceAsExercise).
 const BLOCK_EXERCISE_SELECT =
-  "*, exercise:exercises(*, exercise_photos(*)), block_exercise_measurements(*), style:exercise_styles(*), block_exercise_set_variants(set_index, exercise:exercises(*, exercise_photos(*))), block_exercise_set_styles(set_index, style:exercise_styles(*))";
+  "*, exercise:exercises(*, exercise_photos(*)), block_exercise_measurements(*), style:exercise_styles(*), block_exercise_set_variants(set_index, exercise:exercises(*, exercise_photos(*))), block_exercise_set_styles(set_index, style:exercise_styles(*)), sequence_steps:block_exercise_sequence_steps(position, label, picks:block_exercise_sequence_picks(set_index, exercise:exercises(name)))";
 const BLOCK_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
 const SESSION_SELECT = `*, blocks(${BLOCK_SELECT})`;
 
@@ -41,8 +46,14 @@ export type AthleteBlock = BlockRow & { exercises: AthleteBlockExercise[] };
 export type AthleteSessionDetail = SessionRow & { blocks: AthleteBlock[] };
 
 type RawExercise = ExerciseRow & { exercise_photos: ExercisePhotoRow[] };
+type RawSequenceStep = {
+  position: number;
+  label: string;
+  picks: { set_index: number; exercise: { name: string } | null }[];
+};
 type RawBlockExercise = BlockExerciseRow & {
-  exercise: RawExercise;
+  exercise: RawExercise | null;
+  sequence_steps: RawSequenceStep[] | null;
   block_exercise_measurements: BlockExerciseMeasurementRow[];
   style: ExerciseStyleRow | null;
   block_exercise_set_variants: { set_index: number; exercise: RawExercise }[];
@@ -66,6 +77,43 @@ function shapeExercise({
   };
 }
 
+/** Stands in for a sequence until the app can show one properly: named
+ * after the sequence, with set 1's steps ("Crossover → Skip pass → …") as
+ * its description. Its id is the placement's own, so it never matches a
+ * library exercise; logs for it record a null exercise_id (see
+ * isSequencePlacement). */
+function sequenceAsExercise(be: RawBlockExercise): AthleteExercise {
+  const chain = [...(be.sequence_steps ?? [])]
+    .sort((a, b) => a.position - b.position)
+    .map(
+      (step) =>
+        step.picks.find((p) => p.set_index === 0)?.exercise?.name ?? step.label,
+    )
+    .join(" → ");
+  return {
+    id: be.id,
+    name: be.sequence_name ?? "Sequence",
+    description: chain || null,
+    video_url: null,
+    video_source: null,
+    video_orientation: null,
+    video_thumbnail_url: null,
+    parent_id: null,
+    default_style_id: null,
+    created_by: "",
+    created_at: be.created_at,
+    updated_at: be.updated_at,
+    photos: [],
+  };
+}
+
+/** Whether a placement is a sequence rather than a single exercise. */
+export function isSequencePlacement(
+  blockExercise: Pick<BlockExerciseRow, "exercise_id">,
+): boolean {
+  return blockExercise.exercise_id === null;
+}
+
 function shapeSession(raw: RawSession): AthleteSessionDetail {
   const { blocks, ...session } = raw;
   return {
@@ -76,16 +124,20 @@ function shapeSession(raw: RawSession): AthleteSessionDetail {
         ...block,
         exercises: [...block_exercises]
           .sort((a, b) => a.position - b.position)
-          .map(
-            ({
+          .map((raw) => {
+            const {
               exercise,
               block_exercise_measurements,
               block_exercise_set_variants,
               block_exercise_set_styles,
+              sequence_steps: _steps,
               ...blockExercise
-            }) => ({
+            } = raw;
+            return {
               ...blockExercise,
-              exercise: shapeExercise(exercise),
+              exercise: exercise
+                ? shapeExercise(exercise)
+                : sequenceAsExercise(raw),
               measurements: [...block_exercise_measurements].sort(
                 (a, b) => a.position - b.position || a.set_index - b.set_index,
               ),
@@ -98,8 +150,8 @@ function shapeSession(raw: RawSession): AthleteSessionDetail {
               setStyles: Object.fromEntries(
                 block_exercise_set_styles.map((s) => [s.set_index, s.style]),
               ),
-            }),
-          ),
+            };
+          }),
       })),
   };
 }

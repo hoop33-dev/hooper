@@ -9,11 +9,18 @@ import {
   formatMeasurementCompact,
   measurementStatColumns,
 } from "@/src/lib/measurementFormat";
+import { sequenceVariesBySet } from "@/src/lib/sequenceDisplay";
 import { useSortable } from "@dnd-kit/sortable";
-import type { BlockExerciseWithDetails, ExerciseStyleRow } from "@hooper/db";
+import type {
+  BlockExerciseWithDetails,
+  ExerciseStyleRow,
+  PlacedSequence,
+} from "@hooper/db";
 import { ExerciseVideoThumbnail } from "../../exercises/ExerciseVideoThumbnail";
-import { SpinnerIcon } from "../../ui/icons";
+import { SequenceChainText } from "../../sequences/SequenceChain";
+import { ChainIcon, SpinnerIcon } from "../../ui/icons";
 import { InlineConfirmDelete } from "../../ui/InlineConfirmDelete";
+import { PortalBadge } from "../../ui/PortalBadge";
 import { useDragIndicator, type DragIndicator } from "./DragIndicatorContext";
 import { isPending } from "./pendingRows";
 
@@ -22,7 +29,9 @@ import { isPending } from "./pendingRows";
 function computeRowDropIndicator(rowId: string, indicator: DragIndicator) {
   const activeId = indicator.activeId ?? "";
   const isExerciseLike =
-    activeId.startsWith("block-exercise:") || activeId.startsWith("library:");
+    activeId.startsWith("block-exercise:") ||
+    activeId.startsWith("library:") ||
+    activeId.startsWith("sequence-template:");
   const isDropTarget =
     isExerciseLike && indicator.overId === rowId && activeId !== rowId;
   return { isDropTarget, after: isDropTarget && indicator.after };
@@ -62,6 +71,65 @@ function StylePill({ label }: { label: string }) {
   );
 }
 
+function SequenceRowBody({
+  blockExercise,
+  sequence,
+  dense,
+}: {
+  blockExercise: BlockExerciseWithDetails;
+  sequence: PlacedSequence;
+  dense?: boolean;
+}) {
+  if (dense) {
+    return (
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="text-portal-orange shrink-0">
+            <ChainIcon size={12} />
+          </span>
+          <span className="text-portal-text1 min-w-0 flex-1 truncate text-[12px] font-bold">
+            {sequence.name}
+          </span>
+          <span className="text-portal-text3 shrink-0 text-[11px]">
+            {formatMeasurementCompact(blockExercise)}
+          </span>
+        </div>
+        <SequenceChainText
+          sequence={sequence}
+          className="mt-0.5 text-[10.5px] leading-snug"
+        />
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="border-portal-orange/30 bg-portal-orange-soft text-portal-orange flex h-9 w-16 flex-shrink-0 items-center justify-center rounded-md border">
+        <ChainIcon size={18} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <div className="text-portal-text1 truncate text-[13px] font-bold">
+            {sequence.name}
+          </div>
+          <PortalBadge variant="orange">Sequence</PortalBadge>
+          {sequenceVariesBySet(sequence) && (
+            <PortalBadge>Varies by set</PortalBadge>
+          )}
+        </div>
+        <SequenceChainText
+          sequence={sequence}
+          className="mt-0.5 text-[11.5px]"
+        />
+      </div>
+      <div className="flex flex-shrink-0 items-center gap-3">
+        {measurementStatColumns(blockExercise).map((col) => (
+          <StatColumn key={col.key} label={col.label} value={col.value} />
+        ))}
+      </div>
+    </>
+  );
+}
+
 function RowBody({
   blockExercise,
   styles,
@@ -71,6 +139,15 @@ function RowBody({
   styles: ExerciseStyleRow[];
   dense?: boolean;
 }) {
+  if (blockExercise.sequence) {
+    return (
+      <SequenceRowBody
+        blockExercise={blockExercise}
+        sequence={blockExercise.sequence}
+        dense={dense}
+      />
+    );
+  }
   const name = resolveDisplayName(blockExercise);
 
   if (dense) {
@@ -93,7 +170,7 @@ function RowBody({
   return (
     <>
       <ExerciseVideoThumbnail
-        exercise={blockExercise.exercise}
+        exercise={blockExercise.exercise!}
         className="h-9 w-16 flex-shrink-0 rounded-md"
         fallbackClassName="text-[10px]"
       />
@@ -117,6 +194,10 @@ function RowBody({
       </div>
     </>
   );
+}
+
+function removeTitle(blockExercise: BlockExerciseWithDetails): string {
+  return blockExercise.sequence ? "Remove sequence" : "Remove exercise";
 }
 
 interface SortableBlockExerciseRowProps {
@@ -163,6 +244,7 @@ export function SortableBlockExerciseRow({
         // renders at the exact same height as a real one instead of
         // shrinking to fit less content.
         dense ? "min-h-9 px-3 py-2" : "min-h-14 px-3.5 py-2.5",
+        blockExercise.sequence && "bg-portal-orange-soft/60",
         isDragging && "opacity-30",
         pending && "opacity-50",
         !readOnly &&
@@ -187,7 +269,7 @@ export function SortableBlockExerciseRow({
       {!readOnly && !pending && onRemove && (
         <InlineConfirmDelete
           onDelete={onRemove}
-          idleTitle="Remove exercise"
+          idleTitle={removeTitle(blockExercise)}
           idleClassName="text-portal-text3 opacity-0 hover:text-portal-text1 group-focus-within:opacity-100 group-hover:opacity-100"
         />
       )}

@@ -12,6 +12,7 @@ import { cache } from "react";
 import type { SupabaseClient } from "./block.service";
 import { getExerciseCategoriesRaw } from "./exerciseCategory.service";
 import { getExerciseStylesRaw } from "./exerciseStyle.service";
+import { copySequenceSteps } from "./sequenceSteps";
 import {
   SESSION_TEMPLATE_SELECT,
   shapeSessionTemplate,
@@ -143,7 +144,11 @@ export async function deleteSessionTemplate(id: string): Promise<Result<void>> {
 }
 
 type SourceBlockExercise = {
-  exercise_id: string;
+  id: string;
+  exercise_id: string | null;
+  sequence_name: string | null;
+  sequence_description: string | null;
+  source_sequence_id: string | null;
   position: number;
   sets: number;
   notes: string | null;
@@ -166,6 +171,19 @@ type SourceBlock = {
   block_exercises: SourceBlockExercise[];
 };
 type SourceSession = SessionRow & { blocks: SourceBlock[] };
+
+/** Source → copy id pairs for the sequence placements in a batch copy,
+ * matched by insert order. */
+function sequencePairs(
+  sources: { id: string; exercise_id: string | null; sets: number }[],
+  copies: { id: string }[],
+) {
+  return sources.flatMap((be, i) =>
+    be.exercise_id === null
+      ? [{ from: be.id, to: copies[i].id, sets: be.sets }]
+      : [],
+  );
+}
 
 async function fetchSourceSession(
   supabase: SupabaseClient,
@@ -219,6 +237,9 @@ export async function saveSessionAsTemplate(
       block.block_exercises.map((be) => ({
         block_template_id: newBlockTemplates[i].id,
         exercise_id: be.exercise_id,
+        sequence_name: be.sequence_name,
+        sequence_description: be.sequence_description,
+        source_sequence_id: be.source_sequence_id,
         position: be.position,
         sets: be.sets,
         notes: be.notes,
@@ -235,6 +256,13 @@ export async function saveSessionAsTemplate(
     const sourceBlockExercises = source.blocks.flatMap(
       (block) => block.block_exercises,
     );
+    const stepsResult = await copySequenceSteps(
+      supabase,
+      "placement",
+      "template",
+      sequencePairs(sourceBlockExercises, newBlockExercises),
+    );
+    if (!stepsResult.ok) return err(stepsResult.error);
     const measurementRows = sourceBlockExercises.flatMap((be, i) =>
       be.block_exercise_measurements.map((m) => ({
         block_template_exercise_id: newBlockExercises[i].id,
@@ -260,7 +288,11 @@ export async function saveSessionAsTemplate(
 }
 
 type SourceTemplateBlockExercise = {
-  exercise_id: string;
+  id: string;
+  exercise_id: string | null;
+  sequence_name: string | null;
+  sequence_description: string | null;
+  source_sequence_id: string | null;
   position: number;
   sets: number;
   notes: string | null;
@@ -330,6 +362,9 @@ async function copyTemplateBlocksIntoSession(
     block.block_template_exercises.map((be) => ({
       block_id: newBlocks[i].id,
       exercise_id: be.exercise_id,
+      sequence_name: be.sequence_name,
+      sequence_description: be.sequence_description,
+      source_sequence_id: be.source_sequence_id,
       position: be.position,
       sets: be.sets,
       notes: be.notes,
@@ -346,6 +381,13 @@ async function copyTemplateBlocksIntoSession(
   const sourceBlockExercises = sourceBlockTemplates.flatMap(
     (block) => block.block_template_exercises,
   );
+  const stepsResult = await copySequenceSteps(
+    supabase,
+    "template",
+    "placement",
+    sequencePairs(sourceBlockExercises, newBlockExercises),
+  );
+  if (!stepsResult.ok) return err(stepsResult.error);
   const measurementRows = sourceBlockExercises.flatMap((be, i) =>
     be.block_template_exercise_measurements.map((m) => ({
       block_exercise_id: newBlockExercises[i].id,

@@ -403,6 +403,8 @@ interface BlockCardHeaderProps {
   addExercise?: {
     exercises: ExerciseWithDetails[];
     onAdd: (id: string) => void;
+    /** Library sequence id, or none for a blank sequence. */
+    onAddSequence?: (sequenceId?: string) => void;
   };
 }
 
@@ -487,6 +489,7 @@ function BlockCardHeaderActions({
           <AddExercisePopover
             exercises={addExercise.exercises}
             onAdd={addExercise.onAdd}
+            onAddSequence={addExercise.onAddSequence}
           />
         </div>
       )}
@@ -593,6 +596,7 @@ interface BlockCardProps {
   dense?: boolean;
   exercises?: ExerciseWithDetails[];
   onAddExercise?: (exerciseId: string) => void;
+  onAddSequence?: (sequenceId?: string) => void;
   onOpenExercise: (blockExercise: BlockExerciseWithDetails) => void;
   onRemoveExercise: (id: string) => void;
   onRename: (name: string) => void;
@@ -612,6 +616,7 @@ export function BlockCard({
   dense,
   exercises,
   onAddExercise,
+  onAddSequence,
   onOpenExercise,
   onRemoveExercise,
   onRename,
@@ -655,7 +660,7 @@ export function BlockCard({
         onUpdateBlock={onUpdateBlock}
         addExercise={
           !dense && exercises && onAddExercise
-            ? { exercises, onAdd: onAddExercise }
+            ? { exercises, onAdd: onAddExercise, onAddSequence }
             : undefined
         }
       />

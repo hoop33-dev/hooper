@@ -239,7 +239,9 @@ function SetTable({
       <thead>
         <tr>
           <th className="c-set">Set</th>
-          {model.showExerciseColumn && <th className="c-ex">Exercise</th>}
+          {model.showExerciseColumn && (
+            <th className="c-ex">{model.exerciseColumnLabel}</th>
+          )}
           {model.showStyleColumn && <th className="c-style">Style</th>}
           {model.unitColumns.map((u) => (
             <th key={u}>{u.toUpperCase()}</th>
@@ -299,7 +301,7 @@ function ExerciseRow({
 }) {
   const name = resolveDisplayName(be);
   const styleTag = resolveStyleName(be, styles);
-  const thumb = thumbnailFor(be.exercise);
+  const thumb = be.exercise ? thumbnailFor(be.exercise) : null;
   return (
     <div className="ex">
       <div className="thumb">
@@ -307,9 +309,9 @@ function ExerciseRow({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={thumb} alt="" />
         ) : (
-          <div className="ph">Video frame</div>
+          <div className="ph">{be.sequence ? "Sequence" : "Video frame"}</div>
         )}
-        {be.exercise.video_url && (
+        {be.exercise?.video_url && (
           <a className="vlink" href={be.exercise.video_url}>
             Watch demo
           </a>

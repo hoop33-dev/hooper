@@ -25,6 +25,10 @@ function exercise(
     notes: null,
     link_group_id: linkGroupId,
     style_id: null,
+    sequence_name: null,
+    sequence_description: null,
+    source_sequence_id: null,
+    sequence: null,
     created_at: "",
     updated_at: "",
     exercise: {
@@ -176,7 +180,7 @@ describe("optimisticSession", () => {
   });
 
   it("seeds a pending block holding the dragged exercise", () => {
-    const seed = exercise("e1", null).exercise;
+    const seed = exercise("e1", null).exercise!;
     const ghost = optimisticSession(
       { mode: "blank", name: "Upper Body", week_number: 1 },
       program,
@@ -193,7 +197,7 @@ describe("optimisticSession", () => {
   });
 
   it("ignores the seed exercise for copy/template modes", () => {
-    const seed = exercise("e1", null).exercise;
+    const seed = exercise("e1", null).exercise!;
     const ghost = optimisticSession(
       { mode: "template", sessionTemplateId: "t1", week_number: 1 },
       program,

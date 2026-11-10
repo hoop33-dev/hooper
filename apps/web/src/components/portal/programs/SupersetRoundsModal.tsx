@@ -1,7 +1,10 @@
 "use client";
 
+import {
+  isExercisePlacement,
+  type ExercisePlacement,
+} from "@/src/lib/sequenceDisplay";
 import type {
-  BlockExerciseWithDetails,
   BlockWithExercises,
   ExerciseStyleRow,
   ExerciseWithDetails,
@@ -21,7 +24,6 @@ import {
   type BlockExerciseUpdateData,
 } from "./BlockExerciseMeasurementModal";
 import { CountStepper } from "./measurementGrid/CountStepper";
-import { SetConfigCard } from "./measurementGrid/SetConfigCard";
 import {
   applyFirstRoundToAll,
   applyStyleToAll,
@@ -37,6 +39,7 @@ import {
   updateSlotValue,
   type SetConfigState,
 } from "./measurementGrid/setConfig";
+import { SetConfigCard } from "./measurementGrid/SetConfigCard";
 import { SimpleSetTable } from "./measurementGrid/SimpleSetTable";
 import { useHideAdditionalInfo } from "./measurementGrid/useHideAdditionalInfo";
 import { variantOptionsFor } from "./variantOptions";
@@ -397,7 +400,7 @@ function ExerciseSectionContainer({
   hideAdditionalInfo,
   edit,
 }: {
-  blockExercise: BlockExerciseWithDetails;
+  blockExercise: ExercisePlacement;
   configs: SetConfigState[];
   rounds: number;
   exercises: ExerciseWithDetails[];
@@ -467,7 +470,7 @@ function ExerciseSectionContainer({
  * resolution `toVariantStylePayload` computes, mirroring the single-exercise
  * modal's own save payload so a per-round variant/style edit persists. */
 function toSupersetExercisePayload(
-  blockExercise: BlockExerciseWithDetails,
+  blockExercise: ExercisePlacement,
   configs: SetConfigState[],
   rounds: number,
   exercises: ExerciseWithDetails[],
@@ -487,29 +490,25 @@ function toSupersetExercisePayload(
   };
 }
 
-export function SupersetRoundsModal({
-  block,
-  exercises,
-  styles,
-  unitTypes,
-  createUnitTypeAction,
-  profileId,
-  onClose,
-  onSave,
-}: SupersetRoundsModalProps) {
+/** Rounds plus each exercise's per-round configs. Sequences keep their
+ * own editor (their steps don't fit this grid); the round count still
+ * applies to them. */
+function useRoundsState(block: BlockWithExercises) {
   const [rounds, setRounds] = useState(block.sets ?? 1);
-  const [byExercise, setByExercise] = useState<Record<string, SetConfigState[]>>(
-    () =>
-      Object.fromEntries(
-        block.exercises.map((be) => [
-          be.id,
-          initSetConfigs(be, resolveDefaultUnitTypes(be)),
-        ]),
-      ),
+  const exercisePlacements = block.exercises.filter(isExercisePlacement);
+  const sequenceNames = block.exercises.flatMap((be) =>
+    be.sequence ? [be.sequence.name] : [],
   );
-  const [hideAdditionalInfo, setHideAdditionalInfo] = useHideAdditionalInfo();
-  const [saving, setSaving] = useState(false);
-  const onBackdropClick = useModalDismiss(onClose);
+  const [byExercise, setByExercise] = useState<
+    Record<string, SetConfigState[]>
+  >(() =>
+    Object.fromEntries(
+      exercisePlacements.map((be) => [
+        be.id,
+        initSetConfigs(be, resolveDefaultUnitTypes(be)),
+      ]),
+    ),
+  );
 
   function edit(
     exerciseId: string,
@@ -530,10 +529,60 @@ export function SupersetRoundsModal({
     );
   }
 
+  return {
+    rounds,
+    exercisePlacements,
+    sequenceNames,
+    byExercise,
+    edit,
+    updateRounds,
+  };
+}
+
+/** Sequences in a superset run every round but edit in their own modal. */
+function SequencesNote({ names }: { names: string[] }) {
+  if (names.length === 0) return null;
+  const one = names.length === 1;
+  return (
+    <p className="border-portal-orange/30 bg-portal-orange-soft text-portal-text2 rounded-lg border px-3 py-2 text-xs">
+      {names.join(", ")} also {one ? "runs" : "run"} each round. Click{" "}
+      {one ? "it" : "them"} in the block to edit steps and values.
+    </p>
+  );
+}
+
+export function SupersetRoundsModal({
+  block,
+  exercises,
+  styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
+  onClose,
+  onSave,
+}: SupersetRoundsModalProps) {
+  const {
+    rounds,
+    exercisePlacements,
+    sequenceNames,
+    byExercise,
+    edit,
+    updateRounds,
+  } = useRoundsState(block);
+  const [hideAdditionalInfo, setHideAdditionalInfo] = useHideAdditionalInfo();
+  const [saving, setSaving] = useState(false);
+  const onBackdropClick = useModalDismiss(onClose);
+
   async function handleSave() {
     setSaving(true);
-    const perExercise = block.exercises.map((be) =>
-      toSupersetExercisePayload(be, byExercise[be.id]!, rounds, exercises, styles),
+    const perExercise = exercisePlacements.map((be) =>
+      toSupersetExercisePayload(
+        be,
+        byExercise[be.id]!,
+        rounds,
+        exercises,
+        styles,
+      ),
     );
     await onSave(rounds, perExercise);
     setSaving(false);
@@ -555,7 +604,11 @@ export function SupersetRoundsModal({
         />
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
           <div className="flex flex-col gap-1">
-            <CountStepper label="Rounds" value={rounds} onChange={updateRounds} />
+            <CountStepper
+              label="Rounds"
+              value={rounds}
+              onChange={updateRounds}
+            />
             <p className="text-portal-text3 text-[11px]">
               One round runs all {exerciseCount} exercise
               {exerciseCount === 1 ? "" : "s"} back-to-back before resting.
@@ -563,7 +616,8 @@ export function SupersetRoundsModal({
           </div>
           <div className="bg-portal-border h-px" />
           <div className="flex flex-col gap-4">
-            {block.exercises.map((be, index) => (
+            <SequencesNote names={sequenceNames} />
+            {exercisePlacements.map((be, index) => (
               <ExerciseSectionContainer
                 key={be.id}
                 blockExercise={be}
@@ -574,7 +628,7 @@ export function SupersetRoundsModal({
                 unitTypes={unitTypes}
                 createUnitTypeAction={createUnitTypeAction}
                 profileId={profileId}
-                isLast={index === exerciseCount - 1}
+                isLast={index === exercisePlacements.length - 1}
                 hideAdditionalInfo={hideAdditionalInfo}
                 edit={edit}
               />

@@ -1,11 +1,16 @@
 "use client";
 
-import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
+import type {
+  ExerciseCategoryRow,
+  ExerciseWithDetails,
+  LibrarySequenceWithDetails,
+} from "@hooper/db";
 import { BlockLibraryShelfBody } from "./BlockLibraryShelf";
 import type { LibraryTemplate } from "./blockTemplateFilter";
 import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { ExerciseLibraryShelfBody } from "./ExerciseLibraryShelf";
 import { LibraryTabs } from "./LibraryTabs";
+import { SequenceLibraryShelfBody } from "./SequenceLibraryPanels";
 import type { useLibraryPanelState } from "./useLibraryPanelState";
 
 interface ProgramLibraryShelfProps extends CreateExerciseActions {
@@ -14,6 +19,8 @@ interface ProgramLibraryShelfProps extends CreateExerciseActions {
   libraryPanel: ReturnType<typeof useLibraryPanelState>;
   filteredExercises: ExerciseWithDetails[];
   filteredBlockTemplates: LibraryTemplate[];
+  /** Set where sequences can be added — shows the Sequences tab. */
+  filteredSequences?: LibrarySequenceWithDetails[];
   onQuickAdd: () => void;
 }
 
@@ -25,6 +32,7 @@ export function ProgramLibraryShelf({
   libraryPanel,
   filteredExercises,
   filteredBlockTemplates,
+  filteredSequences,
   onQuickAdd,
   profileId,
   createExerciseAction,
@@ -44,7 +52,10 @@ export function ProgramLibraryShelf({
             libraryPanel.setTab(t);
             libraryPanel.setOpen(true);
           }}
-          className="w-40 flex-shrink-0"
+          className={
+            filteredSequences ? "w-60 flex-shrink-0" : "w-40 flex-shrink-0"
+          }
+          withSequences={!!filteredSequences}
         />
         <button
           type="button"
@@ -78,6 +89,16 @@ export function ProgramLibraryShelf({
               createCategoryAction={createCategoryAction}
               createStyleAction={createStyleAction}
               createUnitTypeAction={createUnitTypeAction}
+            />
+          ) : libraryPanel.tab === "sequences" && filteredSequences ? (
+            <SequenceLibraryShelfBody
+              items={filteredSequences}
+              search={libraryPanel.sequenceSearch}
+              onSearchChange={libraryPanel.setSequenceSearch}
+              searchInputId={libraryPanel.sequenceSearchInputId}
+              selectedIndex={libraryPanel.selectedIndex}
+              onSelectedIndexChange={libraryPanel.setSelectedIndex}
+              onQuickAdd={onQuickAdd}
             />
           ) : (
             <BlockLibraryShelfBody

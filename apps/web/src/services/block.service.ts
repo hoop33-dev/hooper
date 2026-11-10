@@ -12,6 +12,13 @@ import type {
 } from "@hooper/db";
 import { defaultBlockColor } from "@hooper/shared";
 import { randomUUID } from "node:crypto";
+import {
+  insertSequenceSteps,
+  readSequenceSteps,
+  replaceSequenceSteps,
+  trimSequencePicks,
+  type SequenceStepInput,
+} from "./sequenceSteps";
 
 export type CreateBlockInput = { session_id: string; name: string };
 export type UpdateBlockInput = {
@@ -88,6 +95,21 @@ export type UpdateBlockExerciseInput = {
    * own `style_id`. Passing `{}` clears every override ("apply to all
    * sets"). */
   set_styles?: Record<number, string | null>;
+  /** Sequence placements only — when provided, renames the sequence and
+   * fully replaces its steps and picks. */
+  sequence?: SequenceUpdateInput;
+};
+
+export type SequenceUpdateInput = {
+  name: string;
+  description?: string | null;
+  steps: SequenceStepInput[];
+};
+
+export type AddSequenceToBlockInput = {
+  block_id: string;
+  /** Library sequence to copy; omitted → a blank sequence. */
+  sequence_id?: string;
 };
 
 export type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -164,7 +186,7 @@ export function defaultMeasurementSets(
   }));
 }
 
-function toMeasurementRows(
+export function toMeasurementRows(
   blockExerciseId: string,
   measurements: MeasurementInput,
 ) {
@@ -243,10 +265,20 @@ export async function createBlock(
 /** Groups a placement's raw measurement rows by `set_index`, each sorted by
  * `position` — the shape `resizeMeasurements` needs to pad or truncate the
  * placement's list of sets. */
+type MeasurementLike = Pick<
+  BlockExerciseMeasurementRow,
+  | "position"
+  | "set_index"
+  | "unit_type"
+  | "value"
+  | "value_entered_by"
+  | "value_unit"
+>;
+
 function groupMeasurementsBySet(
-  measurements: BlockExerciseMeasurementRow[],
-): BlockExerciseMeasurementRow[][] {
-  const bySet = new Map<number, BlockExerciseMeasurementRow[]>();
+  measurements: MeasurementLike[],
+): MeasurementLike[][] {
+  const bySet = new Map<number, MeasurementLike[]>();
   for (const m of measurements) {
     const list = bySet.get(m.set_index) ?? [];
     list.push(m);
@@ -264,8 +296,8 @@ function groupMeasurementsBySet(
  * (unit types, values, and units together) rather than resetting to a
  * default, since a coach growing 3 sets to 4 almost always wants the new
  * set to start out matching the last one exactly. */
-function resizeMeasurements(
-  measurements: BlockExerciseMeasurementRow[],
+export function resizeMeasurements(
+  measurements: MeasurementLike[],
   setsCount: number,
 ): MeasurementInput {
   const sets = groupMeasurementsBySet(measurements).map((rows) => ({
@@ -347,6 +379,17 @@ async function cascadeSupersetSets(
     );
     const result = await replaceMeasurements(supabase, be.id, resized);
     if (!result.ok) return err(result.error);
+
+    if (be.exercise_id === null) {
+      const picksResult = await trimSequencePicks(
+        supabase,
+        "placement",
+        be.id,
+        newSets,
+      );
+      if (!picksResult.ok) return err(picksResult.error);
+      continue;
+    }
 
     const currentVariants = Object.fromEntries(
       (be.block_exercise_set_variants ?? []).map((v) => [
@@ -614,6 +657,128 @@ export async function addExerciseToBlock(
   }
 }
 
+/** The steps, values and name a new sequence placement starts from: a copy
+ * of a library sequence, or a blank two-step sequence tracking Reps. */
+export async function resolveSequenceSource(
+  supabase: SupabaseClient,
+  sequenceId: string | undefined,
+): Promise<
+  Result<{
+    name: string;
+    description: string | null;
+    sets: number;
+    measurements: MeasurementInput;
+    steps: SequenceStepInput[];
+  }>
+> {
+  if (!sequenceId) {
+    return ok({
+      name: "Untitled sequence",
+      description: null,
+      sets: 3,
+      measurements: defaultMeasurementSets(["Reps"], 3),
+      steps: [
+        { label: "Step 1", category_id: null, picks: {} },
+        { label: "Step 2", category_id: null, picks: {} },
+      ],
+    });
+  }
+  const { data, error } = await supabase
+    .from("sequences")
+    .select("name, description, sets, sequence_measurements(*)")
+    .eq("id", sequenceId)
+    .single();
+  if (error) return err(error.message);
+  const stepsResult = await readSequenceSteps(supabase, "library", [
+    sequenceId,
+  ]);
+  if (!stepsResult.ok) return err(stepsResult.error);
+  return ok({
+    name: data.name,
+    description: data.description,
+    sets: data.sets,
+    measurements: resizeMeasurements(
+      (data.sequence_measurements ?? []) as unknown as MeasurementLike[],
+      data.sets,
+    ),
+    steps: stepsResult.data.get(sequenceId) ?? [],
+  });
+}
+
+/** Places a copy of a library sequence (or a blank one) at the end of a
+ * block, and of each linked sibling block. In a superset the copy takes the
+ * block's round count, trimming or padding sets. */
+export async function addSequenceToBlock(
+  input: AddSequenceToBlockInput,
+): Promise<Result<BlockExerciseWithMeasurements>> {
+  try {
+    const supabase = await createClient();
+    const source = await resolveSequenceSource(supabase, input.sequence_id);
+    if (!source.ok) return err(source.error);
+    const { targetBlockIds, linkGroupId } = await resolveTargetBlocks(
+      supabase,
+      input.block_id,
+    );
+    const setsCount = await resolveNewExerciseSets(
+      supabase,
+      input.block_id,
+      source.data.sets,
+    );
+    const measurements = resizeMeasurements(
+      toMeasurementRows("", source.data.measurements),
+      setsCount,
+    );
+
+    const rows = await Promise.all(
+      targetBlockIds.map(async (blockId) => ({
+        block_id: blockId,
+        exercise_id: null,
+        sequence_name: source.data.name,
+        sequence_description: source.data.description,
+        source_sequence_id: input.sequence_id ?? null,
+        position: await nextBlockExercisePosition(supabase, blockId),
+        sets: setsCount,
+        link_group_id: linkGroupId,
+      })),
+    );
+    const { data: inserted, error } = await supabase
+      .from("block_exercises")
+      .insert(rows)
+      .select();
+    if (error) return err(error.message);
+    if (!inserted) return err("Failed to add sequence.");
+
+    const { data: insertedMeasurements, error: measurementsError } =
+      await supabase
+        .from("block_exercise_measurements")
+        .insert(
+          inserted.flatMap((be) => toMeasurementRows(be.id, measurements)),
+        )
+        .select();
+    if (measurementsError) return err(measurementsError.message);
+
+    const stepsResult = await insertSequenceSteps(
+      supabase,
+      "placement",
+      inserted.map((be) => be.id),
+      source.data.steps,
+      setsCount,
+    );
+    if (!stepsResult.ok) return err(stepsResult.error);
+
+    const primary = inserted.find((be) => be.block_id === input.block_id);
+    if (!primary) return err("Failed to add sequence.");
+    return ok({
+      ...primary,
+      measurements: (insertedMeasurements ?? []).filter(
+        (m) => m.block_exercise_id === primary.id,
+      ),
+    });
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
 /** Every distinct week that has a placement sharing this exercise's link
  * group, sorted — empty when it isn't linked. The program canvas already
  * has every session loaded locally and can compute this client-side (see
@@ -846,7 +1011,7 @@ async function patchSiblingRow(
   patch: Record<string, unknown>,
   needsDefaults: boolean,
 ): Promise<
-  Result<{ exercise_id: string; style_id: string | null } | undefined>
+  Result<{ exercise_id: string | null; style_id: string | null } | undefined>
 > {
   const hasPatch = Object.keys(patch).length > 0;
   if (!hasPatch && !needsDefaults) return ok(undefined);
@@ -889,6 +1054,8 @@ async function applyToSibling(
   measurements: MeasurementInput | undefined,
   setVariants: Record<number, string> | undefined,
   setStyles: Record<number, string | null> | undefined,
+  sequence: SequenceUpdateInput | undefined,
+  setsCount: number,
 ): Promise<Result<void>> {
   const needsDefaults = setVariants !== undefined || setStyles !== undefined;
   const patchResult = await patchSiblingRow(
@@ -904,12 +1071,22 @@ async function applyToSibling(
     const result = await replaceMeasurements(supabase, siblingId, measurements);
     if (!result.ok) return err(result.error);
   }
-  if (setVariants && defaults) {
+  if (setVariants && defaults?.exercise_id) {
     const result = await replaceSetVariants(
       supabase,
       siblingId,
       defaults.exercise_id,
       setVariants,
+    );
+    if (!result.ok) return err(result.error);
+  }
+  if (sequence) {
+    const result = await replaceSequenceSteps(
+      supabase,
+      "placement",
+      siblingId,
+      sequence.steps,
+      setsCount,
     );
     if (!result.ok) return err(result.error);
   }
@@ -936,6 +1113,10 @@ function buildBlockExercisePatch(input: UpdateBlockExerciseInput) {
       exercise_id: input.exercise_id,
     }),
     ...("style_id" in input && { style_id: input.style_id ?? null }),
+    ...(input.sequence && {
+      sequence_name: input.sequence.name,
+      sequence_description: input.sequence.description ?? null,
+    }),
   };
 }
 
@@ -960,6 +1141,33 @@ async function resolveMeasurementsForUpdate(
     );
   }
   return ok(await currentMeasurements(supabase, id));
+}
+
+/** The per-set exercise half of an update: variant overrides for an
+ * exercise, steps (or trimmed picks, on a sets change) for a sequence. */
+async function updatePlacementStepsOrVariants(
+  supabase: SupabaseClient,
+  blockExercise: BlockExerciseRow,
+  input: UpdateBlockExerciseInput,
+): Promise<Result<void>> {
+  const { id, exercise_id: exerciseId } = blockExercise;
+  if (exerciseId !== null) {
+    return input.set_variants
+      ? replaceSetVariants(supabase, id, exerciseId, input.set_variants)
+      : ok(undefined);
+  }
+  if (input.sequence) {
+    return replaceSequenceSteps(
+      supabase,
+      "placement",
+      id,
+      input.sequence.steps,
+      blockExercise.sets,
+    );
+  }
+  return input.sets !== undefined
+    ? trimSequencePicks(supabase, "placement", id, input.sets)
+    : ok(undefined);
 }
 
 export async function updateBlockExercise(
@@ -992,15 +1200,12 @@ export async function updateBlockExercise(
     );
     if (!measurementsResult.ok) return err(measurementsResult.error);
 
-    if (input.set_variants) {
-      const setVariantsResult = await replaceSetVariants(
-        supabase,
-        id,
-        blockExercise.exercise_id,
-        input.set_variants,
-      );
-      if (!setVariantsResult.ok) return err(setVariantsResult.error);
-    }
+    const stepsResult = await updatePlacementStepsOrVariants(
+      supabase,
+      blockExercise,
+      input,
+    );
+    if (!stepsResult.ok) return err(stepsResult.error);
 
     if (input.set_styles) {
       const setStylesResult = await replaceSetStyles(
@@ -1027,6 +1232,8 @@ export async function updateBlockExercise(
         input.measurements,
         input.set_variants,
         input.set_styles,
+        input.sequence,
+        blockExercise.sets,
       );
       if (!result.ok) return err(result.error);
     }

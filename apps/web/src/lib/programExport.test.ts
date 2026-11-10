@@ -62,6 +62,10 @@ function blockExercise(
     notes: null,
     link_group_id: null,
     style_id: null,
+    sequence_name: null,
+    sequence_description: null,
+    source_sequence_id: null,
+    sequence: null,
     created_at: "",
     updated_at: "",
     exercise: {
@@ -201,7 +205,7 @@ describe("buildSetTableModel", () => {
 
   it("shows an exercise column with each set's effective variant name", () => {
     const base = blockExercise();
-    const tempo = { ...base.exercise, id: "ex-2", name: "Tempo Bench Press" };
+    const tempo = { ...base.exercise!, id: "ex-2", name: "Tempo Bench Press" };
     const be = blockExercise({
       sets: 3,
       setVariants: { 2: tempo },
@@ -218,6 +222,55 @@ describe("buildSetTableModel", () => {
       "Bench Press",
       "Tempo Bench Press",
     ]);
+  });
+});
+
+describe("buildSetTableModel for a sequence", () => {
+  it("lists each set's resolved steps under a Steps column", () => {
+    const ex = (id: string, name: string) => ({
+      ...blockExercise().exercise!,
+      id,
+      name,
+    });
+    const be = blockExercise({
+      exercise_id: null,
+      exercise: null,
+      sequence_name: "Wing attack",
+      sequence: {
+        name: "Wing attack",
+        description: null,
+        sourceSequenceId: null,
+        steps: [
+          {
+            id: "s1",
+            position: 0,
+            label: "Dribble",
+            category_id: null,
+            picks: { 0: ex("h1", "Crossover") },
+          },
+          {
+            id: "s2",
+            position: 1,
+            label: "Finish",
+            category_id: null,
+            picks: { 0: ex("f1", "Euro step"), 1: ex("f2", "Floater") },
+          },
+        ],
+      },
+      sets: 2,
+      measurements: [
+        measurement(0, 0, "Reps", 6),
+        measurement(1, 0, "Reps", 4),
+      ],
+    });
+    const model = buildSetTableModel(be, []);
+    expect(model.showExerciseColumn).toBe(true);
+    expect(model.exerciseColumnLabel).toBe("Steps");
+    expect(model.rows.map((r) => r.exerciseName)).toEqual([
+      "Crossover → Euro step",
+      "Crossover → Floater",
+    ]);
+    expect(model.rows.map((r) => r.values.Reps)).toEqual(["6", "4"]);
   });
 });
 

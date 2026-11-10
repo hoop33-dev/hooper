@@ -8,6 +8,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactElement } from "react";
 import {
+  ChainIcon,
   ClipboardIcon,
   DumbbellIcon,
   HomeIcon,
@@ -113,6 +114,13 @@ const NAV_ITEMS: NavItem[] = [
         label: "Exercises",
         href: "/exercises",
         Icon: DumbbellIcon,
+        active: true,
+      },
+      {
+        id: "sequences",
+        label: "Sequences",
+        href: "/sequences",
+        Icon: ChainIcon,
         active: true,
       },
       {

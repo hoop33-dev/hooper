@@ -9,6 +9,7 @@ import type {
   ExerciseStyleRow,
   SessionWithBlocks,
 } from "@hooper/db";
+import { sequenceChainNames } from "./sequenceDisplay";
 
 /** "%" for % 1RM, and Time/Distance units hug the number ("20sec", "100m");
  * Weight ("60 kg") and everything else keep a space. Mirrors
@@ -85,6 +86,8 @@ export type SetTableRow = {
 };
 
 export type SetTableModel = {
+  /** "Steps" for a sequence, "Exercise" otherwise. */
+  exerciseColumnLabel: string;
   /** Ordered unit-type column headers (canonical priority order). */
   unitColumns: string[];
   /** True when the sets don't all share one style — render a STYLE column. */
@@ -120,7 +123,9 @@ export function buildSetTableModel(
     return {
       setLabel: `${setIndex + 1}`,
       styleName: setStyleName(be, allStyles, setIndex),
-      exerciseName: (be.setVariants[setIndex] ?? be.exercise).name,
+      exerciseName: be.sequence
+        ? sequenceChainNames(be.sequence, setIndex).join(" → ")
+        : ((be.setVariants[setIndex] ?? be.exercise)?.name ?? ""),
       values: Object.fromEntries(
         unitColumns.map((unitType) => {
           const row = forSet?.get(unitType);
@@ -138,7 +143,9 @@ export function buildSetTableModel(
   return {
     unitColumns,
     showStyleColumn: distinctStyles.size > 1,
-    showExerciseColumn: distinctExercises.size > 1,
+    // A sequence always lists its steps, since that's what each set runs.
+    showExerciseColumn: !!be.sequence || distinctExercises.size > 1,
+    exerciseColumnLabel: be.sequence ? "Steps" : "Exercise",
     rows,
   };
 }

@@ -126,7 +126,10 @@ import type {
   BlockExerciseMeasurementRow,
   BlockExerciseRow,
   BlockRow,
+  LibrarySequenceMeasurementRow,
+  LibrarySequenceRow,
   ProgramRow,
+  SequenceStepRow,
   SessionRow,
 } from "./schema";
 
@@ -145,11 +148,36 @@ export type { BlockExerciseMeasurementRow, EnteredBy } from "./schema";
 // style differs from the placement's own style_id have an entry. A `null`
 // entry means that set explicitly has no style (distinct from no entry at
 // all, which means "inherits the placement default").
+//
+// A placement is either an exercise (`exercise` set, `sequence` null) or a
+// sequence (`exercise` null, `sequence` set). A sequence tracks
+// `measurements` for the whole run of its steps.
 export type BlockExerciseWithDetails = BlockExerciseRow & {
-  exercise: ExerciseWithDetails;
+  exercise: ExerciseWithDetails | null;
+  sequence: PlacedSequence | null;
   measurements: BlockExerciseMeasurementRow[];
   setVariants: Record<number, ExerciseRow>;
   setStyles: Record<number, ExerciseStyleRow | null>;
+};
+
+/** One step of a sequence, with each set's pick resolved to its exercise.
+ * Picks are sparse (see packages/shared/src/sequence.ts). */
+export type SequenceStepWithPicks = SequenceStepRow & {
+  picks: Record<number, ExerciseRow>;
+};
+
+export type PlacedSequence = {
+  name: string;
+  description: string | null;
+  sourceSequenceId: string | null;
+  steps: SequenceStepWithPicks[];
+};
+
+/** A saved library sequence. `measurements` uses the same per-set,
+ * per-unit-slot rows as a placement. */
+export type LibrarySequenceWithDetails = LibrarySequenceRow & {
+  steps: SequenceStepWithPicks[];
+  measurements: LibrarySequenceMeasurementRow[];
 };
 
 export type BlockWithExercises = BlockRow & {

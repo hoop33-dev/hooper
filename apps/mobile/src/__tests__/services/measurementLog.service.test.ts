@@ -88,6 +88,9 @@ function session(
           notes: null,
           link_group_id: null,
           style_id: null,
+          sequence_name: null,
+          sequence_description: null,
+          source_sequence_id: null,
           created_at: "",
           updated_at: "",
           exercise: {

@@ -1,3 +1,7 @@
+import {
+  isExercisePlacement,
+  isSequencePlacement,
+} from "@/src/lib/sequenceDisplay";
 import type { LinkScope } from "@/src/services/block.service";
 import type {
   BlockExerciseWithDetails,
@@ -8,6 +12,8 @@ import type {
   SessionTemplateSummary,
   UnitTypeRow,
 } from "@hooper/db";
+import { BlockSequenceModal } from "../sequences/BlockSequenceModal";
+import { useSequenceSupport } from "../sequences/SequenceSupportContext";
 import {
   BlockExerciseMeasurementModal,
   type BlockExerciseUpdateData,
@@ -23,8 +29,66 @@ import {
   SupersetRoundsModal,
   type SupersetExercisePayload,
 } from "./SupersetRoundsModal";
+import type { BlockSequenceSaveData } from "./useBlockActions";
 import type { SessionModalState } from "./useProgramCanvasState";
 import { variantOptionsFor } from "./variantOptions";
+
+/** The edit modal for one placement: the sequence editor or the exercise
+ * measurement editor. */
+function PlacementEditor({
+  editingExercise,
+  linkedWeeks,
+  editingSequenceRounds,
+  exercises,
+  styles,
+  unitTypes,
+  createUnitTypeAction,
+  profileId,
+  onClose,
+  onSaveExercise,
+  onSaveSequence,
+}: {
+  editingExercise: BlockExerciseWithDetails;
+  linkedWeeks?: number[];
+  editingSequenceRounds?: number;
+  exercises: ExerciseWithDetails[];
+  styles: ExerciseStyleRow[];
+  unitTypes: UnitTypeRow[];
+  createUnitTypeAction: SessionModalsProps["createUnitTypeAction"];
+  profileId: string;
+  onClose: () => void;
+  onSaveExercise: SessionModalsProps["onSaveExerciseMeasurement"];
+  onSaveSequence: SessionModalsProps["onSaveSequence"];
+}) {
+  const sequenceSupport = useSequenceSupport();
+  if (isSequencePlacement(editingExercise)) {
+    return sequenceSupport ? (
+      <BlockSequenceModal
+        key={editingExercise.id}
+        blockExercise={editingExercise}
+        lockedSets={editingSequenceRounds}
+        linkedWeeks={linkedWeeks}
+        support={sequenceSupport}
+        onClose={onClose}
+        onSave={onSaveSequence}
+      />
+    ) : null;
+  }
+  if (!isExercisePlacement(editingExercise)) return null;
+  return (
+    <BlockExerciseMeasurementModal
+      blockExercise={editingExercise}
+      linkedWeeks={linkedWeeks}
+      onClose={onClose}
+      onSave={onSaveExercise}
+      variantOptions={variantOptionsFor(editingExercise.exercise, exercises)}
+      styles={styles}
+      unitTypes={unitTypes}
+      createUnitTypeAction={createUnitTypeAction}
+      profileId={profileId}
+    />
+  );
+}
 
 interface SessionModalsProps {
   sessionModal: SessionModalState;
@@ -60,6 +124,12 @@ interface SessionModalsProps {
     data: BlockExerciseUpdateData,
     scope?: LinkScope,
   ) => Promise<void>;
+  /** Round count when the sequence being edited sits in a superset. */
+  editingSequenceRounds?: number;
+  onSaveSequence: (
+    data: BlockSequenceSaveData,
+    scope?: LinkScope,
+  ) => Promise<void>;
   editingSupersetBlock: BlockWithExercises | null;
   onCloseSupersetEditor: () => void;
   onSaveSupersetMeasurements: (
@@ -89,6 +159,8 @@ export function SessionModals({
   editingExerciseLinkedWeeks,
   onCloseExerciseEditor,
   onSaveExerciseMeasurement,
+  editingSequenceRounds,
+  onSaveSequence,
   editingSupersetBlock,
   onCloseSupersetEditor,
   onSaveSupersetMeasurements,
@@ -131,19 +203,18 @@ export function SessionModals({
         />
       )}
       {editingExercise && (
-        <BlockExerciseMeasurementModal
-          blockExercise={editingExercise}
+        <PlacementEditor
+          editingExercise={editingExercise}
           linkedWeeks={editingExerciseLinkedWeeks}
-          onClose={onCloseExerciseEditor}
-          onSave={onSaveExerciseMeasurement}
-          variantOptions={variantOptionsFor(
-            editingExercise.exercise,
-            exercises,
-          )}
+          editingSequenceRounds={editingSequenceRounds}
+          exercises={exercises}
           styles={styles}
           unitTypes={unitTypes}
           createUnitTypeAction={createUnitTypeAction}
           profileId={profileId}
+          onClose={onCloseExerciseEditor}
+          onSaveExercise={onSaveExerciseMeasurement}
+          onSaveSequence={onSaveSequence}
         />
       )}
       {editingSupersetBlock && (

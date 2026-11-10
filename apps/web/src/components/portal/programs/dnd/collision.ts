@@ -20,6 +20,10 @@ function allowedTargets(activeType: string): string[] {
   if (activeType === "block") return ["block", "session", "gap"];
   if (activeType === "library")
     return ["block-exercise", "block", "new-block", "new-session", "gap"];
+  // A library sequence lands in a block like an exercise, or creates a new
+  // block from a gap / "+ Add block" (not a new session: that needs a name).
+  if (activeType === "sequence-template")
+    return ["block-exercise", "block", "new-block", "gap"];
   // A block template always creates a whole new block, so it targets the
   // same zones a whole block does, plus "+ Add block" (equivalent to its
   // session — see resolveTargetSession in useBlockExerciseDnd.ts). A

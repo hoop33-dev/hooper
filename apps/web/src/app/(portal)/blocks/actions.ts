@@ -6,6 +6,7 @@ import type {
 } from "@/src/components/portal/programs/dnd/dropComputation";
 import type {
   AddExerciseToBlockTemplateInput,
+  AddSequenceToBlockTemplateInput,
   BlockExerciseWithMeasurements,
   CreateBlockFromTemplateInput,
   CreateBlocksFromSessionTemplateInput,
@@ -17,6 +18,7 @@ import type {
 } from "@/src/services/blockTemplate.service";
 import {
   addExerciseToBlockTemplate,
+  addSequenceToBlockTemplate,
   createBlockFromTemplate,
   createBlocksFromSessionTemplate,
   createBlockTemplate,
@@ -192,6 +194,16 @@ export async function addExerciseToBlockTemplateAction(
   input: AddExerciseToBlockTemplateInput,
 ): Promise<ActionResult<BlockExerciseWithMeasurements>> {
   const result = await addExerciseToBlockTemplate(input);
+  if (result.ok) revalidateBlockLibraryRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function addSequenceToBlockTemplateAction(
+  input: AddSequenceToBlockTemplateInput,
+): Promise<ActionResult<BlockExerciseWithMeasurements>> {
+  const result = await addSequenceToBlockTemplate(input);
   if (result.ok) revalidateBlockLibraryRoutes();
   return result.ok
     ? { ok: true, data: result.data }

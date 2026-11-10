@@ -2,6 +2,7 @@ import type {
   BlockExerciseWithDetails,
   BlockWithExercises,
   ExerciseWithDetails,
+  LibrarySequenceWithDetails,
 } from "@hooper/db";
 import { defaultBlockColor } from "@hooper/shared";
 
@@ -45,9 +46,13 @@ export function createPendingExercise(
     notes: null,
     link_group_id: null,
     style_id: exercise.default_style_id,
+    sequence_name: null,
+    sequence_description: null,
+    source_sequence_id: null,
     created_at: now,
     updated_at: now,
     exercise,
+    sequence: null,
     measurements: [],
     setVariants: {},
     setStyles: {},
@@ -55,9 +60,50 @@ export function createPendingExercise(
   };
 }
 
+/** A placeholder row for a library sequence while its copy is created. */
+export function createPendingSequence(
+  blockId: string,
+  source: LibrarySequenceWithDetails,
+): Pending<BlockExerciseWithDetails> {
+  const now = new Date().toISOString();
+  return {
+    id: nextPendingId("sequence"),
+    block_id: blockId,
+    exercise_id: null,
+    position: 0,
+    sets: source.sets,
+    notes: null,
+    link_group_id: null,
+    style_id: null,
+    sequence_name: source.name,
+    sequence_description: source.description,
+    source_sequence_id: source.id || null,
+    created_at: now,
+    updated_at: now,
+    exercise: null,
+    sequence: {
+      name: source.name,
+      description: source.description,
+      sourceSequenceId: source.id || null,
+      steps: source.steps,
+    },
+    measurements: source.measurements.map((m) => ({
+      ...m,
+      block_exercise_id: "",
+      created_at: now,
+      updated_at: now,
+    })),
+    setVariants: {},
+    setStyles: {},
+    pending: true,
+  };
+}
+
+/** `seed` is either a library exercise to place, or an existing row being
+ * split out into its own block (which may be a sequence). */
 export function createPendingBlock(
   sessionId: string,
-  exercise: ExerciseWithDetails,
+  seed: ExerciseWithDetails | BlockExerciseWithDetails,
 ): Pending<BlockWithExercises> {
   const id = nextPendingId("block");
   const now = new Date().toISOString();
@@ -72,7 +118,11 @@ export function createPendingBlock(
     sets: null,
     created_at: now,
     updated_at: now,
-    exercises: [createPendingExercise(id, exercise)],
+    exercises: [
+      "block_id" in seed
+        ? { ...seed, block_id: id, pending: true as const }
+        : createPendingExercise(id, seed),
+    ],
     pending: true,
   };
 }

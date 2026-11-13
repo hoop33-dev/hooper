@@ -12,7 +12,8 @@ export type UpsertSetLogInput = {
   position: number;
   setIndex: number;
   athleteProfileId: string;
-  exerciseId: string;
+  /** Null for a sequence placement, which has no single exercise. */
+  exerciseId: string | null;
   unitType: string;
   /** Snapshot of the coach's planned value at logging time. */
   plannedValue: number | null;
@@ -161,6 +162,8 @@ export async function buildPrefillMap(
   >();
   for (const block of session.blocks) {
     for (const blockExercise of block.exercises) {
+      // A sequence has no exercise history to pre-fill from.
+      if (blockExercise.exercise_id === null) continue;
       for (const measurement of blockExercise.measurements) {
         if (
           measurement.value_entered_by === "athlete" &&

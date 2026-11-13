@@ -1,11 +1,16 @@
 "use client";
 
-import type { ExerciseCategoryRow, ExerciseWithDetails } from "@hooper/db";
+import type {
+  ExerciseCategoryRow,
+  ExerciseWithDetails,
+  LibrarySequenceWithDetails,
+} from "@hooper/db";
 import { BlockLibraryPanel } from "./BlockLibraryPanel";
 import type { LibraryTemplate } from "./blockTemplateFilter";
 import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { ExerciseLibraryPanel } from "./ExerciseLibraryPanel";
 import { LibraryTabs } from "./LibraryTabs";
+import { SequenceLibraryPanel } from "./SequenceLibraryPanels";
 import type { useLibraryPanelState } from "./useLibraryPanelState";
 
 interface SessionLibrarySidebarProps extends CreateExerciseActions {
@@ -14,6 +19,8 @@ interface SessionLibrarySidebarProps extends CreateExerciseActions {
   libraryPanel: ReturnType<typeof useLibraryPanelState>;
   filteredExercises: ExerciseWithDetails[];
   filteredBlockTemplates: LibraryTemplate[];
+  /** Set where sequences can be added — shows the Sequences tab. */
+  filteredSequences?: LibrarySequenceWithDetails[];
   onQuickAdd: () => void;
 }
 
@@ -28,6 +35,7 @@ export function SessionLibrarySidebar({
   libraryPanel,
   filteredExercises,
   filteredBlockTemplates,
+  filteredSequences,
   onQuickAdd,
   profileId,
   createExerciseAction,
@@ -43,8 +51,24 @@ export function SessionLibrarySidebar({
       active={libraryPanel.tab}
       onChange={libraryPanel.setTab}
       className="flex-1"
+      withSequences={!!filteredSequences}
     />
   );
+
+  if (libraryPanel.tab === "sequences" && filteredSequences) {
+    return (
+      <SequenceLibraryPanel
+        tabs={tabs}
+        items={filteredSequences}
+        search={libraryPanel.sequenceSearch}
+        onSearchChange={libraryPanel.setSequenceSearch}
+        searchInputId={libraryPanel.sequenceSearchInputId}
+        selectedIndex={libraryPanel.selectedIndex}
+        onSelectedIndexChange={libraryPanel.setSelectedIndex}
+        onQuickAdd={onQuickAdd}
+      />
+    );
+  }
 
   return libraryPanel.tab === "exercises" ? (
     <ExerciseLibraryPanel

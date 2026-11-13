@@ -30,6 +30,7 @@ interface BlockListProps {
   onDeleteBlock: (blockId: string) => void;
   onAddBlock: (name: string) => Promise<void>;
   onAddExerciseToBlock: (blockId: string, exerciseId: string) => void;
+  onAddSequenceToBlock?: (blockId: string, sequenceId?: string) => void;
   onSaveBlockAsTemplate?: (blockId: string) => void;
   onUpdateBlock: (
     blockId: string,
@@ -114,6 +115,7 @@ export function BlockList({
   onDeleteBlock,
   onAddBlock,
   onAddExerciseToBlock,
+  onAddSequenceToBlock,
   onSaveBlockAsTemplate,
   onUpdateBlock,
 }: BlockListProps) {
@@ -146,6 +148,11 @@ export function BlockList({
               }
               onAddExercise={(exerciseId) =>
                 onAddExerciseToBlock(block.id, exerciseId)
+              }
+              onAddSequence={
+                onAddSequenceToBlock
+                  ? (sequenceId) => onAddSequenceToBlock(block.id, sequenceId)
+                  : undefined
               }
               onUpdateBlock={(patch) => onUpdateBlock(block.id, patch)}
             />

@@ -63,6 +63,10 @@ function makeExerciseRow(
     notes: null,
     link_group_id: null,
     style_id: null,
+    sequence_name: null,
+    sequence_description: null,
+    source_sequence_id: null,
+    sequence: null,
     created_at: "",
     updated_at: "",
     exercise,
@@ -124,6 +128,7 @@ function makeFakeCtx(initialBlocks: BlockWithExercises[]) {
     getBlocks: () => current,
     showError: vi.fn(),
     onSaved: vi.fn(),
+    refresh: vi.fn(),
     updateBlockAction: vi.fn(async (id: string, data: Partial<BlockRow>) => ({
       ok: true,
       data: {

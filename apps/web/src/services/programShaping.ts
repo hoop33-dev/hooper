@@ -9,9 +9,13 @@ import type {
   UnitTypeRow,
 } from "@hooper/db";
 import { toExerciseWithDetails, type RawExercise } from "./exercise.service";
+import {
+  PLACED_SEQUENCE_STEPS_SELECT,
+  shapePlacedSequence,
+  type RawSequenceStep,
+} from "./sequenceShaping";
 
-export const BLOCK_EXERCISE_SELECT =
-  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type_id, position), exercise_photos(*)), block_exercise_measurements(*), block_exercise_set_variants(set_index, exercise:exercises(*)), block_exercise_set_styles(set_index, style:exercise_styles(*))";
+export const BLOCK_EXERCISE_SELECT = `*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type_id, position), exercise_photos(*)), block_exercise_measurements(*), block_exercise_set_variants(set_index, exercise:exercises(*)), block_exercise_set_styles(set_index, style:exercise_styles(*)), ${PLACED_SEQUENCE_STEPS_SELECT}`;
 
 // Select content for a single `blocks` row, embedding its placed exercises.
 const BLOCK_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
@@ -23,7 +27,9 @@ const BLOCK_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
 export const SESSION_SELECT = `*, blocks(${BLOCK_SELECT})`;
 
 export type RawBlockExercise = BlockExerciseRow & {
-  exercise: RawExercise;
+  /** Null for a sequence placement. */
+  exercise: RawExercise | null;
+  sequence_steps: RawSequenceStep[];
   block_exercise_measurements: BlockExerciseMeasurementRow[];
   block_exercise_set_variants: { set_index: number; exercise: ExerciseRow }[];
   block_exercise_set_styles: {
@@ -58,15 +64,19 @@ export function shapeBlocksWithExercises(
             block_exercise_measurements,
             block_exercise_set_variants,
             block_exercise_set_styles,
+            sequence_steps,
             ...blockExercise
           }) => ({
             ...blockExercise,
-            exercise: toExerciseWithDetails(
-              exercise,
-              allCategories,
-              allStyles,
-              allUnitTypes,
-            ),
+            exercise: exercise
+              ? toExerciseWithDetails(
+                  exercise,
+                  allCategories,
+                  allStyles,
+                  allUnitTypes,
+                )
+              : null,
+            sequence: shapePlacedSequence(blockExercise, sequence_steps),
             measurements: [...block_exercise_measurements].sort(
               (a, b) => a.position - b.position || a.set_index - b.set_index,
             ),

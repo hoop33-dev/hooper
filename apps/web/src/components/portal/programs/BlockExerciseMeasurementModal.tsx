@@ -4,6 +4,7 @@ import { sortUnitTypes } from "@/src/constants/unitTypes";
 import { resolveMostCommonId } from "@/src/lib/blockExerciseDisplay";
 import { cn } from "@/src/lib/cn";
 import { formatMeasurementSummary } from "@/src/lib/measurementFormat";
+import type { ExercisePlacement } from "@/src/lib/sequenceDisplay";
 import type { LinkScope, MeasurementInput } from "@/src/services/block.service";
 import type {
   BlockExerciseWithDetails,
@@ -21,11 +22,6 @@ import { PortalButton } from "../ui/PortalButton";
 import { ToggleSwitch } from "../ui/ToggleSwitch";
 import { useModalDismiss } from "../ui/useModalDismiss";
 import { CountStepper } from "./measurementGrid/CountStepper";
-import { SetConfigCard } from "./measurementGrid/SetConfigCard";
-import { SetInlineSelect } from "./measurementGrid/SetInlineSelect";
-import { SetUnitTypeSelect } from "./measurementGrid/SetUnitTypeSelect";
-import { SimpleSetTable } from "./measurementGrid/SimpleSetTable";
-import { useHideAdditionalInfo } from "./measurementGrid/useHideAdditionalInfo";
 import {
   applyStyleToAll,
   applyUnitTypesToAll,
@@ -42,6 +38,11 @@ import {
   updateSlotValue,
   type SetConfigState,
 } from "./measurementGrid/setConfig";
+import { SetConfigCard } from "./measurementGrid/SetConfigCard";
+import { SetInlineSelect } from "./measurementGrid/SetInlineSelect";
+import { SetUnitTypeSelect } from "./measurementGrid/SetUnitTypeSelect";
+import { SimpleSetTable } from "./measurementGrid/SimpleSetTable";
+import { useHideAdditionalInfo } from "./measurementGrid/useHideAdditionalInfo";
 
 export type BlockExerciseUpdateData = {
   sets: number;
@@ -63,7 +64,7 @@ export type BlockExerciseUpdateData = {
 };
 
 interface BlockExerciseMeasurementModalProps {
-  blockExercise: BlockExerciseWithDetails;
+  blockExercise: ExercisePlacement;
   onClose: () => void;
   onSave: (data: BlockExerciseUpdateData, scope?: LinkScope) => Promise<void>;
   /** Every week this placement is linked across, when it's linked to more
@@ -327,7 +328,7 @@ function ModalFooter({
 /** Shown instead of the normal footer once "Save" is clicked on a linked
  * placement — mirrors a calendar app's this-event/this-and-following/
  * all-events choice for editing a recurring event. */
-function ScopeChoiceFooter({
+export function ScopeChoiceFooter({
   linkedWeeks,
   onChoose,
   onBack,
@@ -426,7 +427,7 @@ function ModalFooterArea({
 // fall back to whatever this placement already had if the exercise has
 // since been reconfigured down to zero configured types.
 export function resolveDefaultUnitTypes(
-  blockExercise: BlockExerciseWithDetails,
+  blockExercise: ExercisePlacement,
 ): string[] {
   if (blockExercise.exercise.unitTypes.length > 0)
     return sortUnitTypes(blockExercise.exercise.unitTypes);
@@ -518,7 +519,7 @@ function resolveLiveHeaderName(
  * override rows are needed and reopening the modal later reproduces the
  * exact same resolved name/pill. */
 function toSavePayload(
-  blockExercise: BlockExerciseWithDetails,
+  blockExercise: ExercisePlacement,
   sets: number,
   configs: SetConfigState[],
   variantOptions: ExerciseRow[],

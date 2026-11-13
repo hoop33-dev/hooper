@@ -6,6 +6,7 @@ import type {
 } from "@/src/components/portal/programs/dnd/dropComputation";
 import {
   addExerciseToBlock,
+  addSequenceToBlock,
   createBlock,
   deleteBlock,
   getLinkedWeeksForExercise,
@@ -15,9 +16,11 @@ import {
   updateBlock,
   updateBlockExercise,
   type AddExerciseToBlockInput,
+  type AddSequenceToBlockInput,
   type BlockExerciseWithMeasurements,
   type CreateBlockInput,
   type LinkScope,
+  type PlacedBlockSequence,
   type UpdateBlockExerciseInput,
   type UpdateBlockInput,
 } from "@/src/services/block.service";
@@ -202,6 +205,16 @@ export async function addExerciseToBlockAction(
   input: AddExerciseToBlockInput,
 ): Promise<ActionResult<BlockExerciseWithMeasurements>> {
   const result = await addExerciseToBlock(input);
+  if (result.ok) revalidateProgramRoutes();
+  return result.ok
+    ? { ok: true, data: result.data }
+    : { ok: false, error: result.error };
+}
+
+export async function addSequenceToBlockAction(
+  input: AddSequenceToBlockInput,
+): Promise<ActionResult<PlacedBlockSequence>> {
+  const result = await addSequenceToBlock(input);
   if (result.ok) revalidateProgramRoutes();
   return result.ok
     ? { ok: true, data: result.data }

@@ -52,6 +52,16 @@ export function resolveSetExercise(
   return be.setVariants[setIndex] ?? be.exercise;
 }
 
+/** The exercise id to record on a set's log — null for a sequence, whose
+ * stand-in exercise (see sequenceAsExercise in @hooper/api) isn't a real
+ * library exercise. */
+export function loggedExerciseId(
+  be: AthleteBlockExercise,
+  setIndex: number,
+): string | null {
+  return be.exercise_id === null ? null : resolveSetExercise(be, setIndex).id;
+}
+
 /** The style a given set actually uses — its own override (which may
  * explicitly be null, meaning "no style") if one exists, else the
  * placement's own style. */

@@ -2,8 +2,10 @@
 
 import type {
   AddExerciseToBlockInput,
+  AddSequenceToBlockInput,
   BlockExerciseWithMeasurements,
   CreateBlockInput,
+  PlacedBlockSequence,
   UpdateBlockExerciseInput,
   UpdateBlockInput,
 } from "@/src/services/block.service";
@@ -11,6 +13,7 @@ import type {
   BlockRow,
   BlockWithExercises,
   ExerciseWithDetails,
+  LibrarySequenceWithDetails,
   SessionTemplateSummary,
   SessionWithBlocks,
 } from "@hooper/db";
@@ -75,6 +78,10 @@ export interface SessionViewActions {
   getLinkedWeeksForExerciseAction: (
     id: string,
   ) => Promise<ActionResult<number[]>>;
+  /** Only needed to power adding sequences (Add menu + library drag). */
+  addSequenceToBlockAction?: (
+    input: AddSequenceToBlockInput,
+  ) => Promise<ActionResult<PlacedBlockSequence>>;
 }
 
 /** The single-session page has no local visibility into other weeks, so
@@ -140,8 +147,10 @@ export function useSessionViewState(
   exercises: ExerciseWithDetails[],
   actions: SessionViewActions,
   sessionTemplates: SessionTemplateSummary[] = [],
+  sequences: LibrarySequenceWithDetails[] = [],
 ) {
   const [blocks, setBlocks] = useState(session.blocks);
+  const sequencesById = new Map(sequences.map((s) => [s.id, s]));
   const libraryPanel = useLibraryPanelState({ idPrefix: "session-view" });
   useSyncBlocksFromSession(session, setBlocks);
   const exercisesById = new Map(exercises.map((e) => [e.id, e]));
@@ -165,6 +174,8 @@ export function useSessionViewState(
     createBlocksFromSessionTemplateAction:
       actions.createBlocksFromSessionTemplateAction,
     exercisesById,
+    addSequenceToBlockAction: actions.addSequenceToBlockAction,
+    sequencesById,
   });
 
   const dnd = useBlockExerciseDnd({
@@ -181,6 +192,8 @@ export function useSessionViewState(
       actions.createBlocksFromSessionTemplateAction,
     blockTemplateNamesById,
     sessionTemplatesById,
+    addSequenceToBlockAction: actions.addSequenceToBlockAction,
+    sequencesById,
     onExercisePlaced: (be, parentBlock) =>
       isPending(be)
         ? blockActions.openExerciseEditor(be, parentBlock)
@@ -195,6 +208,7 @@ export function useSessionViewState(
   return {
     blocks,
     exercisesById,
+    sequencesById,
     blockTemplateNamesById,
     sessionTemplatesById,
     dnd,

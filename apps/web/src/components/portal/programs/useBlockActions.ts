@@ -1,9 +1,12 @@
 "use client";
 
 import type {
+  AddSequenceToBlockInput,
   BlockExerciseWithMeasurements,
   LinkScope,
   MeasurementInput,
+  PlacedBlockSequence,
+  SequenceUpdateInput,
   UpdateBlockExerciseInput,
   UpdateBlockInput,
 } from "@/src/services/block.service";
@@ -13,6 +16,8 @@ import type {
   BlockWithExercises,
   EnteredBy,
   ExerciseWithDetails,
+  LibrarySequenceWithDetails,
+  PlacedSequence,
 } from "@hooper/db";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -25,7 +30,7 @@ import {
   removeExercise,
 } from "./blocksState";
 import { parseLibraryTemplateDragId } from "./blockTemplateFilter";
-import { isPending } from "./dnd/pendingRows";
+import { createPendingSequence, isPending } from "./dnd/pendingRows";
 import type { SupersetExercisePayload } from "./SupersetRoundsModal";
 
 type ActionResult<T = undefined> = { ok: boolean; error?: string; data?: T };
@@ -55,12 +60,148 @@ async function runAddExerciseToBlock(
     reportError(ctx.showError, result);
     return;
   }
-  const newRow = { ...result.data, exercise, setVariants: {}, setStyles: {} };
+  const newRow = {
+    ...result.data,
+    exercise,
+    sequence: null,
+    setVariants: {},
+    setStyles: {},
+  };
   ctx.setBlocks(
     ctx.blocks.map((b) =>
       b.id === blockId ? { ...b, exercises: [...b.exercises, newRow] } : b,
     ),
   );
+}
+
+/** Places a copy of a library sequence (or a blank one) at the end of a
+ * block. A blank one opens straight into the editor. */
+async function runAddSequenceToBlock(
+  blockId: string,
+  sequenceId: string | undefined,
+  ctx: Pick<
+    UseBlockActionsOptions,
+    "blocks" | "setBlocks" | "addSequenceToBlockAction" | "sequencesById"
+  > & {
+    getBlocks: () => BlockWithExercises[];
+    showError: (message: string) => void;
+    onAdded: (
+      row: BlockExerciseWithDetails,
+      block?: BlockWithExercises,
+    ) => void;
+  },
+) {
+  if (!ctx.addSequenceToBlockAction) return;
+  const source = sequenceId ? ctx.sequencesById?.get(sequenceId) : undefined;
+  // A dimmed placeholder while the copy is made, so the click isn't silent.
+  const pending = source
+    ? createPendingSequence(blockId, source)
+    : createPendingSequence(blockId, blankLibrarySequence());
+  const withRow = (row: BlockExerciseWithDetails) =>
+    ctx.getBlocks().map((b) =>
+      b.id === blockId
+        ? {
+            ...b,
+            exercises: [...b.exercises.filter((e) => e.id !== pending.id), row],
+          }
+        : b,
+    );
+  ctx.setBlocks(withRow(pending));
+
+  const result = await ctx.addSequenceToBlockAction({
+    block_id: blockId,
+    sequence_id: sequenceId,
+  });
+  if (!result.ok || !result.data) {
+    ctx.setBlocks(removeExercise(ctx.getBlocks(), pending.id));
+    reportError(ctx.showError, result);
+    return;
+  }
+  const newRow: BlockExerciseWithDetails = {
+    ...result.data,
+    exercise: null,
+    setVariants: {},
+    setStyles: {},
+  };
+  ctx.setBlocks(withRow(newRow));
+  if (!sequenceId)
+    ctx.onAdded(
+      newRow,
+      ctx.getBlocks().find((b) => b.id === blockId),
+    );
+}
+
+/** The shape of a blank sequence, for its placeholder row. Matches what
+ * block.service.ts's resolveSequenceSource creates. */
+function blankLibrarySequence(): LibrarySequenceWithDetails {
+  const blankStep = (position: number) => ({
+    id: `blank-${position}`,
+    position,
+    label: `Step ${position + 1}`,
+    category_id: null,
+    picks: {},
+  });
+  return {
+    id: "",
+    name: "Untitled sequence",
+    description: null,
+    sets: 3,
+    created_by: "",
+    created_at: "",
+    updated_at: "",
+    steps: [blankStep(0), blankStep(1)],
+    measurements: [],
+  };
+}
+
+/** What the sequence editor modal saves for a placement. `placed` is the
+ * resolved shape for patching local state before the server answers. */
+export type BlockSequenceSaveData = {
+  sets: number;
+  measurements: MeasurementInput;
+  sequence: SequenceUpdateInput;
+  placed: PlacedSequence;
+};
+
+async function runSaveSequence(
+  data: BlockSequenceSaveData,
+  scope: LinkScope | undefined,
+  editing: BlockExerciseWithDetails | null,
+  ctx: Pick<
+    UseBlockActionsOptions,
+    "setBlocks" | "updateBlockExerciseAction"
+  > & {
+    getBlocks: () => BlockWithExercises[];
+    showError: (message: string) => void;
+    onSaved: () => void;
+  },
+) {
+  if (!editing) return;
+  ctx.setBlocks(
+    patchExercise(ctx.getBlocks(), editing.id, {
+      sets: data.sets,
+      measurements: toOptimisticMeasurements(editing.id, data.measurements),
+      sequence_name: data.sequence.name,
+      sequence_description: data.sequence.description ?? null,
+      sequence: data.placed,
+    }),
+  );
+  ctx.onSaved();
+  const result = await ctx.updateBlockExerciseAction(
+    editing.id,
+    {
+      sets: data.sets,
+      measurements: data.measurements,
+      sequence: data.sequence,
+    },
+    scope,
+  );
+  if (result.ok && result.data) {
+    ctx.setBlocks(patchExercise(ctx.getBlocks(), editing.id, result.data));
+  } else {
+    ctx.setBlocks(patchExercise(ctx.getBlocks(), editing.id, editing));
+    reportError(ctx.showError, result);
+  }
 }
 
 async function runAddBlock(
@@ -280,7 +421,9 @@ export async function runSaveExerciseMeasurement(
  * (the Rounds stepper was used), persists that first — block.service.ts's
  * updateBlock already cascades the resize to every exercise in the block,
  * though the per-exercise saves below immediately supersede that resize
- * with the coach's own fully-edited configs anyway. */
+ * with the coach's own fully-edited configs anyway. Sequence rows aren't in
+ * `perExercise` (they edit in their own modal), so their server-side resize
+ * only reaches local state through a router refresh once the saves land. */
 export async function runSaveSupersetMeasurements(
   block: BlockWithExercises,
   rounds: number,
@@ -292,6 +435,7 @@ export async function runSaveSupersetMeasurements(
     getBlocks: () => BlockWithExercises[];
     showError: (message: string) => void;
     onSaved: () => void;
+    refresh: () => void;
   },
 ) {
   // Snapshot each exercise's pre-edit measurements up front, purely so a
@@ -314,15 +458,37 @@ export async function runSaveSupersetMeasurements(
   ctx.setBlocks(optimistic);
   ctx.onSaved();
 
+  let resizedSequences = false;
   if (rounds !== (block.sets ?? 1)) {
     const blockResult = await ctx.updateBlockAction(block.id, { sets: rounds });
     if (blockResult.ok && blockResult.data) {
       ctx.setBlocks(patchBlock(ctx.getBlocks(), block.id, blockResult.data));
+      resizedSequences = block.exercises.some((be) => be.sequence);
     } else {
       reportError(ctx.showError, blockResult);
     }
   }
 
+  await saveSupersetExercises(perExercise, originalMeasurementsById, ctx);
+  if (resizedSequences) ctx.refresh();
+}
+
+/** The per-exercise half of runSaveSupersetMeasurements: saves each one in
+ * order, stopping (and rolling back the rest) at the first failure. */
+async function saveSupersetExercises(
+  perExercise: SupersetExercisePayload[],
+  originalMeasurementsById: Map<
+    string,
+    ReturnType<typeof findExerciseMeasurements>
+  >,
+  ctx: Pick<
+    UseBlockActionsOptions,
+    "setBlocks" | "updateBlockExerciseAction"
+  > & {
+    getBlocks: () => BlockWithExercises[];
+    showError: (message: string) => void;
+  },
+) {
   for (let i = 0; i < perExercise.length; i++) {
     const p = perExercise[i]!;
     // Only forward keys the payload actually set — block.service.ts's
@@ -403,6 +569,37 @@ async function runSaveBlockAsTemplate(
   }
 }
 
+/** Saving the sequence being edited, and adding one to a block. A plain
+ * closure factory (no hooks) to keep useBlockActions short. */
+function sequenceActions(
+  options: UseBlockActionsOptions,
+  ctx: Omit<Parameters<typeof runSaveSequence>[3], "onSaved"> &
+    Omit<Parameters<typeof runAddSequenceToBlock>[2], "onAdded">,
+  editingExercise: BlockExerciseWithDetails | null,
+  editor: {
+    closeEditor: () => void;
+    openEditor: (
+      row: BlockExerciseWithDetails,
+      block?: BlockWithExercises,
+    ) => void;
+  },
+) {
+  return {
+    saveSequence: (data: BlockSequenceSaveData, scope?: LinkScope) =>
+      runSaveSequence(data, scope, editingExercise, {
+        ...ctx,
+        onSaved: editor.closeEditor,
+      }),
+    addSequenceToBlock: options.addSequenceToBlockAction
+      ? (blockId: string, sequenceId?: string) =>
+          runAddSequenceToBlock(blockId, sequenceId, {
+            ...ctx,
+            onAdded: editor.openEditor,
+          })
+      : undefined,
+  };
+}
+
 export interface UseBlockActionsOptions {
   blocks: BlockWithExercises[];
   setBlocks: (blocks: BlockWithExercises[]) => void;
@@ -444,6 +641,28 @@ export interface UseBlockActionsOptions {
     session_template_id: string;
   }) => Promise<ActionResult<BlockWithExercises[]>>;
   exercisesById?: Map<string, ExerciseWithDetails>;
+  /** Only needed to power adding sequences to a block. */
+  addSequenceToBlockAction?: (
+    input: AddSequenceToBlockInput,
+  ) => Promise<ActionResult<PlacedBlockSequence>>;
+  sequencesById?: Map<string, LibrarySequenceWithDetails>;
+}
+
+/** Which editor a placement opens in. A sequence always gets its own
+ * modal, pinned to the round count when it sits in a superset; any other
+ * placement in a superset opens the shared rounds editor. */
+function editorTargetFor(
+  blockExercise: BlockExerciseWithDetails,
+  parent: BlockWithExercises | undefined,
+): "superset" | { rounds: number | undefined } {
+  if (blockExercise.sequence) {
+    return {
+      rounds: parent?.is_superset
+        ? (parent.sets ?? blockExercise.sets)
+        : undefined,
+    };
+  }
+  return parent?.is_superset ? "superset" : { rounds: undefined };
 }
 
 export function useBlockActions(options: UseBlockActionsOptions) {
@@ -453,6 +672,8 @@ export function useBlockActions(options: UseBlockActionsOptions) {
     useState<BlockWithExercises | null>(null);
   const [savingAsTemplateBlock, setSavingAsTemplateBlock] =
     useState<BlockWithExercises | null>(null);
+  // Rounds a sequence in a superset is pinned to while editing.
+  const [editingSequenceRounds, setEditingSequenceRounds] = useState<number>();
   const { showError, showSuccess } = useToast();
   const router = useRouter();
 
@@ -487,8 +708,12 @@ export function useBlockActions(options: UseBlockActionsOptions) {
   ) {
     const resolved =
       parentBlock ?? findParentBlock(options.blocks, blockExercise.id);
-    if (resolved?.is_superset) setEditingSupersetBlock(resolved);
-    else setEditingExercise(blockExercise);
+    const target = editorTargetFor(blockExercise, resolved);
+    if (target === "superset") setEditingSupersetBlock(resolved ?? null);
+    else {
+      setEditingSequenceRounds(target.rounds);
+      setEditingExercise(blockExercise);
+    }
   }
 
   // The dnd flow's second onExercisePlaced call, once the real row resolves.
@@ -544,6 +769,11 @@ export function useBlockActions(options: UseBlockActionsOptions) {
             { ...ctx, onSaved: () => setEditingSupersetBlock(null) },
           )
         : Promise.resolve(),
+    editingSequenceRounds,
+    ...sequenceActions(options, ctx, editingExercise, {
+      closeEditor: () => setEditingExercise(null),
+      openEditor: openExerciseEditor,
+    }),
     removeExerciseById: (exerciseRowId: string) =>
       runRemoveExerciseFromBlock(exerciseRowId, ctx),
     addExerciseToBlock: (blockId: string, exerciseId: string) =>

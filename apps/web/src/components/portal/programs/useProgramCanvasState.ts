@@ -2,9 +2,11 @@
 
 import type {
   AddExerciseToBlockInput,
+  AddSequenceToBlockInput,
   BlockExerciseWithMeasurements,
   CreateBlockInput,
   LinkScope,
+  PlacedBlockSequence,
   UpdateBlockExerciseInput,
   UpdateBlockInput,
 } from "@/src/services/block.service";
@@ -21,6 +23,7 @@ import type {
   BlockRow,
   BlockWithExercises,
   ExerciseWithDetails,
+  LibrarySequenceWithDetails,
   ProgramRow,
   ProgramSummary,
   ProgramWithSessions,
@@ -76,6 +79,10 @@ export interface ProgramCanvasActions {
   addExerciseToBlockAction: (
     input: AddExerciseToBlockInput,
   ) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
+  /** Only needed to power dragging library sequences into blocks. */
+  addSequenceToBlockAction?: (
+    input: AddSequenceToBlockInput,
+  ) => Promise<ActionResult<PlacedBlockSequence>>;
   updateBlockExerciseAction: (
     id: string,
     input: UpdateBlockExerciseInput,
@@ -506,6 +513,12 @@ function useLinkAwareActions(
       actions.addExerciseToBlockAction,
       (input) => blockLinkGroup(input.block_id) !== null,
     ),
+    addSequenceToBlockAction: actions.addSequenceToBlockAction
+      ? refreshIfLinked(
+          actions.addSequenceToBlockAction,
+          (input) => blockLinkGroup(input.block_id) !== null,
+        )
+      : undefined,
     removeExerciseFromBlockAction: refreshIfLinked(
       actions.removeExerciseFromBlockAction,
       (id) => exerciseLinkGroup(id) !== null,
@@ -537,6 +550,7 @@ function useCanvasBlockState(
   sessionTemplatesById: Map<string, SessionTemplateSummary>,
   router: ReturnType<typeof useRouter>,
   onLibraryDropOnNewSession: (exerciseId: string, weekNumber: number) => void,
+  sequencesById: Map<string, LibrarySequenceWithDetails>,
 ) {
   const weekBlocks = weekSessions.flatMap((s) => s.blocks);
   const linkAware = useLinkAwareActions(weekBlocks, actions, router);
@@ -557,6 +571,8 @@ function useCanvasBlockState(
     createBlocksFromSessionTemplateAction:
       actions.createBlocksFromSessionTemplateAction,
     exercisesById,
+    addSequenceToBlockAction: linkAware.addSequenceToBlockAction,
+    sequencesById,
   });
 
   const dnd = useBlockExerciseDnd({
@@ -576,6 +592,8 @@ function useCanvasBlockState(
     setWeekSessionOrder,
     reorderSessionsAction: actions.reorderSessionsAction,
     onLibraryDropOnNewSession,
+    addSequenceToBlockAction: linkAware.addSequenceToBlockAction,
+    sequencesById,
     onExercisePlaced: (be, parentBlock) =>
       isPending(be)
         ? blockActions.openExerciseEditor(be, parentBlock)
@@ -900,8 +918,10 @@ export function useProgramCanvasState(
   exercises: ExerciseWithDetails[],
   actions: ProgramCanvasActions,
   sessionTemplates: SessionTemplateSummary[] = [],
+  sequences: LibrarySequenceWithDetails[] = [],
 ) {
   const router = useRouter();
+  const sequencesById = new Map(sequences.map((s) => [s.id, s]));
   const { showError } = useToast();
   const [sessions, setSessions] = useState(program.sessions);
   const [selectedWeek, setSelectedWeek] = useState(
@@ -935,6 +955,7 @@ export function useProgramCanvasState(
     router,
     (exerciseId, weekNumber) =>
       setSessionModal(seededCreateModalState(exerciseId, weekNumber)),
+    sequencesById,
   );
 
   function selectWeek(week: number) {
@@ -984,6 +1005,7 @@ export function useProgramCanvasState(
     deleteWeek,
     weekSessions,
     exercisesById,
+    sequencesById,
     blockTemplateNamesById,
     sessionTemplatesById,
     sessionTemplates,

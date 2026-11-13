@@ -10,6 +10,7 @@ import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
 import { listStyles } from "@/src/services/exerciseStyle.service";
 import { getProgramHeader } from "@/src/services/program.service";
+import { listSequences } from "@/src/services/sequence.service";
 import {
   getSessionById,
   getSessionHeader,
@@ -35,8 +36,10 @@ import {
 import { createCategoryAction } from "../../../../exercises/categories/actions";
 import { createStyleAction } from "../../../../exercises/styles/actions";
 import { createUnitTypeAction } from "../../../../exercises/unit-types/actions";
+import { createSequenceAction } from "../../../../sequences/actions";
 import {
   addExerciseToBlockAction,
+  addSequenceToBlockAction,
   createBlockAction,
   deleteBlockAction,
   getLinkedWeeksForExerciseAction,
@@ -86,6 +89,7 @@ async function loadSessionShellData(sessionId: string) {
     stylesResult,
     unitTypesResult,
     sessionTemplatesResult,
+    sequencesResult,
   ] = await Promise.all([
     getSessionById(sessionId),
     listExercises(),
@@ -93,6 +97,7 @@ async function loadSessionShellData(sessionId: string) {
     listStyles(),
     listUnitTypes(),
     listSessionTemplates(),
+    listSequences(),
   ]);
 
   return {
@@ -104,6 +109,8 @@ async function loadSessionShellData(sessionId: string) {
     sessionTemplates: sessionTemplatesResult.ok
       ? sessionTemplatesResult.data
       : [],
+
+    sequences: sequencesResult.ok ? sequencesResult.data : [],
   };
 }
 
@@ -180,6 +187,7 @@ async function SessionCanvasData({
     styles,
     unitTypes,
     sessionTemplates,
+    sequences,
   } = await loadSessionShellData(sessionId);
 
   if (!sessionResult.ok) notFound();
@@ -207,6 +215,9 @@ async function SessionCanvasData({
       deleteBlockAction={deleteBlockAction}
       reorderBlocksAction={reorderBlocksAction}
       addExerciseToBlockAction={addExerciseToBlockAction}
+      addSequenceToBlockAction={addSequenceToBlockAction}
+      sequences={sequences}
+      createSequenceAction={createSequenceAction}
       updateBlockExerciseAction={updateBlockExerciseAction}
       removeExerciseFromBlockAction={removeExerciseFromBlockAction}
       reorderBlockExercisesAction={reorderBlockExercisesAction}

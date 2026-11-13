@@ -488,3 +488,62 @@ export function ExternalLinkIcon({ size = 13 }: { size?: number }) {
     </svg>
   );
 }
+
+/** Three linked nodes — marks a sequence (steps run as one item). */
+export function ChainIcon({
+  size = 15,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round">
+      <circle cx="5" cy="12" r="2.5" />
+      <circle cx="12" cy="12" r="2.5" />
+      <circle cx="19" cy="12" r="2.5" />
+      <path d="M7.5 12h2M14.5 12h2" />
+    </svg>
+  );
+}
+
+export function ArrowRightIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round">
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+/** "Carried forward from an earlier set" marker. */
+export function InheritIcon({ size = 11 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round">
+      <path d="M4 4v7a4 4 0 0 0 4 4h12M15 10l5 5-5 5" />
+    </svg>
+  );
+}

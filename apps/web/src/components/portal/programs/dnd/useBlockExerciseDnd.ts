@@ -1,4 +1,7 @@
-import type { BlockExerciseWithMeasurements } from "@/src/services/block.service";
+import type {
+  BlockExerciseWithMeasurements,
+  PlacedBlockSequence,
+} from "@/src/services/block.service";
 import {
   PointerSensor,
   useSensor,
@@ -14,6 +17,7 @@ import type {
   BlockRow,
   BlockWithExercises,
   ExerciseWithDetails,
+  LibrarySequenceWithDetails,
   SessionTemplateSummary,
   SessionWithBlocks,
 } from "@hooper/db";
@@ -32,6 +36,7 @@ import {
   createPendingBlockFromTemplate,
   createPendingBlocksFromSessionTemplate,
   createPendingExercise,
+  createPendingSequence,
 } from "./pendingRows";
 
 export type SessionPositionUpdate = {
@@ -127,6 +132,13 @@ export interface UseBlockExerciseDndOptions {
     blockExercise: BlockExerciseWithDetails,
     parentBlock?: BlockWithExercises,
   ) => void;
+  /** Enables dragging a library sequence (`sequence-template:<id>`) into a
+   * block, or onto a new-block zone. */
+  addSequenceToBlockAction?: (input: {
+    block_id: string;
+    sequence_id?: string;
+  }) => Promise<ActionResult<PlacedBlockSequence>>;
+  sequencesById?: Map<string, LibrarySequenceWithDetails>;
 }
 
 type ParsedId = {
@@ -136,6 +148,7 @@ type ParsedId = {
     | "library"
     | "block-template"
     | "session-template"
+    | "sequence-template"
     | "new-block"
     | "new-session"
     | "session"
@@ -156,6 +169,7 @@ function parseId(id: string): ParsedId | null {
     type === "library" ||
     type === "block-template" ||
     type === "session-template" ||
+    type === "sequence-template" ||
     type === "new-block" ||
     type === "new-session" ||
     type === "session" ||
@@ -385,7 +399,7 @@ async function splitExerciseIntoNewBlock(
         }
       : b,
   );
-  const pendingBlock = createPendingBlock(sessionId, movingRow.exercise);
+  const pendingBlock = createPendingBlock(sessionId, movingRow);
   options.setBlocks(
     placeBlock(withoutRow, sessionId, overBlockId, insertAfter, pendingBlock)
       .blocks,
@@ -574,7 +588,15 @@ async function createBlockForExercise(
   reportIfFailed(onError, exerciseResult);
   const exercises =
     exerciseResult.ok && exerciseResult.data
-      ? [{ ...exerciseResult.data, exercise, setVariants: {}, setStyles: {} }]
+      ? [
+          {
+            ...exerciseResult.data,
+            exercise,
+            sequence: null,
+            setVariants: {},
+            setStyles: {},
+          },
+        ]
       : [];
   const realBlock = { ...blockResult.data, exercises };
   const placed = placeBlock(
@@ -631,7 +653,13 @@ async function placeLibraryExerciseInBlock(
     return;
   }
 
-  const newRow = { ...result.data, exercise, setVariants: {}, setStyles: {} };
+  const newRow = {
+    ...result.data,
+    exercise,
+    sequence: null,
+    setVariants: {},
+    setStyles: {},
+  };
   options.onExercisePlaced?.(newRow);
   const appended = appendExerciseToBlock(
     originalBlocks,
@@ -814,6 +842,130 @@ async function handleLibraryDrop(
     markCommitted,
     onError,
   );
+}
+
+/** Where a dropped library sequence lands: an existing block (at the row
+ * it was dropped on), or a brand-new block from a gap / "+ Add block". */
+async function resolveSequenceDropBlock(
+  options: UseBlockExerciseDndOptions,
+  over: Over,
+  pointerY: number | null,
+  onError: (message: string) => void,
+): Promise<{ target: ExerciseTarget; blocks: BlockWithExercises[] } | null> {
+  const overParsed = parseId(String(over.id));
+  const newBlockSession =
+    overParsed?.type === "new-block"
+      ? { sessionId: overParsed.value, overBlockId: null, insertAfter: false }
+      : overParsed?.type === "gap"
+        ? (() => {
+            const gap = parseGapId(String(over.id));
+            if (!gap) return null;
+            return {
+              sessionId: gap.sessionId,
+              ...resolveGapBlockPosition(
+                options.blocks,
+                gap.sessionId,
+                gap.index,
+              ),
+            };
+          })()
+        : null;
+  if (!newBlockSession) {
+    const target = resolveExerciseTarget(options.blocks, over, pointerY);
+    return target ? { target, blocks: options.blocks } : null;
+  }
+  if (!options.createBlockAction) return null;
+
+  const blockResult = await options.createBlockAction(
+    newBlockSession.sessionId,
+    "New block",
+  );
+  if (!blockResult.ok || !blockResult.data) {
+    reportIfFailed(onError, blockResult);
+    return null;
+  }
+  const placed = placeBlock(
+    options.blocks,
+    newBlockSession.sessionId,
+    newBlockSession.overBlockId,
+    newBlockSession.insertAfter,
+    { ...blockResult.data, exercises: [] },
+  );
+  options.setBlocks(placed.blocks);
+  if (placed.updates.length > 0 && options.reorderBlocksAction) {
+    reportIfFailed(onError, await options.reorderBlocksAction(placed.updates));
+  }
+  return {
+    target: {
+      blockId: blockResult.data.id,
+      overExerciseId: null,
+      insertAfter: false,
+    },
+    blocks: placed.blocks,
+  };
+}
+
+/** Drops a copy of a library sequence into a block, showing a pending row
+ * while the copy is made. */
+async function handleSequenceDrop(
+  options: UseBlockExerciseDndOptions,
+  sequenceId: string,
+  pointerY: number | null,
+  over: Over,
+  markCommitted: () => void,
+  onError: (message: string) => void,
+) {
+  const source = options.sequencesById?.get(sequenceId);
+  if (!source || !options.addSequenceToBlockAction) return;
+  markCommitted();
+  const resolved = await resolveSequenceDropBlock(
+    options,
+    over,
+    pointerY,
+    onError,
+  );
+  if (!resolved) return;
+  const { target, blocks: originalBlocks } = resolved;
+  const pendingRow = createPendingSequence(target.blockId, source);
+  options.setBlocks(placeExercise(originalBlocks, target, pendingRow));
+
+  const result = await options.addSequenceToBlockAction({
+    block_id: target.blockId,
+    sequence_id: sequenceId,
+  });
+  if (!result.ok || !result.data) {
+    options.setBlocks(originalBlocks);
+    reportIfFailed(onError, result);
+    return;
+  }
+  const newRow: BlockExerciseWithDetails = {
+    ...result.data,
+    exercise: null,
+    setVariants: {},
+    setStyles: {},
+  };
+  const appended = appendExerciseToBlock(
+    originalBlocks,
+    target.blockId,
+    newRow,
+  );
+  const reordered = target.overExerciseId
+    ? computeExerciseMove(
+        appended,
+        newRow.id,
+        target.blockId,
+        target.blockId,
+        target.overExerciseId,
+        target.insertAfter,
+      )
+    : null;
+  options.setBlocks(reordered?.blocks ?? appended);
+  if (reordered) {
+    reportIfFailed(
+      onError,
+      await options.reorderBlockExercisesAction(reordered.updates),
+    );
+  }
 }
 
 /** Appends `newBlocks` to their (already-correct) session, then — if dropped
@@ -1095,6 +1247,15 @@ function createDragEndHandler(
       );
     } else if (activeParsed.type === "session-template") {
       await handleSessionTemplateDrop(
+        options,
+        activeParsed.value,
+        pointerY,
+        over,
+        markCommitted,
+        onError,
+      );
+    } else if (activeParsed.type === "sequence-template") {
+      await handleSequenceDrop(
         options,
         activeParsed.value,
         pointerY,

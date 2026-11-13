@@ -2,7 +2,10 @@ import type {
   GroupSetTarget,
   SetRowState,
 } from "@/src/components/training/ExerciseSetsCard";
-import { resolveSetExercise } from "@/src/lib/blockExerciseDisplay";
+import {
+  loggedExerciseId,
+  resolveSetExercise,
+} from "@/src/lib/blockExerciseDisplay";
 import {
   buildPrefillMap,
   getLogsForCompletion,
@@ -216,7 +219,7 @@ async function persistSetDone(params: {
 }) {
   const { completion, athleteProfileId, be, setIndex, row } = params;
   const positions = be.measurements.filter((m) => m.set_index === setIndex);
-  const exerciseId = resolveSetExercise(be, setIndex).id;
+  const exerciseId = loggedExerciseId(be, setIndex);
   await Promise.all(
     positions.map((m) =>
       upsertSetLog({
@@ -264,7 +267,7 @@ async function persistFieldEdit(params: {
       position,
       setIndex,
       athleteProfileId: params.athleteProfileId,
-      exerciseId: resolveSetExercise(be, setIndex).id,
+      exerciseId: loggedExerciseId(be, setIndex),
       unitType: measurement.unit_type,
       plannedValue: measurement.value,
       actualValue: params.value,

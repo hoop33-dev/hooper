@@ -9,6 +9,7 @@ import type {
 import { listExercises } from "@/src/services/exercise.service";
 import { listCategories } from "@/src/services/exerciseCategory.service";
 import { listStyles } from "@/src/services/exerciseStyle.service";
+import { listSequences } from "@/src/services/sequence.service";
 import {
   getSessionTemplateById,
   listSessionTemplates,
@@ -25,8 +26,10 @@ import {
 import { createCategoryAction } from "../../exercises/categories/actions";
 import { createStyleAction } from "../../exercises/styles/actions";
 import { createUnitTypeAction } from "../../exercises/unit-types/actions";
+import { createSequenceAction } from "../../sequences/actions";
 import {
   addExerciseToBlockTemplateAction,
+  addSequenceToBlockTemplateAction,
   createBlockTemplateAction,
   createBlockTemplateFromTemplateAction,
   createBlockTemplatesFromSessionTemplateAction,
@@ -53,6 +56,17 @@ async function addExerciseToBlockAction(input: AddExerciseToBlockInput) {
   return addExerciseToBlockTemplateAction({
     block_template_id: block_id,
     ...rest,
+  });
+}
+
+async function addSequenceToBlockAction(input: {
+  block_id: string;
+  sequence_id?: string;
+}) {
+  "use server";
+  return addSequenceToBlockTemplateAction({
+    block_template_id: input.block_id,
+    sequence_id: input.sequence_id,
   });
 }
 
@@ -87,6 +101,7 @@ async function loadBlockTemplatePageData(templateId: string) {
     unitTypesResult,
     profileResult,
     sessionTemplatesResult,
+    sequencesResult,
   ] = await Promise.all([
     getSessionTemplateById(templateId),
     listExercises(),
@@ -95,6 +110,7 @@ async function loadBlockTemplatePageData(templateId: string) {
     listUnitTypes(),
     getCoachProfileId(),
     listSessionTemplates(),
+    listSequences(),
   ]);
 
   return {
@@ -111,6 +127,7 @@ async function loadBlockTemplatePageData(templateId: string) {
     sessionTemplates: sessionTemplatesResult.ok
       ? sessionTemplatesResult.data.filter((t) => t.id !== templateId)
       : [],
+    sequences: sequencesResult.ok ? sequencesResult.data : [],
   };
 }
 
@@ -128,6 +145,7 @@ export default async function BlockTemplateEditorPage({
     unitTypes,
     profileId,
     sessionTemplates,
+    sequences,
   } = await loadBlockTemplatePageData(id);
 
   if (!templateResult.ok) notFound();
@@ -178,6 +196,9 @@ export default async function BlockTemplateEditorPage({
         deleteBlockAction={deleteBlockTemplateAction}
         reorderBlocksAction={reorderBlockTemplatesAction}
         addExerciseToBlockAction={addExerciseToBlockAction}
+        addSequenceToBlockAction={addSequenceToBlockAction}
+        sequences={sequences}
+        createSequenceAction={createSequenceAction}
         updateBlockExerciseAction={updateBlockTemplateExerciseAction}
         removeExerciseFromBlockAction={removeExerciseFromBlockTemplateAction}
         reorderBlockExercisesAction={reorderBlockTemplateExercisesAction}

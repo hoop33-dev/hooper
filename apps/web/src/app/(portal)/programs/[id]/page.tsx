@@ -14,6 +14,7 @@ import {
   getProgramById,
   getProgramHeader,
 } from "@/src/services/program.service";
+import { listSequences } from "@/src/services/sequence.service";
 import { listSessionTemplates } from "@/src/services/sessionTemplate.service";
 import { listUnitTypes } from "@/src/services/unitType.service";
 import type { FormSummary, ProgramRow } from "@hooper/db";
@@ -35,6 +36,7 @@ import {
 import { createCategoryAction } from "../../exercises/categories/actions";
 import { createStyleAction } from "../../exercises/styles/actions";
 import { createUnitTypeAction } from "../../exercises/unit-types/actions";
+import { createSequenceAction } from "../../sequences/actions";
 import {
   attachFormToProgramAction,
   deleteProgramAction,
@@ -45,6 +47,7 @@ import {
 import {
   addBlankProgramWeeksAction,
   addExerciseToBlockAction,
+  addSequenceToBlockAction,
   copyProgramWeeksAction,
   createBlockAction,
   createSessionAction,
@@ -73,6 +76,7 @@ async function loadProgramCanvasPageData(id: string) {
     unitTypesResult,
     profileResult,
     sessionTemplatesResult,
+    sequencesResult,
   ] = await Promise.all([
     getProgramById(id),
     listExercises(),
@@ -81,6 +85,7 @@ async function loadProgramCanvasPageData(id: string) {
     listUnitTypes(),
     getCoachProfile(),
     listSessionTemplates(),
+    listSequences(),
   ]);
 
   return {
@@ -93,6 +98,8 @@ async function loadProgramCanvasPageData(id: string) {
     sessionTemplates: sessionTemplatesResult.ok
       ? sessionTemplatesResult.data
       : [],
+
+    sequences: sequencesResult.ok ? sequencesResult.data : [],
   };
 }
 
@@ -180,6 +187,7 @@ async function ProgramCanvasData({ id }: { id: string }) {
     unitTypes,
     profileId,
     sessionTemplates,
+    sequences,
   } = await loadProgramCanvasPageData(id);
 
   if (!programResult.ok) notFound();
@@ -218,6 +226,9 @@ async function ProgramCanvasData({ id }: { id: string }) {
       deleteBlockAction={deleteBlockAction}
       reorderBlocksAction={reorderBlocksAction}
       addExerciseToBlockAction={addExerciseToBlockAction}
+      addSequenceToBlockAction={addSequenceToBlockAction}
+      sequences={sequences}
+      createSequenceAction={createSequenceAction}
       updateBlockExerciseAction={updateBlockExerciseAction}
       removeExerciseFromBlockAction={removeExerciseFromBlockAction}
       reorderBlockExercisesAction={reorderBlockExercisesAction}

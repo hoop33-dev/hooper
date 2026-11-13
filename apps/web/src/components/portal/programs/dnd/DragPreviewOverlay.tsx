@@ -1,7 +1,9 @@
 import { cn } from "@/src/lib/cn";
+import { placementName } from "@/src/lib/sequenceDisplay";
 import type {
   BlockWithExercises,
   ExerciseWithDetails,
+  LibrarySequenceWithDetails,
   SessionTemplateSummary,
   SessionWithBlocks,
 } from "@hooper/db";
@@ -13,6 +15,7 @@ interface DragPreviewOverlayProps {
   blockTemplateNamesById?: Map<string, string>;
   sessionTemplatesById?: Map<string, SessionTemplateSummary>;
   sessions?: SessionWithBlocks[];
+  sequencesById?: Map<string, LibrarySequenceWithDetails>;
 }
 
 type GhostContent = { label: string; accentColor?: string };
@@ -71,7 +74,11 @@ const GHOST_RESOLVERS: Record<string, GhostResolver> = {
   },
   "block-exercise": (value, { blocks }) => {
     const match = findBlockExercise(blocks, value);
-    return match ? { label: match.exercise.name } : null;
+    return match ? { label: placementName(match) } : null;
+  },
+  "sequence-template": (value, { sequencesById }) => {
+    const sequence = sequencesById?.get(value);
+    return sequence ? { label: sequence.name } : null;
   },
   block: (value, { blocks }) => {
     const block = blocks.find((b) => b.id === value);

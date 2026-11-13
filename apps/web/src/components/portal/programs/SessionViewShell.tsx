@@ -1,23 +1,37 @@
 "use client";
 
+import {
+  isExercisePlacement,
+  isSequencePlacement,
+} from "@/src/lib/sequenceDisplay";
+import type { SequenceInput } from "@/src/services/sequence.service";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import type {
   ExerciseCategoryRow,
   ExerciseStyleRow,
   ExerciseWithDetails,
+  LibrarySequenceWithDetails,
   SessionTemplateSummary,
   SessionWithBlocks,
   UnitTypeRow,
 } from "@hooper/db";
+import { BlockSequenceModal } from "../sequences/BlockSequenceModal";
+import {
+  SequenceSupportProvider,
+  sequenceSupportFor,
+  useSequenceSupport,
+} from "../sequences/SequenceSupportContext";
 import { useToast } from "../ui/Toast";
 import { BlockExerciseMeasurementModal } from "./BlockExerciseMeasurementModal";
 import { BlockList } from "./BlockList";
 import { libraryTemplates, type LibraryTemplate } from "./blockTemplateFilter";
 import { DragIndicatorContext } from "./dnd/DragIndicatorContext";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
+import { keepGhostUnderCursor } from "./dnd/keepGhostUnderCursor";
 import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { filterExercises } from "./exerciseFilter";
 import { SaveAsTemplatePopover } from "./SaveAsTemplatePopover";
+import { filterSequences } from "./SequenceLibraryPanels";
 import { SessionLibrarySidebar } from "./SessionLibrarySidebar";
 import { SupersetRoundsModal } from "./SupersetRoundsModal";
 import { useLibraryShortcuts } from "./useLibraryShortcuts";
@@ -33,6 +47,11 @@ interface SessionViewShellProps
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
   sessionTemplates?: SessionTemplateSummary[];
+  /** Library sequences for the sidebar; omit to hide sequences entirely. */
+  sequences?: LibrarySequenceWithDetails[];
+  createSequenceAction?: (
+    input: SequenceInput,
+  ) => Promise<{ ok: boolean; error?: string; id?: string }>;
 }
 
 type SessionViewState = ReturnType<typeof useSessionViewState>;
@@ -52,24 +71,39 @@ function SessionViewModals({
   createUnitTypeAction?: CreateExerciseActions["createUnitTypeAction"];
   profileId: string;
 }) {
+  const sequenceSupport = useSequenceSupport();
   return (
     <>
-      {state.blockActions.editingExercise && (
-        <BlockExerciseMeasurementModal
-          blockExercise={state.blockActions.editingExercise}
-          linkedWeeks={state.editingExerciseLinkedWeeks}
-          onClose={state.blockActions.closeExerciseEditor}
-          onSave={state.blockActions.saveExerciseMeasurement}
-          variantOptions={variantOptionsFor(
-            state.blockActions.editingExercise.exercise,
-            exercises,
-          )}
-          styles={styles}
-          unitTypes={unitTypes}
-          createUnitTypeAction={createUnitTypeAction}
-          profileId={profileId}
-        />
-      )}
+      {state.blockActions.editingExercise &&
+        isSequencePlacement(state.blockActions.editingExercise) &&
+        sequenceSupport && (
+          <BlockSequenceModal
+            key={state.blockActions.editingExercise.id}
+            blockExercise={state.blockActions.editingExercise}
+            lockedSets={state.blockActions.editingSequenceRounds}
+            linkedWeeks={state.editingExerciseLinkedWeeks}
+            support={sequenceSupport}
+            onClose={state.blockActions.closeExerciseEditor}
+            onSave={state.blockActions.saveSequence}
+          />
+        )}
+      {state.blockActions.editingExercise &&
+        isExercisePlacement(state.blockActions.editingExercise) && (
+          <BlockExerciseMeasurementModal
+            blockExercise={state.blockActions.editingExercise}
+            linkedWeeks={state.editingExerciseLinkedWeeks}
+            onClose={state.blockActions.closeExerciseEditor}
+            onSave={state.blockActions.saveExerciseMeasurement}
+            variantOptions={variantOptionsFor(
+              state.blockActions.editingExercise.exercise,
+              exercises,
+            )}
+            styles={styles}
+            unitTypes={unitTypes}
+            createUnitTypeAction={createUnitTypeAction}
+            profileId={profileId}
+          />
+        )}
 
       {state.blockActions.editingSupersetBlock && (
         <SupersetRoundsModal
@@ -116,6 +150,7 @@ function createQuickAddHandlers(
   state: SessionViewState,
   filteredExercises: ExerciseWithDetails[],
   filteredBlockTemplates: LibraryTemplate[],
+  filteredSequences: LibrarySequenceWithDetails[] | undefined,
   showError: (message: string) => void,
 ) {
   function onAddBlock() {
@@ -123,6 +158,21 @@ function createQuickAddHandlers(
   }
 
   function onAddSelected() {
+    if (state.libraryPanel.tab === "sequences") {
+      const sequence =
+        filteredSequences?.[state.libraryPanel.selectedIndex ?? 0];
+      if (!sequence || !state.blockActions.addSequenceToBlock) {
+        showError("No sequences match your search.");
+        return;
+      }
+      const lastBlock = state.blocks[state.blocks.length - 1];
+      if (!lastBlock) {
+        showError("Add a block to this session first.");
+        return;
+      }
+      void state.blockActions.addSequenceToBlock(lastBlock.id, sequence.id);
+      return;
+    }
     if (state.libraryPanel.tab === "exercises") {
       const exercise = filteredExercises[state.libraryPanel.selectedIndex ?? 0];
       if (!exercise) {
@@ -158,8 +208,12 @@ function useSessionLibraryShortcuts(
   exercises: ExerciseWithDetails[],
   categories: ExerciseCategoryRow[],
   sessionTemplates: SessionTemplateSummary[],
+  sequences: LibrarySequenceWithDetails[] | undefined,
 ) {
   const { showError } = useToast();
+  const filteredSequences = sequences
+    ? filterSequences(sequences, state.libraryPanel.sequenceSearch)
+    : undefined;
   const baseExercises = exercises.filter((ex) => !ex.parent_id);
   const filteredExercises = filterExercises(
     baseExercises,
@@ -176,6 +230,7 @@ function useSessionLibraryShortcuts(
     state,
     filteredExercises,
     filteredBlockTemplates,
+    filteredSequences,
     showError,
   );
 
@@ -187,7 +242,12 @@ function useSessionLibraryShortcuts(
     onAddSelected,
   });
 
-  return { filteredExercises, filteredBlockTemplates, onAddSelected };
+  return {
+    filteredExercises,
+    filteredBlockTemplates,
+    filteredSequences,
+    onAddSelected,
+  };
 }
 
 /** The DndContext + library sidebar + block list + modals — split out of
@@ -202,6 +262,7 @@ function SessionViewBody({
   state,
   filteredExercises,
   filteredBlockTemplates,
+  filteredSequences,
   onQuickAdd,
   saveBlockAsTemplateAction,
   createExerciseActions,
@@ -214,6 +275,7 @@ function SessionViewBody({
   state: SessionViewState;
   filteredExercises: ExerciseWithDetails[];
   filteredBlockTemplates: LibraryTemplate[];
+  filteredSequences?: LibrarySequenceWithDetails[];
   onQuickAdd: () => void;
   saveBlockAsTemplateAction: SessionViewActions["saveBlockAsTemplateAction"];
   createExerciseActions: CreateExerciseActions;
@@ -234,6 +296,7 @@ function SessionViewBody({
             libraryPanel={state.libraryPanel}
             filteredExercises={filteredExercises}
             filteredBlockTemplates={filteredBlockTemplates}
+            filteredSequences={filteredSequences}
             onQuickAdd={onQuickAdd}
             {...createExerciseActions}
           />
@@ -251,6 +314,7 @@ function SessionViewBody({
                 state.blockActions.addBlock(session.id, name)
               }
               onAddExerciseToBlock={state.blockActions.addExerciseToBlock}
+              onAddSequenceToBlock={state.blockActions.addSequenceToBlock}
               onUpdateBlock={state.blockActions.updateBlockSettings}
               onSaveBlockAsTemplate={
                 saveBlockAsTemplateAction
@@ -262,13 +326,16 @@ function SessionViewBody({
               }
             />
           </div>
-          <DragOverlay dropAnimation={state.dnd.dropAnimation}>
+          <DragOverlay
+            dropAnimation={state.dnd.dropAnimation}
+            modifiers={[keepGhostUnderCursor]}>
             <DragPreviewOverlay
               activeId={state.dnd.activeId}
               blocks={state.blocks}
               exercisesById={state.exercisesById}
               blockTemplateNamesById={state.blockTemplateNamesById}
               sessionTemplatesById={state.sessionTemplatesById}
+              sequencesById={state.sequencesById}
             />
           </DragOverlay>
         </DragIndicatorContext.Provider>
@@ -301,23 +368,33 @@ export function SessionViewShell({
   createCategoryAction,
   createStyleAction,
   createUnitTypeAction,
+  sequences,
+  createSequenceAction,
   ...actions
 }: SessionViewShellProps) {
+  // Sequences only show where the page can actually place them.
+  const sequenceList = actions.addSequenceToBlockAction ? sequences : undefined;
   const state = useSessionViewState(
     session,
     exercises,
     actions,
     sessionTemplates,
+    sequenceList,
   );
 
-  const { filteredExercises, filteredBlockTemplates, onAddSelected } =
-    useSessionLibraryShortcuts(
-      session.id,
-      state,
-      exercises,
-      categories,
-      sessionTemplates,
-    );
+  const {
+    filteredExercises,
+    filteredBlockTemplates,
+    filteredSequences,
+    onAddSelected,
+  } = useSessionLibraryShortcuts(
+    session.id,
+    state,
+    exercises,
+    categories,
+    sessionTemplates,
+    sequenceList,
+  );
 
   const createExerciseActions: CreateExerciseActions = {
     profileId,
@@ -333,20 +410,30 @@ export function SessionViewShell({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden">
-      <SessionViewBody
-        session={session}
-        exercises={exercises}
-        categories={categories}
-        styles={styles}
-        unitTypes={unitTypes}
-        state={state}
-        filteredExercises={filteredExercises}
-        filteredBlockTemplates={filteredBlockTemplates}
-        onQuickAdd={onAddSelected}
-        saveBlockAsTemplateAction={actions.saveBlockAsTemplateAction}
-        createExerciseActions={createExerciseActions}
-      />
-    </div>
+    <SequenceSupportProvider
+      value={sequenceSupportFor(
+        sequenceList,
+        exercises,
+        categories,
+        unitTypes,
+        createSequenceAction,
+      )}>
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <SessionViewBody
+          session={session}
+          exercises={exercises}
+          categories={categories}
+          styles={styles}
+          unitTypes={unitTypes}
+          state={state}
+          filteredExercises={filteredExercises}
+          filteredBlockTemplates={filteredBlockTemplates}
+          filteredSequences={filteredSequences}
+          onQuickAdd={onAddSelected}
+          saveBlockAsTemplateAction={actions.saveBlockAsTemplateAction}
+          createExerciseActions={createExerciseActions}
+        />
+      </div>
+    </SequenceSupportProvider>
   );
 }

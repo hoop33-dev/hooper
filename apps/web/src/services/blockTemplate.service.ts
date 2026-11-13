@@ -7,6 +7,7 @@ import type {
   BlockExerciseWithDetails,
   BlockRow,
   BlockTemplateExerciseMeasurementRow,
+  BlockTemplateExerciseRow,
   BlockWithExercises,
   EnteredBy,
   ExerciseCategoryRow,
@@ -17,17 +18,36 @@ import type {
 import { defaultBlockColor } from "@hooper/shared";
 import {
   defaultMeasurementSets,
+  resizeMeasurements,
   resolveConfiguredUnitTypes,
+  resolveSequenceSource,
+  toMeasurementRows,
   type MeasurementInput,
+  type PlacedBlockSequence,
+  type SequenceUpdateInput,
   type SupabaseClient,
 } from "./block.service";
 import { toExerciseWithDetails } from "./exercise.service";
+import {
+  readPlacedSequenceSteps,
+  shapePlacedSequence,
+} from "./sequenceShaping";
+import {
+  copySequenceSteps,
+  insertSequenceSteps,
+  replaceSequenceSteps,
+  trimSequencePicks,
+} from "./sequenceSteps";
 import {
   TEMPLATE_BLOCK_EXERCISE_SELECT,
   type RawTemplateBlockExercise,
 } from "./templateShaping";
 
-export type { MeasurementInput, MeasurementSetInput } from "./block.service";
+export type {
+  MeasurementInput,
+  MeasurementSetInput,
+  PlacedBlockSequence,
+} from "./block.service";
 
 export type CreateBlockTemplateInput = {
   session_template_id: string;
@@ -55,6 +75,13 @@ export type UpdateBlockTemplateExerciseInput = {
   sets?: number;
   notes?: string;
   measurements?: MeasurementInput;
+  /** Sequence placements only — renames and replaces its steps. */
+  sequence?: SequenceUpdateInput;
+};
+
+export type AddSequenceToBlockTemplateInput = {
+  block_template_id: string;
+  sequence_id?: string;
 };
 
 async function nextBlockTemplatePosition(
@@ -118,16 +145,7 @@ function toBlockRow(row: {
 }
 
 function toBlockExerciseWithMeasurements(
-  row: {
-    id: string;
-    block_template_id: string;
-    exercise_id: string;
-    position: number;
-    sets: number;
-    notes: string | null;
-    created_at: string;
-    updated_at: string;
-  },
+  row: BlockTemplateExerciseRow,
   measurements: BlockExerciseMeasurementRow[],
 ): BlockExerciseWithMeasurements {
   const { block_template_id, ...rest } = row;
@@ -220,6 +238,7 @@ async function cascadeTemplateSupersetSets(
 
   const exercises = (rawExercises ?? []) as unknown as {
     id: string;
+    exercise_id: string | null;
     block_template_exercise_measurements: BlockTemplateExerciseMeasurementRow[];
   }[];
 
@@ -244,6 +263,16 @@ async function cascadeTemplateSupersetSets(
       .from("block_template_exercise_measurements")
       .insert(toTemplateMeasurementRows(be.id, resized));
     if (insertError) return err(insertError.message);
+
+    if (be.exercise_id === null) {
+      const picksResult = await trimSequencePicks(
+        supabase,
+        "template",
+        be.id,
+        newSets,
+      );
+      if (!picksResult.ok) return err(picksResult.error);
+    }
   }
   return ok(undefined);
 }
@@ -384,6 +413,28 @@ export async function addExerciseToBlockTemplate(
   }
 }
 
+/** Replaces a template sequence's steps, or trims its picks on a sets
+ * change. A no-op for a plain exercise. */
+async function updateTemplateSequenceSteps(
+  supabase: SupabaseClient,
+  row: BlockTemplateExerciseRow,
+  input: UpdateBlockTemplateExerciseInput,
+): Promise<Result<void>> {
+  if (row.exercise_id !== null) return ok(undefined);
+  if (input.sequence) {
+    return replaceSequenceSteps(
+      supabase,
+      "template",
+      row.id,
+      input.sequence.steps,
+      row.sets,
+    );
+  }
+  return input.sets !== undefined
+    ? trimSequencePicks(supabase, "template", row.id, input.sets)
+    : ok(undefined);
+}
+
 export async function updateBlockTemplateExercise(
   id: string,
   input: UpdateBlockTemplateExerciseInput,
@@ -393,6 +444,10 @@ export async function updateBlockTemplateExercise(
     const patch = {
       ...(input.sets !== undefined && { sets: input.sets }),
       ...("notes" in input && { notes: input.notes ?? null }),
+      ...(input.sequence && {
+        sequence_name: input.sequence.name,
+        sequence_description: input.sequence.description ?? null,
+      }),
     };
 
     // A measurements-only save leaves patch empty — an empty .update()
@@ -466,9 +521,99 @@ export async function updateBlockTemplateExercise(
       );
     }
 
+    const stepsResult = await updateTemplateSequenceSteps(
+      supabase,
+      blockTemplateExercise,
+      input,
+    );
+    if (!stepsResult.ok) return err(stepsResult.error);
+
     return ok(
       toBlockExerciseWithMeasurements(blockTemplateExercise, measurements),
     );
+  } catch (e) {
+    return err(toErrorMessage(e));
+  }
+}
+
+/** Template-editor sibling of block.service.ts's addSequenceToBlock. */
+export async function addSequenceToBlockTemplate(
+  input: AddSequenceToBlockTemplateInput,
+): Promise<Result<PlacedBlockSequence>> {
+  try {
+    const supabase = await createClient();
+    const source = await resolveSequenceSource(supabase, input.sequence_id);
+    if (!source.ok) return err(source.error);
+    const position = await nextBlockTemplateExercisePosition(
+      supabase,
+      input.block_template_id,
+    );
+    const { data: parent } = await supabase
+      .from("block_templates")
+      .select("is_superset, sets")
+      .eq("id", input.block_template_id)
+      .single();
+    const setsCount =
+      parent?.is_superset && parent.sets ? parent.sets : source.data.sets;
+
+    const { data: inserted, error } = await supabase
+      .from("block_template_exercises")
+      .insert({
+        block_template_id: input.block_template_id,
+        exercise_id: null,
+        sequence_name: source.data.name,
+        sequence_description: source.data.description,
+        source_sequence_id: input.sequence_id ?? null,
+        position,
+        sets: setsCount,
+      })
+      .select()
+      .single();
+    if (error) return err(error.message);
+
+    const measurements = resizeMeasurements(
+      toMeasurementRows("", source.data.measurements),
+      setsCount,
+    );
+    const { data: insertedMeasurements, error: measurementsError } =
+      await supabase
+        .from("block_template_exercise_measurements")
+        .insert(toTemplateMeasurementRows(inserted.id, measurements))
+        .select();
+    if (measurementsError) return err(measurementsError.message);
+
+    const stepsResult = await insertSequenceSteps(
+      supabase,
+      "template",
+      [inserted.id],
+      source.data.steps,
+      setsCount,
+    );
+    if (!stepsResult.ok) return err(stepsResult.error);
+
+    const steps = await readPlacedSequenceSteps(
+      supabase,
+      "template",
+      inserted.id,
+    );
+    if (!steps.ok) return err(steps.error);
+    return ok({
+      ...toBlockExerciseWithMeasurements(
+        inserted,
+        (insertedMeasurements ?? []).map(
+          ({ block_template_exercise_id, ...m }) => ({
+            ...m,
+            block_exercise_id: block_template_exercise_id,
+          }),
+        ),
+      ),
+      sequence: {
+        name: source.data.name,
+        description: source.data.description,
+        sourceSequenceId: input.sequence_id ?? null,
+        steps: steps.data,
+      },
+    });
   } catch (e) {
     return err(toErrorMessage(e));
   }
@@ -512,7 +657,11 @@ export async function reorderBlockTemplateExercises(
 }
 
 type SourceBlockExercise = {
-  exercise_id: string;
+  id: string;
+  exercise_id: string | null;
+  sequence_name: string | null;
+  sequence_description: string | null;
+  source_sequence_id: string | null;
   position: number;
   sets: number;
   notes: string | null;
@@ -525,6 +674,19 @@ type SourceBlockExercise = {
     value_unit: string | null;
   }[];
 };
+
+/** Source → copy id pairs for the sequence placements in a batch copy,
+ * matched by insert order. */
+function sequencePairs(
+  sources: { id: string; exercise_id: string | null; sets: number }[],
+  copies: { id: string }[],
+) {
+  return sources.flatMap((be, i) =>
+    be.exercise_id === null
+      ? [{ from: be.id, to: copies[i].id, sets: be.sets }]
+      : [],
+  );
+}
 
 /** Copies a real block's exercises/measurements into an already-created
  * block_templates row — the shared tail of saveBlockAsTemplate. */
@@ -541,6 +703,9 @@ async function copyBlockExercisesIntoTemplate(
       sourceExercises.map((be) => ({
         block_template_id: blockTemplateId,
         exercise_id: be.exercise_id,
+        sequence_name: be.sequence_name,
+        sequence_description: be.sequence_description,
+        source_sequence_id: be.source_sequence_id,
         position: be.position,
         sets: be.sets,
         notes: be.notes,
@@ -548,6 +713,14 @@ async function copyBlockExercisesIntoTemplate(
     )
     .select();
   if (exercisesError) return err(exercisesError.message);
+
+  const stepsResult = await copySequenceSteps(
+    supabase,
+    "placement",
+    "template",
+    sequencePairs(sourceExercises, newExercises),
+  );
+  if (!stepsResult.ok) return err(stepsResult.error);
 
   const measurementRows = sourceExercises.flatMap((be, i) =>
     be.block_exercise_measurements.map((m) => ({
@@ -646,14 +819,25 @@ async function copyTemplateExercisesIntoBlock(
       sourceExercises.map((be) => ({
         block_id: newBlockId,
         exercise_id: be.exercise_id,
+        sequence_name: be.sequence_name,
+        sequence_description: be.sequence_description,
+        source_sequence_id: be.source_sequence_id,
         position: be.position,
         sets: be.sets,
         notes: be.notes,
-        style_id: be.exercise.default_style_id,
+        style_id: be.exercise?.default_style_id ?? null,
       })),
     )
     .select();
   if (exercisesError) return err(exercisesError.message);
+
+  const stepsResult = await copySequenceSteps(
+    supabase,
+    "template",
+    "placement",
+    sequencePairs(sourceExercises, newExercises),
+  );
+  if (!stepsResult.ok) return err(stepsResult.error);
 
   const measurementRows = sourceExercises.flatMap((be, i) =>
     be.block_template_exercise_measurements.map((m) => ({
@@ -686,12 +870,15 @@ async function copyTemplateExercisesIntoBlock(
   return ok(
     sourceExercises.map((be, i) => ({
       ...newExercises[i],
-      exercise: toExerciseWithDetails(
-        be.exercise,
-        allCategories,
-        allStyles,
-        allUnitTypes,
-      ),
+      exercise: be.exercise
+        ? toExerciseWithDetails(
+            be.exercise,
+            allCategories,
+            allStyles,
+            allUnitTypes,
+          )
+        : null,
+      sequence: shapePlacedSequence(be, be.sequence_steps),
       measurements: (insertedMeasurements ?? []).filter(
         (m) => m.block_exercise_id === newExercises[i].id,
       ),
@@ -787,6 +974,9 @@ async function copyTemplateExercisesIntoBlockTemplate(
       sourceExercises.map((be) => ({
         block_template_id: newBlockTemplateId,
         exercise_id: be.exercise_id,
+        sequence_name: be.sequence_name,
+        sequence_description: be.sequence_description,
+        source_sequence_id: be.source_sequence_id,
         position: be.position,
         sets: be.sets,
         notes: be.notes,
@@ -794,6 +984,14 @@ async function copyTemplateExercisesIntoBlockTemplate(
     )
     .select();
   if (exercisesError) return err(exercisesError.message);
+
+  const stepsResult = await copySequenceSteps(
+    supabase,
+    "template",
+    "template",
+    sequencePairs(sourceExercises, newExercises),
+  );
+  if (!stepsResult.ok) return err(stepsResult.error);
 
   const measurementRows = sourceExercises.flatMap((be, i) =>
     be.block_template_exercise_measurements.map((m) => ({
@@ -834,12 +1032,15 @@ async function copyTemplateExercisesIntoBlockTemplate(
             block_exercise_id: block_template_exercise_id,
           })),
       ),
-      exercise: toExerciseWithDetails(
-        be.exercise,
-        allCategories,
-        allStyles,
-        allUnitTypes,
-      ),
+      exercise: be.exercise
+        ? toExerciseWithDetails(
+            be.exercise,
+            allCategories,
+            allStyles,
+            allUnitTypes,
+          )
+        : null,
+      sequence: shapePlacedSequence(be, be.sequence_steps),
       setVariants: {},
       setStyles: {},
     })),

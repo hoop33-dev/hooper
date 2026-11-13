@@ -12,9 +12,13 @@ import type {
   UnitTypeRow,
 } from "@hooper/db";
 import { toExerciseWithDetails, type RawExercise } from "./exercise.service";
+import {
+  shapePlacedSequence,
+  TEMPLATE_SEQUENCE_STEPS_SELECT,
+  type RawSequenceStep,
+} from "./sequenceShaping";
 
-export const TEMPLATE_BLOCK_EXERCISE_SELECT =
-  "*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type_id, position), exercise_photos(*)), block_template_exercise_measurements(*)";
+export const TEMPLATE_BLOCK_EXERCISE_SELECT = `*, exercise:exercises(*, exercise_category_links(category_id), exercise_unit_types(unit_type_id, position), exercise_photos(*)), block_template_exercise_measurements(*), ${TEMPLATE_SEQUENCE_STEPS_SELECT}`;
 
 const TEMPLATE_BLOCK_SELECT = `*, block_template_exercises(${TEMPLATE_BLOCK_EXERCISE_SELECT})`;
 
@@ -24,7 +28,8 @@ const TEMPLATE_BLOCK_SELECT = `*, block_template_exercises(${TEMPLATE_BLOCK_EXER
 export const SESSION_TEMPLATE_SELECT = `*, block_templates(${TEMPLATE_BLOCK_SELECT})`;
 
 export type RawTemplateBlockExercise = BlockTemplateExerciseRow & {
-  exercise: RawExercise;
+  exercise: RawExercise | null;
+  sequence_steps: RawSequenceStep[];
   block_template_exercise_measurements: BlockTemplateExerciseMeasurementRow[];
 };
 export type RawTemplateBlock = BlockTemplateRow & {
@@ -63,6 +68,7 @@ export function shapeBlockTemplatesWithExercises(
             exercise,
             block_template_exercise_measurements,
             block_template_id,
+            sequence_steps,
             ...blockExercise
           }): BlockExerciseWithDetails => ({
             ...blockExercise,
@@ -74,12 +80,15 @@ export function shapeBlockTemplatesWithExercises(
             style_id: null,
             setVariants: {},
             setStyles: {},
-            exercise: toExerciseWithDetails(
-              exercise,
-              allCategories,
-              allStyles,
-              allUnitTypes,
-            ),
+            exercise: exercise
+              ? toExerciseWithDetails(
+                  exercise,
+                  allCategories,
+                  allStyles,
+                  allUnitTypes,
+                )
+              : null,
+            sequence: shapePlacedSequence(blockExercise, sequence_steps),
             measurements: [...block_template_exercise_measurements]
               .sort(
                 (a, b) => a.position - b.position || a.set_index - b.set_index,

@@ -90,6 +90,10 @@ const program: ProgramWithSessions = {
               notes: "Knees over toes.",
               link_group_id: null,
               style_id: "st-working",
+              sequence_name: null,
+              sequence_description: null,
+              source_sequence_id: null,
+              sequence: null,
               created_at: "",
               updated_at: "",
               exercise: exercise("ex-squat", "Back Squat", {
@@ -146,6 +150,10 @@ const program: ProgramWithSessions = {
               notes: null,
               link_group_id: null,
               style_id: null,
+              sequence_name: null,
+              sequence_description: null,
+              source_sequence_id: null,
+              sequence: null,
               created_at: "",
               updated_at: "",
               exercise: exercise("ex-nordic", "Nordic Curl", {

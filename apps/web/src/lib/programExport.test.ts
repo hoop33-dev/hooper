@@ -7,6 +7,7 @@ import type {
 import { describe, expect, it } from "vitest";
 import {
   blockMetaLine,
+  buildSequenceTableModel,
   buildSetTableModel,
   formatMeasurementCell,
   groupSessionsByWeek,
@@ -62,6 +63,10 @@ function blockExercise(
     notes: null,
     link_group_id: null,
     style_id: null,
+    sequence_name: null,
+    sequence_description: null,
+    source_sequence_id: null,
+    sequence: null,
     created_at: "",
     updated_at: "",
     exercise: {
@@ -201,7 +206,7 @@ describe("buildSetTableModel", () => {
 
   it("shows an exercise column with each set's effective variant name", () => {
     const base = blockExercise();
-    const tempo = { ...base.exercise, id: "ex-2", name: "Tempo Bench Press" };
+    const tempo = { ...base.exercise!, id: "ex-2", name: "Tempo Bench Press" };
     const be = blockExercise({
       sets: 3,
       setVariants: { 2: tempo },
@@ -218,6 +223,86 @@ describe("buildSetTableModel", () => {
       "Bench Press",
       "Tempo Bench Press",
     ]);
+  });
+});
+
+describe("buildSequenceTableModel", () => {
+  const ex = (id: string, name: string, video_url: string | null = null) => ({
+    ...blockExercise().exercise!,
+    id,
+    name,
+    video_url,
+  });
+  const sequenceBlockExercise = () =>
+    blockExercise({
+      exercise_id: null,
+      exercise: null,
+      sequence_name: "Wing attack",
+      sequence: {
+        name: "Wing attack",
+        description: null,
+        sourceSequenceId: null,
+        steps: [
+          {
+            id: "s1",
+            position: 0,
+            label: "Dribble",
+            category_id: null,
+            picks: {
+              0: ex("h1", "Crossover", "https://youtu.be/x"),
+              2: ex("h2", "Spin move"),
+            },
+          },
+          {
+            id: "s2",
+            position: 1,
+            label: "Finish",
+            category_id: null,
+            picks: { 0: ex("f1", "Euro step"), 1: ex("f2", "Floater") },
+          },
+          { id: "s3", position: 2, label: "Cut", category_id: null, picks: {} },
+        ],
+      },
+      sets: 3,
+      measurements: [
+        measurement(0, 0, "Reps", 6),
+        measurement(1, 0, "Reps", 6),
+        measurement(2, 0, "Reps", 4),
+      ],
+    }) as Parameters<typeof buildSequenceTableModel>[0];
+
+  it("lists each step with its set 1 exercise", () => {
+    const model = buildSequenceTableModel(sequenceBlockExercise());
+    expect(model.steps).toEqual([
+      {
+        label: "Dribble",
+        first: {
+          name: "Crossover",
+          videoUrl: "https://youtu.be/x",
+          changed: false,
+        },
+      },
+      {
+        label: "Finish",
+        first: { name: "Euro step", videoUrl: null, changed: false },
+      },
+      { label: "Cut", first: { name: "Cut", videoUrl: null, changed: false } },
+    ]);
+  });
+
+  it("spells out every cell and flags the steps that change on a set", () => {
+    const model = buildSequenceTableModel(sequenceBlockExercise());
+    expect(
+      model.rows.map((r) =>
+        r.cells.map((c) => `${c.name}${c.changed ? "*" : ""}`),
+      ),
+    ).toEqual([
+      ["Crossover", "Euro step", "Cut"],
+      ["Crossover", "Floater*", "Cut"],
+      ["Spin move*", "Floater", "Cut"],
+    ]);
+    expect(model.unitColumns).toEqual(["Reps"]);
+    expect(model.rows.map((r) => r.values.Reps)).toEqual(["6", "6", "4"]);
   });
 });
 

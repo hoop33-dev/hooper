@@ -1,4 +1,5 @@
 import type { BlockExerciseWithDetails, ExerciseStyleRow } from "@hooper/db";
+import { placementName } from "./sequenceDisplay";
 
 /** Sentinel for "no style" in a plain string-keyed override map — style_id
  * can be null (unlike a variant's exercise_id, which is always set), and
@@ -53,6 +54,8 @@ export function resolveMostCommonId(
 export function resolveDisplayName(
   blockExercise: BlockExerciseWithDetails,
 ): string {
+  if (!blockExercise.exercise || !blockExercise.exercise_id)
+    return placementName(blockExercise);
   const overrides = Object.fromEntries(
     Object.entries(blockExercise.setVariants).map(([setIndex, variant]) => [
       Number(setIndex),

@@ -1,23 +1,31 @@
 "use client";
 
+import type { SequenceInput } from "@/src/services/sequence.service";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import type {
   ExerciseCategoryRow,
   ExerciseStyleRow,
   ExerciseWithDetails,
+  LibrarySequenceWithDetails,
   ProgramWithSessions,
   SessionTemplateSummary,
   UnitTypeRow,
 } from "@hooper/db";
+import {
+  SequenceSupportProvider,
+  sequenceSupportFor,
+} from "../sequences/SequenceSupportContext";
 import { useToast } from "../ui/Toast";
 import { libraryTemplates, type LibraryTemplate } from "./blockTemplateFilter";
 import { DragIndicatorContext } from "./dnd/DragIndicatorContext";
 import { DragPreviewOverlay } from "./dnd/DragPreviewOverlay";
+import { keepGhostUnderCursor } from "./dnd/keepGhostUnderCursor";
 import type { CreateExerciseActions } from "./exerciseActionsProps";
 import { filterExercises } from "./exerciseFilter";
 import { useProgramHeaderCollapse } from "./ProgramHeaderCollapseContext";
 import { ProgramLibraryShelf } from "./ProgramLibraryShelf";
 import { SaveAsTemplatePopover } from "./SaveAsTemplatePopover";
+import { filterSequences } from "./SequenceLibraryPanels";
 import { SessionCanvasRow } from "./SessionCanvasRow";
 import { SessionModals } from "./SessionModals";
 import { useLibraryShortcuts } from "./useLibraryShortcuts";
@@ -34,6 +42,11 @@ interface ProgramCanvasShellProps
   exercises: ExerciseWithDetails[];
   categories: ExerciseCategoryRow[];
   sessionTemplates?: SessionTemplateSummary[];
+  /** Library sequences for the shelf; omit to hide sequences entirely. */
+  sequences?: LibrarySequenceWithDetails[];
+  createSequenceAction?: (
+    input: SequenceInput,
+  ) => Promise<{ ok: boolean; error?: string; id?: string }>;
 }
 
 type CanvasState = ReturnType<typeof useProgramCanvasState>;
@@ -51,6 +64,24 @@ function saveBlockAsTemplateHandler(state: CanvasState, enabled: boolean) {
     );
 }
 
+function CanvasDragOverlay({ state }: { state: CanvasState }) {
+  return (
+    <DragOverlay
+      dropAnimation={state.dnd.dropAnimation}
+      modifiers={[keepGhostUnderCursor]}>
+      <DragPreviewOverlay
+        activeId={state.dnd.activeId}
+        blocks={state.weekSessions.flatMap((s) => s.blocks)}
+        exercisesById={state.exercisesById}
+        blockTemplateNamesById={state.blockTemplateNamesById}
+        sessionTemplatesById={state.sessionTemplatesById}
+        sessions={state.weekSessions}
+        sequencesById={state.sequencesById}
+      />
+    </DragOverlay>
+  );
+}
+
 function ProgramCanvasBody({
   program,
   exercises,
@@ -62,6 +93,7 @@ function ProgramCanvasBody({
   createExerciseActions,
   filteredExercises,
   filteredBlockTemplates,
+  filteredSequences,
   onQuickAdd,
   headerCollapsed,
   onToggleHeaderCollapsed,
@@ -76,6 +108,7 @@ function ProgramCanvasBody({
   createExerciseActions: CreateExerciseActions;
   filteredExercises: ExerciseWithDetails[];
   filteredBlockTemplates: LibraryTemplate[];
+  filteredSequences?: LibrarySequenceWithDetails[];
   onQuickAdd: () => void;
   headerCollapsed: boolean;
   onToggleHeaderCollapsed: () => void;
@@ -135,19 +168,11 @@ function ProgramCanvasBody({
         libraryPanel={state.libraryPanel}
         filteredExercises={filteredExercises}
         filteredBlockTemplates={filteredBlockTemplates}
+        filteredSequences={filteredSequences}
         onQuickAdd={onQuickAdd}
         {...createExerciseActions}
       />
-      <DragOverlay dropAnimation={state.dnd.dropAnimation}>
-        <DragPreviewOverlay
-          activeId={state.dnd.activeId}
-          blocks={state.weekSessions.flatMap((s) => s.blocks)}
-          exercisesById={state.exercisesById}
-          blockTemplateNamesById={state.blockTemplateNamesById}
-          sessionTemplatesById={state.sessionTemplatesById}
-          sessions={state.weekSessions}
-        />
-      </DragOverlay>
+      <CanvasDragOverlay state={state} />
     </>
   );
 }
@@ -166,6 +191,7 @@ function createQuickAddHandlers(
   state: CanvasState,
   filteredExercises: ExerciseWithDetails[],
   filteredBlockTemplates: LibraryTemplate[],
+  filteredSequences: LibrarySequenceWithDetails[] | undefined,
   showError: (message: string) => void,
 ) {
   function onAddBlock() {
@@ -181,6 +207,21 @@ function createQuickAddHandlers(
     const lastSession = lastWeekSession(state);
     if (!lastSession) {
       showError("Add a session to this week first.");
+      return;
+    }
+    if (state.libraryPanel.tab === "sequences") {
+      const sequence =
+        filteredSequences?.[state.libraryPanel.selectedIndex ?? 0];
+      if (!sequence || !state.blockActions.addSequenceToBlock) {
+        showError("No sequences match your search.");
+        return;
+      }
+      const lastBlock = lastSession.blocks[lastSession.blocks.length - 1];
+      if (!lastBlock) {
+        showError("Add a block to this session first.");
+        return;
+      }
+      void state.blockActions.addSequenceToBlock(lastBlock.id, sequence.id);
       return;
     }
     if (state.libraryPanel.tab === "exercises") {
@@ -232,8 +273,12 @@ function useProgramLibraryShortcuts(
   sessionTemplates: SessionTemplateSummary[],
   headerCollapsed: boolean,
   setHeaderCollapsed: (value: boolean) => void,
+  sequences: LibrarySequenceWithDetails[] | undefined,
 ) {
   const { showError } = useToast();
+  const filteredSequences = sequences
+    ? filterSequences(sequences, state.libraryPanel.sequenceSearch)
+    : undefined;
   const baseExercises = exercises.filter((ex) => !ex.parent_id);
   const filteredExercises = filterExercises(
     baseExercises,
@@ -249,6 +294,7 @@ function useProgramLibraryShortcuts(
     state,
     filteredExercises,
     filteredBlockTemplates,
+    filteredSequences,
     showError,
   );
 
@@ -271,7 +317,12 @@ function useProgramLibraryShortcuts(
     },
   });
 
-  return { filteredExercises, filteredBlockTemplates, onAddSelected };
+  return {
+    filteredExercises,
+    filteredBlockTemplates,
+    filteredSequences,
+    onAddSelected,
+  };
 }
 
 function ProgramCanvasModals({
@@ -319,6 +370,8 @@ function ProgramCanvasModals({
         editingExerciseLinkedWeeks={state.linkedWeeksForEditingExercise}
         onCloseExerciseEditor={state.blockActions.closeExerciseEditor}
         onSaveExerciseMeasurement={state.blockActions.saveExerciseMeasurement}
+        editingSequenceRounds={state.blockActions.editingSequenceRounds}
+        onSaveSequence={state.blockActions.saveSequence}
         editingSupersetBlock={state.blockActions.editingSupersetBlock}
         onCloseSupersetEditor={state.blockActions.closeSupersetEditor}
         onSaveSupersetMeasurements={state.blockActions.saveSupersetMeasurements}
@@ -350,7 +403,7 @@ function ProgramCanvasModals({
   );
 }
 
-export function ProgramCanvasShell({
+function ProgramCanvasContent({
   program,
   exercises,
   categories,
@@ -365,8 +418,11 @@ export function ProgramCanvasShell({
   createStyleAction,
   unitTypes,
   createUnitTypeAction,
+  sequenceList,
   ...actions
-}: ProgramCanvasShellProps) {
+}: Omit<ProgramCanvasShellProps, "sequences" | "createSequenceAction"> & {
+  sequenceList: LibrarySequenceWithDetails[] | undefined;
+}) {
   const createExerciseActions: CreateExerciseActions = {
     profileId,
     createExerciseAction,
@@ -384,6 +440,7 @@ export function ProgramCanvasShell({
     exercises,
     actions,
     sessionTemplates,
+    sequenceList,
   );
   const onSaveBlockAsTemplate = saveBlockAsTemplateHandler(
     state,
@@ -392,15 +449,20 @@ export function ProgramCanvasShell({
   const { headerCollapsed, setHeaderCollapsed, toggleHeaderCollapsed } =
     useProgramHeaderCollapse();
 
-  const { filteredExercises, filteredBlockTemplates, onAddSelected } =
-    useProgramLibraryShortcuts(
-      state,
-      exercises,
-      categories,
-      sessionTemplates,
-      headerCollapsed,
-      setHeaderCollapsed,
-    );
+  const {
+    filteredExercises,
+    filteredBlockTemplates,
+    filteredSequences,
+    onAddSelected,
+  } = useProgramLibraryShortcuts(
+    state,
+    exercises,
+    categories,
+    sessionTemplates,
+    headerCollapsed,
+    setHeaderCollapsed,
+    sequenceList,
+  );
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -423,6 +485,7 @@ export function ProgramCanvasShell({
             createExerciseActions={createExerciseActions}
             filteredExercises={filteredExercises}
             filteredBlockTemplates={filteredBlockTemplates}
+            filteredSequences={filteredSequences}
             onQuickAdd={onAddSelected}
             headerCollapsed={headerCollapsed}
             onToggleHeaderCollapsed={toggleHeaderCollapsed}
@@ -440,5 +503,26 @@ export function ProgramCanvasShell({
         profileId={profileId}
       />
     </div>
+  );
+}
+
+export function ProgramCanvasShell({
+  sequences,
+  createSequenceAction,
+  ...props
+}: ProgramCanvasShellProps) {
+  // Sequences only show where the page can actually place them.
+  const sequenceList = props.addSequenceToBlockAction ? sequences : undefined;
+  return (
+    <SequenceSupportProvider
+      value={sequenceSupportFor(
+        sequenceList,
+        props.exercises,
+        props.categories,
+        props.unitTypes,
+        createSequenceAction,
+      )}>
+      <ProgramCanvasContent {...props} sequenceList={sequenceList} />
+    </SequenceSupportProvider>
   );
 }

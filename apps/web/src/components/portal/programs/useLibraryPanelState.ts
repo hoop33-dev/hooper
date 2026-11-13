@@ -25,6 +25,7 @@ export function useLibraryPanelState({
   const [exerciseSearch, setExerciseSearchState] = useState("");
   const [exerciseCategoryId, setExerciseCategoryIdState] = useState("");
   const [blockSearch, setBlockSearchState] = useState("");
+  const [sequenceSearch, setSequenceSearchState] = useState("");
   // null = no row is arrow-selected yet, so the highlight ring only appears
   // once the coach actually presses an arrow key — resets to null (not 0)
   // whenever the search/category/tab changes, so a fresh search never shows
@@ -33,6 +34,7 @@ export function useLibraryPanelState({
 
   const exerciseSearchInputId = `${idPrefix}-exercise-search`;
   const blockSearchInputId = `${idPrefix}-block-search`;
+  const sequenceSearchInputId = `${idPrefix}-sequence-search`;
 
   function setTab(next: LibraryTab) {
     setTabState(next);
@@ -54,6 +56,11 @@ export function useLibraryPanelState({
     setSelectedIndex(null);
   }
 
+  function setSequenceSearch(next: string) {
+    setSequenceSearchState(next);
+    setSelectedIndex(null);
+  }
+
   // A tab switch unmounts/remounts the search input, so it can't be focused
   // synchronously in the same event handler that switches tabs — this ref
   // records the target and an effect (which runs after React commits the
@@ -68,7 +75,11 @@ export function useLibraryPanelState({
     if (!target) return;
     pendingFocusTabRef.current = null;
     const id =
-      target === "exercises" ? exerciseSearchInputId : blockSearchInputId;
+      target === "exercises"
+        ? exerciseSearchInputId
+        : target === "blocks"
+          ? blockSearchInputId
+          : sequenceSearchInputId;
     document.getElementById(id)?.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusTick]);
@@ -91,6 +102,9 @@ export function useLibraryPanelState({
     setExerciseCategoryId,
     blockSearch,
     setBlockSearch,
+    sequenceSearch,
+    setSequenceSearch,
+    sequenceSearchInputId,
     selectedIndex,
     setSelectedIndex,
     exerciseSearchInputId,

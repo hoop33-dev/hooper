@@ -286,6 +286,14 @@ export type PackageBuyerCountRow = {
   purchases: number;
 };
 
+/** Steps as replace_sequence_steps / save_sequence take them, in display
+ * order with picks already normalized for the set count. */
+export type SequenceStepsPayload = {
+  label: string;
+  category_id: string | null;
+  picks: { set_index: number; exercise_id: string }[];
+}[];
+
 /** get_public_package(slug) — the anon-readable checkout view of a package. */
 export type PublicPackage = {
   id: string;
@@ -496,7 +504,8 @@ export type BlockRow = {
 export type BlockExerciseRow = {
   id: string;
   block_id: string;
-  exercise_id: string;
+  /** Null iff this placement is a sequence (sequence_name is set instead). */
+  exercise_id: string | null;
   position: number;
   sets: number;
   notes: string | null;
@@ -505,6 +514,12 @@ export type BlockExerciseRow = {
   /** Copied from exercise.default_style_id when placed, then editable per
    * placement — null if the exercise has no default and none was chosen. */
   style_id: string | null;
+  /** Set iff this placement is a sequence — a copy of a library sequence
+   * (or a fresh one) whose steps live in block_exercise_sequence_steps. */
+  sequence_name: string | null;
+  sequence_description: string | null;
+  /** The library sequence this was copied from, if any. Informational only. */
+  source_sequence_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -550,6 +565,56 @@ export type BlockExerciseMeasurementRow = {
   updated_at: string;
 };
 
+/** A step of a placed sequence (e.g. "Dribble", "Finish"). `category_id`
+ * only narrows the exercise picker; it doesn't constrain picks. */
+export type SequenceStepRow = {
+  id: string;
+  position: number;
+  label: string;
+  category_id: string | null;
+};
+
+/** The exercise used for a step on one set. Sparse: set 0 defines the
+ * step, and a later set carries the latest earlier pick forward until it
+ * has its own row. */
+export type SequenceStepPickRow = {
+  step_id: string;
+  set_index: number;
+  exercise_id: string;
+};
+
+export type BlockExerciseSequenceStepRow = SequenceStepRow & {
+  block_exercise_id: string;
+};
+
+export type BlockTemplateExerciseSequenceStepRow = SequenceStepRow & {
+  block_template_exercise_id: string;
+};
+
+export type LibrarySequenceRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  sets: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LibrarySequenceStepRow = SequenceStepRow & {
+  sequence_id: string;
+};
+
+export type LibrarySequenceMeasurementRow = {
+  sequence_id: string;
+  position: number;
+  set_index: number;
+  unit_type: string;
+  value: number | null;
+  value_entered_by: EnteredBy;
+  value_unit: string | null;
+};
+
 export type ProgramSourceRow = {
   id: string;
   source_program_id: string;
@@ -580,10 +645,13 @@ export type BlockTemplateRow = {
 export type BlockTemplateExerciseRow = {
   id: string;
   block_template_id: string;
-  exercise_id: string;
+  exercise_id: string | null;
   position: number;
   sets: number;
   notes: string | null;
+  sequence_name: string | null;
+  sequence_description: string | null;
+  source_sequence_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -684,7 +752,8 @@ export type AthleteMeasurementLogRow = {
   position: number;
   set_index: number;
   athlete_profile_id: string;
-  exercise_id: string;
+  /** The exercise resolved for this set; null for a sequence placement. */
+  exercise_id: string | null;
   unit_type: string;
   /** Snapshot of the coach's planned value at logging time. */
   planned_value: number | null;
@@ -874,8 +943,7 @@ export type Database = {
       };
       block_exercises: {
         Row: BlockExerciseRow;
-        Insert: Partial<BlockExerciseRow> &
-          Pick<BlockExerciseRow, "block_id" | "exercise_id">;
+        Insert: Partial<BlockExerciseRow> & Pick<BlockExerciseRow, "block_id">;
         Update: Partial<BlockExerciseRow>;
         Relationships: [];
       };
@@ -899,6 +967,65 @@ export type Database = {
         Row: BlockExerciseSetStyleRow;
         Insert: BlockExerciseSetStyleRow;
         Update: Partial<BlockExerciseSetStyleRow>;
+        Relationships: [];
+      };
+      block_exercise_sequence_steps: {
+        Row: BlockExerciseSequenceStepRow;
+        Insert: Partial<BlockExerciseSequenceStepRow> &
+          Pick<BlockExerciseSequenceStepRow, "block_exercise_id">;
+        Update: Partial<BlockExerciseSequenceStepRow>;
+        Relationships: [];
+      };
+      block_exercise_sequence_picks: {
+        Row: SequenceStepPickRow;
+        Insert: SequenceStepPickRow;
+        Update: Partial<SequenceStepPickRow>;
+        Relationships: [];
+      };
+      block_template_exercise_sequence_steps: {
+        Row: BlockTemplateExerciseSequenceStepRow;
+        Insert: Partial<BlockTemplateExerciseSequenceStepRow> &
+          Pick<
+            BlockTemplateExerciseSequenceStepRow,
+            "block_template_exercise_id"
+          >;
+        Update: Partial<BlockTemplateExerciseSequenceStepRow>;
+        Relationships: [];
+      };
+      block_template_exercise_sequence_picks: {
+        Row: SequenceStepPickRow;
+        Insert: SequenceStepPickRow;
+        Update: Partial<SequenceStepPickRow>;
+        Relationships: [];
+      };
+      sequences: {
+        Row: LibrarySequenceRow;
+        Insert: Partial<LibrarySequenceRow> &
+          Pick<LibrarySequenceRow, "name" | "created_by">;
+        Update: Partial<LibrarySequenceRow>;
+        Relationships: [];
+      };
+      sequence_steps: {
+        Row: LibrarySequenceStepRow;
+        Insert: Partial<LibrarySequenceStepRow> &
+          Pick<LibrarySequenceStepRow, "sequence_id">;
+        Update: Partial<LibrarySequenceStepRow>;
+        Relationships: [];
+      };
+      sequence_step_picks: {
+        Row: SequenceStepPickRow;
+        Insert: SequenceStepPickRow;
+        Update: Partial<SequenceStepPickRow>;
+        Relationships: [];
+      };
+      sequence_measurements: {
+        Row: LibrarySequenceMeasurementRow;
+        Insert: Partial<LibrarySequenceMeasurementRow> &
+          Pick<
+            LibrarySequenceMeasurementRow,
+            "sequence_id" | "position" | "unit_type"
+          >;
+        Update: Partial<LibrarySequenceMeasurementRow>;
         Relationships: [];
       };
       program_sources: {
@@ -928,7 +1055,7 @@ export type Database = {
       block_template_exercises: {
         Row: BlockTemplateExerciseRow;
         Insert: Partial<BlockTemplateExerciseRow> &
-          Pick<BlockTemplateExerciseRow, "block_template_id" | "exercise_id">;
+          Pick<BlockTemplateExerciseRow, "block_template_id">;
         Update: Partial<BlockTemplateExerciseRow>;
         Relationships: [];
       };
@@ -1057,6 +1184,32 @@ export type Database = {
           p_photos: { storage_path: string; url: string; caption: string }[];
         };
         Returns: undefined;
+      };
+      replace_sequence_steps: {
+        Args: {
+          p_owner: "library" | "placement" | "template";
+          p_parent_id: string;
+          p_steps: SequenceStepsPayload;
+        };
+        Returns: undefined;
+      };
+      save_sequence: {
+        Args: {
+          p_sequence_id: string;
+          p_name: string;
+          p_description: string | null;
+          p_sets: number;
+          p_measurements: {
+            position: number;
+            set_index: number;
+            unit_type: string;
+            value: number | null;
+            value_entered_by: string;
+            value_unit: string | null;
+          }[];
+          p_steps: SequenceStepsPayload;
+        };
+        Returns: LibrarySequenceRow;
       };
       get_public_package: {
         Args: { p_slug: string };

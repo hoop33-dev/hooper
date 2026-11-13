@@ -5,6 +5,7 @@ import type {
   AddSequenceToBlockInput,
   BlockExerciseWithMeasurements,
   CreateBlockInput,
+  PlacedBlockSequence,
   UpdateBlockExerciseInput,
   UpdateBlockInput,
 } from "@/src/services/block.service";
@@ -80,7 +81,7 @@ export interface SessionViewActions {
   /** Only needed to power adding sequences (Add menu + library drag). */
   addSequenceToBlockAction?: (
     input: AddSequenceToBlockInput,
-  ) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
+  ) => Promise<ActionResult<PlacedBlockSequence>>;
 }
 
 /** The single-session page has no local visibility into other weeks, so

@@ -93,7 +93,23 @@ async function insertRows(
   return ok(undefined);
 }
 
-/** Full replace of one owner's steps (picks cascade with their step). */
+/** Steps in the shape the replace_sequence_steps / save_sequence RPCs take:
+ * display order, picks normalized for the set count. */
+export function toStepsPayload(steps: SequenceStepInput[], setCount: number) {
+  return steps.map((step) => ({
+    label: step.label,
+    category_id: step.category_id,
+    picks: Object.entries(normalizeStepPicks(step.picks, setCount)).map(
+      ([setIndex, exerciseId]) => ({
+        set_index: Number(setIndex),
+        exercise_id: exerciseId,
+      }),
+    ),
+  }));
+}
+
+/** Full replace of one owner's steps, in one transaction: a failed insert
+ * leaves the old steps in place rather than none. */
 export async function replaceSequenceSteps(
   supabase: SupabaseClient,
   owner: SequenceOwner,
@@ -101,17 +117,12 @@ export async function replaceSequenceSteps(
   steps: SequenceStepInput[],
   setCount: number,
 ): Promise<Result<void>> {
-  const tables = TABLES[owner];
-  const { error } = await supabase
-    .from(tables.steps as "block_exercise_sequence_steps")
-    .delete()
-    .eq(tables.parent as "block_exercise_id", parentId);
-  if (error) return err(error.message);
-  return insertRows(
-    supabase,
-    owner,
-    buildRows(owner, parentId, steps, setCount),
-  );
+  const { error } = await supabase.rpc("replace_sequence_steps", {
+    p_owner: owner,
+    p_parent_id: parentId,
+    p_steps: toStepsPayload(steps, setCount),
+  });
+  return error ? err(error.message) : ok(undefined);
 }
 
 /** Inserts the same steps under several new parents at once (e.g. every

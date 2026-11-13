@@ -128,6 +128,7 @@ function makeFakeCtx(initialBlocks: BlockWithExercises[]) {
     getBlocks: () => current,
     showError: vi.fn(),
     onSaved: vi.fn(),
+    refresh: vi.fn(),
     updateBlockAction: vi.fn(async (id: string, data: Partial<BlockRow>) => ({
       ok: true,
       data: {

@@ -17,7 +17,7 @@ import {
   shapeSequenceSteps,
   type RawSequenceStep,
 } from "./sequenceShaping";
-import { replaceSequenceSteps, type SequenceStepInput } from "./sequenceSteps";
+import { toStepsPayload, type SequenceStepInput } from "./sequenceSteps";
 
 /** A full save of a library sequence. The set count is
  * `measurements.length`. */
@@ -84,42 +84,23 @@ export async function getSequence(
   }
 }
 
-async function replaceSequenceMeasurements(
-  supabase: SupabaseClient,
-  sequenceId: string,
-  measurements: MeasurementInput,
-): Promise<Result<void>> {
-  const { error: deleteError } = await supabase
-    .from("sequence_measurements")
-    .delete()
-    .eq("sequence_id", sequenceId);
-  if (deleteError) return err(deleteError.message);
-  const rows = toMeasurementRows(sequenceId, measurements).map(
-    ({ block_exercise_id, ...m }) => ({ ...m, sequence_id: block_exercise_id }),
-  );
-  if (rows.length === 0) return ok(undefined);
-  const { error } = await supabase.from("sequence_measurements").insert(rows);
-  return error ? err(error.message) : ok(undefined);
-}
-
-async function writeChildren(
+/** Writes details, measurements and steps in one transaction. */
+async function saveSequence(
   supabase: SupabaseClient,
   sequenceId: string,
   input: SequenceInput,
-): Promise<Result<void>> {
-  const measurements = await replaceSequenceMeasurements(
-    supabase,
-    sequenceId,
-    input.measurements,
-  );
-  if (!measurements.ok) return measurements;
-  return replaceSequenceSteps(
-    supabase,
-    "library",
-    sequenceId,
-    input.steps,
-    input.measurements.length,
-  );
+): Promise<Result<LibrarySequenceRow>> {
+  const { data, error } = await supabase.rpc("save_sequence", {
+    p_sequence_id: sequenceId,
+    p_name: input.name,
+    p_description: input.description,
+    p_sets: input.measurements.length,
+    p_measurements: toMeasurementRows(sequenceId, input.measurements).map(
+      ({ block_exercise_id: _, ...m }) => m,
+    ),
+    p_steps: toStepsPayload(input.steps, input.measurements.length),
+  });
+  return error ? err(error.message) : ok(data);
 }
 
 export async function createSequence(
@@ -139,13 +120,13 @@ export async function createSequence(
       .select()
       .single();
     if (error) return err(error.message);
-    const children = await writeChildren(supabase, data.id, input);
-    if (!children.ok) {
+    const saved = await saveSequence(supabase, data.id, input);
+    if (!saved.ok) {
       // Don't leave a half-written sequence behind.
       await supabase.from("sequences").delete().eq("id", data.id);
-      return err(children.error);
+      return err(saved.error);
     }
-    return ok(data);
+    return saved;
   } catch (e) {
     return err(toErrorMessage(e));
   }
@@ -157,20 +138,7 @@ export async function updateSequence(
 ): Promise<Result<LibrarySequenceRow>> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("sequences")
-      .update({
-        name: input.name,
-        description: input.description,
-        sets: Math.max(1, input.measurements.length),
-      })
-      .eq("id", id)
-      .select()
-      .single();
-    if (error) return err(error.message);
-    const children = await writeChildren(supabase, id, input);
-    if (!children.ok) return err(children.error);
-    return ok(data);
+    return await saveSequence(supabase, id, input);
   } catch (e) {
     return err(toErrorMessage(e));
   }

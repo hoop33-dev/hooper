@@ -11,7 +11,6 @@ import { useToast } from "../ui/Toast";
 import { useModalDismiss } from "../ui/useModalDismiss";
 import {
   draftFromPlacement,
-  draftStepInputs,
   draftToPlaced,
   toSequenceInput,
   type EditorSequence,
@@ -142,14 +141,15 @@ function usePlacementSave(
 
   async function commit(scope?: LinkScope) {
     setSaving(true);
+    const input = toSequenceInput(draft);
     await onSave(
       {
         sets: draft.sets.length,
         measurements: draft.sets,
         sequence: {
-          name: draft.name.trim() || "Untitled sequence",
-          description: draft.description,
-          steps: draftStepInputs(draft),
+          name: input.name,
+          description: input.description,
+          steps: input.steps,
         },
         placed: draftToPlaced(draft, exercisesById, sourceSequenceId),
       },

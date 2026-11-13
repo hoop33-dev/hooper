@@ -20,6 +20,7 @@ import {
   type BlockExerciseWithMeasurements,
   type CreateBlockInput,
   type LinkScope,
+  type PlacedBlockSequence,
   type UpdateBlockExerciseInput,
   type UpdateBlockInput,
 } from "@/src/services/block.service";
@@ -212,7 +213,7 @@ export async function addExerciseToBlockAction(
 
 export async function addSequenceToBlockAction(
   input: AddSequenceToBlockInput,
-): Promise<ActionResult<BlockExerciseWithMeasurements>> {
+): Promise<ActionResult<PlacedBlockSequence>> {
   const result = await addSequenceToBlock(input);
   if (result.ok) revalidateProgramRoutes();
   return result.ok

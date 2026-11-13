@@ -9,9 +9,11 @@ import type {
   BlockExerciseSetVariantRow,
   BlockRow,
   EnteredBy,
+  PlacedSequence,
 } from "@hooper/db";
 import { defaultBlockColor } from "@hooper/shared";
 import { randomUUID } from "node:crypto";
+import { readPlacedSequenceSteps } from "./sequenceShaping";
 import {
   insertSequenceSteps,
   readSequenceSteps,
@@ -98,6 +100,12 @@ export type UpdateBlockExerciseInput = {
   /** Sequence placements only — when provided, renames the sequence and
    * fully replaces its steps and picks. */
   sequence?: SequenceUpdateInput;
+};
+
+/** A newly placed sequence with its steps as stored (trimmed or padded to
+ * the block's round count). */
+export type PlacedBlockSequence = BlockExerciseWithMeasurements & {
+  sequence: PlacedSequence;
 };
 
 export type SequenceUpdateInput = {
@@ -710,7 +718,7 @@ export async function resolveSequenceSource(
  * block's round count, trimming or padding sets. */
 export async function addSequenceToBlock(
   input: AddSequenceToBlockInput,
-): Promise<Result<BlockExerciseWithMeasurements>> {
+): Promise<Result<PlacedBlockSequence>> {
   try {
     const supabase = await createClient();
     const source = await resolveSequenceSource(supabase, input.sequence_id);
@@ -768,11 +776,23 @@ export async function addSequenceToBlock(
 
     const primary = inserted.find((be) => be.block_id === input.block_id);
     if (!primary) return err("Failed to add sequence.");
+    const steps = await readPlacedSequenceSteps(
+      supabase,
+      "placement",
+      primary.id,
+    );
+    if (!steps.ok) return err(steps.error);
     return ok({
       ...primary,
       measurements: (insertedMeasurements ?? []).filter(
         (m) => m.block_exercise_id === primary.id,
       ),
+      sequence: {
+        name: source.data.name,
+        description: source.data.description,
+        sourceSequenceId: input.sequence_id ?? null,
+        steps: steps.data,
+      },
     });
   } catch (e) {
     return err(toErrorMessage(e));
@@ -988,6 +1008,31 @@ async function replaceSetStyles(
   return ok(undefined);
 }
 
+/** A sibling sequence gets the primary's new steps, or on a sets-only
+ * change the same pick trim the primary got in
+ * updatePlacementStepsOrVariants, so a later grow carries the last
+ * remaining pick forward on every linked week. */
+function syncSiblingSequence(
+  supabase: SupabaseClient,
+  siblingId: string,
+  sequence: SequenceUpdateInput | undefined,
+  setsChanged: boolean,
+  setsCount: number,
+): Promise<Result<void>> {
+  if (sequence) {
+    return replaceSequenceSteps(
+      supabase,
+      "placement",
+      siblingId,
+      sequence.steps,
+      setsCount,
+    );
+  }
+  return setsChanged
+    ? trimSequencePicks(supabase, "placement", siblingId, setsCount)
+    : Promise.resolve(ok(undefined));
+}
+
 /** Applies the same sets/notes patch (and, for a full value sync, the same
  * measurement replace and per-set variant/style override replace) that was
  * just made to the primary row onto one scoped-in sibling placement. The
@@ -1056,6 +1101,7 @@ async function applyToSibling(
   setStyles: Record<number, string | null> | undefined,
   sequence: SequenceUpdateInput | undefined,
   setsCount: number,
+  isSequence: boolean,
 ): Promise<Result<void>> {
   const needsDefaults = setVariants !== undefined || setStyles !== undefined;
   const patchResult = await patchSiblingRow(
@@ -1080,16 +1126,14 @@ async function applyToSibling(
     );
     if (!result.ok) return err(result.error);
   }
-  if (sequence) {
-    const result = await replaceSequenceSteps(
-      supabase,
-      "placement",
-      siblingId,
-      sequence.steps,
-      setsCount,
-    );
-    if (!result.ok) return err(result.error);
-  }
+  const sequenceResult = await syncSiblingSequence(
+    supabase,
+    siblingId,
+    sequence,
+    isSequence && "sets" in patch,
+    setsCount,
+  );
+  if (!sequenceResult.ok) return sequenceResult;
   if (setStyles && defaults) {
     const result = await replaceSetStyles(
       supabase,
@@ -1234,6 +1278,7 @@ export async function updateBlockExercise(
         input.set_styles,
         input.sequence,
         blockExercise.sets,
+        blockExercise.exercise_id === null,
       );
       if (!result.ok) return err(result.error);
     }

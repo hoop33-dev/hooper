@@ -23,11 +23,15 @@ import {
   resolveSequenceSource,
   toMeasurementRows,
   type MeasurementInput,
+  type PlacedBlockSequence,
   type SequenceUpdateInput,
   type SupabaseClient,
 } from "./block.service";
 import { toExerciseWithDetails } from "./exercise.service";
-import { shapePlacedSequence } from "./sequenceShaping";
+import {
+  readPlacedSequenceSteps,
+  shapePlacedSequence,
+} from "./sequenceShaping";
 import {
   copySequenceSteps,
   insertSequenceSteps,
@@ -39,7 +43,11 @@ import {
   type RawTemplateBlockExercise,
 } from "./templateShaping";
 
-export type { MeasurementInput, MeasurementSetInput } from "./block.service";
+export type {
+  MeasurementInput,
+  MeasurementSetInput,
+  PlacedBlockSequence,
+} from "./block.service";
 
 export type CreateBlockTemplateInput = {
   session_template_id: string;
@@ -531,7 +539,7 @@ export async function updateBlockTemplateExercise(
 /** Template-editor sibling of block.service.ts's addSequenceToBlock. */
 export async function addSequenceToBlockTemplate(
   input: AddSequenceToBlockTemplateInput,
-): Promise<Result<BlockExerciseWithMeasurements>> {
+): Promise<Result<PlacedBlockSequence>> {
   try {
     const supabase = await createClient();
     const source = await resolveSequenceSource(supabase, input.sequence_id);
@@ -583,8 +591,14 @@ export async function addSequenceToBlockTemplate(
     );
     if (!stepsResult.ok) return err(stepsResult.error);
 
-    return ok(
-      toBlockExerciseWithMeasurements(
+    const steps = await readPlacedSequenceSteps(
+      supabase,
+      "template",
+      inserted.id,
+    );
+    if (!steps.ok) return err(steps.error);
+    return ok({
+      ...toBlockExerciseWithMeasurements(
         inserted,
         (insertedMeasurements ?? []).map(
           ({ block_template_exercise_id, ...m }) => ({
@@ -593,7 +607,13 @@ export async function addSequenceToBlockTemplate(
           }),
         ),
       ),
-    );
+      sequence: {
+        name: source.data.name,
+        description: source.data.description,
+        sourceSequenceId: input.sequence_id ?? null,
+        steps: steps.data,
+      },
+    });
   } catch (e) {
     return err(toErrorMessage(e));
   }

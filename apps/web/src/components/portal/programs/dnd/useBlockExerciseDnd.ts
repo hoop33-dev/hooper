@@ -1,4 +1,7 @@
-import type { BlockExerciseWithMeasurements } from "@/src/services/block.service";
+import type {
+  BlockExerciseWithMeasurements,
+  PlacedBlockSequence,
+} from "@/src/services/block.service";
 import {
   PointerSensor,
   useSensor,
@@ -134,7 +137,7 @@ export interface UseBlockExerciseDndOptions {
   addSequenceToBlockAction?: (input: {
     block_id: string;
     sequence_id?: string;
-  }) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
+  }) => Promise<ActionResult<PlacedBlockSequence>>;
   sequencesById?: Map<string, LibrarySequenceWithDetails>;
 }
 
@@ -938,7 +941,6 @@ async function handleSequenceDrop(
   const newRow: BlockExerciseWithDetails = {
     ...result.data,
     exercise: null,
-    sequence: pendingRow.sequence,
     setVariants: {},
     setStyles: {},
   };

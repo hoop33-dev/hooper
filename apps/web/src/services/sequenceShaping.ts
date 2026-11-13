@@ -1,9 +1,12 @@
+import type { Result } from "@/src/lib/result";
+import { err, ok } from "@/src/lib/result";
 import type {
   ExerciseRow,
   PlacedSequence,
   SequenceStepRow,
   SequenceStepWithPicks,
 } from "@hooper/db";
+import type { SupabaseClient } from "./block.service";
 
 const STEP_COLUMNS = "id, position, label, category_id";
 
@@ -48,4 +51,28 @@ export function shapePlacedSequence(
     sourceSequenceId: row.source_sequence_id,
     steps: shapeSequenceSteps(steps),
   };
+}
+
+/** Reads one placement's steps back as stored, e.g. after a copy that
+ * trimmed them to the block's round count. */
+export async function readPlacedSequenceSteps(
+  supabase: SupabaseClient,
+  owner: "placement" | "template",
+  id: string,
+): Promise<Result<SequenceStepWithPicks[]>> {
+  const { data, error } =
+    owner === "placement"
+      ? await supabase
+          .from("block_exercises")
+          .select(PLACED_SEQUENCE_STEPS_SELECT)
+          .eq("id", id)
+          .single()
+      : await supabase
+          .from("block_template_exercises")
+          .select(TEMPLATE_SEQUENCE_STEPS_SELECT)
+          .eq("id", id)
+          .single();
+  if (error) return err(error.message);
+  const raw = data as unknown as { sequence_steps: RawSequenceStep[] };
+  return ok(shapeSequenceSteps(raw.sequence_steps));
 }

@@ -5,6 +5,7 @@ import type {
   BlockExerciseWithMeasurements,
   LinkScope,
   MeasurementInput,
+  PlacedBlockSequence,
   SequenceUpdateInput,
   UpdateBlockExerciseInput,
   UpdateBlockInput,
@@ -119,7 +120,6 @@ async function runAddSequenceToBlock(
   const newRow: BlockExerciseWithDetails = {
     ...result.data,
     exercise: null,
-    sequence: pending.sequence,
     setVariants: {},
     setStyles: {},
   };
@@ -421,7 +421,9 @@ export async function runSaveExerciseMeasurement(
  * (the Rounds stepper was used), persists that first — block.service.ts's
  * updateBlock already cascades the resize to every exercise in the block,
  * though the per-exercise saves below immediately supersede that resize
- * with the coach's own fully-edited configs anyway. */
+ * with the coach's own fully-edited configs anyway. Sequence rows aren't in
+ * `perExercise` (they edit in their own modal), so their server-side resize
+ * only reaches local state through a router refresh once the saves land. */
 export async function runSaveSupersetMeasurements(
   block: BlockWithExercises,
   rounds: number,
@@ -433,6 +435,7 @@ export async function runSaveSupersetMeasurements(
     getBlocks: () => BlockWithExercises[];
     showError: (message: string) => void;
     onSaved: () => void;
+    refresh: () => void;
   },
 ) {
   // Snapshot each exercise's pre-edit measurements up front, purely so a
@@ -455,15 +458,37 @@ export async function runSaveSupersetMeasurements(
   ctx.setBlocks(optimistic);
   ctx.onSaved();
 
+  let resizedSequences = false;
   if (rounds !== (block.sets ?? 1)) {
     const blockResult = await ctx.updateBlockAction(block.id, { sets: rounds });
     if (blockResult.ok && blockResult.data) {
       ctx.setBlocks(patchBlock(ctx.getBlocks(), block.id, blockResult.data));
+      resizedSequences = block.exercises.some((be) => be.sequence);
     } else {
       reportError(ctx.showError, blockResult);
     }
   }
 
+  await saveSupersetExercises(perExercise, originalMeasurementsById, ctx);
+  if (resizedSequences) ctx.refresh();
+}
+
+/** The per-exercise half of runSaveSupersetMeasurements: saves each one in
+ * order, stopping (and rolling back the rest) at the first failure. */
+async function saveSupersetExercises(
+  perExercise: SupersetExercisePayload[],
+  originalMeasurementsById: Map<
+    string,
+    ReturnType<typeof findExerciseMeasurements>
+  >,
+  ctx: Pick<
+    UseBlockActionsOptions,
+    "setBlocks" | "updateBlockExerciseAction"
+  > & {
+    getBlocks: () => BlockWithExercises[];
+    showError: (message: string) => void;
+  },
+) {
   for (let i = 0; i < perExercise.length; i++) {
     const p = perExercise[i]!;
     // Only forward keys the payload actually set — block.service.ts's
@@ -619,7 +644,7 @@ export interface UseBlockActionsOptions {
   /** Only needed to power adding sequences to a block. */
   addSequenceToBlockAction?: (
     input: AddSequenceToBlockInput,
-  ) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
+  ) => Promise<ActionResult<PlacedBlockSequence>>;
   sequencesById?: Map<string, LibrarySequenceWithDetails>;
 }
 

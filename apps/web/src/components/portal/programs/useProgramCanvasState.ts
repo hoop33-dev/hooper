@@ -6,6 +6,7 @@ import type {
   BlockExerciseWithMeasurements,
   CreateBlockInput,
   LinkScope,
+  PlacedBlockSequence,
   UpdateBlockExerciseInput,
   UpdateBlockInput,
 } from "@/src/services/block.service";
@@ -81,7 +82,7 @@ export interface ProgramCanvasActions {
   /** Only needed to power dragging library sequences into blocks. */
   addSequenceToBlockAction?: (
     input: AddSequenceToBlockInput,
-  ) => Promise<ActionResult<BlockExerciseWithMeasurements>>;
+  ) => Promise<ActionResult<PlacedBlockSequence>>;
   updateBlockExerciseAction: (
     id: string,
     input: UpdateBlockExerciseInput,

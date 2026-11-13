@@ -13,6 +13,7 @@ import type {
   CreateBlockTemplateFromTemplateInput,
   CreateBlockTemplateInput,
   CreateBlockTemplatesFromSessionTemplateInput,
+  PlacedBlockSequence,
   UpdateBlockTemplateExerciseInput,
   UpdateBlockTemplateInput,
 } from "@/src/services/blockTemplate.service";
@@ -202,7 +203,7 @@ export async function addExerciseToBlockTemplateAction(
 
 export async function addSequenceToBlockTemplateAction(
   input: AddSequenceToBlockTemplateInput,
-): Promise<ActionResult<BlockExerciseWithMeasurements>> {
+): Promise<ActionResult<PlacedBlockSequence>> {
   const result = await addSequenceToBlockTemplate(input);
   if (result.ok) revalidateBlockLibraryRoutes();
   return result.ok

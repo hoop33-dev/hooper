@@ -286,6 +286,14 @@ export type PackageBuyerCountRow = {
   purchases: number;
 };
 
+/** Steps as replace_sequence_steps / save_sequence take them, in display
+ * order with picks already normalized for the set count. */
+export type SequenceStepsPayload = {
+  label: string;
+  category_id: string | null;
+  picks: { set_index: number; exercise_id: string }[];
+}[];
+
 /** get_public_package(slug) — the anon-readable checkout view of a package. */
 export type PublicPackage = {
   id: string;
@@ -1176,6 +1184,32 @@ export type Database = {
           p_photos: { storage_path: string; url: string; caption: string }[];
         };
         Returns: undefined;
+      };
+      replace_sequence_steps: {
+        Args: {
+          p_owner: "library" | "placement" | "template";
+          p_parent_id: string;
+          p_steps: SequenceStepsPayload;
+        };
+        Returns: undefined;
+      };
+      save_sequence: {
+        Args: {
+          p_sequence_id: string;
+          p_name: string;
+          p_description: string | null;
+          p_sets: number;
+          p_measurements: {
+            position: number;
+            set_index: number;
+            unit_type: string;
+            value: number | null;
+            value_entered_by: string;
+            value_unit: string | null;
+          }[];
+          p_steps: SequenceStepsPayload;
+        };
+        Returns: LibrarySequenceRow;
       };
       get_public_package: {
         Args: { p_slug: string };

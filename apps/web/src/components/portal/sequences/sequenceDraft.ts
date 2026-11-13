@@ -191,7 +191,7 @@ export function draftToPlaced(
 ): PlacedSequence {
   return {
     name: draft.name.trim() || "Untitled sequence",
-    description: draft.description,
+    description: draft.description?.trim() || null,
     sourceSequenceId,
     steps: draft.steps.map((step, position) => ({
       id: step.id,

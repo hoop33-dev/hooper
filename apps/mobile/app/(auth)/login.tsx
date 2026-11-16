@@ -16,7 +16,6 @@ import {
   BackButton,
   BodySm,
   Button,
-  Caption,
   ErrorBanner,
   ErrorMessage,
   Hero,
@@ -183,17 +182,6 @@ export default function LoginScreen() {
                 style={shadows.orangeGlow}>
                 {isSubmitting ? <ActivityIndicator color="#fff" /> : "Sign in"}
               </Button>
-
-              <View className="flex-row items-center justify-center gap-1.5">
-                <Caption className="text-text-tertiary">No account?</Caption>
-                <TextButton
-                  tone="brand"
-                  weight="semibold"
-                  size={13}
-                  onPress={() => router.push("/(auth)/role-selector")}>
-                  Create one
-                </TextButton>
-              </View>
             </View>
           </StyledSafeAreaView>
         </KeyboardStickyView>

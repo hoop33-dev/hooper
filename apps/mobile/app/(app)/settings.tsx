@@ -9,7 +9,6 @@ import {
 } from "@/src/components/dashboard";
 import {
   BellIcon,
-  CameraIcon,
   ChevronIcon,
   CreditIcon,
   HelpIcon,
@@ -44,10 +43,9 @@ export default function SettingsScreen() {
   const role = user?.role ?? "player";
   const r = roleConfig(role);
 
-  // Children (players managed by a guardian) have profile/billing locked.
+  // Children (players managed by a guardian) have billing locked.
   const guardian = useGuardianControls(role === "player");
   const isChild = guardian.isManaged;
-  const profileLocked = isChild && guardian.profileSettingsLocked;
   const [billingLockOpen, setBillingLockOpen] = useState(false);
 
   async function handleSignOut() {
@@ -74,25 +72,12 @@ export default function SettingsScreen() {
           <>
             {/* Identity card */}
             <View className="bg-surface-2 border-border-subtle mx-5 mb-5 items-center overflow-hidden rounded-[18px] border p-5">
-              <View>
-                <Avatar
-                  role={role}
-                  size={84}
-                  initials={user.initials}
-                  imageUrl={user.avatarUrl}
-                />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Change photo"
-                  onPress={() => router.push("/(app)/profile-settings")}
-                  className="absolute -right-0.5 -bottom-0.5 h-[26px] w-[26px] items-center justify-center rounded-full border-[2.5px]"
-                  style={{
-                    backgroundColor: r.accent,
-                    borderColor: colors.surface2,
-                  }}>
-                  <CameraIcon size={13} color="#fff" />
-                </Pressable>
-              </View>
+              <Avatar
+                role={role}
+                size={84}
+                initials={user.initials}
+                imageUrl={user.avatarUrl}
+              />
               <Title className="mt-3.5 mb-0.5">{user.fullName}</Title>
               {user.username ? (
                 <Meta style={{ color: r.accent }}>@{user.username}</Meta>
@@ -142,9 +127,8 @@ export default function SettingsScreen() {
               <MenuRow
                 icon={<SettingsGearIcon size={18} color={r.accent} />}
                 title="Profile settings"
-                sub="Photo, name, username, bio, privacy"
+                sub="View your profile details"
                 accent={r.accent}
-                locked={profileLocked}
                 onPress={() => router.push("/(app)/profile-settings")}
               />
               <MenuRow

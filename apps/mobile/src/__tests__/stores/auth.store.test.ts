@@ -79,20 +79,9 @@ describe("setVerificationPending", () => {
   it("transitions to needs_verification and stores the email", () => {
     useAuthStore.getState().setVerificationPending("verify@example.com");
 
-    const { status, pendingVerificationEmail, pendingVerificationRole } =
-      useAuthStore.getState();
+    const { status, pendingVerificationEmail } = useAuthStore.getState();
     expect(status).toBe("needs_verification");
     expect(pendingVerificationEmail).toBe("verify@example.com");
-    expect(pendingVerificationRole).toBeNull();
-  });
-
-  it("stores the role when provided", () => {
-    useAuthStore
-      .getState()
-      .setVerificationPending("verify@example.com", "coach");
-
-    const { pendingVerificationRole } = useAuthStore.getState();
-    expect(pendingVerificationRole).toBe("coach");
   });
 });
 

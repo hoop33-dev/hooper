@@ -7,16 +7,8 @@ import {
   DashboardHeader,
   DashboardLayout,
 } from "@/src/components/dashboard";
-import { EyeIcon, PlusIcon } from "@/src/components/dashboard/icons";
-import {
-  Caption,
-  IconTile,
-  Lead,
-  Meta,
-  Overline,
-  Pill,
-  TabLabel,
-} from "@/src/components/ui";
+import { EyeIcon } from "@/src/components/dashboard/icons";
+import { Caption, Lead, Meta, Overline, Pill } from "@/src/components/ui";
 import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import { useChildren } from "@/src/hooks/useChildren";
@@ -25,36 +17,21 @@ import type { ChildSummary } from "@/src/services/parent.service";
 
 const PARENT_ACCENT = roleConfig("parent").accent;
 
-function ViewAsButton({
-  firstName,
-  onPress,
-}: {
-  firstName: string;
-  onPress: (e: { stopPropagation: () => void }) => void;
-}) {
+function ViewAsPill() {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`View as ${firstName}`}
-      onPress={onPress}
-      hitSlop={6}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
-      <Pill
-        color={PARENT_ACCENT}
-        icon={<EyeIcon size={12} color={PARENT_ACCENT} />}>
-        <Meta style={{ color: PARENT_ACCENT }}>View as</Meta>
-      </Pill>
-    </Pressable>
+    <Pill
+      color={PARENT_ACCENT}
+      icon={<EyeIcon size={12} color={PARENT_ACCENT} />}>
+      <Meta style={{ color: PARENT_ACCENT }}>View as</Meta>
+    </Pill>
   );
 }
 
 function ChildCard({
   child,
-  onManage,
   onViewAs,
 }: {
   child: ChildSummary;
-  onManage: () => void;
   onViewAs: () => void;
 }) {
   const initials =
@@ -62,8 +39,8 @@ function ChildCard({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Manage ${child.firstName}`}
-      onPress={onManage}
+      accessibilityLabel={`View as ${child.firstName}`}
+      onPress={onViewAs}
       className="border-border-subtle bg-surface-2 rounded-2xl border p-3.5"
       style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.99 : 1 }] })}>
       <View className="flex-row items-center gap-3">
@@ -80,39 +57,8 @@ function ChildCard({
           </View>
           <Caption className="text-text-secondary">@{child.username}</Caption>
         </View>
-        <ViewAsButton
-          firstName={child.firstName}
-          onPress={(e) => {
-            e.stopPropagation();
-            onViewAs();
-          }}
-        />
+        <ViewAsPill />
       </View>
-    </Pressable>
-  );
-}
-
-function AddChildButton({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      className="mt-1.5 flex-row items-center justify-center gap-2.5 rounded-2xl py-4"
-      style={({ pressed }) => ({
-        borderWidth: 1.5,
-        borderStyle: "dashed",
-        borderColor: `${PARENT_ACCENT}55`,
-        opacity: pressed ? 0.7 : 1,
-      })}>
-      <IconTile
-        color={PARENT_ACCENT}
-        size={32}
-        radius={16}
-        bgAlpha="20"
-        borderAlpha="45">
-        <PlusIcon size={16} color={PARENT_ACCENT} />
-      </IconTile>
-      <TabLabel style={{ color: PARENT_ACCENT }}>Add another child</TabLabel>
     </Pressable>
   );
 }
@@ -120,15 +66,11 @@ function AddChildButton({ onPress }: { onPress: () => void }) {
 function ChildrenSection({
   items,
   isLoading,
-  onManage,
   onViewAs,
-  onAdd,
 }: {
   items: ChildSummary[];
   isLoading: boolean;
-  onManage: (child: ChildSummary) => void;
   onViewAs: (child: ChildSummary) => void;
-  onAdd: () => void;
 }) {
   return (
     <View className="gap-2.5 px-5">
@@ -145,11 +87,14 @@ function ChildrenSection({
             <ChildCard
               key={child.id}
               child={child}
-              onManage={() => onManage(child)}
               onViewAs={() => onViewAs(child)}
             />
           ))}
-          <AddChildButton onPress={onAdd} />
+          <Caption className="text-text-tertiary mt-1 text-center">
+            {items.length === 0
+              ? "No children yet. Add them in the Hooper billing portal."
+              : "Add or edit children in the Hooper billing portal."}
+          </Caption>
         </>
       )}
     </View>
@@ -166,18 +111,6 @@ export default function ParentDashboard() {
       refresh();
     }, [refresh]),
   );
-
-  function manageChild(child: ChildSummary) {
-    router.push({
-      pathname: "/(app)/parent/manage-child",
-      params: {
-        id: child.id,
-        firstName: child.firstName,
-        lastName: child.lastName,
-        username: child.username,
-      },
-    });
-  }
 
   function viewAsChild(child: ChildSummary) {
     router.push({
@@ -206,9 +139,7 @@ export default function ParentDashboard() {
           <ChildrenSection
             items={children}
             isLoading={isLoading}
-            onManage={manageChild}
             onViewAs={viewAsChild}
-            onAdd={() => router.push("/(app)/parent/add-child")}
           />
         </ScrollView>
       ) : (

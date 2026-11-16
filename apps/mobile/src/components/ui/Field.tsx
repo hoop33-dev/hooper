@@ -77,8 +77,7 @@ type FieldProps = {
 
 /**
  * A labelled text field with an accent focus border, optional prefix/suffix,
- * multiline support and inline error text. The single definition behind the
- * profile-settings and manage-child forms.
+ * multiline support and inline error text.
  */
 export function Field({
   label,

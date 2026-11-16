@@ -17,7 +17,6 @@ import {
   BodySm,
   Caption,
   H4,
-  Label,
   OtpInput,
 } from "@/src/components/ui";
 import { roleConfig } from "@/src/constants/roles";
@@ -190,20 +189,11 @@ function SuccessView({
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const {
-    pendingVerificationEmail,
-    pendingVerificationRole,
-    status,
-    profile,
-    signInComplete,
-    signOut,
-  } = useAuthStore();
-  // Step indicator and button accent follow the chosen role (orange/pale orange/blue);
-  // defaults to player orange when role is not set (e.g. the sign-in path).
-  const accent = roleConfig(pendingVerificationRole).accent;
-  // profile is set by signInComplete (sign-in path) but null during sign-up
-  // (profile not loaded yet because email isn't confirmed). Use this to adapt the UI.
-  const fromSignIn = profile !== null;
+  const { pendingVerificationEmail, status, signInComplete, signOut } =
+    useAuthStore();
+  // Accounts are created in the billing portal, so this screen is only
+  // reached from sign-in; use the default brand accent.
+  const accent = roleConfig(null).accent;
 
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [errorMsg, setErrorMsg] = useState("");
@@ -354,19 +344,14 @@ export default function VerifyEmailScreen() {
       {/* Step header — hidden on success */}
       {!isSuccess && (
         <View className="px-6 pt-5">
-          {!fromSignIn && (
-            <Label className="mb-2.5" style={{ color: accent }}>
-              Step 4 of 4
-            </Label>
-          )}
           <BackButton
-            label={fromSignIn ? "Sign in" : "Your details"}
+            label="Sign in"
             onPress={async () => {
               // signOut() is required regardless of how we got here: the route
               // guard re-pins this screen while status is needs_verification, so
               // back navigation is a no-op until that status is cleared.
               await signOut();
-              // The previous screen (signup-details / login) is still on the
+              // The previous screen (login) is still on the
               // stack via router.push, so return to it; fall back to the splash
               // when the app opened directly onto verify-email.
               if (router.canGoBack()) {

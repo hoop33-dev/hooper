@@ -1,4 +1,3 @@
-import type { RoleId } from "@/src/constants/roles";
 import { supabase } from "@/src/lib/supabase";
 import { signOut as authSignOut } from "@/src/services/auth.service";
 import type { Profile, RoleType } from "@/src/types/database.types";
@@ -17,11 +16,10 @@ type AuthState = {
   profile: Profile | null;
   primaryRole: RoleType | null;
   pendingVerificationEmail: string | null;
-  pendingVerificationRole: RoleId | null;
 
   hydrate: () => Promise<void>;
   signInComplete: (session: Session) => Promise<void>;
-  setVerificationPending: (email: string, role?: RoleId) => void;
+  setVerificationPending: (email: string) => void;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -108,7 +106,6 @@ const storeCreator: StateCreator<AuthState> = (set, get) => ({
   profile: null,
   primaryRole: null,
   pendingVerificationEmail: null,
-  pendingVerificationRole: null,
 
   hydrate: async () => {
     // Subscribe BEFORE getSession() to close the race window where a session
@@ -127,7 +124,6 @@ const storeCreator: StateCreator<AuthState> = (set, get) => ({
           profile: null,
           primaryRole: null,
           pendingVerificationEmail: null,
-          pendingVerificationRole: null,
         });
         return;
       }
@@ -193,7 +189,6 @@ const storeCreator: StateCreator<AuthState> = (set, get) => ({
         primaryRole,
         status: "authenticated",
         pendingVerificationEmail: null,
-        pendingVerificationRole: null,
       });
     } catch {
       set({
@@ -206,11 +201,10 @@ const storeCreator: StateCreator<AuthState> = (set, get) => ({
     }
   },
 
-  setVerificationPending: (email: string, role?: RoleId) => {
+  setVerificationPending: (email: string) => {
     set({
       status: "needs_verification",
       pendingVerificationEmail: email,
-      pendingVerificationRole: role ?? null,
     });
   },
 
@@ -248,7 +242,6 @@ const storeCreator: StateCreator<AuthState> = (set, get) => ({
       profile: null,
       primaryRole: null,
       pendingVerificationEmail: null,
-      pendingVerificationRole: null,
     });
   },
 });

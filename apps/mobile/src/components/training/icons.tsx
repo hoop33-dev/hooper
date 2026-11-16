@@ -76,3 +76,27 @@ export function ClockIcon({ size = 12, color }: IconProps) {
     </Svg>
   );
 }
+
+/** Three linked dots — marks a sequence (steps run as one chain). */
+export function ChainIcon({ size = 14, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {[5, 12, 19].map((cx) => (
+        <Circle
+          key={cx}
+          cx={cx}
+          cy={12}
+          r={2.5}
+          stroke={color}
+          strokeWidth={1.8}
+        />
+      ))}
+      <Path
+        d="M7.5 12h2M14.5 12h2"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}

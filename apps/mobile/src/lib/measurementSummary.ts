@@ -161,3 +161,22 @@ export function sessionTotals(session: AthleteSessionDetail): {
     sets: placements.reduce((n, be) => n + be.sets, 0),
   };
 }
+
+/** What the athlete logged on one set, e.g. "6 reps" or "10 shots, 6 makes".
+ * A unit-less type is named after its value ("6 reps"), a unit hugs or
+ * spaces like the prescription ("40sec", "60 kg"). */
+export function formatLoggedSet(
+  measurements: BlockExerciseMeasurementRow[],
+  values: Record<number, number>,
+): string {
+  return sortByUnitTypePriority(measurements)
+    .map((m) => {
+      const value = values[m.position];
+      if (value === undefined) return "—";
+      const unit = displayUnit(m.unit_type, m.value_unit);
+      if (!unit) return `${value} ${m.unit_type.toLowerCase()}`;
+      const hug = HUGGING_UNIT_TYPES.has(m.unit_type) || unit === "/side";
+      return hug ? `${value}${unit}` : `${value} ${unit}`;
+    })
+    .join(", ");
+}

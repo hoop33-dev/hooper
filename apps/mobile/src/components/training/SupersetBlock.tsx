@@ -6,6 +6,7 @@ import {
   resolveSetStyle,
 } from "@/src/lib/blockExerciseDisplay";
 import { exerciseMediaItems } from "@/src/lib/exerciseMedia";
+import { isSequenceBlockExercise } from "@/src/lib/sequenceDisplay";
 import type { AthleteBlock, AthleteBlockExercise } from "@hooper/api";
 import { useMemo, useState } from "react";
 import { View, type LayoutRectangle } from "react-native";
@@ -19,6 +20,7 @@ import {
   type GroupSetTarget,
   type SetRowState,
 } from "./ExerciseSetsCard";
+import { SequenceRoundRow } from "./sequence/SequenceRoundRow";
 import { ExerciseMediaViewer } from "./videoPlayer/ExerciseMediaViewer";
 
 type SupersetBlockProps = {
@@ -188,24 +190,31 @@ function RoundExerciseRows({
 }) {
   return (
     <View className="bg-surface-2">
-      {block.exercises.map((be, i) => (
-        <View key={be.id}>
-          {i > 0 ? <View className="border-border-subtle border-t" /> : null}
-          <RoundExerciseRow
-            blockExercise={be}
-            setIndex={roundIndex}
-            set={setsByBlockExercise[be.id]?.[roundIndex]}
-            laterRounds={laterRounds}
-            onValueChange={(position, value) =>
-              onValueChange(be.id, position, value)
-            }
-            onApplyForward={(position, value, targets) =>
-              onApplyForward(be.id, position, value, targets)
-            }
-            onSetDone={() => onSetDone(be.id)}
-          />
-        </View>
-      ))}
+      {block.exercises.map((be, i) => {
+        const rowProps = {
+          setIndex: roundIndex,
+          set: setsByBlockExercise[be.id]?.[roundIndex],
+          laterRounds,
+          onValueChange: (position: number, value: number) =>
+            onValueChange(be.id, position, value),
+          onApplyForward: (
+            position: number,
+            value: number,
+            targets: number[],
+          ) => onApplyForward(be.id, position, value, targets),
+          onSetDone: () => onSetDone(be.id),
+        };
+        return (
+          <View key={be.id}>
+            {i > 0 ? <View className="border-border-subtle border-t" /> : null}
+            {isSequenceBlockExercise(be) ? (
+              <SequenceRoundRow blockExercise={be} {...rowProps} />
+            ) : (
+              <RoundExerciseRow blockExercise={be} {...rowProps} />
+            )}
+          </View>
+        );
+      })}
     </View>
   );
 }

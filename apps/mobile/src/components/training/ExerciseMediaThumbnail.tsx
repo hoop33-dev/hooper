@@ -19,7 +19,7 @@ const INSET = 8;
 /** A second card peeking out above the cover — the cue that there's more
  * than one item behind it. Centred on the tile and only overlapping its
  * top 2px, so it reads as a card tucked behind rather than a tab. */
-function StackEdge() {
+function StackEdge({ size }: { size: number }) {
   return (
     <View
       pointerEvents="none"
@@ -27,7 +27,7 @@ function StackEdge() {
         position: "absolute",
         top: -PEEK,
         left: INSET,
-        width: TILE - INSET * 2,
+        width: size - INSET * 2,
         height: PEEK + 2,
         borderTopLeftRadius: 6,
         borderTopRightRadius: 6,
@@ -48,10 +48,13 @@ export function ExerciseMediaThumbnail({
   items,
   onOpen,
   faded,
+  size = TILE,
 }: {
   items: ExerciseMediaItem[];
   onOpen: (index: number) => void;
   faded?: boolean;
+  /** Tile edge in points — smaller inside a sequence's step list. */
+  size?: number;
 }) {
   const cover = items[0];
   if (!cover) return null;
@@ -61,14 +64,14 @@ export function ExerciseMediaThumbnail({
   return (
     <View
       style={{
-        width: TILE,
-        height: TILE,
+        width: size,
+        height: size,
         // Room for the stack edge so it isn't jammed against the card's
         // top padding.
         marginTop: stacked ? PEEK : 0,
         opacity: faded ? 0.4 : 1,
       }}>
-      {stacked ? <StackEdge /> : null}
+      {stacked ? <StackEdge size={size} /> : null}
       <Pressable
         onPress={() => onOpen(0)}
         accessibilityRole="button"
@@ -77,9 +80,9 @@ export function ExerciseMediaThumbnail({
         }
         className="items-center justify-center overflow-hidden"
         style={{
-          width: TILE,
-          height: TILE,
-          borderRadius: RADIUS,
+          width: size,
+          height: size,
+          borderRadius: size < TILE ? 8 : RADIUS,
           backgroundColor: colors.surface3,
           borderWidth: 1,
           borderColor: colors.borderStrong,
@@ -87,13 +90,15 @@ export function ExerciseMediaThumbnail({
         {previewUrl ? (
           <Image
             source={{ uri: previewUrl }}
-            style={{ position: "absolute", width: TILE, height: TILE }}
+            style={{ position: "absolute", width: size, height: size }}
             resizeMode="cover"
           />
         ) : null}
         {cover.kind === "video" ? (
-          <View className="h-9 w-9 items-center justify-center rounded-full bg-black/35">
-            <PlayIcon size={14} color="#fff" />
+          <View
+            className="items-center justify-center rounded-full bg-black/35"
+            style={{ width: size * 0.64, height: size * 0.64 }}>
+            <PlayIcon size={size / 4} color="#fff" />
           </View>
         ) : null}
       </Pressable>

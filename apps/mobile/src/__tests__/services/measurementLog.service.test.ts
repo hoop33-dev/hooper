@@ -91,6 +91,7 @@ function session(
           sequence_name: null,
           sequence_description: null,
           source_sequence_id: null,
+          sequence: null,
           created_at: "",
           updated_at: "",
           exercise: {

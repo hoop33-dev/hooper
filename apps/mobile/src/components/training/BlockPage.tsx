@@ -4,6 +4,7 @@ import {
   useBlockAutoScroll,
   type AutoScrollItem,
 } from "@/src/hooks/useBlockAutoScroll";
+import { isSequenceBlockExercise } from "@/src/lib/sequenceDisplay";
 import type { AthleteBlock } from "@hooper/api";
 import { useMemo } from "react";
 import { ScrollView, View } from "react-native";
@@ -13,6 +14,7 @@ import {
   type GroupSetTarget,
   type SetRowState,
 } from "./ExerciseSetsCard";
+import { SequenceSetsCard } from "./sequence/SequenceSetsCard";
 import { SupersetBlock } from "./SupersetBlock";
 
 type BlockPageProps = {
@@ -67,6 +69,31 @@ function useBlockPageAutoScroll(
   return useBlockAutoScroll(isActive, items);
 }
 
+/** A plain block's card for one placement: the set-by-set sequence card,
+ * or the regular exercise card. */
+function PlacementCard(props: React.ComponentProps<typeof ExerciseSetsCard>) {
+  const { blockExercise } = props;
+  return isSequenceBlockExercise(blockExercise) ? (
+    <SequenceSetsCard {...props} blockExercise={blockExercise} />
+  ) : (
+    <ExerciseSetsCard {...props} />
+  );
+}
+
+/** "2 exercises · 1 sequence" — sequences counted on their own. */
+function placementCountLabel(block: AthleteBlock): string {
+  const sequences = block.exercises.filter(isSequenceBlockExercise).length;
+  const exercises = block.exercises.length - sequences;
+  const plural = (n: number, word: string) =>
+    `${n} ${word}${n === 1 ? "" : "s"}`;
+  return [
+    exercises || !sequences ? plural(exercises, "exercise") : null,
+    sequences ? plural(sequences, "sequence") : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function BlockHeader({
   block,
   rounds,
@@ -83,8 +110,7 @@ function BlockHeader({
       <View>
         <H4 style={{ color: colors.brandOrange }}>{block.name}</H4>
         <Meta className="mt-0.5">
-          {block.exercises.length} exercise
-          {block.exercises.length === 1 ? "" : "s"}
+          {placementCountLabel(block)}
           {block.is_superset
             ? ` · ${rounds} round${rounds === 1 ? "" : "s"}`
             : ""}
@@ -141,7 +167,7 @@ export function BlockPage({
           <View
             key={be.id}
             onLayout={(e) => registerCardLayout(be.id, e.nativeEvent.layout)}>
-            <ExerciseSetsCard
+            <PlacementCard
               blockExercise={be}
               sets={setsByBlockExercise[be.id] ?? []}
               onValueChange={(setIndex, position, value) =>

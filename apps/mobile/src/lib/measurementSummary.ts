@@ -61,17 +61,26 @@ function coachValue(v: GroupedMeasurement["values"][number]): number | null {
   return v.enteredBy === "athlete" ? null : v.value;
 }
 
+/** A value with its unit, hugging or spaced ("20sec", "60 kg"); just the
+ * number when the type has no unit. */
+function formatUnitValue(
+  value: number,
+  unitType: string,
+  unit: string,
+): string {
+  if (!unit) return `${value}`;
+  const hug = HUGGING_UNIT_TYPES.has(unitType) || unit === "/side";
+  return hug ? `${value}${unit}` : `${value} ${unit}`;
+}
+
 /** An athlete-entered value is shown as a dash. */
 function formatValue(
   v: GroupedMeasurement["values"][number],
   unitType: string,
 ): string {
   const value = coachValue(v);
-  const { unit } = v;
   if (value == null) return "—";
-  if (!unit) return `${value}`;
-  const hug = HUGGING_UNIT_TYPES.has(unitType) || unit === "/side";
-  return hug ? `${value}${unit}` : `${value} ${unit}`;
+  return formatUnitValue(value, unitType, v.unit);
 }
 
 /** Whether the values only ever rise or only ever fall. A dash (athlete-
@@ -160,4 +169,25 @@ export function sessionTotals(session: AthleteSessionDetail): {
     ),
     sets: placements.reduce((n, be) => n + be.sets, 0),
   };
+}
+
+/** What the athlete logged on one set, e.g. "6 reps" or "10 shots, 6 makes".
+ * A unit-less type is named after its value ("6 reps"), or before it when
+ * it's an acronym ("RPE 8"); a unit hugs or spaces like the prescription
+ * ("40sec", "60 kg"). */
+export function formatLoggedSet(
+  measurements: BlockExerciseMeasurementRow[],
+  values: Record<number, number>,
+): string {
+  return sortByUnitTypePriority(measurements)
+    .map((m) => {
+      const value = values[m.position];
+      if (value === undefined) return "—";
+      const unit = displayUnit(m.unit_type, m.value_unit);
+      if (unit) return formatUnitValue(value, m.unit_type, unit);
+      return m.unit_type === m.unit_type.toUpperCase()
+        ? `${m.unit_type} ${value}`
+        : `${value} ${m.unit_type.toLowerCase()}`;
+    })
+    .join(", ");
 }

@@ -18,12 +18,12 @@ import { getClient } from "../client";
 // needs the exercise itself, its planned measurements, its resolved style,
 // and its per-set variant/style overrides.
 //
-// Sequences (exercise_id null) only bring their steps' set-1 names: the app
-// doesn't have a sequence UI yet, so it shows one as a plain exercise named
-// after the sequence, with its steps as the description (see
-// sequenceAsExercise).
+// Sequences (exercise_id null) bring their steps, each with its sparse
+// per-set picks resolved to full exercises (media included) — shaped into
+// `sequence`. `exercise` still carries a stand-in named after the sequence
+// (see sequenceAsExercise) so exercise-only code paths keep working.
 const BLOCK_EXERCISE_SELECT =
-  "*, exercise:exercises(*, exercise_photos(*)), block_exercise_measurements(*), style:exercise_styles(*), block_exercise_set_variants(set_index, exercise:exercises(*, exercise_photos(*))), block_exercise_set_styles(set_index, style:exercise_styles(*)), sequence_steps:block_exercise_sequence_steps(position, label, picks:block_exercise_sequence_picks(set_index, exercise:exercises(name)))";
+  "*, exercise:exercises(*, exercise_photos(*)), block_exercise_measurements(*), style:exercise_styles(*), block_exercise_set_variants(set_index, exercise:exercises(*, exercise_photos(*))), block_exercise_set_styles(set_index, style:exercise_styles(*)), sequence_steps:block_exercise_sequence_steps(id, position, label, picks:block_exercise_sequence_picks(set_index, exercise:exercises(*, exercise_photos(*))))";
 const BLOCK_SELECT = `*, block_exercises(${BLOCK_EXERCISE_SELECT})`;
 const SESSION_SELECT = `*, blocks(${BLOCK_SELECT})`;
 
@@ -31,8 +31,31 @@ const SESSION_SELECT = `*, blocks(${BLOCK_SELECT})`;
  * (up to 5, sorted by position) ride along for the media viewer. */
 export type AthleteExercise = ExerciseRow & { photos: ExercisePhotoRow[] };
 
+/** One step of a placed sequence. `picks` is sparse, keyed by set_index:
+ * set 0 defines the step and a later set carries the latest earlier pick
+ * forward until it has its own (see resolveStepPick in @hooper/shared). A
+ * null pick is one whose exercise is gone (deleted, or hidden by RLS) — it
+ * still ends the carry-forward, so that set shows the step as empty rather
+ * than silently repeating an earlier set's exercise. */
+export type AthleteSequenceStep = {
+  id: string;
+  position: number;
+  label: string;
+  picks: Record<number, AthleteExercise | null>;
+};
+
+export type AthleteSequence = {
+  name: string;
+  description: string | null;
+  /** In position order. */
+  steps: AthleteSequenceStep[];
+};
+
 export type AthleteBlockExercise = BlockExerciseRow & {
+  /** For a sequence, a stand-in named after it (see sequenceAsExercise). */
   exercise: AthleteExercise;
+  /** Set iff this placement is a sequence (exercise_id null). */
+  sequence: AthleteSequence | null;
   measurements: BlockExerciseMeasurementRow[];
   style: ExerciseStyleRow | null;
   /** Sparse, keyed by set_index — only sets whose exercise differs from
@@ -47,9 +70,10 @@ export type AthleteSessionDetail = SessionRow & { blocks: AthleteBlock[] };
 
 type RawExercise = ExerciseRow & { exercise_photos: ExercisePhotoRow[] };
 type RawSequenceStep = {
+  id: string;
   position: number;
   label: string;
-  picks: { set_index: number; exercise: { name: string } | null }[];
+  picks: { set_index: number; exercise: RawExercise | null }[];
 };
 type RawBlockExercise = BlockExerciseRow & {
   exercise: RawExercise | null;
@@ -77,7 +101,7 @@ function shapeExercise({
   };
 }
 
-/** Stands in for a sequence until the app can show one properly: named
+/** Stands in for a sequence wherever code expects a single exercise: named
  * after the sequence, with set 1's steps ("Crossover → Skip pass → …") as
  * its description. Its id is the placement's own, so it never matches a
  * library exercise; logs for it record a null exercise_id (see
@@ -104,6 +128,36 @@ function sequenceAsExercise(be: RawBlockExercise): AthleteExercise {
     created_at: be.created_at,
     updated_at: be.updated_at,
     photos: [],
+  };
+}
+
+/** Stands in for a single-exercise placement whose exercise didn't come
+ * back (deleted, or hidden by RLS). Keeps the placement's real exercise_id
+ * so logs still reference it. */
+function unavailableExercise(be: RawBlockExercise): AthleteExercise {
+  return {
+    ...sequenceAsExercise(be),
+    id: be.exercise_id!,
+    name: "Exercise unavailable",
+    description: null,
+  };
+}
+
+function shapeSequence(be: RawBlockExercise): AthleteSequence {
+  return {
+    name: be.sequence_name ?? "Sequence",
+    description: be.sequence_description,
+    steps: [...(be.sequence_steps ?? [])]
+      .sort((a, b) => a.position - b.position)
+      .map(({ picks, ...step }) => ({
+        ...step,
+        picks: Object.fromEntries(
+          picks.map((p) => [
+            p.set_index,
+            p.exercise ? shapeExercise(p.exercise) : null,
+          ]),
+        ),
+      })),
   };
 }
 
@@ -137,7 +191,10 @@ function shapeSession(raw: RawSession): AthleteSessionDetail {
               ...blockExercise,
               exercise: exercise
                 ? shapeExercise(exercise)
-                : sequenceAsExercise(raw),
+                : isSequencePlacement(raw)
+                  ? sequenceAsExercise(raw)
+                  : unavailableExercise(raw),
+              sequence: isSequencePlacement(raw) ? shapeSequence(raw) : null,
               measurements: [...block_exercise_measurements].sort(
                 (a, b) => a.position - b.position || a.set_index - b.set_index,
               ),

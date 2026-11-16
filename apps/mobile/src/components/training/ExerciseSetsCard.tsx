@@ -356,7 +356,7 @@ type ExerciseSetsCardProps = {
   onSetManyDone: (targets: GroupSetTarget[], done: boolean) => void;
 };
 
-function CoachNotes({ notes }: { notes: string }) {
+export function CoachNotes({ notes }: { notes: string }) {
   const [open, setOpen] = useState(true);
   return (
     <View className="mt-2">

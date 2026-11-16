@@ -1,6 +1,6 @@
 import { ContinueRestartSheet } from "@/src/components/training/ContinueRestartSheet";
 import { ExerciseMediaThumbnail } from "@/src/components/training/ExerciseMediaThumbnail";
-import { PlayIcon } from "@/src/components/training/icons";
+import { ChainIcon, PlayIcon } from "@/src/components/training/icons";
 import { ExerciseMediaViewer } from "@/src/components/training/videoPlayer/ExerciseMediaViewer";
 import {
   BackButton,
@@ -24,6 +24,7 @@ import {
   formatPrescription,
   sessionTotals,
 } from "@/src/lib/measurementSummary";
+import { sequenceChainLabel } from "@/src/lib/sequenceDisplay";
 import { getProgramForm } from "@/src/services/formResponse.service";
 import {
   getProgram,
@@ -31,11 +32,13 @@ import {
   type AthleteBlock,
   type AthleteBlockExercise,
   type AthleteExercise,
+  type AthleteSequence,
   type AthleteSessionDetail,
 } from "@/src/services/program.service";
 import { getInProgressCompletion } from "@/src/services/sessionCompletion.service";
 import { useAuthStore } from "@/src/stores/auth.store";
 import type { ProgramRow } from "@hooper/db";
+import { sequenceVaries } from "@hooper/shared";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, View } from "react-native";
@@ -185,6 +188,9 @@ function ExerciseRow({
         {prescription ? (
           <BodySm className="mt-0.5">{prescription}</BodySm>
         ) : null}
+        {blockExercise.sequence ? (
+          <SequenceChainCaption sequence={blockExercise.sequence} />
+        ) : null}
         {style ? (
           <Caption className="text-brand-orange mt-0.5">
             {style.uniform ? style.name : "Style varies by set"}
@@ -198,6 +204,24 @@ function ExerciseRow({
         title={exercise.name}
         cue={exercise.description}
       />
+    </View>
+  );
+}
+
+/** A sequence's set-1 chain under its name, flagged when later sets swap
+ * steps. */
+function SequenceChainCaption({ sequence }: { sequence: AthleteSequence }) {
+  return (
+    <View className="mt-0.5 flex-row items-start gap-1.5">
+      <View className="mt-0.5">
+        <ChainIcon size={12} color={colors.brandOrange} />
+      </View>
+      <Caption className="flex-1" numberOfLines={2}>
+        {sequenceChainLabel(sequence, 0)}
+        {sequenceVaries(sequence.steps) ? (
+          <Caption className="text-brand-orange"> · Varies by set</Caption>
+        ) : null}
+      </Caption>
     </View>
   );
 }

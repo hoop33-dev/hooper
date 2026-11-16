@@ -67,8 +67,10 @@ export function ExerciseMediaThumbnail({
         width: size,
         height: size,
         // Room for the stack edge so it isn't jammed against the card's
-        // top padding.
-        marginTop: stacked ? PEEK : 0,
+        // top padding. Not at the small step-list size, where the edge fits
+        // in the row's own padding and a margin would push this tile out of
+        // line with its neighbours (and the step rail off its centre).
+        marginTop: stacked && size >= TILE ? PEEK : 0,
         opacity: faded ? 0.4 : 1,
       }}>
       {stacked ? <StackEdge size={size} /> : null}

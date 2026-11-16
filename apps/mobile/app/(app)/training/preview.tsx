@@ -38,6 +38,7 @@ import {
 import { getInProgressCompletion } from "@/src/services/sessionCompletion.service";
 import { useAuthStore } from "@/src/stores/auth.store";
 import type { ProgramRow } from "@hooper/db";
+import { sequenceVaries } from "@hooper/shared";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, View } from "react-native";
@@ -207,7 +208,8 @@ function ExerciseRow({
   );
 }
 
-/** A sequence's set-1 chain under its name. */
+/** A sequence's set-1 chain under its name, flagged when later sets swap
+ * steps. */
 function SequenceChainCaption({ sequence }: { sequence: AthleteSequence }) {
   return (
     <View className="mt-0.5 flex-row items-start gap-1.5">
@@ -216,6 +218,9 @@ function SequenceChainCaption({ sequence }: { sequence: AthleteSequence }) {
       </View>
       <Caption className="flex-1" numberOfLines={2}>
         {sequenceChainLabel(sequence, 0)}
+        {sequenceVaries(sequence.steps) ? (
+          <Caption className="text-brand-orange"> · Varies by set</Caption>
+        ) : null}
       </Caption>
     </View>
   );

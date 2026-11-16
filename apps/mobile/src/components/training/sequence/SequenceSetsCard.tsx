@@ -208,19 +208,26 @@ function SetPanel({
   );
 }
 
-/** Every set logged: one line per set, its chain and what was logged. */
+/** Every set logged: one line per set, its chain and what was logged. Tap a
+ * line to reopen that set. */
 function DoneSummary({
   blockExercise,
   sets,
+  onOpen,
 }: {
   blockExercise: Props["blockExercise"];
   sets: SetRowState[];
+  /** Reopens the card on that set to edit it. */
+  onOpen: (setIndex: number) => void;
 }) {
   return (
     <View className="px-4 pb-1.5">
       {sets.map((s, i) => (
-        <View
+        <Pressable
           key={i}
+          onPress={() => onOpen(i)}
+          accessibilityRole="button"
+          accessibilityLabel={`Edit set ${i + 1}`}
           className="border-border-subtle flex-row items-center gap-2.5 border-t py-2">
           <Tick color={colors.success} size={13} />
           <Text
@@ -246,7 +253,7 @@ function DoneSummary({
               s.values,
             )}
           </Text>
-        </View>
+        </Pressable>
       ))}
     </View>
   );
@@ -257,7 +264,7 @@ function DoneSummary({
  * and logs the whole run: 6 reps = 6 full runs of the chain. */
 export function SequenceSetsCard(props: Props) {
   const { blockExercise, sets, onSetManyDone } = props;
-  const { view, setView, collapsed } = useSequenceSetView(sets);
+  const { view, setView, collapsed, open } = useSequenceSetView(sets);
   const doneCount = sets.filter((s) => s.done).length;
   const allDone = sets.length > 0 && doneCount === sets.length;
 
@@ -284,7 +291,7 @@ export function SequenceSetsCard(props: Props) {
         }
       />
       {collapsed ? (
-        <DoneSummary blockExercise={blockExercise} sets={sets} />
+        <DoneSummary blockExercise={blockExercise} sets={sets} onOpen={open} />
       ) : sets.length ? (
         <>
           <SetPager sets={sets} view={view} onView={setView} />

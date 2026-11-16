@@ -76,6 +76,26 @@ describe("sequenceSetSteps", () => {
   });
 });
 
+describe("an unavailable pick", () => {
+  const withGone: AthleteSequence = {
+    ...sequence,
+    steps: [
+      {
+        id: "s1",
+        position: 0,
+        label: "Dribble",
+        picks: { 0: ex("h1"), 2: null },
+      },
+    ],
+  };
+
+  it("shows the step empty on its set instead of carrying forward", () => {
+    expect(sequenceSetSteps(withGone, 1)[0]!.exercise?.id).toBe("h1");
+    expect(sequenceSetSteps(withGone, 2)[0]!.exercise).toBeNull();
+    expect(sequenceSetSteps(withGone, 3)[0]!.exercise).toBeNull();
+  });
+});
+
 describe("sequenceChangeCount", () => {
   it("counts the steps a set swaps", () => {
     expect(sequenceChangeCount(sequence, 0)).toBe(0);

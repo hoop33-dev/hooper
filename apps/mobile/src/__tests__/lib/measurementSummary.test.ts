@@ -1,4 +1,5 @@
 import {
+  formatLoggedSet,
   formatPrescription,
   sessionTotals,
 } from "@/src/lib/measurementSummary";
@@ -229,5 +230,19 @@ describe("sessionTotals", () => {
       exercises: 4,
       sets: 9,
     });
+  });
+});
+
+describe("formatLoggedSet", () => {
+  it("names unit-less values, leads with acronyms, and hugs units", () => {
+    const rows = [
+      { ...m(0, "Reps", null), position: 0 },
+      { ...m(0, "RPE", null), position: 1 },
+      { ...m(0, "Time", null), position: 2 },
+      { ...m(0, "Weight", null), position: 3 },
+    ];
+    expect(formatLoggedSet(rows, { 0: 6, 1: 8, 2: 40, 3: 60 })).toBe(
+      "6 reps, 60 kg, RPE 8, 40sec",
+    );
   });
 });

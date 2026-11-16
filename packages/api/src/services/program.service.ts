@@ -33,12 +33,15 @@ export type AthleteExercise = ExerciseRow & { photos: ExercisePhotoRow[] };
 
 /** One step of a placed sequence. `picks` is sparse, keyed by set_index:
  * set 0 defines the step and a later set carries the latest earlier pick
- * forward until it has its own (see resolveStepPick in @hooper/shared). */
+ * forward until it has its own (see resolveStepPick in @hooper/shared). A
+ * null pick is one whose exercise is gone (deleted, or hidden by RLS) — it
+ * still ends the carry-forward, so that set shows the step as empty rather
+ * than silently repeating an earlier set's exercise. */
 export type AthleteSequenceStep = {
   id: string;
   position: number;
   label: string;
-  picks: Record<number, AthleteExercise>;
+  picks: Record<number, AthleteExercise | null>;
 };
 
 export type AthleteSequence = {
@@ -128,6 +131,18 @@ function sequenceAsExercise(be: RawBlockExercise): AthleteExercise {
   };
 }
 
+/** Stands in for a single-exercise placement whose exercise didn't come
+ * back (deleted, or hidden by RLS). Keeps the placement's real exercise_id
+ * so logs still reference it. */
+function unavailableExercise(be: RawBlockExercise): AthleteExercise {
+  return {
+    ...sequenceAsExercise(be),
+    id: be.exercise_id!,
+    name: "Exercise unavailable",
+    description: null,
+  };
+}
+
 function shapeSequence(be: RawBlockExercise): AthleteSequence {
   return {
     name: be.sequence_name ?? "Sequence",
@@ -137,9 +152,10 @@ function shapeSequence(be: RawBlockExercise): AthleteSequence {
       .map(({ picks, ...step }) => ({
         ...step,
         picks: Object.fromEntries(
-          picks
-            .filter((p) => p.exercise)
-            .map((p) => [p.set_index, shapeExercise(p.exercise!)]),
+          picks.map((p) => [
+            p.set_index,
+            p.exercise ? shapeExercise(p.exercise) : null,
+          ]),
         ),
       })),
   };
@@ -175,8 +191,10 @@ function shapeSession(raw: RawSession): AthleteSessionDetail {
               ...blockExercise,
               exercise: exercise
                 ? shapeExercise(exercise)
-                : sequenceAsExercise(raw),
-              sequence: exercise ? null : shapeSequence(raw),
+                : isSequencePlacement(raw)
+                  ? sequenceAsExercise(raw)
+                  : unavailableExercise(raw),
+              sequence: isSequencePlacement(raw) ? shapeSequence(raw) : null,
               measurements: [...block_exercise_measurements].sort(
                 (a, b) => a.position - b.position || a.set_index - b.set_index,
               ),

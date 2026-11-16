@@ -18,15 +18,22 @@ export type SequenceSetStep = {
   previous: AthleteExercise | null;
 };
 
+const UNAVAILABLE = "unavailable";
+
 function resolveExercise(
   step: AthleteSequenceStep,
   setIndex: number,
 ): { exercise: AthleteExercise | null; inherited: boolean } {
+  // An unavailable pick (null) still counts as a pick, so it stops the
+  // carry-forward and its set shows the step as empty.
   const pickIds = Object.fromEntries(
-    Object.entries(step.picks).map(([i, exercise]) => [i, exercise.id]),
+    Object.entries(step.picks).map(([i, exercise]) => [
+      i,
+      exercise?.id ?? UNAVAILABLE,
+    ]),
   );
   const { from, inherited } = resolveStepPick({ picks: pickIds }, setIndex);
-  return { exercise: from < 0 ? null : step.picks[from]!, inherited };
+  return { exercise: from < 0 ? null : (step.picks[from] ?? null), inherited };
 }
 
 /** Every step of `sequence` on `setIndex`, in order. */
@@ -73,7 +80,7 @@ export type SequenceBlockExercise = AthleteBlockExercise & {
 export function isSequenceBlockExercise(
   be: AthleteBlockExercise,
 ): be is SequenceBlockExercise {
-  return be.sequence !== null;
+  return be.sequence != null;
 }
 
 /** "1 change" / "3 changes". */

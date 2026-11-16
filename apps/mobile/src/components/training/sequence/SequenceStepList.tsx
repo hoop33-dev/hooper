@@ -2,6 +2,7 @@ import { Meta, MicroLabel } from "@/src/components/ui";
 import { bodyFont, colors } from "@/src/constants/theme";
 import { exerciseMediaItems } from "@/src/lib/exerciseMedia";
 import type { SequenceSetStep } from "@/src/lib/sequenceDisplay";
+import type { AthleteExercise } from "@hooper/api";
 import { useMemo, useState } from "react";
 import { Text, View } from "react-native";
 
@@ -30,15 +31,24 @@ function StepBadge({ n, changed }: { n: number; changed: boolean }) {
   );
 }
 
+type OpenMedia = (exercise: AthleteExercise, startIndex: number) => void;
+
 /** The step's media tile, or a blank tile when the exercise has none (or
  * the step is empty) so the names stay aligned. */
-function StepThumb({ step, size }: { step: SequenceSetStep; size: number }) {
+function StepThumb({
+  step,
+  size,
+  onOpen,
+}: {
+  step: SequenceSetStep;
+  size: number;
+  onOpen: OpenMedia;
+}) {
   const exercise = step.exercise;
   const media = useMemo(
     () => (exercise ? exerciseMediaItems(exercise) : []),
     [exercise],
   );
-  const [viewerStart, setViewerStart] = useState<number | null>(null);
   if (!exercise || media.length === 0) {
     return (
       <View
@@ -52,20 +62,11 @@ function StepThumb({ step, size }: { step: SequenceSetStep; size: number }) {
     );
   }
   return (
-    <>
-      <ExerciseMediaThumbnail
-        items={media}
-        onOpen={setViewerStart}
-        size={size}
-      />
-      <ExerciseMediaViewer
-        startIndex={viewerStart}
-        onClose={() => setViewerStart(null)}
-        items={media}
-        title={exercise.name}
-        cue={exercise.description}
-      />
-    </>
+    <ExerciseMediaThumbnail
+      items={media}
+      onOpen={(index) => onOpen(exercise, index)}
+      size={size}
+    />
   );
 }
 
@@ -74,11 +75,13 @@ function StepRow({
   n,
   last,
   compact,
+  onOpenMedia,
 }: {
   step: SequenceSetStep;
   n: number;
   last: boolean;
   compact: boolean;
+  onOpenMedia: OpenMedia;
 }) {
   return (
     <View
@@ -97,7 +100,7 @@ function StepRow({
         />
       )}
       <StepBadge n={n} changed={step.changed} />
-      <StepThumb step={step} size={compact ? 34 : 40} />
+      <StepThumb step={step} size={compact ? 34 : 40} onOpen={onOpenMedia} />
       <View className="min-w-0 flex-1">
         <MicroLabel className="uppercase" numberOfLines={1}>
           {step.step.label}
@@ -125,7 +128,8 @@ function StepRow({
 }
 
 /** A sequence's steps on one set, top to bottom, joined by a rail. Steps
- * this set swaps are marked in orange with what they replaced. */
+ * this set swaps are marked in orange with what they replaced. One media
+ * viewer serves every step, showing whichever tile was tapped. */
 export function SequenceStepList({
   steps,
   compact = false,
@@ -133,6 +137,15 @@ export function SequenceStepList({
   steps: SequenceSetStep[];
   compact?: boolean;
 }) {
+  const [viewing, setViewing] = useState<{
+    exercise: AthleteExercise;
+    startIndex: number;
+  } | null>(null);
+  const viewingExercise = viewing?.exercise;
+  const media = useMemo(
+    () => (viewingExercise ? exerciseMediaItems(viewingExercise) : []),
+    [viewingExercise],
+  );
   return (
     <View>
       {steps.map((s, i) => (
@@ -142,8 +155,18 @@ export function SequenceStepList({
           n={i + 1}
           last={i === steps.length - 1}
           compact={compact}
+          onOpenMedia={(exercise, startIndex) =>
+            setViewing({ exercise, startIndex })
+          }
         />
       ))}
+      <ExerciseMediaViewer
+        startIndex={viewing?.startIndex ?? null}
+        onClose={() => setViewing(null)}
+        items={media}
+        title={viewingExercise?.name ?? ""}
+        cue={viewingExercise?.description ?? null}
+      />
     </View>
   );
 }

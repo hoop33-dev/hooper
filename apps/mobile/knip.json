@@ -1,0 +1,6 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["app/**/*.{ts,tsx}", "*.config.{js,mjs,ts}"],
+  "project": ["src/**/*.{ts,tsx}", "app/**/*.{ts,tsx}"],
+  "ignoreDependencies": ["react-native-ai-devtools"]
+}

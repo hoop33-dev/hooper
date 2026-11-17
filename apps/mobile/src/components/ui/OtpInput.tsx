@@ -15,7 +15,7 @@ type OtpInputProps = {
   onChange: (index: number, value: string) => void;
   onKeyPress: (index: number, key: string) => void;
   length?: number;
-  /** Accent (hex) for a filled box — follows the signup role. */
+  /** Accent (hex) for a filled box. */
   accent?: string;
 };
 

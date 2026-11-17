@@ -24,7 +24,7 @@ export type RoleConfig = {
   planSub: string;
 };
 
-export const ROLES: RoleConfig[] = [
+const ROLES: RoleConfig[] = [
   {
     id: "player",
     label: "Athlete",

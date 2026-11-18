@@ -18,9 +18,7 @@ import {
   Pill,
   RowTitle,
 } from "@/src/components/ui";
-import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
-import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 import { sendSecurityCode } from "@/src/services/auth.service";
 import { useAuthStore } from "@/src/stores/auth.store";
 
@@ -175,8 +173,7 @@ function TwoFactorSection() {
 export default function SecurityScreen() {
   const router = useRouter();
   const { session } = useAuthStore();
-  const user = useDashboardUser();
-  const accent = roleConfig(user?.role ?? "player").accent;
+  const accent = colors.brandOrange;
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState("");
 

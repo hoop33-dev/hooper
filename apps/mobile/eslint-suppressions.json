@@ -37,9 +37,6 @@
     }
   },
   "app/_layout.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "no-restricted-syntax": {
       "count": 1
     },
@@ -53,29 +50,6 @@
     }
   },
   "src/components/ui/Carousel.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/ui/Checkbox.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/ui/DateInput.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/ui/RadioTile.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/ui/SelectInput.tsx": {
     "max-lines-per-function": {
       "count": 1
     }

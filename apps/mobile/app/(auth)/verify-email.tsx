@@ -19,7 +19,6 @@ import {
   H4,
   OtpInput,
 } from "@/src/components/ui";
-import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import {
   resendVerificationOtp,
@@ -193,7 +192,7 @@ export default function VerifyEmailScreen() {
     useAuthStore();
   // Accounts are created in the billing portal, so this screen is only
   // reached from sign-in; use the default brand accent.
-  const accent = roleConfig(null).accent;
+  const accent = colors.brandOrange;
 
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [errorMsg, setErrorMsg] = useState("");

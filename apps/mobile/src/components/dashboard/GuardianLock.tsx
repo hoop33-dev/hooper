@@ -1,71 +1,13 @@
 import { Modal, Pressable, Text, View } from "react-native";
 
 import { Title } from "@/src/components/ui/Typography";
-import { roleConfig } from "@/src/constants/roles";
 import { bodyFont, colors } from "@/src/constants/theme";
 import { LockIcon } from "./icons";
 
-const PARENT_ACCENT = roleConfig("parent").accent;
+/** The guardian's colour, used on the locks a managed athlete sees. */
+const PARENT_ACCENT = "#F68D68";
 
 type LockKind = "profile" | "billing";
-
-/**
- * Inline banner shown at the top of a child's own Profile / Billing screen
- * when their guardian controls it.
- */
-export function GuardianBanner({ kind = "profile" }: { kind?: LockKind }) {
-  return (
-    <View
-      style={{
-        marginHorizontal: 20,
-        marginBottom: 18,
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        backgroundColor: "rgba(246,141,104,0.10)",
-        borderWidth: 1,
-        borderColor: "rgba(246,141,104,0.30)",
-        borderRadius: 14,
-      }}>
-      <View
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: 10,
-          flexShrink: 0,
-          backgroundColor: "rgba(246,141,104,0.16)",
-          borderWidth: 1,
-          borderColor: "rgba(246,141,104,0.34)",
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
-        <LockIcon size={16} color={PARENT_ACCENT} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={{
-            fontFamily: bodyFont("700"),
-            fontSize: 13.5,
-            color: colors.textPrimary,
-          }}>
-          Managed by your guardian
-        </Text>
-        <Text
-          style={{
-            fontFamily: bodyFont("400"),
-            fontSize: 12,
-            color: colors.textSecondary,
-            lineHeight: 17,
-          }}>
-          Your parent controls your{" "}
-          {kind === "billing" ? "membership" : "profile settings"}.
-        </Text>
-      </View>
-    </View>
-  );
-}
 
 function GotItButton({ onClose }: { onClose: () => void }) {
   return (

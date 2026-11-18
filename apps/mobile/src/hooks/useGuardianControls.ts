@@ -10,22 +10,17 @@ const DEFAULT: GuardianControls = {
 };
 
 /**
- * Loads the guardian controls that apply to the signed-in player.
- * Pass `enabled = false` (e.g. for non-player roles) to skip the lookup
- * entirely — parents and coaches are never "managed".
+ * Loads the guardian controls that apply to the signed-in user. Every
+ * account gets the athlete view, so this always runs; an account that isn't
+ * a managed child just gets the unlocked defaults back.
  */
-export function useGuardianControls(enabled = true): GuardianControls & {
+export function useGuardianControls(): GuardianControls & {
   isLoading: boolean;
 } {
   const [controls, setControls] = useState<GuardianControls>(DEFAULT);
-  const [isLoading, setIsLoading] = useState(enabled);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!enabled) {
-      setControls(DEFAULT);
-      setIsLoading(false);
-      return;
-    }
     let cancelled = false;
     setIsLoading(true);
     void (async () => {
@@ -38,7 +33,7 @@ export function useGuardianControls(enabled = true): GuardianControls & {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, []);
 
   return { ...controls, isLoading };
 }

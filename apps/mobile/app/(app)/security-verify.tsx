@@ -14,9 +14,7 @@ import {
   Hero,
   OtpInput,
 } from "@/src/components/ui";
-import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
-import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 import {
   sendSecurityCode,
   verifySecurityCode,
@@ -270,8 +268,7 @@ function EmailPromptSection({
 export default function SecurityVerifyScreen() {
   const router = useRouter();
   const { session } = useAuthStore();
-  const user = useDashboardUser();
-  const accent = roleConfig(user?.role ?? "player").accent;
+  const accent = colors.brandOrange;
 
   const email = session?.user?.email ?? "";
   const maskedEmail = email.replace(

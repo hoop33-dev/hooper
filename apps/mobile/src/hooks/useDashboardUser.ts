@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-import type { RoleId } from "@/src/constants/roles";
 import { supabase } from "@/src/lib/supabase";
 import { useAuthStore } from "@/src/stores/auth.store";
 
@@ -10,7 +9,6 @@ export type DashboardUser = {
   fullName: string;
   username: string;
   initials: string;
-  role: RoleId;
   regionName: string | null;
   regionId: string | null;
   avatarUrl: string | null;
@@ -26,7 +24,8 @@ function initialsOf(first: string, last: string): string {
 }
 
 export function useDashboardUser(): DashboardUser | null {
-  const { profile, primaryRole, session } = useAuthStore();
+  const profile = useAuthStore((s) => s.profile);
+  const session = useAuthStore((s) => s.session);
   const [regionName, setRegionName] = useState<string | null>(null);
 
   const regionId = profile?.region_id ?? null;
@@ -59,9 +58,7 @@ export function useDashboardUser(): DashboardUser | null {
     profile?.last_name ?? (meta.last_name as string | undefined) ?? "";
   const username =
     profile?.username ?? (meta.username as string | undefined) ?? "";
-  const role = primaryRole ?? (meta.role as RoleId | undefined) ?? null;
-
-  if (!role || !firstName) return null;
+  if (!firstName) return null;
 
   return {
     firstName,
@@ -69,7 +66,6 @@ export function useDashboardUser(): DashboardUser | null {
     fullName: `${firstName} ${lastName}`.trim(),
     username,
     initials: initialsOf(firstName, lastName),
-    role,
     regionName,
     regionId: profile?.region_id ?? null,
     avatarUrl: profile?.avatar_url ?? null,

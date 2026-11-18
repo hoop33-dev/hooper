@@ -12,17 +12,6 @@ import { useAuthStore } from "@/src/stores/auth.store";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const SHARED_ROUTES = new Set([
-  "chat",
-  "settings",
-  "parent",
-  "profile-settings",
-  "security",
-  "security-verify",
-  "security-new-password",
-  "training",
-]);
-
 // One registered family per weight — React Native can't reliably vary a single
 // variable font, so Outfit (body) and Barlow Condensed (headings) each ship
 // static per-weight files. See src/components/ui/Typography.tsx.
@@ -43,16 +32,9 @@ export default function RootLayout() {
 
   // Narrow selectors, so the root navigator doesn't re-render on store
   // writes it doesn't read — notably the hourly token refresh replacing
-  // `session` (only the metadata role is needed from it).
+  // `session`.
   const status = useAuthStore((s) => s.status);
-  const primaryRole = useAuthStore((s) => s.primaryRole);
   const hydrate = useAuthStore((s) => s.hydrate);
-  const metadataRole = useAuthStore(
-    (s) =>
-      s.session?.user?.user_metadata?.role as
-        | import("@/src/types/database.types").RoleType
-        | undefined,
-  );
   const router = useRouter();
   const segments = useSegments() as string[];
 
@@ -91,28 +73,14 @@ export default function RootLayout() {
       return;
     }
 
+    // Every account type (athlete, parent, coach) gets the same athlete
+    // home for now — there are no role-specific views.
     if (status === "authenticated") {
       // Allow the reset-password screen to complete before redirecting.
       if (inResetPassword) return;
-
-      // Fall back to session user_metadata when profile hasn't loaded yet.
-      // This prevents defaulting to "player" while primaryRole is still null.
-      const role = primaryRole ?? metadataRole ?? null;
-
-      // Don't redirect until we know the role — avoids landing on the wrong dashboard.
-      if (!role) return;
-
-      if (inRoot || inAuth) {
-        router.replace(`/(app)/${role}` as `/(app)/${typeof role}`);
-        return;
-      }
-      // Prevent a user from staying on another role's dashboard.
-      // Shared screens (chat, settings) and parent-only nested routes are allowed.
-      if (inApp && segments[1] !== role && !SHARED_ROUTES.has(segments[1])) {
-        router.replace(`/(app)/${role}` as `/(app)/${typeof role}`);
-      }
+      if (inRoot || inAuth) router.replace("/(app)/player");
     }
-  }, [status, segments, primaryRole, metadataRole]);
+  }, [status, segments]);
 
   if (!fontsLoaded && !fontError) {
     return null;

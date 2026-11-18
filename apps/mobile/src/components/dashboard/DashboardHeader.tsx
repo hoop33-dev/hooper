@@ -1,14 +1,12 @@
 import { Pressable, View } from "react-native";
 
 import { Caption, Title } from "@/src/components/ui/Typography";
-import type { RoleId } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 
 import { Avatar } from "./Avatar";
 import { BellIcon } from "./icons";
 
 type DashboardHeaderProps = {
-  role: RoleId;
   firstName: string;
   initials: string;
   imageUrl?: string | null;
@@ -23,7 +21,6 @@ function greeting(): string {
 }
 
 export function DashboardHeader({
-  role,
   firstName,
   initials,
   imageUrl,
@@ -31,7 +28,7 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   return (
     <View className="flex-row items-center gap-3 px-5 pt-1.5 pb-[22px]">
-      <Avatar role={role} size={42} initials={initials} imageUrl={imageUrl} />
+      <Avatar size={42} initials={initials} imageUrl={imageUrl} />
       <View className="min-w-0 flex-1">
         <Caption className="mb-0.5">{greeting()},</Caption>
         <Title numberOfLines={1}>{firstName}</Title>

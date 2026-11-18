@@ -75,7 +75,7 @@ export default function PlayerDashboard() {
   }
 
   return (
-    <DashboardLayout role="player" activeTab="dashboard">
+    <DashboardLayout activeTab="dashboard">
       {user ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -88,7 +88,6 @@ export default function PlayerDashboard() {
           }
           contentContainerStyle={{ paddingBottom: 24 }}>
           <DashboardHeader
-            role="player"
             firstName={user.firstName}
             initials={user.initials}
             imageUrl={user.avatarUrl}

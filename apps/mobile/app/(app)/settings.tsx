@@ -28,7 +28,6 @@ import {
   SectionLabel,
   Title,
 } from "@/src/components/ui";
-import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 import { useGuardianControls } from "@/src/hooks/useGuardianControls";
@@ -40,11 +39,10 @@ export default function SettingsScreen() {
   const { signOut } = useAuthStore();
   const [signingOut, setSigningOut] = useState(false);
 
-  const role = user?.role ?? "player";
-  const r = roleConfig(role);
+  const accent = colors.brandOrange;
 
   // Children (players managed by a guardian) have billing locked.
-  const guardian = useGuardianControls(role === "player");
+  const guardian = useGuardianControls();
   const isChild = guardian.isManaged;
   const [billingLockOpen, setBillingLockOpen] = useState(false);
 
@@ -59,7 +57,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <DashboardLayout role={role} activeTab="settings">
+    <DashboardLayout activeTab="settings">
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 24 }}>
@@ -73,14 +71,13 @@ export default function SettingsScreen() {
             {/* Identity card */}
             <View className="bg-surface-2 border-border-subtle mx-5 mb-5 items-center overflow-hidden rounded-[18px] border p-5">
               <Avatar
-                role={role}
                 size={84}
                 initials={user.initials}
                 imageUrl={user.avatarUrl}
               />
               <Title className="mt-3.5 mb-0.5">{user.fullName}</Title>
               {user.username ? (
-                <Meta style={{ color: r.accent }}>@{user.username}</Meta>
+                <Meta style={{ color: accent }}>@{user.username}</Meta>
               ) : null}
             </View>
 
@@ -89,7 +86,7 @@ export default function SettingsScreen() {
               accessibilityRole="button"
               onPress={isChild ? () => setBillingLockOpen(true) : undefined}
               className="mx-5 mb-2 overflow-hidden rounded-2xl border opacity-[0.55]"
-              style={{ borderColor: `${r.accent}30` }}>
+              style={{ borderColor: `${accent}30` }}>
               <View
                 style={{
                   flexDirection: "row",
@@ -100,19 +97,19 @@ export default function SettingsScreen() {
                   backgroundColor: colors.surface2,
                 }}>
                 <IconTile
-                  color={r.accent}
+                  color={accent}
                   size={40}
                   bgAlpha="22"
                   borderAlpha="40">
-                  <ShieldIcon size={18} color={r.accent} />
+                  <ShieldIcon size={18} color={accent} />
                 </IconTile>
                 <View className="min-w-0 flex-1">
-                  <MicroLabel className="mb-0.5" style={{ color: r.accent }}>
+                  <MicroLabel className="mb-0.5" style={{ color: accent }}>
                     Current plan
                   </MicroLabel>
-                  <Lead>{r.planName}</Lead>
+                  <Lead>Level 1</Lead>
                   <Caption className="text-text-secondary mt-px">
-                    {isChild ? r.planSub : "Coming soon"}
+                    {isChild ? "Standard access · No coach" : "Coming soon"}
                   </Caption>
                 </View>
                 {isChild ? (
@@ -125,26 +122,26 @@ export default function SettingsScreen() {
             <SectionLabel title="Account" />
             <View className="gap-2 px-5">
               <MenuRow
-                icon={<SettingsGearIcon size={18} color={r.accent} />}
+                icon={<SettingsGearIcon size={18} color={accent} />}
                 title="Profile settings"
                 sub="View your profile details"
-                accent={r.accent}
+                accent={accent}
                 onPress={() => router.push("/(app)/profile-settings")}
               />
               <MenuRow
-                icon={<CreditIcon size={18} color={r.accent} />}
+                icon={<CreditIcon size={18} color={accent} />}
                 title="Subscription & billing"
                 sub={isChild ? "Managed by your guardian" : "Coming soon"}
-                accent={r.accent}
+                accent={accent}
                 locked={isChild}
                 comingSoon={!isChild}
                 onPress={isChild ? () => setBillingLockOpen(true) : undefined}
               />
               <MenuRow
-                icon={<LockIcon size={18} color={r.accent} />}
+                icon={<LockIcon size={18} color={accent} />}
                 title="Security"
                 sub="Password, two-factor"
-                accent={r.accent}
+                accent={accent}
                 onPress={() => router.push("/(app)/security")}
               />
             </View>
@@ -153,10 +150,10 @@ export default function SettingsScreen() {
             <SectionLabel title="Preferences" />
             <View className="gap-2 px-5">
               <MenuRow
-                icon={<BellIcon size={18} color={r.accent} />}
+                icon={<BellIcon size={18} color={accent} />}
                 title="Notifications"
                 sub="Coming soon"
-                accent={r.accent}
+                accent={accent}
                 comingSoon
               />
             </View>
@@ -165,10 +162,10 @@ export default function SettingsScreen() {
             <SectionLabel title="Support" />
             <View className="gap-2 px-5">
               <MenuRow
-                icon={<HelpIcon size={18} color={r.accent} />}
+                icon={<HelpIcon size={18} color={accent} />}
                 title="Help & FAQs"
                 sub="Coming soon"
-                accent={r.accent}
+                accent={accent}
                 comingSoon
               />
               <MenuRow
@@ -180,7 +177,7 @@ export default function SettingsScreen() {
                   )
                 }
                 title="Sign out"
-                accent={r.accent}
+                accent={accent}
                 danger
                 onPress={signingOut ? undefined : handleSignOut}
               />

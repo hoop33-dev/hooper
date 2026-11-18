@@ -1,17 +1,14 @@
 import { Image, Text, View } from "react-native";
 
-import { roleConfig, type RoleId } from "@/src/constants/roles";
-import { bodyFont } from "@/src/constants/theme";
+import { bodyFont, colors } from "@/src/constants/theme";
 
 type AvatarProps = {
-  role: RoleId;
   size?: number;
   initials: string;
   imageUrl?: string | null;
 };
 
-export function Avatar({ role, size = 42, initials, imageUrl }: AvatarProps) {
-  const r = roleConfig(role);
+export function Avatar({ size = 42, initials, imageUrl }: AvatarProps) {
   return (
     <View
       style={{
@@ -33,7 +30,7 @@ export function Avatar({ role, size = 42, initials, imageUrl }: AvatarProps) {
             height: size,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: r.accent,
+            backgroundColor: colors.brandOrange,
           }}>
           <Text
             style={{

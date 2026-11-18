@@ -12,7 +12,6 @@ import {
   ScreenHeader,
   Title,
 } from "@/src/components/ui";
-import { roleConfig } from "@/src/constants/roles";
 import { colors } from "@/src/constants/theme";
 import { useDashboardUser } from "@/src/hooks/useDashboardUser";
 
@@ -41,7 +40,7 @@ function DetailRow({
 export default function ProfileSettingsScreen() {
   const router = useRouter();
   const user = useDashboardUser();
-  const r = roleConfig(user?.role ?? "player");
+  const accent = colors.brandOrange;
 
   return (
     <View className="bg-surface flex-1">
@@ -57,8 +56,8 @@ export default function ProfileSettingsScreen() {
 
         {/* Can't-edit notice */}
         <View className="border-border-subtle bg-surface-2 mx-5 mt-2 flex-row items-center gap-3.5 rounded-2xl border p-4">
-          <IconTile color={r.accent} size={40} bgAlpha="22" borderAlpha="40">
-            <LockIcon size={18} color={r.accent} />
+          <IconTile color={accent} size={40} bgAlpha="22" borderAlpha="40">
+            <LockIcon size={18} color={accent} />
           </IconTile>
           <View className="min-w-0 flex-1">
             <Lead>You can&apos;t change this here</Lead>
@@ -73,14 +72,13 @@ export default function ProfileSettingsScreen() {
           <View style={{ opacity: 0.5 }} pointerEvents="none">
             <View className="items-center px-5 py-7">
               <Avatar
-                role={user.role}
                 size={92}
                 initials={user.initials}
                 imageUrl={user.avatarUrl}
               />
               <Title className="mt-3.5 mb-0.5">{user.fullName}</Title>
               {user.username ? (
-                <Meta style={{ color: r.accent }}>@{user.username}</Meta>
+                <Meta style={{ color: accent }}>@{user.username}</Meta>
               ) : null}
             </View>
 

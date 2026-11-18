@@ -2,7 +2,6 @@ import { useRouter } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { roleConfig, type RoleId } from "@/src/constants/roles";
 import { bodyFont, colors } from "@/src/constants/theme";
 import {
   INDICATOR_WIDTH,
@@ -20,26 +19,17 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
-  { id: "dashboard", label: "Dashboard", Icon: HomeIcon },
+  { id: "dashboard", label: "Home", Icon: HomeIcon },
   { id: "chat", label: "Chat", Icon: ChatIcon },
   { id: "settings", label: "Settings", Icon: SettingsIcon },
 ];
 
-/** Athletes see the landing tab as "Home"; coaches and parents keep
- * "Dashboard". Chat/Settings read the same for everyone. */
-function tabLabel(tab: Tab, role: RoleId): string {
-  if (tab.id === "dashboard") return role === "player" ? "Home" : "Dashboard";
-  return tab.label;
-}
-
 type BottomNavProps = {
   active: NavTabId;
-  role: RoleId;
 };
 
-export function BottomNav({ active, role }: BottomNavProps) {
+export function BottomNav({ active }: BottomNavProps) {
   const router = useRouter();
-  const r = roleConfig(role);
   const activeIndex = TABS.findIndex((t) => t.id === active);
   const { slotWidth, indicatorStyle, handleRowLayout } =
     useBottomNavIndicator(activeIndex);
@@ -47,7 +37,7 @@ export function BottomNav({ active, role }: BottomNavProps) {
   function go(id: NavTabId) {
     if (id === active) return;
     if (id === "dashboard") {
-      router.replace(`/(app)/${role}` as `/(app)/${RoleId}`);
+      router.replace("/(app)/player");
     } else if (id === "chat") {
       router.replace("/(app)/chat");
     } else {
@@ -76,7 +66,7 @@ export function BottomNav({ active, role }: BottomNavProps) {
               width: INDICATOR_WIDTH,
               height: 2,
               borderRadius: 2,
-              backgroundColor: r.accent,
+              backgroundColor: colors.brandOrange,
             },
             indicatorStyle,
           ]}
@@ -84,8 +74,8 @@ export function BottomNav({ active, role }: BottomNavProps) {
       ) : null}
       {TABS.map((t) => {
         const isActive = t.id === active;
-        const color = isActive ? r.accent : colors.textTertiary;
-        const label = tabLabel(t, role);
+        const color = isActive ? colors.brandOrange : colors.textTertiary;
+        const label = t.label;
         return (
           <Pressable
             key={t.id}

@@ -2,6 +2,7 @@ import { CheckIcon, ChevronIcon } from "@/src/components/dashboard/icons";
 import { Meta, MicroLabel, Title } from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
 import type { AthleteSessionListItem } from "@hooper/api";
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { ClockIcon, PlayIcon } from "./icons";
@@ -51,11 +52,17 @@ function formatElapsed(startedAt: string): string {
   return `${weeks} week${weeks === 1 ? "" : "s"}`;
 }
 
-function cardStyle(highlighted: boolean, done: boolean) {
+/** The card's resting look, plus a pressed state matching the app's buttons
+ * (see Button): it dips to 98% scale and its fill lifts a shade, so a tap
+ * reads as registered before the next screen opens. */
+function cardStyle(highlighted: boolean, done: boolean, pressed: boolean) {
+  const restingBg = highlighted ? "rgba(241,88,37,0.07)" : colors.surface2;
+  const pressedBg = highlighted ? "rgba(241,88,37,0.14)" : colors.surface3;
   return {
-    backgroundColor: highlighted ? "rgba(241,88,37,0.07)" : colors.surface2,
+    backgroundColor: pressed ? pressedBg : restingBg,
     borderColor: highlighted ? "rgba(241,88,37,0.2)" : colors.borderSubtle,
-    opacity: done ? 0.8 : 1,
+    opacity: (done ? 0.8 : 1) * (pressed ? 0.85 : 1),
+    transform: [{ scale: pressed ? 0.98 : 1 }],
   };
 }
 
@@ -140,12 +147,15 @@ export function SessionRow({ session, onPress }: SessionRowProps) {
   } = session;
   const dur = formatDuration(durationSeconds);
   const highlighted = current || active;
+  const [pressed, setPressed] = useState(false);
 
   return (
     <Pressable
       onPress={onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
       className="mb-3 flex-row items-center gap-3.5 rounded-2xl border px-4 py-4"
-      style={cardStyle(highlighted, done)}>
+      style={cardStyle(highlighted, done, pressed)}>
       <StatusBadge done={done} highlighted={highlighted} position={position} />
 
       <View className="flex-1">

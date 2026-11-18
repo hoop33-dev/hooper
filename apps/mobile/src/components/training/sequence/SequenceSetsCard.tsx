@@ -10,14 +10,12 @@ import {
   type SequenceBlockExercise,
 } from "@/src/lib/sequenceDisplay";
 import type { AthleteSequence } from "@hooper/api";
+import { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Path, Svg } from "react-native-svg";
 
-import {
-  FieldBox,
-  type GroupSetTarget,
-  type SetRowState,
-} from "../ExerciseSetsCard";
+import { FieldBox, type SetRowState } from "../ExerciseSetsCard";
+import { useSetActions } from "../SetActionsContext";
 import { SequenceHeader } from "./SequenceHeader";
 import { SequenceStepList } from "./SequenceStepList";
 import { useSequenceSetView } from "./useSequenceSetView";
@@ -25,14 +23,6 @@ import { useSequenceSetView } from "./useSequenceSetView";
 type Props = {
   blockExercise: SequenceBlockExercise;
   sets: SetRowState[];
-  onValueChange: (setIndex: number, position: number, value: number) => void;
-  onApplyForward: (
-    position: number,
-    value: number,
-    targetSetIndices: number[],
-  ) => void;
-  onSetDone: (setIndex: number) => void;
-  onSetManyDone: (targets: GroupSetTarget[], done: boolean) => void;
 };
 
 function Tick({ color, size = 12 }: { color: string; size?: number }) {
@@ -158,19 +148,24 @@ function SetTitle({
   );
 }
 
-function SetPanel({
-  blockExercise,
-  sets,
-  view,
-  onValueChange,
-  onApplyForward,
-  onSetDone,
-}: Omit<Props, "onSetManyDone"> & { view: number }) {
+function SetPanel({ blockExercise, sets, view }: Props & { view: number }) {
+  const { markSetDone } = useSetActions();
   const set = sets[view]!;
-  const measurements = sortByUnitTypePriority(
-    blockExercise.measurements.filter((m) => m.set_index === view),
+  const measurements = useMemo(
+    () =>
+      sortByUnitTypePriority(
+        blockExercise.measurements.filter((m) => m.set_index === view),
+      ),
+    [blockExercise, view],
   );
-  const later = sets.map((_, i) => i).filter((i) => i > view);
+  const setCount = sets.length;
+  const later = useMemo(
+    () =>
+      Array.from({ length: Math.max(0, setCount - view - 1) }, (_, k) => {
+        return view + 1 + k;
+      }),
+    [setCount, view],
+  );
   return (
     <View className="border-border-subtle border-t px-4 py-3.5">
       <SetTitle
@@ -190,11 +185,10 @@ function SetPanel({
               unitType={m.unit_type}
               value={set.values[m.position]}
               done={set.done}
-              hasLaterSets={later.length > 0}
-              onChange={(value) => onValueChange(view, m.position, value)}
-              onApplyForward={(value) =>
-                onApplyForward(m.position, value, later)
-              }
+              blockExerciseId={blockExercise.id}
+              setIndex={view}
+              position={m.position}
+              laterSetIndices={later}
             />
           ))}
         </View>
@@ -202,7 +196,7 @@ function SetPanel({
       <LogButton
         setIndex={view}
         done={set.done}
-        onPress={() => onSetDone(view)}
+        onPress={() => markSetDone(blockExercise.id, view)}
       />
     </View>
   );
@@ -263,7 +257,8 @@ function DoneSummary({
  * "set-by-set stack"). Each set lists its steps, flags the ones it swaps,
  * and logs the whole run: 6 reps = 6 full runs of the chain. */
 export function SequenceSetsCard(props: Props) {
-  const { blockExercise, sets, onSetManyDone } = props;
+  const { blockExercise, sets } = props;
+  const { setManyDone } = useSetActions();
   const { view, setView, collapsed, open } = useSequenceSetView(sets);
   const doneCount = sets.filter((s) => s.done).length;
   const allDone = sets.length > 0 && doneCount === sets.length;
@@ -281,7 +276,7 @@ export function SequenceSetsCard(props: Props) {
         doneCount={doneCount}
         total={sets.length}
         onTickAll={() =>
-          onSetManyDone(
+          setManyDone(
             sets.map((_, setIndex) => ({
               blockExerciseId: blockExercise.id,
               setIndex,

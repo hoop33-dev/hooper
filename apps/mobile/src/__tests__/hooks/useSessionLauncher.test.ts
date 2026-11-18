@@ -37,7 +37,7 @@ describe("useSessionLauncher", () => {
     await act(async () => {
       await Promise.all([start(), start()]);
     });
-    expect(mockStartOrResume).toHaveBeenCalledTimes(1);
+    expect(mockGetInProgress).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledTimes(1);
   });
 
@@ -78,7 +78,9 @@ describe("useSessionLauncher", () => {
       useSessionLauncher("s1", programWithForm, false, "athlete1"),
     );
     await act(() => result.current.start());
-    expect(mockStartOrResume).toHaveBeenCalledTimes(1);
+    // The player creates the attempt on mount — the launcher doesn't wait
+    // on it before navigating.
+    expect(mockStartOrResume).not.toHaveBeenCalled();
     expect(mockPush).toHaveBeenCalledWith(
       expect.objectContaining({ pathname: "/(app)/training/play" }),
     );

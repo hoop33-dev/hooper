@@ -5,6 +5,7 @@ import {
   sequenceSetSteps,
   type SequenceBlockExercise,
 } from "@/src/lib/sequenceDisplay";
+import { memo, useMemo } from "react";
 import { View } from "react-native";
 
 import {
@@ -19,30 +20,25 @@ import { SequenceStepList } from "./SequenceStepList";
 /** A sequence's row inside a superset round card: its compact step list
  * for this round, then the round's value boxes and done button — the same
  * row a plain exercise gets (see RoundExerciseRow in SupersetBlock). */
-export function SequenceRoundRow({
+export const SequenceRoundRow = memo(function SequenceRoundRow({
   blockExercise,
   setIndex,
   set,
   laterRounds,
-  onValueChange,
-  onApplyForward,
-  onSetDone,
 }: {
   blockExercise: SequenceBlockExercise;
   setIndex: number;
   set: SetRowState | undefined;
+  /** Must be referentially stable — see SupersetBlock. */
   laterRounds: number[];
-  onValueChange: (position: number, value: number) => void;
-  onApplyForward: (
-    position: number,
-    value: number,
-    targetSetIndices: number[],
-  ) => void;
-  onSetDone: () => void;
 }) {
   const { sequence } = blockExercise;
-  const measurements = sortByUnitTypePriority(
-    blockExercise.measurements.filter((m) => m.set_index === setIndex),
+  const measurements = useMemo(
+    () =>
+      sortByUnitTypePriority(
+        blockExercise.measurements.filter((m) => m.set_index === setIndex),
+      ),
+    [blockExercise, setIndex],
   );
   const done = set?.done ?? false;
 
@@ -73,15 +69,18 @@ export function SequenceRoundRow({
             unitType={m.unit_type}
             value={set?.values[m.position]}
             done={done}
-            hasLaterSets={laterRounds.length > 0}
-            onChange={(value) => onValueChange(m.position, value)}
-            onApplyForward={(value) =>
-              onApplyForward(m.position, value, laterRounds)
-            }
+            blockExerciseId={blockExercise.id}
+            setIndex={setIndex}
+            position={m.position}
+            laterSetIndices={laterRounds}
           />
         ))}
-        <SetDoneButton done={done} onPress={onSetDone} />
+        <SetDoneButton
+          done={done}
+          blockExerciseId={blockExercise.id}
+          setIndex={setIndex}
+        />
       </SetFieldRow>
     </View>
   );
-}
+});

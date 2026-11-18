@@ -7,6 +7,7 @@ import {
   Slider,
 } from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
+import { getCachedSessionDetail } from "@/src/lib/sessionDetailCache";
 import { getLogsForCompletion } from "@/src/services/measurementLog.service";
 import { getSessionDetail } from "@/src/services/program.service";
 import {
@@ -122,7 +123,7 @@ async function loadSummaryStats(
   athleteProfileId: string | undefined,
 ) {
   const [session, logs, lastRpe] = await Promise.all([
-    getSessionDetail(sessionId),
+    getCachedSessionDetail(sessionId) ?? getSessionDetail(sessionId),
     getLogsForCompletion(sessionCompletionId),
     athleteProfileId ? getLastEffortRpe(athleteProfileId) : null,
   ]);
@@ -138,6 +139,19 @@ async function loadSummaryStats(
     stats: { sets: completedSets.size, exercises: exerciseIds.size },
     lastRpe,
   };
+}
+
+/** loadSummaryStats that never rejects — null on failure — so it can be
+ * started early and left un-awaited on the finalise-failed path. */
+async function loadSummaryStatsSafe(
+  ...args: Parameters<typeof loadSummaryStats>
+) {
+  try {
+    return await loadSummaryStats(...args);
+  } catch (e) {
+    console.warn("Couldn't load the session summary", e);
+    return null;
+  }
 }
 
 function useCompletionSummary(
@@ -163,6 +177,13 @@ function useCompletionSummary(
       // opens, so backing out before rating it (Android back / iOS swipe)
       // can't leave a session stuck in_progress after the UI has announced
       // "Session done." effort_rpe stays null until Done fills it in.
+      // The cosmetic summary fetch starts alongside finalisation rather than
+      // after it — none of it depends on the completion row being updated.
+      const summaryP = loadSummaryStatsSafe(
+        sessionCompletionId!,
+        sessionId!,
+        athleteProfileId,
+      );
       let finalized: SessionCompletionRow;
       try {
         finalized = await completeSession(sessionCompletionId!, null);
@@ -180,19 +201,11 @@ function useCompletionSummary(
       // (session renamed/deleted, flaky network) must not block the athlete
       // from rating the session and leaving — just show the stats as
       // unknown and leave the RPE slider unseeded.
-      try {
-        const summary = await loadSummaryStats(
-          sessionCompletionId!,
-          sessionId!,
-          athleteProfileId,
-        );
-        if (cancelled) return;
-        setSessionName(summary.sessionName);
-        setStats(summary.stats);
-        setLastRpe(summary.lastRpe);
-      } catch (e) {
-        if (!cancelled) console.warn("Couldn't load the session summary", e);
-      }
+      const summary = await summaryP;
+      if (cancelled || !summary) return;
+      setSessionName(summary.sessionName);
+      setStats(summary.stats);
+      setLastRpe(summary.lastRpe);
     }
 
     setFinalizeError(false);

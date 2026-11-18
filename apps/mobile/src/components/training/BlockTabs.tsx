@@ -2,6 +2,7 @@ import { CheckIcon } from "@/src/components/dashboard/icons";
 import { Caption } from "@/src/components/ui";
 import { colors } from "@/src/constants/theme";
 import { useBlockTabsIndicator } from "@/src/hooks/useBlockTabsIndicator";
+import { memo } from "react";
 import type { LayoutChangeEvent } from "react-native";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import Animated, {
@@ -83,7 +84,9 @@ function BlockTab({
   );
 }
 
-export function BlockTabs({
+/** Memoised: the player re-renders on every tick, but the tab bar only needs
+ * to when a block's done flag flips (doneFlags keeps its identity otherwise). */
+export const BlockTabs = memo(function BlockTabs({
   blocks,
   doneFlags,
   onSelect,
@@ -140,4 +143,4 @@ export function BlockTabs({
       />
     </View>
   );
-}
+});

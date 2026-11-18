@@ -7,11 +7,18 @@ import {
   resolveSetExercise,
 } from "@/src/lib/blockExerciseDisplay";
 import {
+  cacheSessionDetail,
+  getCachedSessionDetail,
+} from "@/src/lib/sessionDetailCache";
+import {
   buildPrefillMap,
   getLogsForCompletion,
   markSetPending,
   prefillKey,
-  upsertSetLog,
+  SET_DONE_MARKER_POSITION,
+  SET_DONE_MARKER_UNIT,
+  upsertSetLogs,
+  type UpsertSetLogInput,
 } from "@/src/services/measurementLog.service";
 import {
   getSessionDetail,
@@ -31,6 +38,7 @@ import type {
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type MutableRefObject,
@@ -72,16 +80,19 @@ function buildExerciseSets(
     // log row. A partially-persisted set (one position's upsert succeeded,
     // another failed on a flaky connection) must not reload as "done" with
     // the missing field silently defaulted to a prefill value.
-    const done =
-      setMeasurements.length > 0 &&
-      setMeasurements.every((m) =>
-        beLogs.some(
-          (l) =>
-            l.set_index === setIndex &&
-            l.position === m.position &&
-            l.status === "completed",
-        ),
+    const isCompletedAt = (position: number) =>
+      beLogs.some(
+        (l) =>
+          l.set_index === setIndex &&
+          l.position === position &&
+          l.status === "completed",
       );
+    // A set with no measurements persists "done" as a single marker row
+    // (see SET_DONE_MARKER_POSITION) — there's nothing else to check.
+    const done =
+      setMeasurements.length > 0
+        ? setMeasurements.every((m) => isCompletedAt(m.position))
+        : isCompletedAt(SET_DONE_MARKER_POSITION);
     const values: Record<number, number> = {};
     for (const m of setMeasurements) {
       const existing = beLogs.find(
@@ -102,7 +113,9 @@ function buildExerciseSets(
   return rows;
 }
 
-function buildInitialSetsState(
+/** Rebuilds every set's done flag + values from the attempt's logged rows
+ * (resume). Exported for tests. */
+export function buildInitialSetsState(
   session: AthleteSessionDetail,
   logs: AthleteMeasurementLogRow[],
   prefill: Map<string, number>,
@@ -135,17 +148,31 @@ export function isBlockDone(
   );
 }
 
+async function loadSessionDetail(sessionId: string) {
+  const cached = getCachedSessionDetail(sessionId);
+  if (cached) return cached;
+  const session = await getSessionDetail(sessionId);
+  cacheSessionDetail(session);
+  return session;
+}
+
 async function loadSessionPlayerData(
   sessionId: string,
   athleteProfileId: string,
 ) {
-  const [completion, session] = await Promise.all([
-    startOrResumeSession(sessionId, athleteProfileId),
-    getSessionDetail(sessionId),
-  ]);
-  const [logs, prefill] = await Promise.all([
-    getLogsForCompletion(completion.id),
-    buildPrefillMap(athleteProfileId, session),
+  // Each fetch starts as soon as its own input is ready, rather than in two
+  // sequential rounds: the logs only wait on the completion, the prefill
+  // only on the session tree (usually already cached by the preview).
+  const sessionP = loadSessionDetail(sessionId);
+  const completionP = startOrResumeSession(sessionId, athleteProfileId);
+  const logsP = (async () => getLogsForCompletion((await completionP).id))();
+  const prefillP = (async () =>
+    buildPrefillMap(athleteProfileId, await sessionP))();
+  const [completion, session, logs, prefill] = await Promise.all([
+    completionP,
+    sessionP,
+    logsP,
+    prefillP,
   ]);
   const setsState = buildInitialSetsState(session, logs, prefill);
   const firstIncomplete = session.blocks.findIndex(
@@ -199,9 +226,7 @@ async function persistSetPending(params: {
   setIndex: number;
 }) {
   const { completion, be, setIndex } = params;
-  const positions = be.measurements
-    .filter((m) => m.set_index === setIndex)
-    .map((m) => m.position);
+  const positions = setLogPositions(be, setIndex);
   await markSetPending({
     sessionCompletionId: completion.id,
     blockExerciseId: be.id,
@@ -210,32 +235,65 @@ async function persistSetPending(params: {
   });
 }
 
-async function persistSetDone(params: {
+type SetWrite = {
   completion: SessionCompletionRow;
   athleteProfileId: string;
   be: AthleteBlockExercise;
   setIndex: number;
   row: SetRowState;
-}) {
+};
+
+/** The log positions a set's done state lives at: its measurements', or
+ * the single set-done marker when it has none. */
+function setLogPositions(be: AthleteBlockExercise, setIndex: number) {
+  const positions = be.measurements
+    .filter((m) => m.set_index === setIndex)
+    .map((m) => m.position);
+  return positions.length ? positions : [SET_DONE_MARKER_POSITION];
+}
+
+/** One "completed" log row per measurement position of the set — or, for a
+ * set with no measurements, one marker row, so its done state survives a
+ * reload instead of nothing being written at all. */
+function setDoneLogInputs(params: SetWrite): UpsertSetLogInput[] {
   const { completion, athleteProfileId, be, setIndex, row } = params;
-  const positions = be.measurements.filter((m) => m.set_index === setIndex);
   const exerciseId = loggedExerciseId(be, setIndex);
-  await Promise.all(
-    positions.map((m) =>
-      upsertSetLog({
+  const measurements = be.measurements.filter((m) => m.set_index === setIndex);
+  if (measurements.length === 0) {
+    return [
+      {
         sessionCompletionId: completion.id,
         blockExerciseId: be.id,
-        position: m.position,
+        position: SET_DONE_MARKER_POSITION,
         setIndex,
         athleteProfileId,
         exerciseId,
-        unitType: m.unit_type,
-        plannedValue: m.value,
-        actualValue: row.values[m.position] ?? null,
+        unitType: SET_DONE_MARKER_UNIT,
+        plannedValue: null,
+        actualValue: null,
         status: "completed",
-      }),
-    ),
-  );
+      },
+    ];
+  }
+  return measurements.map((m) => ({
+    sessionCompletionId: completion.id,
+    blockExerciseId: be.id,
+    position: m.position,
+    setIndex,
+    athleteProfileId,
+    exerciseId,
+    unitType: m.unit_type,
+    plannedValue: m.value,
+    actualValue: row.values[m.position] ?? null,
+    status: "completed" as const,
+  }));
+}
+
+/** Logs every position of the set in one batched upsert — a single request
+ * that lands all-or-nothing, so a flaky connection can't leave the set
+ * half-persisted. */
+async function persistSetDone(params: SetWrite) {
+  await upsertSetLogs(setDoneLogInputs(params));
 }
 
 /** Writes a single measurement value straight through, keeping its
@@ -261,18 +319,20 @@ async function persistFieldEdit(params: {
   );
   if (!measurement) return;
   try {
-    await upsertSetLog({
-      sessionCompletionId: params.completion.id,
-      blockExerciseId: params.blockExerciseId,
-      position,
-      setIndex,
-      athleteProfileId: params.athleteProfileId,
-      exerciseId: loggedExerciseId(be, setIndex),
-      unitType: measurement.unit_type,
-      plannedValue: measurement.value,
-      actualValue: params.value,
-      status: "completed",
-    });
+    await upsertSetLogs([
+      {
+        sessionCompletionId: params.completion.id,
+        blockExerciseId: params.blockExerciseId,
+        position,
+        setIndex,
+        athleteProfileId: params.athleteProfileId,
+        exerciseId: loggedExerciseId(be, setIndex),
+        unitType: measurement.unit_type,
+        plannedValue: measurement.value,
+        actualValue: params.value,
+        status: "completed",
+      },
+    ]);
   } catch {
     params.commitSetsState((prev) =>
       applyFieldValue(
@@ -446,82 +506,80 @@ async function performSetDoneToggle(params: {
       nextDone,
     });
   } catch {
+    // The done write is a single batched upsert, so a failure means nothing
+    // landed — only local state needs reverting.
     commitSetsState((prev) =>
       markRowDone(prev, blockExerciseId, setIndex, !nextDone),
     );
-    // Roll back any measurement rows that DID get written before the failure,
-    // so a half-persisted set doesn't linger server-side. Best effort — the
-    // all-positions-done check in buildExerciseSets is the backstop.
-    if (nextDone) {
-      try {
-        await persistSetPending({ completion, be, setIndex });
-      } catch {
-        /* nothing more we can do here */
-      }
-    }
   }
 }
 
-/** Forces one set to a given done state as part of a "tick/untick all" —
- * same optimistic update-then-persist shape as `performSetDoneToggle`, but a
- * force to `done` rather than a flip, and a silent no-op on a set that's
- * already at that state (an already-ticked row in the group is left alone
- * by a tick-all, and an already-pending row is left alone by an untick-all,
- * rather than every row bouncing through a redundant write). */
-async function performSetForceState(params: {
+type ForceChange = {
+  be: AthleteBlockExercise;
+  setIndex: number;
+  row: SetRowState;
+};
+
+function applyDone(
+  state: SetsByBlockExercise,
+  changes: ForceChange[],
+  done: boolean,
+): SetsByBlockExercise {
+  return changes.reduce(
+    (acc, c) => markRowDone(acc, c.be.id, c.setIndex, done),
+    state,
+  );
+}
+
+/** Forces a batch of sets to a given done state for "tick/untick all" —
+ * the same optimistic update-then-persist shape as `performSetDoneToggle`,
+ * but a force rather than a flip, and a silent no-op on any set already at
+ * that state (an already-ticked row is left alone by a tick-all, and an
+ * already-pending row by an untick-all). Every changed row flips locally in
+ * ONE commit, and a tick-all persists in ONE batched upsert (all-or-nothing,
+ * so a failure reverts the lot); an untick-all reverts only the sets whose
+ * pending write failed. */
+async function performSetsForceState(params: {
   session: AthleteSessionDetail;
   completion: SessionCompletionRow;
   athleteProfileId: string;
   setsStateRef: MutableRefObject<SetsByBlockExercise>;
-  blockExerciseId: string;
-  setIndex: number;
+  targets: GroupSetTarget[];
   done: boolean;
   commitSetsState: (next: SetsStateUpdater) => void;
 }) {
-  const {
-    session,
-    completion,
-    athleteProfileId,
-    setsStateRef,
-    blockExerciseId,
-    setIndex,
-    done,
-    commitSetsState,
-  } = params;
-  const be = findBlockExercise(session, blockExerciseId);
-  const row = setsStateRef.current[blockExerciseId]?.[setIndex];
-  if (!be || !row || row.done === done) return;
+  const { session, completion, athleteProfileId, done, commitSetsState } =
+    params;
+  const changes = params.targets.flatMap((t): ForceChange[] => {
+    const be = findBlockExercise(session, t.blockExerciseId);
+    const row = params.setsStateRef.current[t.blockExerciseId]?.[t.setIndex];
+    if (!be || !row || row.done === done) return [];
+    return [{ be, setIndex: t.setIndex, row }];
+  });
+  if (changes.length === 0) return;
 
-  commitSetsState((prev) => markRowDone(prev, blockExerciseId, setIndex, done));
+  commitSetsState((prev) => applyDone(prev, changes, done));
 
-  try {
-    await persistDoneToggle({
-      completion,
-      athleteProfileId,
-      be,
-      setIndex,
-      row,
-      nextDone: done,
-    });
-  } catch {
-    commitSetsState((prev) =>
-      markRowDone(prev, blockExerciseId, setIndex, !done),
-    );
-    // A forced-done set writes one row per measurement position
-    // (persistSetDone), so one position can fail after another already
-    // landed as "completed" server-side. Left alone, that row would still
-    // show up in exercise history and feed future prefills even though the
-    // set now renders as not done. Roll it back the same way
-    // performSetDoneToggle does — best effort, the all-positions-done check
-    // in buildExerciseSets is the backstop.
-    if (done) {
-      try {
-        await persistSetPending({ completion, be, setIndex });
-      } catch {
-        /* nothing more we can do here */
-      }
+  if (done) {
+    try {
+      await upsertSetLogs(
+        changes.flatMap((c) =>
+          setDoneLogInputs({ completion, athleteProfileId, ...c }),
+        ),
+      );
+    } catch {
+      commitSetsState((prev) => applyDone(prev, changes, false));
     }
+    return;
   }
+
+  const results = await Promise.allSettled(
+    changes.map((c) =>
+      persistSetPending({ completion, be: c.be, setIndex: c.setIndex }),
+    ),
+  );
+  const failed = changes.filter((_, i) => results[i].status === "rejected");
+  if (failed.length) commitSetsState((prev) => applyDone(prev, failed, true));
 }
 
 /** The `markSetDone` / `setManyDone` callbacks the player passes down —
@@ -555,20 +613,15 @@ export function makeSetDoneHandlers(deps: {
     setManyDone: async (targets: GroupSetTarget[], done: boolean) => {
       const { session, completion, athleteProfileId } = deps;
       if (!completion || !athleteProfileId || !session) return;
-      await Promise.all(
-        targets.map((t) =>
-          performSetForceState({
-            session,
-            completion,
-            athleteProfileId,
-            setsStateRef: deps.setsStateRef,
-            blockExerciseId: t.blockExerciseId,
-            setIndex: t.setIndex,
-            done,
-            commitSetsState: deps.commitSetsState,
-          }),
-        ),
-      );
+      await performSetsForceState({
+        session,
+        completion,
+        athleteProfileId,
+        setsStateRef: deps.setsStateRef,
+        targets,
+        done,
+        commitSetsState: deps.commitSetsState,
+      });
     },
   };
 }
@@ -688,21 +741,29 @@ export function useSessionPlayer(
     setBlockIdx,
   });
 
-  const { setFieldValue, applyValueForward } = makeFieldEditors({
-    session,
-    completion,
-    athleteProfileId,
-    setsStateRef,
-    commitSetsState,
-  });
+  // Read lazily (at call time) by the set actions below, so those can keep
+  // one identity for the life of the screen: the whole set-row tree is
+  // memoised on that, and a fresh callback per render would make every tick
+  // re-render every block in the session.
+  const latest = useRef({ session, completion, athleteProfileId });
+  latest.current = { session, completion, athleteProfileId };
 
-  const { markSetDone, setManyDone } = makeSetDoneHandlers({
-    session,
-    completion,
-    athleteProfileId,
-    setsStateRef,
-    commitSetsState,
-  });
+  const setActions = useMemo(() => {
+    const deps = {
+      get session() {
+        return latest.current.session;
+      },
+      get completion() {
+        return latest.current.completion;
+      },
+      get athleteProfileId() {
+        return latest.current.athleteProfileId;
+      },
+      setsStateRef,
+      commitSetsState,
+    };
+    return { ...makeFieldEditors(deps), ...makeSetDoneHandlers(deps) };
+  }, [setsStateRef, commitSetsState]);
 
   /** Optimistic: flip paused immediately, then reconcile with (or revert to)
    * the server response in the background. */
@@ -720,13 +781,6 @@ export function useSessionPlayer(
     }
   }
 
-  function goBlock(delta: number) {
-    if (!session) return;
-    setBlockIdx((i) =>
-      Math.min(session.blocks.length - 1, Math.max(0, i + delta)),
-    );
-  }
-
   return {
     session,
     completion,
@@ -737,11 +791,7 @@ export function useSessionPlayer(
     pausing,
     loadError,
     retryLoad,
-    setFieldValue,
-    applyValueForward,
-    markSetDone,
-    setManyDone,
+    setActions,
     togglePause,
-    goBlock,
   };
 }

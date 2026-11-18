@@ -1,7 +1,6 @@
 import {
   getInProgressCompletion,
   restartSession,
-  startOrResumeSession,
 } from "@/src/services/sessionCompletion.service";
 import type { ProgramRow } from "@hooper/db";
 import { useRouter, type Router } from "expo-router";
@@ -19,13 +18,14 @@ function routeToPlayer(router: Router, sessionId: string) {
  * form if the program has one with questions to ask, otherwise straight into
  * the player (an empty form would only flash the pre-form screen). Works for
  * any session, not just the current one, so an athlete can jump ahead or redo
- * a past one. */
-async function routeToFreshSession(
+ * a past one. The player creates the attempt itself on mount
+ * (startOrResumeSession), so there's no need to wait on that here before
+ * navigating — doing so held the Start button for two extra round trips. */
+function routeToFreshSession(
   router: Router,
   sessionId: string,
   program: ProgramRow,
   hasCheckIn: boolean,
-  athleteProfileId: string,
 ) {
   if (hasCheckIn) {
     router.push({
@@ -34,7 +34,6 @@ async function routeToFreshSession(
     });
     return;
   }
-  await startOrResumeSession(sessionId, athleteProfileId);
   routeToPlayer(router, sessionId);
 }
 
@@ -66,13 +65,7 @@ export function useSessionLauncher(
         setPendingResume(true);
         return;
       }
-      await routeToFreshSession(
-        router,
-        sessionId,
-        program,
-        hasCheckIn,
-        athleteProfileId,
-      );
+      routeToFreshSession(router, sessionId, program, hasCheckIn);
     } finally {
       inFlight.current = false;
       setStarting(false);
@@ -86,13 +79,7 @@ export function useSessionLauncher(
     setStarting(true);
     try {
       await restartSession(sessionId, athleteProfileId);
-      await routeToFreshSession(
-        router,
-        sessionId,
-        program,
-        hasCheckIn,
-        athleteProfileId,
-      );
+      routeToFreshSession(router, sessionId, program, hasCheckIn);
     } finally {
       inFlight.current = false;
       setStarting(false);

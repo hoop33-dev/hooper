@@ -6,14 +6,11 @@ import {
 } from "@/src/hooks/useBlockAutoScroll";
 import { isSequenceBlockExercise } from "@/src/lib/sequenceDisplay";
 import type { AthleteBlock } from "@hooper/api";
-import { useMemo } from "react";
-import { ScrollView, View } from "react-native";
+import { memo, useMemo } from "react";
+import { View } from "react-native";
+import Animated from "react-native-reanimated";
 
-import {
-  ExerciseSetsCard,
-  type GroupSetTarget,
-  type SetRowState,
-} from "./ExerciseSetsCard";
+import { ExerciseSetsCard, type SetRowState } from "./ExerciseSetsCard";
 import { SequenceSetsCard } from "./sequence/SequenceSetsCard";
 import { SupersetBlock } from "./SupersetBlock";
 
@@ -23,20 +20,6 @@ type BlockPageProps = {
    * the "jump to first incomplete card" auto-scroll on block switch. */
   isActive: boolean;
   setsByBlockExercise: Record<string, SetRowState[]>;
-  onValueChange: (
-    blockExerciseId: string,
-    setIndex: number,
-    position: number,
-    value: number,
-  ) => void;
-  onApplyForward: (
-    blockExerciseId: string,
-    position: number,
-    value: number,
-    targetSetIndices: number[],
-  ) => void;
-  onSetDone: (blockExerciseId: string, setIndex: number) => void;
-  onSetManyDone: (targets: GroupSetTarget[], done: boolean) => void;
 };
 
 function isExerciseFullyDone(sets: SetRowState[] | undefined): boolean {
@@ -71,14 +54,16 @@ function useBlockPageAutoScroll(
 
 /** A plain block's card for one placement: the set-by-set sequence card,
  * or the regular exercise card. */
-function PlacementCard(props: React.ComponentProps<typeof ExerciseSetsCard>) {
+const PlacementCard = memo(function PlacementCard(
+  props: React.ComponentProps<typeof ExerciseSetsCard>,
+) {
   const { blockExercise } = props;
   return isSequenceBlockExercise(blockExercise) ? (
     <SequenceSetsCard {...props} blockExercise={blockExercise} />
   ) : (
     <ExerciseSetsCard {...props} />
   );
-}
+});
 
 /** "2 exercises · 1 sequence" — sequences counted on their own. */
 function placementCountLabel(block: AthleteBlock): string {
@@ -122,14 +107,10 @@ function BlockHeader({
 
 /** A single block's vertically-scrolling exercise list — one page inside the
  * horizontal block pager in BlockContent. */
-export function BlockPage({
+function BlockPageImpl({
   block,
   isActive,
   setsByBlockExercise,
-  onValueChange,
-  onApplyForward,
-  onSetDone,
-  onSetManyDone,
 }: BlockPageProps) {
   const rounds = block.sets ?? block.exercises[0]?.sets ?? 0;
   const {
@@ -141,7 +122,7 @@ export function BlockPage({
   } = useBlockPageAutoScroll(block, isActive, setsByBlockExercise, rounds);
 
   return (
-    <ScrollView
+    <Animated.ScrollView
       ref={scrollRef}
       onLayout={onViewportLayout}
       onScroll={onScroll}
@@ -156,10 +137,6 @@ export function BlockPage({
         <SupersetBlock
           block={block}
           setsByBlockExercise={setsByBlockExercise}
-          onValueChange={onValueChange}
-          onApplyForward={onApplyForward}
-          onSetDone={onSetDone}
-          onSetManyDone={onSetManyDone}
           onCardLayout={registerCardLayout}
         />
       ) : (
@@ -169,19 +146,26 @@ export function BlockPage({
             onLayout={(e) => registerCardLayout(be.id, e.nativeEvent.layout)}>
             <PlacementCard
               blockExercise={be}
-              sets={setsByBlockExercise[be.id] ?? []}
-              onValueChange={(setIndex, position, value) =>
-                onValueChange(be.id, setIndex, position, value)
-              }
-              onApplyForward={(position, value, targets) =>
-                onApplyForward(be.id, position, value, targets)
-              }
-              onSetDone={(setIndex) => onSetDone(be.id, setIndex)}
-              onSetManyDone={onSetManyDone}
+              sets={setsByBlockExercise[be.id] ?? EMPTY_SETS}
             />
           </View>
         ))
       )}
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
+
+const EMPTY_SETS: SetRowState[] = [];
+
+/** Re-renders only when something on *this* page changed: its block, its
+ * active flag, or the set state of one of its own exercises. Every page gets
+ * the session-wide sets map, so without this a tick anywhere re-rendered
+ * every mounted page. */
+export const BlockPage = memo(BlockPageImpl, (prev, next) => {
+  if (prev.block !== next.block || prev.isActive !== next.isActive) {
+    return false;
+  }
+  return prev.block.exercises.every(
+    (be) => prev.setsByBlockExercise[be.id] === next.setsByBlockExercise[be.id],
+  );
+});

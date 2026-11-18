@@ -5,6 +5,14 @@ import type {
 import { getClient } from "../client";
 import type { AthleteSessionDetail } from "./program.service";
 
+/** A set with no measurements (e.g. a sequence the coach didn't attach any
+ * values to — the web builder's default) still has to persist "done", or it
+ * reloads as not done on resume. It's logged as one marker row at this
+ * position (real measurement positions are 0-2) with a null value, which
+ * the prefill / history lookups already skip. */
+export const SET_DONE_MARKER_POSITION = -1;
+export const SET_DONE_MARKER_UNIT = "set_done";
+
 export type UpsertSetLogInput = {
   sessionCompletionId: string;
   blockExerciseId: string;
@@ -27,35 +35,56 @@ export type UpsertSetLogInput = {
  * block_exercise_id, position, set_index) grain as the row's primary key,
  * so re-confirming a set (e.g. correcting a typo before moving on) updates
  * it in place. */
+const SET_LOG_CONFLICT =
+  "session_completion_id,block_exercise_id,position,set_index";
+
+function toSetLogRow(input: UpsertSetLogInput, loggedAt: string) {
+  return {
+    session_completion_id: input.sessionCompletionId,
+    block_exercise_id: input.blockExerciseId,
+    position: input.position,
+    set_index: input.setIndex,
+    athlete_profile_id: input.athleteProfileId,
+    exercise_id: input.exerciseId,
+    unit_type: input.unitType,
+    planned_value: input.plannedValue,
+    actual_value: input.actualValue,
+    status: input.status ?? "completed",
+    logged_at: loggedAt,
+  };
+}
+
 export async function upsertSetLog(
   input: UpsertSetLogInput,
 ): Promise<AthleteMeasurementLogRow> {
   const client = getClient();
   const { data, error } = await client
     .from("athlete_measurement_logs")
-    .upsert(
-      {
-        session_completion_id: input.sessionCompletionId,
-        block_exercise_id: input.blockExerciseId,
-        position: input.position,
-        set_index: input.setIndex,
-        athlete_profile_id: input.athleteProfileId,
-        exercise_id: input.exerciseId,
-        unit_type: input.unitType,
-        planned_value: input.plannedValue,
-        actual_value: input.actualValue,
-        status: input.status ?? "completed",
-        logged_at: new Date().toISOString(),
-      },
-      {
-        onConflict:
-          "session_completion_id,block_exercise_id,position,set_index",
-      },
-    )
+    .upsert(toSetLogRow(input, new Date().toISOString()), {
+      onConflict: SET_LOG_CONFLICT,
+    })
     .select()
     .single();
   if (error) throw new Error(error.message);
   return data;
+}
+
+/** Batch form of upsertSetLog — every measurement row of a set (or of every
+ * set in a "tick all") in ONE request and one statement, so a set lands
+ * all-or-nothing instead of position-by-position, and the tap costs one
+ * round trip rather than one per measurement. Returns nothing (no
+ * `.select()`): the player already holds the values it wrote. */
+export async function upsertSetLogs(
+  inputs: UpsertSetLogInput[],
+): Promise<void> {
+  if (inputs.length === 0) return;
+  const loggedAt = new Date().toISOString();
+  const client = getClient();
+  const { error } = await client.from("athlete_measurement_logs").upsert(
+    inputs.map((input) => toSetLogRow(input, loggedAt)),
+    { onConflict: SET_LOG_CONFLICT },
+  );
+  if (error) throw new Error(error.message);
 }
 
 /** Un-marks a previously logged set, reverting every measurement row for it
@@ -112,6 +141,7 @@ export async function listExerciseHistory(
     .eq("athlete_profile_id", athleteProfileId)
     .eq("exercise_id", exerciseId)
     .eq("status", "completed")
+    .gte("position", 0) // skip set-done markers — they carry no value
     .order("logged_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);
@@ -179,6 +209,11 @@ export async function buildPrefillMap(
     }
   }
 
+  if (blanks.size === 0) return new Map();
+  const pairs = [...blanks.values()];
+  const batched = await fetchLastLoggedValues(athleteProfileId, pairs);
+  if (batched) return batched;
+
   const entries = await Promise.all(
     [...blanks.entries()].map(async ([key, { exerciseId, unitType }]) => {
       const value = await getLastLoggedValue(
@@ -193,6 +228,42 @@ export async function buildPrefillMap(
   const result = new Map<PrefillKey, number>();
   for (const [key, value] of entries) {
     if (value !== null) result.set(key, value);
+  }
+  return result;
+}
+
+/** Every pair's last logged value in ONE request via the
+ * `last_logged_values` RPC (see its migration). Returns null when the RPC
+ * call fails — e.g. the migration isn't on this database yet — so the
+ * caller falls back to one lookup per pair. */
+async function fetchLastLoggedValues(
+  athleteProfileId: string,
+  pairs: { exerciseId: string; unitType: string }[],
+): Promise<Map<PrefillKey, number> | null> {
+  let data: unknown;
+  try {
+    const res = await getClient().rpc("last_logged_values", {
+      p_athlete_profile_id: athleteProfileId,
+      p_exercise_ids: pairs.map((p) => p.exerciseId),
+      p_unit_types: pairs.map((p) => p.unitType),
+    });
+    if (res.error) return null;
+    data = res.data;
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(data)) return null;
+  const result = new Map<PrefillKey, number>();
+  for (const row of data as {
+    exercise_id: string;
+    unit_type: string;
+    actual_value: number | string | null;
+  }[]) {
+    if (row.actual_value === null) continue;
+    result.set(
+      prefillKey(row.exercise_id, row.unit_type),
+      Number(row.actual_value),
+    );
   }
   return result;
 }

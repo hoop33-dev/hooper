@@ -5,13 +5,12 @@ import {
   useState,
   type MutableRefObject,
 } from "react";
-import type {
-  LayoutChangeEvent,
-  LayoutRectangle,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
-} from "react-native";
+import type { LayoutChangeEvent, LayoutRectangle } from "react-native";
+import Animated, {
+  useAnimatedScrollHandler,
+  useSharedValue,
+  type SharedValue,
+} from "react-native-reanimated";
 
 export type AutoScrollItem = { id: string; done: boolean };
 
@@ -24,7 +23,7 @@ function useCompletionNudge(
   items: AutoScrollItem[],
   prevDoneIds: MutableRefObject<Set<string>>,
   cardLayouts: MutableRefObject<Map<string, LayoutRectangle>>,
-  scrollY: MutableRefObject<number>,
+  scrollY: SharedValue<number>,
   viewportHeight: number,
   scrollItemIntoView: (id: string, animated: boolean) => void,
 ) {
@@ -47,7 +46,7 @@ function useCompletionNudge(
     const nextBelowViewport =
       !nextLayout ||
       viewportHeight === 0 ||
-      nextLayout.y >= scrollY.current + viewportHeight;
+      nextLayout.y >= scrollY.value + viewportHeight;
     if (nextBelowViewport) scrollItemIntoView(next.id, true);
   }, [
     items,
@@ -82,10 +81,16 @@ function useCompletionNudge(
  * and a superset block (one item per round) can share this hook.
  */
 export function useBlockAutoScroll(isActive: boolean, items: AutoScrollItem[]) {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<Animated.ScrollView>(null);
   const [viewportHeight, setViewportHeight] = useState(0);
   const contentHeight = useRef(0);
-  const scrollY = useRef(0);
+  // Tracked on the UI thread — a JS onScroll here fired on every frame of
+  // every vertical scroll just to store a number that's only read when a
+  // card is ticked done.
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
   const cardLayouts = useRef(new Map<string, LayoutRectangle>());
   const prevDoneIds = useRef(new Set<string>());
   // Target for a card that isn't measured yet (e.g. its block just mounted)
@@ -169,9 +174,7 @@ export function useBlockAutoScroll(isActive: boolean, items: AutoScrollItem[]) {
     viewportHeight,
     onViewportLayout: (e: LayoutChangeEvent) =>
       setViewportHeight(e.nativeEvent.layout.height),
-    onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      scrollY.current = e.nativeEvent.contentOffset.y;
-    },
+    onScroll,
     onContentSizeChange: (_w: number, h: number) => {
       contentHeight.current = h;
     },

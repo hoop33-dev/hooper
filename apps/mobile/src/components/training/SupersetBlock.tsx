@@ -8,7 +8,7 @@ import {
 import { exerciseMediaItems } from "@/src/lib/exerciseMedia";
 import { isSequenceBlockExercise } from "@/src/lib/sequenceDisplay";
 import type { AthleteBlock, AthleteBlockExercise } from "@hooper/api";
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { View, type LayoutRectangle } from "react-native";
 
 import { ExerciseMediaThumbnail } from "./ExerciseMediaThumbnail";
@@ -17,9 +17,9 @@ import {
   SetDoneButton,
   SetFieldRow,
   TickAllButton,
-  type GroupSetTarget,
   type SetRowState,
 } from "./ExerciseSetsCard";
+import { useSetActions } from "./SetActionsContext";
 import { SequenceRoundRow } from "./sequence/SequenceRoundRow";
 import { ExerciseMediaViewer } from "./videoPlayer/ExerciseMediaViewer";
 
@@ -27,23 +27,9 @@ type SupersetBlockProps = {
   block: AthleteBlock;
   /** blockExerciseId -> per-round state, same shape ExerciseSetsCard expects. */
   setsByBlockExercise: Record<string, SetRowState[]>;
-  onValueChange: (
-    blockExerciseId: string,
-    setIndex: number,
-    position: number,
-    value: number,
-  ) => void;
-  onApplyForward: (
-    blockExerciseId: string,
-    position: number,
-    value: number,
-    targetSetIndices: number[],
-  ) => void;
-  onSetDone: (blockExerciseId: string, setIndex: number) => void;
-  onSetManyDone: (targets: GroupSetTarget[], done: boolean) => void;
   /** Reports each round card's layout within the scrolling block content,
    * keyed "round-{index}", so BlockContent can scroll the next one into view
-   * on completion. */
+   * on completion. Must be referentially stable. */
   onCardLayout: (roundKey: string, layout: LayoutRectangle) => void;
 };
 
@@ -51,32 +37,26 @@ type SupersetBlockProps = {
  * this round overrides it) on top, then this round's value boxes and done
  * button below. No card chrome and no per-exercise done count of its own:
  * those belong to the round card wrapping every exercise's row. */
-function RoundExerciseRow({
+const RoundExerciseRow = memo(function RoundExerciseRow({
   blockExercise,
   setIndex,
   set,
   laterRounds,
-  onValueChange,
-  onApplyForward,
-  onSetDone,
 }: {
   blockExercise: AthleteBlockExercise;
   setIndex: number;
   set: SetRowState | undefined;
   /** The later rounds a value can be copied into — empty on the last round. */
   laterRounds: number[];
-  onValueChange: (position: number, value: number) => void;
-  onApplyForward: (
-    position: number,
-    value: number,
-    targetSetIndices: number[],
-  ) => void;
-  onSetDone: () => void;
 }) {
   const exercise = resolveSetExercise(blockExercise, setIndex);
   const style = resolveSetStyle(blockExercise, setIndex);
-  const measurements = sortByUnitTypePriority(
-    blockExercise.measurements.filter((m) => m.set_index === setIndex),
+  const measurements = useMemo(
+    () =>
+      sortByUnitTypePriority(
+        blockExercise.measurements.filter((m) => m.set_index === setIndex),
+      ),
+    [blockExercise, setIndex],
   );
   const done = set?.done ?? false;
   const media = useMemo(() => exerciseMediaItems(exercise), [exercise]);
@@ -105,29 +85,34 @@ function RoundExerciseRow({
             unitType={m.unit_type}
             value={set?.values[m.position]}
             done={done}
-            hasLaterSets={laterRounds.length > 0}
-            onChange={(value) => onValueChange(m.position, value)}
-            onApplyForward={(value) =>
-              onApplyForward(m.position, value, laterRounds)
-            }
+            blockExerciseId={blockExercise.id}
+            setIndex={setIndex}
+            position={m.position}
+            laterSetIndices={laterRounds}
           />
         ))}
-        <SetDoneButton done={done} onPress={onSetDone} />
+        <SetDoneButton
+          done={done}
+          blockExerciseId={blockExercise.id}
+          setIndex={setIndex}
+        />
       </SetFieldRow>
-      <ExerciseMediaViewer
-        startIndex={viewerStart}
-        onClose={() => setViewerStart(null)}
-        items={media}
-        title={exercise.name}
-        cue={exercise.description}
-      />
+      {/* Mounted only while open — see ExerciseHeader. */}
+      {viewerStart !== null ? (
+        <ExerciseMediaViewer
+          startIndex={viewerStart}
+          onClose={() => setViewerStart(null)}
+          items={media}
+          title={exercise.name}
+          cue={exercise.description}
+        />
+      ) : null}
     </View>
   );
-}
+});
 
 /** A round card's title bar — round number, done count, and the tick-all
- * button. Split out of RoundCard purely to keep that component within the
- * line-count lint budget once the tick-all wiring was added. */
+ * button. */
 function RoundCardHeader({
   roundIndex,
   doneCount,
@@ -160,100 +145,23 @@ function RoundCardHeader({
   );
 }
 
-/** A round card's exercise list — split out of RoundCard purely to keep that
- * component within the line-count lint budget. */
-function RoundExerciseRows({
-  block,
-  roundIndex,
-  setsByBlockExercise,
-  laterRounds,
-  onValueChange,
-  onApplyForward,
-  onSetDone,
-}: {
-  block: AthleteBlock;
+type RoundCardProps = {
   roundIndex: number;
+  block: AthleteBlock;
   setsByBlockExercise: Record<string, SetRowState[]>;
   laterRounds: number[];
-  onValueChange: (
-    blockExerciseId: string,
-    position: number,
-    value: number,
-  ) => void;
-  onApplyForward: (
-    blockExerciseId: string,
-    position: number,
-    value: number,
-    targetSetIndices: number[],
-  ) => void;
-  onSetDone: (blockExerciseId: string) => void;
-}) {
-  return (
-    <View className="bg-surface-2">
-      {block.exercises.map((be, i) => {
-        const rowProps = {
-          setIndex: roundIndex,
-          set: setsByBlockExercise[be.id]?.[roundIndex],
-          laterRounds,
-          onValueChange: (position: number, value: number) =>
-            onValueChange(be.id, position, value),
-          onApplyForward: (
-            position: number,
-            value: number,
-            targets: number[],
-          ) => onApplyForward(be.id, position, value, targets),
-          onSetDone: () => onSetDone(be.id),
-        };
-        return (
-          <View key={be.id}>
-            {i > 0 ? <View className="border-border-subtle border-t" /> : null}
-            {isSequenceBlockExercise(be) ? (
-              <SequenceRoundRow blockExercise={be} {...rowProps} />
-            ) : (
-              <RoundExerciseRow blockExercise={be} {...rowProps} />
-            )}
-          </View>
-        );
-      })}
-    </View>
-  );
-}
+  onCardLayout: (roundKey: string, layout: LayoutRectangle) => void;
+};
 
-function RoundCard({
+function RoundCardImpl({
   roundIndex,
-  roundCount,
   block,
   setsByBlockExercise,
-  onValueChange,
-  onApplyForward,
-  onSetDone,
-  onSetManyDone,
-  onLayout,
-}: {
-  roundIndex: number;
-  roundCount: number;
-  block: AthleteBlock;
-  setsByBlockExercise: Record<string, SetRowState[]>;
-  onValueChange: (
-    blockExerciseId: string,
-    position: number,
-    value: number,
-  ) => void;
-  onApplyForward: (
-    blockExerciseId: string,
-    position: number,
-    value: number,
-    targetSetIndices: number[],
-  ) => void;
-  onSetDone: (blockExerciseId: string) => void;
-  onSetManyDone: (targets: GroupSetTarget[], done: boolean) => void;
-  onLayout: (layout: LayoutRectangle) => void;
-}) {
+  laterRounds,
+  onCardLayout,
+}: RoundCardProps) {
+  const { setManyDone } = useSetActions();
   const total = block.exercises.length;
-  const laterRounds = Array.from(
-    { length: Math.max(0, roundCount - roundIndex - 1) },
-    (_, k) => roundIndex + 1 + k,
-  );
   const doneCount = block.exercises.filter(
     (be) => setsByBlockExercise[be.id]?.[roundIndex]?.done,
   ).length;
@@ -261,7 +169,9 @@ function RoundCard({
 
   return (
     <View
-      onLayout={(e) => onLayout(e.nativeEvent.layout)}
+      onLayout={(e) =>
+        onCardLayout(`round-${roundIndex}`, e.nativeEvent.layout)
+      }
       className="border-border-subtle mb-3 overflow-hidden rounded-2xl border"
       style={{ opacity: allDone ? 0.8 : 1 }}>
       <RoundCardHeader
@@ -270,7 +180,7 @@ function RoundCard({
         total={total}
         allDone={allDone}
         onTickAll={() =>
-          onSetManyDone(
+          setManyDone(
             block.exercises.map((be) => ({
               blockExerciseId: be.id,
               setIndex: roundIndex,
@@ -279,18 +189,50 @@ function RoundCard({
           )
         }
       />
-      <RoundExerciseRows
-        block={block}
-        roundIndex={roundIndex}
-        setsByBlockExercise={setsByBlockExercise}
-        laterRounds={laterRounds}
-        onValueChange={onValueChange}
-        onApplyForward={onApplyForward}
-        onSetDone={onSetDone}
-      />
+      <View className="bg-surface-2">
+        {block.exercises.map((be, i) => {
+          const rowProps = {
+            setIndex: roundIndex,
+            set: setsByBlockExercise[be.id]?.[roundIndex],
+            laterRounds,
+          };
+          return (
+            <View key={be.id}>
+              {i > 0 ? (
+                <View className="border-border-subtle border-t" />
+              ) : null}
+              {isSequenceBlockExercise(be) ? (
+                <SequenceRoundRow blockExercise={be} {...rowProps} />
+              ) : (
+                <RoundExerciseRow blockExercise={be} {...rowProps} />
+              )}
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 }
+
+/** Re-renders a round card only when one of *its* rows changed — every card
+ * gets the whole sets map, so without this a tick in round 1 re-rendered
+ * every round. */
+const RoundCard = memo(RoundCardImpl, (prev, next) => {
+  if (
+    prev.block !== next.block ||
+    prev.roundIndex !== next.roundIndex ||
+    prev.laterRounds !== next.laterRounds ||
+    prev.onCardLayout !== next.onCardLayout
+  ) {
+    return false;
+  }
+  const r = prev.roundIndex;
+  return prev.block.exercises.every(
+    (be) =>
+      prev.setsByBlockExercise[be.id]?.[r] ===
+      next.setsByBlockExercise[be.id]?.[r],
+  );
+});
 
 /**
  * A superset/circuit block: every exercise shares the same round count
@@ -301,32 +243,32 @@ function RoundCard({
 export function SupersetBlock({
   block,
   setsByBlockExercise,
-  onValueChange,
-  onApplyForward,
-  onSetDone,
-  onSetManyDone,
   onCardLayout,
 }: SupersetBlockProps) {
   const rounds = block.sets ?? block.exercises[0]?.sets ?? 0;
+  // Per-round apply-forward targets, built once so memoised rows and field
+  // boxes see the same array every render.
+  const laterRoundsByRound = useMemo(
+    () =>
+      Array.from({ length: rounds }, (_, roundIndex) =>
+        Array.from(
+          { length: Math.max(0, rounds - roundIndex - 1) },
+          (_, k) => roundIndex + 1 + k,
+        ),
+      ),
+    [rounds],
+  );
 
   return (
     <View>
-      {Array.from({ length: rounds }, (_, roundIndex) => (
+      {laterRoundsByRound.map((laterRounds, roundIndex) => (
         <RoundCard
           key={roundIndex}
           roundIndex={roundIndex}
-          roundCount={rounds}
           block={block}
           setsByBlockExercise={setsByBlockExercise}
-          onValueChange={(blockExerciseId, position, value) =>
-            onValueChange(blockExerciseId, roundIndex, position, value)
-          }
-          onApplyForward={onApplyForward}
-          onSetDone={(blockExerciseId) =>
-            onSetDone(blockExerciseId, roundIndex)
-          }
-          onSetManyDone={onSetManyDone}
-          onLayout={(layout) => onCardLayout(`round-${roundIndex}`, layout)}
+          laterRounds={laterRounds}
+          onCardLayout={onCardLayout}
         />
       ))}
     </View>

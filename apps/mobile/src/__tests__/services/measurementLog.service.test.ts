@@ -3,15 +3,20 @@ import {
   markSetPending,
   prefillKey,
   upsertSetLog,
+  upsertSetLogs,
 } from "@/src/services/measurementLog.service";
 import type { AthleteSessionDetail } from "@/src/services/program.service";
 import { initClient } from "@hooper/api";
 
-const mockSupabase = { from: jest.fn() };
+const mockSupabase = { from: jest.fn(), rpc: jest.fn() };
 const mockFrom = mockSupabase.from;
+const mockRpc = mockSupabase.rpc;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Default: the batched RPC isn't available, so buildPrefillMap exercises
+  // its per-pair fallback (the path most tests below assert on).
+  mockRpc.mockResolvedValue({ data: null, error: { message: "missing" } });
   initClient(mockSupabase as any);
 });
 
@@ -131,6 +136,57 @@ function session(
   };
 }
 
+// ─── upsertSetLogs ──────────────────────────────────────────────────────────
+
+describe("upsertSetLogs", () => {
+  const input = {
+    sessionCompletionId: "sc1",
+    blockExerciseId: "be1",
+    setIndex: 0,
+    athleteProfileId: "p1",
+    exerciseId: "ex1",
+    unitType: "kg",
+    plannedValue: 40,
+    actualValue: 42,
+  };
+
+  it("writes every row in one upsert on the log grain, without a select", async () => {
+    const upsert = jest.fn().mockResolvedValue({ error: null });
+    mockFrom.mockReturnValue({ upsert });
+
+    await upsertSetLogs([
+      { ...input, position: 0 },
+      { ...input, position: 1, unitType: "reps", actualValue: 8 },
+    ]);
+
+    expect(mockFrom).toHaveBeenCalledTimes(1);
+    expect(upsert).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({ position: 0, status: "completed" }),
+        expect.objectContaining({ position: 1, actual_value: 8 }),
+      ],
+      {
+        onConflict:
+          "session_completion_id,block_exercise_id,position,set_index",
+      },
+    );
+  });
+
+  it("is a no-op for an empty batch", async () => {
+    await upsertSetLogs([]);
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it("throws on error", async () => {
+    mockFrom.mockReturnValue({
+      upsert: jest.fn().mockResolvedValue({ error: { message: "boom" } }),
+    });
+    await expect(upsertSetLogs([{ ...input, position: 0 }])).rejects.toThrow(
+      "boom",
+    );
+  });
+});
+
 // ─── upsertSetLog ───────────────────────────────────────────────────────────
 
 describe("upsertSetLog", () => {
@@ -242,6 +298,41 @@ describe("buildPrefillMap", () => {
     const result = await buildPrefillMap("p1", s);
 
     expect(result.get(prefillKey("ex1", "kg"))).toBe(55);
+  });
+
+  it("fetches every blank pair in one batched RPC when it's available", async () => {
+    const s = session([
+      {
+        exerciseId: "ex1",
+        position: 0,
+        unitType: "kg",
+        value: null,
+        valueEnteredBy: "athlete",
+      },
+      {
+        exerciseId: "ex1",
+        position: 1,
+        unitType: "reps",
+        value: null,
+        valueEnteredBy: "athlete",
+      },
+    ]);
+    mockRpc.mockResolvedValue({
+      data: [{ exercise_id: "ex1", unit_type: "kg", actual_value: "62.5" }],
+      error: null,
+    });
+
+    const result = await buildPrefillMap("p1", s);
+
+    expect(mockRpc).toHaveBeenCalledTimes(1);
+    expect(mockRpc).toHaveBeenCalledWith("last_logged_values", {
+      p_athlete_profile_id: "p1",
+      p_exercise_ids: ["ex1", "ex1"],
+      p_unit_types: ["kg", "reps"],
+    });
+    expect(mockFrom).not.toHaveBeenCalled();
+    expect(result.get(prefillKey("ex1", "kg"))).toBe(62.5);
+    expect(result.has(prefillKey("ex1", "reps"))).toBe(false);
   });
 
   it("omits an entry when there's no prior logged value", async () => {

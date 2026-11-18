@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import Animated, {
   useAnimatedScrollHandler,
@@ -13,6 +19,13 @@ import Animated, {
 // visible swipe path: the tab bar's indicator and active label track
 // `scrollX` on the UI thread and move with the finger regardless.
 const SETTLE_QUIET_MS = 150;
+
+function clearTimer(timer: { current: ReturnType<typeof setTimeout> | null }) {
+  if (timer.current != null) {
+    clearTimeout(timer.current);
+    timer.current = null;
+  }
+}
 
 type UseBlockPagerArgs = {
   blockCount: number;
@@ -80,12 +93,7 @@ export function useBlockPager({
     return { x: blockIdx * pageWidth, y: 0 };
   });
 
-  function clearSettleTimer() {
-    if (settleTimer.current != null) {
-      clearTimeout(settleTimer.current);
-      settleTimer.current = null;
-    }
-  }
+  const clearSettleTimer = () => clearTimer(settleTimer);
 
   // Record the current offset and (re)arm the quiet timer. Ignored for
   // programmatic scrolls (`!isUserDrag`). Reads the offset straight off the
@@ -100,10 +108,28 @@ export function useBlockPager({
       const raw = Math.round(settleOffsetX.current / pageWidth);
       const index = Math.max(0, Math.min(blockCount - 1, raw));
       lastReportedIdx.current = index;
-      if (index !== blockIdx) onBlockIdxChange(index);
+      // A transition, so the re-render this triggers (the newly active page,
+      // tabs, header) never blocks the athlete's next tap or scroll.
+      if (index !== blockIdx) startTransition(() => onBlockIdxChange(index));
     }, SETTLE_QUIET_MS);
   }
 
+  /** Starts the animated scroll to `index` right away — before the parent
+   * re-renders for the new `blockIdx` — so a tab tap / footer press /
+   * auto-advance slides immediately instead of after a React commit. Marks
+   * `index` as already reported, so the sync effect below doesn't scroll a
+   * second time once `blockIdx` catches up. */
+  const scrollToBlock = useCallback(
+    (index: number) => {
+      lastReportedIdx.current = index;
+      isUserDrag.current = false;
+      clearTimer(settleTimer);
+      scrollRef.current?.scrollTo({ x: index * pageWidth, animated: true });
+    },
+    [pageWidth],
+  );
+
+  // Fallback for a `blockIdx` change that didn't go through scrollToBlock.
   useEffect(() => {
     if (blockIdx === lastReportedIdx.current) return;
     lastReportedIdx.current = blockIdx;
@@ -141,6 +167,7 @@ export function useBlockPager({
 
   return {
     scrollRef,
+    scrollToBlock,
     initialContentOffset,
     onScroll,
     onScrollBeginDrag,

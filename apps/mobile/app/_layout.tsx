@@ -41,7 +41,18 @@ const FONTS = {
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(FONTS);
 
-  const { status, primaryRole, session, hydrate } = useAuthStore();
+  // Narrow selectors, so the root navigator doesn't re-render on store
+  // writes it doesn't read — notably the hourly token refresh replacing
+  // `session` (only the metadata role is needed from it).
+  const status = useAuthStore((s) => s.status);
+  const primaryRole = useAuthStore((s) => s.primaryRole);
+  const hydrate = useAuthStore((s) => s.hydrate);
+  const metadataRole = useAuthStore(
+    (s) =>
+      s.session?.user?.user_metadata?.role as
+        | import("@/src/types/database.types").RoleType
+        | undefined,
+  );
   const router = useRouter();
   const segments = useSegments() as string[];
 
@@ -86,12 +97,7 @@ export default function RootLayout() {
 
       // Fall back to session user_metadata when profile hasn't loaded yet.
       // This prevents defaulting to "player" while primaryRole is still null.
-      const role =
-        primaryRole ??
-        (session?.user?.user_metadata?.role as
-          | import("@/src/types/database.types").RoleType
-          | undefined) ??
-        null;
+      const role = primaryRole ?? metadataRole ?? null;
 
       // Don't redirect until we know the role — avoids landing on the wrong dashboard.
       if (!role) return;
@@ -106,7 +112,7 @@ export default function RootLayout() {
         router.replace(`/(app)/${role}` as `/(app)/${typeof role}`);
       }
     }
-  }, [status, segments, primaryRole, session]);
+  }, [status, segments, primaryRole, metadataRole]);
 
   if (!fontsLoaded && !fontError) {
     return null;

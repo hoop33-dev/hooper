@@ -25,6 +25,7 @@ import {
   sessionTotals,
 } from "@/src/lib/measurementSummary";
 import { sequenceChainLabel } from "@/src/lib/sequenceDisplay";
+import { cacheSessionDetail } from "@/src/lib/sessionDetailCache";
 import { getProgramForm } from "@/src/services/formResponse.service";
 import {
   getProgram,
@@ -70,6 +71,7 @@ function usePreviewData(sessionId: string, programId: string) {
           getProgram(programId),
           getProgramForm(programId),
         ]);
+        cacheSessionDetail(session);
         if (cancelled) return;
         setData({
           session,

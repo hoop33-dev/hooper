@@ -14,9 +14,13 @@ export function BackButton({
   className = "mb-7",
 }: BackButtonProps) {
   return (
+    // py-2 (plus a horizontal hitSlop) makes the link a comfortable tap
+    // target and gives it a little more room above and below; screens trim
+    // their own top padding to account for the 8px it adds on top.
     <Pressable
       onPress={onPress}
-      className={`flex-row items-center gap-1.5 self-start ${className}`}
+      hitSlop={{ left: 12, right: 12 }}
+      className={`flex-row items-center gap-1.5 self-start py-2 ${className}`}
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
       <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
         <Path

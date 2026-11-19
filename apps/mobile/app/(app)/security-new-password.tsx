@@ -251,7 +251,7 @@ function useNewPasswordForm() {
 
 function NewPasswordHeader({ onBack }: { onBack: () => void }) {
   return (
-    <View className="px-6 pt-2 pb-1">
+    <View className="px-6 pt-0.5 pb-1">
       <BackButton label="Verify" onPress={onBack} className="mb-5" />
       <Hero>Security</Hero>
     </View>

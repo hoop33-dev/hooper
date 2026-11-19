@@ -95,7 +95,7 @@ export default function LoginScreen() {
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top"]}>
       <View className="flex-1">
         {/* Header */}
-        <View className="px-6 pt-2 pb-4">
+        <View className="px-6 pt-0.5 pb-4">
           <BackButton
             label="Back"
             onPress={() => router.back()}

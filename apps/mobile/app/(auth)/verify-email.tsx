@@ -342,7 +342,7 @@ export default function VerifyEmailScreen() {
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
       {/* Step header — hidden on success */}
       {!isSuccess && (
-        <View className="px-6 pt-5">
+        <View className="px-6 pt-4">
           <BackButton
             label="Sign in"
             onPress={async () => {

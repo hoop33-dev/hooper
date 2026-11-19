@@ -230,7 +230,7 @@ export default function ProgramDetailScreen() {
 
   return (
     <View className="bg-surface flex-1">
-      <View className="px-5 pt-[58px] pb-4">
+      <View className="px-5 pt-[67px] pb-4">
         <BackButton
           label="Programs"
           onPress={() => router.back()}

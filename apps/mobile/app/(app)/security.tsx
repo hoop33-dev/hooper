@@ -201,7 +201,7 @@ export default function SecurityScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}>
-        <View className="px-6 pt-2 pb-7">
+        <View className="px-6 pt-0.5 pb-7">
           <BackButton
             label="Profile"
             onPress={() => router.back()}

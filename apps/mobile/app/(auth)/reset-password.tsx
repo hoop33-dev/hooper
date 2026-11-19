@@ -125,7 +125,7 @@ export default function ResetPasswordScreen() {
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top"]}>
       <View className="flex-1">
         {/* Header */}
-        <View className="px-6 pt-2 pb-4">
+        <View className="px-6 pt-0.5 pb-4">
           <BackButton onPress={() => router.back()} className="mb-9" />
 
           <Hero className="mb-1">Reset password</Hero>

@@ -295,7 +295,7 @@ export default function SecurityVerifyScreen() {
 
   return (
     <StyledSafeAreaView className="bg-surface flex-1" edges={["top", "bottom"]}>
-      <View className="px-6 pt-2">
+      <View className="px-6 pt-0.5">
         <BackButton label="Security" onPress={() => router.back()} />
       </View>
       <View className="px-6 pt-4 pb-2">

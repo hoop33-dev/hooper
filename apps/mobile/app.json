@@ -42,7 +42,8 @@
       "expo-font",
       "expo-image-picker",
       "expo-video",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "./plugins/withFastScreenTransitions"
     ]
   }
 }

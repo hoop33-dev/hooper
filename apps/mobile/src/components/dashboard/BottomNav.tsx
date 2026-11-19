@@ -53,7 +53,9 @@ export function BottomNav({ active }: BottomNavProps) {
         backgroundColor: "rgba(20,17,18,0.92)",
         borderTopWidth: 1,
         borderTopColor: colors.borderSubtle,
-        paddingBottom: 14,
+        // No extra bottom padding: DashboardLayout already wraps the bar in
+        // the bottom safe area (home indicator / gesture bar), and the tabs
+        // carry their own 6px — anything more left the bar floating high.
         paddingTop: 6,
       }}>
       {slotWidth > 0 ? (
